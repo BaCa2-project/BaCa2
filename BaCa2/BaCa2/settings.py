@@ -35,7 +35,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django_sorcery',
 ]
 
 MIDDLEWARE = [
@@ -73,12 +72,12 @@ WSGI_APPLICATION = 'BaCa2.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': 'baca2db',
         'USER': 'baca2',
         'PASSWORD': 'zaqwsxcde',
-        'HOST': '127.0.0.1',
-        'PORT': '3306',
+        'HOST': 'localhost',
+        'PORT': '',
     }
 }
 
@@ -105,7 +104,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'pl'
 
-TIME_ZONE = 'GMT+2'
+TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
