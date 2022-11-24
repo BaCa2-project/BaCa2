@@ -644,3 +644,4 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+BaCa2/BaCa2/settings_local.py

@@ -35,6 +35,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    'allauth',  # https://github.com/pennersr/django-allauth
+    'allauth.account',
+
+    'django_extensions',  # https://github.com/django-extensions/django-extensions
+
+    'dbbackup',  # https://github.com/jazzband/django-dbbackup
 ]
 
 MIDDLEWARE = [
@@ -104,7 +111,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'pl'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Warsaw'
 
 USE_I18N = True
 
@@ -119,3 +126,15 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+##################
+# APPS SETTINGS  #
+##################
+
+# import applications configuration
+for f in (Path(__file__) / 'app_configurations').glob('[!_]*.py'):
+    exec(open(f, "rb").read())
+
+
+if (Path(__file__) / "settings_local.py").exists():
+    exec(open(Path(__file__) / "settings_local.py", "rb").read())
