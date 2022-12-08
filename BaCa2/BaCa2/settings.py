@@ -42,6 +42,10 @@ INSTALLED_APPS = [
     'django_extensions',  # https://github.com/django-extensions/django-extensions
 
     'dbbackup',  # https://github.com/jazzband/django-dbbackup
+
+    'main',  # local app
+
+    'polls.apps.PollsConfig',  # local app
 ]
 
 MIDDLEWARE = [
