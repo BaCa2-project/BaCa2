@@ -43,9 +43,7 @@ INSTALLED_APPS = [
 
     'dbbackup',  # https://github.com/jazzband/django-dbbackup
 
-    'main',  # local app
-
-    'polls.apps.PollsConfig',  # local app
+    'course',  # local app
 ]
 
 MIDDLEWARE = [
@@ -138,7 +136,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # import applications configuration
 for f in (Path(__file__) / 'app_configurations').glob('[!_]*.py'):
     exec(open(f, "rb").read())
-
 
 if (Path(__file__) / "settings_local.py").exists():
     exec(open(Path(__file__) / "settings_local.py", "rb").read())

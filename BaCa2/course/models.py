@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models import Count
+from django.utils.translation import gettext_lazy as _
 from BaCa2.BaCa2.exceptions import ModelValidationError
 
 
@@ -20,12 +22,22 @@ class Round(models.Model):
 
 
 class Task(models.Model):
+    class TaskJudgingMode(models.TextChoices):
+        LINEAR = 'L', _('Linear')
+        UNANIMOUS = 'U', _('Unanimous')
+
     package_instance = models.IntegerField()  # TODO: add foreign key
     task_name = models.CharField(max_length=1023)
     round = models.ForeignKey(Round, on_delete=models.CASCADE)
+    judging_mode = models.CharField(
+        max_length=1,
+        choices=TaskJudgingMode.choices,
+        default=TaskJudgingMode.LINEAR
+    )
 
     def __str__(self):
-        return f"Task {self.pk}: {self.task_name}. Package: {self.package_instance}"
+        return f"Task {self.pk}: {self.task_name}. Judging mode: {self.TaskJudgingMode[self.judging_mode]}" \
+               f" Package: {self.package_instance}"
 
 
 class TestSet(models.Model):
@@ -51,11 +63,36 @@ class Submit(models.Model):
     task = models.ForeignKey(Test, on_delete=models.CASCADE)
     user = models.IntegerField()  # TODO: user id
 
+    # TODO: scoring method
+    # @property
+    # def score(self):
+    #     tests = (
+    #         Result.objects
+    #         .filter(user=self.user)
+    #         .values(test__task_set__pk)
+    #         .annotate(amount=Count('*'))
+    #     )
+
 
 class Result(models.Model):  # TODO: +pola z kolejki
+    class ResultStatus(models.TextChoices):
+        PND = 'PND', _('Pending')
+        OK = 'OK', _('Test accepted')
+        ANS = 'ANS', _('Wrong answer')
+        RTE = 'RTE', _('Runtime error')
+        MEM = 'MEM', _('Memory exceeded')
+        TLE = 'TLE', _('Time limit exceeded')
+        CME = 'CME', _('Compilation error')
+        EXT = 'EXT', _('Unknown extension')
+        INT = 'INT', _('Internal error')
+
     test = models.ForeignKey(Test, on_delete=models.CASCADE)
     submit = models.ForeignKey(Submit, on_delete=models.CASCADE)
+    status = models.CharField(
+        max_length=3,
+        choices=ResultStatus.choices,
+        default=ResultStatus.PND
+    )
 
     def __str__(self):
         return f"Result {self.pk}: {self.test}, {self.submit}"
-
