@@ -1,0 +1,2 @@
+class ModelValidationError(Exception):
+    pass
