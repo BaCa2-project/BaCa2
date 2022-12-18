@@ -6,6 +6,7 @@ class TaskJudgingMode(models.TextChoices):
     LIN = 'LIN', _('Linear')
     UNA = 'UNA', _('Unanimous')
 
+
 class ResultStatus(models.TextChoices):
     PND = 'PND', _('Pending')
     OK = 'OK', _('Test accepted')

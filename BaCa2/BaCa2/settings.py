@@ -11,9 +11,11 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 from pathlib import Path
+from BaCa2.db_settings import DEFAULT_DB_SETTINGS
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+SETTINGS_DIR = Path(__file__).resolve().parent
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
@@ -79,16 +81,12 @@ WSGI_APPLICATION = 'BaCa2.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'baca2db',
-        'USER': 'baca2',
-        'PASSWORD': 'zaqwsxcde',
-        'HOST': 'localhost',
-        'PORT': '',
-    }
+    'default': DEFAULT_DB_SETTINGS | {'NAME': 'baca2db'}
 }
+if (SETTINGS_DIR / 'ext_databases.py').exists():
+    exec(open((SETTINGS_DIR / 'ext_databases.py'), "rb").read())
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
@@ -134,8 +132,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 ##################
 
 # import applications configuration
-for f in (Path(__file__) / 'app_configurations').glob('[!_]*.py'):
+for f in (SETTINGS_DIR / 'app_configurations').glob('[!_]*.py'):
     exec(open(f, "rb").read())
 
-if (Path(__file__) / "settings_local.py").exists():
-    exec(open(Path(__file__) / "settings_local.py", "rb").read())
+if (SETTINGS_DIR / "settings_local.py").exists():
+    exec(open(SETTINGS_DIR / "settings_local.py", "rb").read())

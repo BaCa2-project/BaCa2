@@ -647,3 +647,5 @@ cython_debug/
 BaCa2/BaCa2/settings_local.py
 
 Baca2/course/submits/
+
+BaCa2/ext_databases.py
