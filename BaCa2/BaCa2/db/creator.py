@@ -1,17 +1,17 @@
-import logging as log
-from pathlib import Path
-
+import logging
 import psycopg2
 
-from BaCa2.db_settings import DEFAULT_DB_SETTINGS
+from BaCa2.db.setup import DEFAULT_DB_SETTINGS
 from BaCa2.exceptions import NewDBError
+
+log = logging.getLogger(__name__)
 
 
 def createDB(db_name, **db_kwargs):
     db_key = db_name
     db_name += '_db'
     from BaCa2.settings import DATABASES, SETTINGS_DIR
-    from BaCa2.db_settings import ADMIN_DB_USER, DEFAULT_DB_HOST
+    from BaCa2.db.setup import ADMIN_DB_USER, DEFAULT_DB_HOST
 
     if db_key in DATABASES.keys():
         log.error(f"DB {db_name} already exists.")
@@ -47,7 +47,7 @@ DATABASES['{db_key}'] = {'{'}
 {'}'}
 
 '''
-    with open(SETTINGS_DIR / 'ext_databases.py', 'a') as f:
+    with open(SETTINGS_DIR / 'db/ext_databases.py', 'a') as f:
         f.write(new_db_save)
 
     log.info(f"DB {db_name} settings saved to ext_databases.")

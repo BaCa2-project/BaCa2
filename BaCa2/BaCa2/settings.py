@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 from pathlib import Path
-from BaCa2.db_settings import DEFAULT_DB_SETTINGS
+from BaCa2.db.setup import DEFAULT_DB_SETTINGS
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -85,8 +85,8 @@ WSGI_APPLICATION = 'BaCa2.wsgi.application'
 DATABASES = {
     'default': DEFAULT_DB_SETTINGS | {'NAME': 'baca2db'}
 }
-if (SETTINGS_DIR / 'ext_databases.py').exists():
-    exec(open((SETTINGS_DIR / 'ext_databases.py'), "rb").read())
+if (SETTINGS_DIR / 'db/ext_databases.py').exists():
+    exec(open((SETTINGS_DIR / 'db/ext_databases.py'), "rb").read())
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
