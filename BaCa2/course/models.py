@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import Count
 from django.utils.translation import gettext_lazy as _
-from BaCa2.BaCa2.exceptions import ModelValidationError
+from BaCa2.exceptions import ModelValidationError
 
 
 class Round(models.Model):
@@ -23,20 +23,20 @@ class Round(models.Model):
 
 class Task(models.Model):
     class TaskJudgingMode(models.TextChoices):
-        LINEAR = 'L', _('Linear')
-        UNANIMOUS = 'U', _('Unanimous')
+        LIN = 'LIN', _('Linear')
+        UNA = 'UNA', _('Unanimous')
 
     package_instance = models.IntegerField()  # TODO: add foreign key
     task_name = models.CharField(max_length=1023)
     round = models.ForeignKey(Round, on_delete=models.CASCADE)
     judging_mode = models.CharField(
-        max_length=1,
+        max_length=3,
         choices=TaskJudgingMode.choices,
-        default=TaskJudgingMode.LINEAR
+        default=TaskJudgingMode.LIN
     )
 
     def __str__(self):
-        return f"Task {self.pk}: {self.task_name}. Judging mode: {self.TaskJudgingMode[self.judging_mode]}" \
+        return f"Task {self.pk}: {self.task_name}; Judging mode: {self.TaskJudgingMode[self.judging_mode].label};" \
                f" Package: {self.package_instance}"
 
 
@@ -58,21 +58,27 @@ class Test(models.Model):
 
 
 class Submit(models.Model):
-    submit_date = models.DateTimeField()
-    source_code = models.FilePathField()
-    task = models.ForeignKey(Test, on_delete=models.CASCADE)
-    user = models.IntegerField()  # TODO: user id
+    submit_date = models.DateTimeField(auto_now_add=True)
+    source_code = models.FileField(upload_to="./BaCa2/course/submits")
+    task = models.ForeignKey(Task, on_delete=models.CASCADE)
+    usr = models.IntegerField()  # TODO: user id
+    final_score = models.FloatField(default=-1)
 
     # TODO: scoring method
     # @property
     # def score(self):
+    #     if self.final_score != -1:
+    #         return self.final_score
+    #
     #     tests = (
     #         Result.objects
     #         .filter(user=self.user)
-    #         .values(test__task_set__pk)
-    #         .annotate(amount=Count('*'))
+    #         .values('amount', 'test')
+    #         .annotate(amount=Count('test'))
     #     )
 
+
+# test.task_set.pk, submit.status, count(*)
 
 class Result(models.Model):  # TODO: +pola z kolejki
     class ResultStatus(models.TextChoices):
@@ -95,4 +101,5 @@ class Result(models.Model):  # TODO: +pola z kolejki
     )
 
     def __str__(self):
-        return f"Result {self.pk}: {self.test}, {self.submit}"
+        return f"Result {self.pk}: Set[{self.test.task_set.short_name}] Test[{self.test.short_name}]; " \
+               f"Stat: {self.ResultStatus[self.status]}"
