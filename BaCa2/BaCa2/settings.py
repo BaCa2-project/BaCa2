@@ -88,6 +88,10 @@ DATABASES = {
 if (SETTINGS_DIR / 'db/ext_databases.py').exists():
     exec(open((SETTINGS_DIR / 'db/ext_databases.py'), "rb").read())
 
+# DB routing
+# https://docs.djangoproject.com/en/4.1/topics/db/multi-db/
+DATABASE_ROUTERS = ['BaCa2.routing.SimpleCourseRouter']
+
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
 

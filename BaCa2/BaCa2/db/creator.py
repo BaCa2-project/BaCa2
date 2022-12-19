@@ -51,3 +51,9 @@ DATABASES['{db_key}'] = {'{'}
         f.write(new_db_save)
 
     log.info(f"DB {db_name} settings saved to ext_databases.")
+
+
+def migrateDB(db_name):
+    from django.core.management import call_command
+    call_command('migrate', f'--database={db_name}')
+    log.info(f"Migration for DB {db_name} applied.")
