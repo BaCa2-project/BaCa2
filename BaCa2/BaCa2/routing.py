@@ -19,3 +19,6 @@ class SimpleCourseRouter:
         if db != 'default' and app_label == 'course':
             return True
         return False
+
+
+# class CourseRouter(SimpleCourseRouter):

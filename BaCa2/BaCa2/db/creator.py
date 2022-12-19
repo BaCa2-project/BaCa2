@@ -57,3 +57,11 @@ def migrateDB(db_name):
     from django.core.management import call_command
     call_command('migrate', f'--database={db_name}')
     log.info(f"Migration for DB {db_name} applied.")
+
+
+def migrateAll():
+    from BaCa2.settings import DATABASES
+    log.info(f"Migrating all databases.")
+    for db in DATABASES.keys():
+        migrateDB(db)
+    log.info(f"All databases migrated.")
