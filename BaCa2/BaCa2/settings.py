@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/4.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
-
+from contextvars import ContextVar
 from pathlib import Path
 from BaCa2.db.setup import DEFAULT_DB_SETTINGS
 
@@ -90,7 +90,9 @@ if (SETTINGS_DIR / 'db/ext_databases.py').exists():
 
 # DB routing
 # https://docs.djangoproject.com/en/4.1/topics/db/multi-db/
-DATABASE_ROUTERS = ['course.routing.SimpleCourseRouter']
+DATABASE_ROUTERS = ['course.routing.ContextCourseRouter']
+
+currentDB = ContextVar('currentDB')
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
