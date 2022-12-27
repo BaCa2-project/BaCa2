@@ -8,3 +8,7 @@ class DataError(Exception):
 
 class NewDBError(Exception):
     pass
+
+
+class RoutingError(Exception):
+    pass
