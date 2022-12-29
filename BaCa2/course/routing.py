@@ -51,17 +51,6 @@ class ContextCourseRouter(SimpleCourseRouter):
         return self._get_context(model, **hints)
 
 
-# class DynamicManager(models.Manager):
-#     from BaCa2.settings import DATABASES
-#     from BaCa2.exceptions import RoutingError
-#
-#     def get_queryset(self):
-#         db = currentDB.get(default=None)
-#         if db is None or db not in DynamicManager.DATABASES.keys():
-#             raise DynamicManager.RoutingError(f"Can't access DB {db}. Remember to define it using 'InCourse'")
-#
-#         return self._queryset_class(model=self.model, using=db, hints=self._hints)
-
 class InCourse:
     def __init__(self, db):
         self.db = db
