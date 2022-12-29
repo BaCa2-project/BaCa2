@@ -5,6 +5,7 @@ from typing import Iterable, List, Tuple, Dict
 from random import choice, randint
 from string import ascii_lowercase, ascii_uppercase
 from unittest import TestSuite, TextTestRunner
+from threading import Thread
 
 from django.test import TestCase
 from django.utils import timezone
@@ -81,6 +82,7 @@ def create_random_submit(course_name: str,
                                      b"Test simple file upload.")
 
     allowed_statuses = list(ResultStatus)
+    allowed_statuses.remove(ResultStatus.OK)
     if not allow_pending_status:
         allowed_statuses.remove(ResultStatus.PND)
     with InCourse(course_name):
@@ -146,6 +148,18 @@ def create_simple_course(course_name: str,
             )
 
 
+def submiter(course_name: str,
+             usr,
+             task: Task,
+             submit_amount: int = 100,
+             time_interval: float = 0.1,
+             allow_pending_status: bool = False,
+             pass_chance: float = 0.5):
+    for i in range(submit_amount):
+        create_random_submit(course_name, usr, task, allow_pending_status=allow_pending_status, pass_chance=pass_chance)
+        sleep(time_interval)
+
+
 class SimpleTestCase(TestCase):
     course_name = 'test_simple_course'
 
@@ -188,17 +202,117 @@ class SimpleTestCase(TestCase):
             self.assertTrue(0 <= score <= points)
 
 
+class MultiThreadTest(TestCase):
+    course1 = 'sample_course2'
+    course2 = 'sample_course3'
 
-# def simple_test_suite():
-#     suite = TestSuite()
-#     suite.addTest(SimpleTestCase('test_create_simple_course'))
-#     suite.addTest(SimpleTestCase('test_simple_access'))
-#     suite.addTest(SimpleTestCase('test_add_random_submit'))
-#     suite.addTest(SimpleTestCase('test_score_simple_solution'))
-#     suite.addTest(SimpleTestCase('test_delete_simple_course'))
-#     return suite
+    @classmethod
+    def setUpClass(cls):
+        delete_course(cls.course1)
+        delete_course(cls.course2)
+        create1 = Thread(target=create_simple_course, args=(cls.course1,),
+                         kwargs={
+                             'time_offset': 2,
+                             'sleep_intervals': 0.5,
+                             'package_instances': (1, 2, 3, 4, 5),
+                             'submits': [
+                                 {'usr': 1, 'task': 1, 'pass_chance': 1},
+                                 {'usr': 1, 'task': 2},
+                                 {'usr': 2, 'task': 1},
+                                 {'usr': 3, 'task': 3, 'pass_chance': 0},
+                                 {'usr': 3, 'task': 1, 'pass_chance': 1},
+                                 {'usr': 1, 'task': 1, 'pass_chance': 0},
+                             ]
+                         })
+        create2 = Thread(target=create_simple_course, args=(cls.course2,),
+                         kwargs={
+                             'time_offset': 1,
+                             'sleep_intervals': 0.3,
+                             'package_instances': (1, 2, 3),
+                             'submits': [
+                                 {'usr': 3, 'task': 1, 'pass_chance': 1},
+                                 {'usr': 3, 'task': 2},
+                                 {'usr': 1, 'task': 1, 'pass_chance': 0},
+                                 {'usr': 2, 'task': 2, 'pass_chance': 0},
+                                 {'usr': 2, 'task': 1, 'pass_chance': 1},
+                                 {'usr': 3, 'task': 1, 'pass_chance': 0},
+                             ]
+                         })
 
-#
-# if __name__ == '__main__':
-#     runner = TextTestRunner()
-#     runner.run(simple_test_suite())
+        create1.start()
+        create2.start()
+        if create1.join() and create2.join():
+            pass
+
+    @classmethod
+    def tearDownClass(cls):
+        delete_course(cls.course1)
+        delete_course(cls.course2)
+
+    def test_tasks_amount(self):
+        with InCourse(self.course1):
+            self.assertEqual(Task.objects.count(), 5)
+        with InCourse(self.course2):
+            self.assertEqual(Task.objects.count(), 3)
+
+    def test_usr1_submits_amount(self):
+        with InCourse(self.course1):
+            self.assertEqual(Submit.objects.filter(usr=1).count(), 3)
+        with InCourse(self.course2):
+            self.assertEqual(Submit.objects.filter(usr=1).count(), 1)
+
+    def test_no_pending_score(self):
+        with InCourse(self.course1):
+            for s in Submit.objects.all():
+                self.assertNotEqual(s.score(), -1)
+        with InCourse(self.course2):
+            for s in Submit.objects.all():
+                self.assertNotEqual(s.score(), -1)
+
+    def test_usr1_score(self):
+        self.test_no_pending_score()
+        with InCourse(self.course1):
+            t = Task.objects.filter(pk=1).first()
+            self.assertEqual(t.best_submit(usr=1).score(), 1)
+
+            with InCourse(self.course2):
+                t = Task.objects.filter(pk=1).first()
+                self.assertEqual(t.best_submit(usr=1).score(), 0)
+
+    def test_without_InCourse_call(self):
+        from BaCa2.exceptions import RoutingError
+        with self.assertRaises((LookupError, RoutingError)):
+            Task.objects.count()
+
+    def two_submiters(self, submits, time_interval):
+        with InCourse(self.course1):
+            t1 = Task.objects.filter(pk=4).first()
+            submiter1 = Thread(target=submiter, args=(self.course1, 5, t1), kwargs={
+                'submit_amount': submits,
+                'pass_chance': 0,
+                'time_interval': time_interval
+            })
+        with InCourse(self.course2):
+            t2 = Task.objects.filter(pk=3).first()
+            submiter2 = Thread(target=submiter, args=(self.course2, 5, t2), kwargs={
+                'submit_amount': submits,
+                'pass_chance': 1,
+                'time_interval': time_interval
+            })
+
+        submiter1.start()
+        submiter2.start()
+
+        if submiter1.join() and submiter2.join():
+            with InCourse(self.course1):
+                for s in Submit.objects.all():
+                    self.assertEqual(s.score(), 0)
+            with InCourse(self.course2):
+                for s in Submit.objects.all():
+                    self.assertEqual(s.score(), 1)
+
+    def test_two_submitters_A_small(self):
+        self.two_submiters(50, 0.1)
+
+    def test_two_submitters_B_big(self):
+        self.two_submiters(1000, 0)

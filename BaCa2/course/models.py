@@ -67,8 +67,8 @@ class Task(models.Model):
         :return: The last submit of a user for a task.
         """
         if amount == 1:
-            return Submit.objects.filter(task=self, user=usr).order_by('-submit_date').first()
-        return Submit.objects.filter(task=self, user=usr).order_by('-submit_date').all()[:amount]
+            return Submit.objects.filter(task=self, usr=usr).order_by('-submit_date').first()
+        return Submit.objects.filter(task=self, usr=usr).order_by('-submit_date').all()[:amount]
 
     def best_submit(self, usr, amount=1):
         """
@@ -79,8 +79,8 @@ class Task(models.Model):
         :return: The best submit of a user for a task.
         """
         if amount == 1:
-            return Submit.objects.filter(task=self, user=usr).order_by('-final_score').first()
-        return Submit.objects.filter(task=self, user=usr).order_by('-final_score').all()[:amount]
+            return Submit.objects.filter(task=self, usr=usr).order_by('-final_score').first()
+        return Submit.objects.filter(task=self, usr=usr).order_by('-final_score').all()[:amount]
 
 
 class TestSet(models.Model):

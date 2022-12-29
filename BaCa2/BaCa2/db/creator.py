@@ -2,7 +2,7 @@ import logging
 from time import sleep
 
 import psycopg2
-from threading import Lock, Thread
+from threading import Lock
 
 from BaCa2.db.setup import DEFAULT_DB_SETTINGS
 from BaCa2.exceptions import NewDBError
@@ -157,6 +157,8 @@ def deleteDB(db_name, verbose=False):
     cursor = conn.cursor()
 
     cursor.execute(CLOSE_ALL_DB_CONNECTIONS % db_alias)
+    if verbose:
+        print("All DB connections closed")
 
     sql = f''' DROP DATABASE IF EXISTS {db_alias}; '''
     if verbose:
