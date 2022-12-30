@@ -24,8 +24,29 @@ def create_random_task(course_name: str,
                        package_id=1,
                        judging_mode: TaskJudgingMode = None,
                        points: float = None,
-                       tests=None,
+                       tests: dict = None,
                        time_offset: float = 0):
+    """
+    It creates a task with the given name, package, round, judging mode, points, tests and time offset.
+    Every optional, not provided argument will be randomized.
+
+    :param course_name: the name of the course to create the task in
+    :type course_name: str
+    :param round_task: the round in which the task will be created
+    :type round_task: Round
+    :param task_name: the name of the task
+    :type task_name: str
+    :param package_id: the id of the package that the task will be created in, defaults to 1 (optional)
+    :param judging_mode: judging mode for the task (selected from choices.TaskJudgingMode)
+    :type judging_mode: TaskJudgingMode
+    :param points: amount of points for the task
+    :type points: float
+    :param tests: dictionary of sets of test. Every set should contain weight and test list (as test names list).
+    :type tests: dict
+    :param time_offset: offset between instructions - used to simulate time changes in multithreading testing.
+    :type time_offset: float (optional)
+    :return: A task object
+    """
     if task_name is None:
         task_prefix = random_string(3, ascii_uppercase)
         task_name = f"{task_prefix} task {task_prefix}{random_string(15, ascii_lowercase)}"
@@ -77,6 +98,23 @@ def create_random_submit(course_name: str,
                          submit_date: datetime = timezone.now(),
                          allow_pending_status: bool = False,
                          pass_chance: float = 0.5):
+    """
+    It creates a random submit for a given task.
+    Every optional, not provided argument will be randomized.
+
+    :param course_name: the name of the course to create the submit in
+    :type course_name: str
+    :param usr: The user who submitted the task
+    :param parent_task: the task to which the submit will be attached
+    :type parent_task: Task
+    :param submit_date: datetime of submit
+    :type submit_date: datetime
+    :param allow_pending_status: If True, the submit can have a pending status, defaults to False
+    :type allow_pending_status: bool (optional)
+    :param pass_chance: chance to generate passed test (test with status OK; default = 0.5)
+    :type pass_chance: float
+    """
+
     source_file = SimpleUploadedFile(f"course{course_name}_{parent_task.pk}_" +
                                      f"{submit_date.strftime('%Y_%m_%d_%H%M%S')}.txt",
                                      b"Test simple file upload.")
@@ -117,6 +155,25 @@ def create_simple_course(course_name: str,
                          package_instances: Iterable[int] = (1,),
                          submits: Iterable[Dict[str, int]] = None,
                          create_db: bool = True):
+    """
+    It creates a course with a round, a number of tasks, and a number of submits
+
+    :param course_name: the name of the course to create
+    :type course_name: str
+    :param sleep_intervals: The time between each task creation, defaults to 0
+    :type sleep_intervals: float (optional)
+    :param time_offset: The time offset between the creation of the course and the creation of the first round,
+    defaults to 0
+    :type time_offset: float (optional)
+    :param package_instances: a list of package ids that will be used to create tasks
+    :type package_instances: Iterable[int]
+    :param submits: a list of dictionaries, each dictionary has at least two keys: usr and task.
+    Optionally can contain pass_chance and allow_pending_status (described in create_random_task function)
+    :type submits: Iterable[Dict[str, int]]
+    :param create_db: If you want to create a new course, set this to True.
+    If you want to fill an existing course, set this to False, defaults to True
+    :type create_db: bool (optional)
+    """
     if create_db:
         create_course(course_name)
 
@@ -160,7 +217,8 @@ def submiter(course_name: str,
         sleep(time_interval)
 
 
-class SimpleTestCase(TestCase):
+# It creates a simple course, adds a random submit to it, and scores it
+class ASimpleTestCase(TestCase):
     course_name = 'test_simple_course'
 
     @classmethod
@@ -173,15 +231,24 @@ class SimpleTestCase(TestCase):
         delete_course(cls.course_name)
 
     def test_create_simple_course(self):
+        """
+        It checks that the course name is in the list of databases
+        """
         from BaCa2.settings import DATABASES
         self.assertIn(self.course_name, DATABASES.keys())
 
     def test_simple_access(self):
+        """
+        Test that we can access the database.
+        """
         with InCourse(self.course_name):
             tasks = Task.objects.all()
             self.assertTrue(len(tasks) > 0)
 
     def test_add_random_submit(self):
+        """
+        It creates a random submit for a given task
+        """
         with InCourse(self.course_name):
             t = Task.objects.first()
         create_random_submit(self.course_name, usr=1, parent_task=t)
@@ -191,6 +258,10 @@ class SimpleTestCase(TestCase):
             self.assertTrue(sub.final_score == -1)
 
     def test_score_simple_solution(self):
+        """
+        It creates a random submit for the first task in the course, and then checks that the score of that submit is
+        between 0 and 1
+        """
         with InCourse(self.course_name):
             t = Task.objects.first()
         create_random_submit(self.course_name, usr=1, parent_task=t)
@@ -198,16 +269,24 @@ class SimpleTestCase(TestCase):
         with InCourse(self.course_name):
             sub = Submit.objects.last()
             score = sub.score()
-            points = sub.task.points
-            self.assertTrue(0 <= score <= points)
+            self.assertTrue(0 <= score <= 1)
 
 
-class MultiThreadTest(TestCase):
+# It creates two courses, each with a different set of tasks and submits,
+# and then checks if the submits have the correct scores
+class BMultiThreadTest(TestCase):
     course1 = 'sample_course2'
     course2 = 'sample_course3'
 
     @classmethod
     def setUpClass(cls):
+        """
+        It creates two courses,
+        each with a different set of tasks and users, and each with a different
+        timeline
+
+        :param cls: the class object
+        """
         delete_course(cls.course1)
         delete_course(cls.course2)
         create1 = Thread(target=create_simple_course, args=(cls.course1,),
@@ -250,18 +329,27 @@ class MultiThreadTest(TestCase):
         delete_course(cls.course2)
 
     def test_tasks_amount(self):
+        """
+        It checks that the number of tasks in the database is correct
+        """
         with InCourse(self.course1):
             self.assertEqual(Task.objects.count(), 5)
         with InCourse(self.course2):
             self.assertEqual(Task.objects.count(), 3)
 
     def test_usr1_submits_amount(self):
+        """
+        It checks that user 1 has submitted 3 times in course 1 and 1 time in course 2
+        """
         with InCourse(self.course1):
             self.assertEqual(Submit.objects.filter(usr=1).count(), 3)
         with InCourse(self.course2):
             self.assertEqual(Submit.objects.filter(usr=1).count(), 1)
 
     def test_no_pending_score(self):
+        """
+        It checks that the score of all the submissions is not -1.
+        """
         with InCourse(self.course1):
             for s in Submit.objects.all():
                 self.assertNotEqual(s.score(), -1)
@@ -270,6 +358,10 @@ class MultiThreadTest(TestCase):
                 self.assertNotEqual(s.score(), -1)
 
     def test_usr1_score(self):
+        """
+        It tests that the score of the best submission of user 1 for task 1 in course 1 is 1, and that the
+        score of the best submission of user 1 for task 1 in course 2 is 0
+        """
         self.test_no_pending_score()
         with InCourse(self.course1):
             t = Task.objects.filter(pk=1).first()
@@ -280,11 +372,22 @@ class MultiThreadTest(TestCase):
                 self.assertEqual(t.best_submit(usr=1).score(), 0)
 
     def test_without_InCourse_call(self):
+        """
+        It tests that the
+        `Task` model is not accessible without calling `InCourse` first
+        """
         from BaCa2.exceptions import RoutingError
         with self.assertRaises((LookupError, RoutingError)):
             Task.objects.count()
 
     def two_submiters(self, submits, time_interval):
+        """
+        It creates two threads, one for each course, and each thread will submit a task for a certain amount of times,
+        with a certain time interval
+
+        :param submits: the amount of submits each submiter will make
+        :param time_interval: the time interval between two submits
+        """
         with InCourse(self.course1):
             t1 = Task.objects.filter(pk=4).first()
             submiter1 = Thread(target=submiter, args=(self.course1, 5, t1), kwargs={
@@ -312,7 +415,13 @@ class MultiThreadTest(TestCase):
                     self.assertEqual(s.score(), 1)
 
     def test_two_submitters_A_small(self):
-        self.two_submiters(50, 0.1)
+        """
+        This function tests the case where two submitters submit a small number of jobs
+        """
+        self.two_submiters(50, 0.01)
 
     def test_two_submitters_B_big(self):
+        """
+        This function tests the case where one submitter has a large number of submissions (without time interval)
+        """
         self.two_submiters(1000, 0)
