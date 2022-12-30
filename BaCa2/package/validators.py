@@ -64,6 +64,10 @@ def isShorter(val, l: int):
         return val.length() < l
     return False
 
+#check if val has dict type
+def isDict(val):
+    return type(val) == dict
+
 #check if val is path in package_dir
 def isPath(val, package_dir: Path):
     if isStr(val):
