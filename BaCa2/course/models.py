@@ -7,6 +7,8 @@ from BaCa2.settings import BASE_DIR
 
 SUBMITS_DIR = BASE_DIR / 'submits'
 
+__all__ = ['Round', 'Task', 'TestSet', 'Test', 'Submit', 'Result']
+
 
 # "A round is a period of time in which a tasks can be submitted."
 #
@@ -48,6 +50,38 @@ class Task(models.Model):
         return f"Task {self.pk}: {self.task_name}; Judging mode: {TaskJudgingMode[self.judging_mode].label};" \
                f" Package: {self.package_instance}"
 
+    @property
+    def sets(self):
+        """
+        It returns all the test sets that are associated with the task
+        :return: A list of all the TestSet objects that are associated with the Task object.
+        """
+        return TestSet.objects.filter(task=self).all()
+
+    def last_submit(self, usr, amount=1):
+        """
+        It returns the last submit of a user for a task or a list of 'amount' last submits to that task.
+
+        :param usr: The user who submitted the task
+        :param amount: The amount of submits to return, defaults to 1 (optional)
+        :return: The last submit of a user for a task.
+        """
+        if amount == 1:
+            return Submit.objects.filter(task=self, usr=usr).order_by('-submit_date').first()
+        return Submit.objects.filter(task=self, usr=usr).order_by('-submit_date').all()[:amount]
+
+    def best_submit(self, usr, amount=1):
+        """
+        It returns the best submit of a user for a task or list of 'amount' best submits to that task.
+
+        :param usr: The user who submitted the solution
+        :param amount: The amount of submits you want to get, defaults to 1 (optional)
+        :return: The best submit of a user for a task.
+        """
+        if amount == 1:
+            return Submit.objects.filter(task=self, usr=usr).order_by('-final_score').first()
+        return Submit.objects.filter(task=self, usr=usr).order_by('-final_score').all()[:amount]
+
 
 class TestSet(models.Model):
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
@@ -56,6 +90,14 @@ class TestSet(models.Model):
 
     def __str__(self):
         return f"TestSet {self.pk}: Task/set: {self.task.task_name}/{self.short_name} (w: {self.weight})"
+
+    @property
+    def tests(self):
+        """
+        It returns all the tests that are associated with the test set
+        :return: A list of all the tests in the test set.
+        """
+        return Test.objects.filter(test_set=self).all()
 
 
 class Test(models.Model):
@@ -72,7 +114,7 @@ class Submit(models.Model):
     submit_date = models.DateTimeField(auto_now_add=True)
     source_code = models.FileField(upload_to=SUBMITS_DIR)
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
-    usr = models.IntegerField()  # TODO: user id
+    usr = models.FloatField()  # TODO: user id
     final_score = models.FloatField(default=-1)
 
     def __str__(self):

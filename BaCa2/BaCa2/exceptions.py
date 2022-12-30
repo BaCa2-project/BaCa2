@@ -16,3 +16,6 @@ class NoTestFound(Exception):
 
 class NoSetFound(Exception):
     pass
+
+class RoutingError(Exception):
+    pass
