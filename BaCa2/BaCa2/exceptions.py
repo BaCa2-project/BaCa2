@@ -8,3 +8,11 @@ class DataError(Exception):
 
 class NewDBError(Exception):
     pass
+
+
+class NoTestFound(Exception):
+    pass
+
+
+class NoSetFound(Exception):
+    pass

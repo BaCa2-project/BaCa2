@@ -1,61 +1,17 @@
 from pathlib import Path
 from validators import *
 import yaml
+from BaCa2.settings import SUPPORTED_EXTENSIONS
+from BaCa2.exceptions import NoTestFound, NoSetFound
+from os import remove, replace, walk, mkdir
+from shutil import rmtree
 
-#returns None is value doesn't found
-def key_to_value_search(key, dictionary: dict):
-    for i, j in dictionary.items():
-        if isDict(j):
-            if i == key:
-                return j
-            return key_to_value_search(key, j)
-        else:
-            if i == key:
-                return j
-
-#merge default settings with external settings which can be incomplete
-def merge_settings(default: dict, to_add: dict):
-    for i, j in default.items():
-        found_value = key_to_value_search(i, to_add)
-        if isDict(j):
-            default[i] = merge_settings(j, found_value)
-        else:
-            if found_value is not None:
-                default[i] = found_value
-    return default
-def get_value_from_nested_dict(keys: str, search_dict: dict):
-    keys_list = keys.split(': ')
-    temp_dict = search_dict
-    for i in keys_list:
-        value = key_to_value_search(i, temp_dict)
-        if isDict(value) == False:
-            return value
-        temp_dict = value
-
-def set_value_to_key(key, dictionary: dict, val):
-    for i, j in dictionary.items():
-        if isDict(j):
-            if i == key:
-                dictionary[i] = val
-                return
-            return set_value_to_key(key, j, val)
-        else:
-            if i == key:
-                dictionary[i] = val
-                return
-def set_value_to_nested_dict(keys: str, _dict: dict, val):
-    keys_list = keys.split(': ')
-    temp_dict = _dict
-    for i in keys_list:
-        value = key_to_value_search(i, temp_dict)
-        if i == keys_list[-1]:
-            set_value_to_key(i, temp_dict, val)
-            return
-        elif isDict(value) == True:
-            temp_dict = value
+def search_val(key, s_dict: dict):
+    if key in s_dict.keys():
+        return s_dict[key]
 
 class PackageManager:
-    def __init__(self, path: Path, settings_init: Path, default_settings: dict):
+    def __init__(self, path: Path, settings_init: Path or dict, default_settings: dict):
         self._path = path
         #if type of settings_init is a dict assign _settings attribute
         settings = {}
@@ -67,90 +23,179 @@ class PackageManager:
             with open(settings_init, mode="wt", encoding="utf-8") as file:
                 yaml.dump(settings, file)
         #merge external settings with default
-        self._settings = merge_settings(default_settings, settings)
+        self._settings = default_settings | settings
 
 
     def __getattr__(self, arg: str):
-        searching_value = get_value_from_nested_dict(arg, self._settings)
-        if searching_value is not None:
-            return searching_value
+        searched_val = search_val(arg, self._settings)
+        if searched_val is not None:
+            return searched_val
         raise KeyError
 
     def __setattr__(self, arg: str, val):
-        set_value_to_nested_dict(arg, self._settings, val)
+        self._settings[arg] = val
         #effect changes to yaml settings
+        config_dict = {}
+        with open(self._path / 'config.yml', mode="wb", encoding="utf-8") as file:
+            yaml.dump(self._settings, file)
+
+    @staticmethod
+    def check_validation(arg, val_dict):
+        for i, j in arg.items():
+            check = False
+            for k in val_dict[i]:
+                check |= k[0](j, *k[1:])
+        return check
 
 class Package(PackageManager):
+    MAX_SUBMIT_MEMORY = '10 G'
+    MAX_SUBMIT_TIME = 600
+    SETTINGS_VALIDATION = {
+        'title': [[isStr]],
+        'points': [[isInt], [isFloat]],
+        'memory_limit': [[isSize, MAX_SUBMIT_MEMORY]],
+        'time_limit': [[isIntBetween, 0, MAX_SUBMIT_TIME], [isFloat, 0, MAX_SUBMIT_TIME]],
+        'allowedExtensions': [[isIn, *SUPPORTED_EXTENSIONS], [isList, [isIn, *SUPPORTED_EXTENSIONS]]],
+        'hinter': [[isNone], [isPath]],
+        'checker': [[isNone], [isPath]],
+        'test_generator': [[isNone], [isPath]]
+    }
+    DEFAULT_SETTINGS = {
+        'title': 'p',
+        'points': 0,
+        'memory_limit': '512M',
+        'time_limit': 10,
+        'allowedExtensions': 'cpp',
+        'hinter': None,
+        'checker': None,
+        'test_generator': None
+    }
     def __init__(self, path: Path):
-        _test_sets = 'x'
-        super().__init__(path, config_path, default_settings)
+        config_path = path / 'config.yml'
+        super().__init__(path, config_path, Package.DEFAULT_SETTINGS)
+        config = {}
+        with open(config_path, mode="wt", encoding="utf-8") as file:
+            yaml.dump(config, file)
+        self._sets = []
+        for i in [x[0].replace(str(BASE_DIR  / 'package') + '\\', '') for x in walk(BASE_DIR  / "package")][1:]:
+            self._sets.append(TSet(path / i))
 
     def sets(self, set_name: str, add_new: bool=False):
-        pass
+        for i in self._sets:
+            if i['name'] == set_name:
+                return i
+        if add_new:
+            settings = {'name': set_name} | self._settings
+            set_path = self._path / set_name
+            if not isPath(set_path):
+                mkdir(set_path)
+            return TSet(set_path)
+        raise NoSetFound(f'Any set directory named {set_name} has found')
+
     def delete_set(self, set_name: str):
-        pass
+        for i in self._tests:
+            if i['name'] == set_name:
+                self._sets.remove(i)
+                if isPath(self._path / set_name):
+                    rmtree(self._path / set_name)
+
+        raise NoSetFound(f'Any set directory named {set_name} has found to delete')
+
     def check_package(self, subtree: bool=True):
-        pass
+        result = True
+        if subtree:
+            for i in self._sets:
+                result &= PackageManager.check_validation(i, TSet.SETTINGS_VALIDATION)
+
+        return PackageManager.check_validation(self._settings, Package.SETTINGS_VALIDATION) & result
 
 class TSet(PackageManager):
+    SETTINGS_VALIDATION = {
+        'name': [[isStr]],
+        'weight': [[isInt], [isFloat]],
+        'memory_limit': [[isNone], [isSize, Package.MAX_SUBMIT_MEMORY]],
+        'time_limit': [[isNone], [isIntBetween, 0, Package.MAX_SUBMIT_TIME], [isFloat, 0, Package.MAX_SUBMIT_TIME]],
+        'checker': [[isNone], [isPath]],
+        'test_generator': [[isNone], [isPath]],
+        'tests': [[isNone], [isAny]],
+        'makefile': [[isNone], [isPath]]
+    }
+    DEFAULT_SETTINGS = {
+        'name': 'set0',
+        'weight': 10,
+        'memory_limit': '512M',
+        'time_limit': '10s',
+        'checker': None,
+        'test_generator': None,
+        'tests': {},
+        'makefile': None
+    }
     def __init__(self, path: Path):
-        super().__init__(path, config_path, default_settings)
+        config_path = path / 'config.yml'
+        super().__init__(path, config_path, TSet.DEFAULT_SETTINGS)
+        config = {}
+        with open(config_path, mode="wt", encoding="utf-8") as file:
+            yaml.dump(config, file)
+        self._tests = []
+        for i, j in config['tests'].items():
+            test_path = i.replace("test", "") + 'in'
+            self._tests.append(TestF(path / test_path, j, TSet.DEFAULT_SETTINGS))
+
 
     def tests(self, test_name: str, add_new: bool=False):
-        pass
+        for i in self._tests:
+            if i['name'] == test_name:
+                return i
+        if add_new:
+            settings = {'name': test_name} | self._settings
+            test_path = test_name.replace("test", "") + '.in'
+            new_test = TestF(self._path / test_path, settings, TSet.DEFAULT_SETTINGS)
+            return new_test
+        raise NoTestFound(f'Any test named {test_name} has found')
+
     def delete_set(self, test_name: str):
-        pass
-    def move_test(self, test_name: str, to_set: str):
-        pass
+        for i in self._tests:
+            if i['name'] == test_name:
+                self._tests.remove(i)
+                in_to_delete = 'test' + test_name + '.in'
+                out_to_delete = 'test' + test_name + '.out'
+                if isPath(self._path / in_to_delete):
+                    remove(in_to_delete)
+                if isPath(self._path / out_to_delete):
+                    remove(out_to_delete)
+        raise NoTestFound(f'Any test named {test_name} has found to delete')
+
+    def move_test(self, test_name: str, to_set: 'TSet'):
+        for i in self._tests:
+            if i['name'] == test_name:
+                to_set._tests.append(i)
+                self._tests.remove(i)
+                if isPath('', to_set._path):
+                    process_name = 'test' + test_name + '.in'
+                    if isPath(process_name, self._path):
+                        replace(self._path / process_name, to_set._path / process_name)
+                    process_name.replace('.in', '.out')
+                    if isPath('test' + test_name, self._path):
+                        replace(self._path / (process_name), to_set._path / (process_name))
+        raise NoTestFound(f'Any test named {test_name} has found to move to to_set')
 
     def check_set(self, subtree=True):
-        pass
+        result = True
+        if subtree:
+            for i in self._tasks:
+                result &= PackageManager.check_validation(i, TestF.SETTINGS_VALIDATION)
+
+        return PackageManager.check_validation(self._settings, TSet.SETTINGS_VALIDATION) & result
 
 class TestF(PackageManager):
-    def __init__(self, path: Path, **additional_settings):
+    SETTINGS_VALIDATION = {
+        'name': [[isStr]],
+        'memory_limit': [[isNone],[isSize, Package.MAX_SUBMIT_MEMORY]],
+        'time_limit': [[isNone],[isIntBetween, 0, Package.MAX_SUBMIT_TIME], [isFloat, 0, Package.MAX_SUBMIT_TIME]],
+    }
+    def __init__(self, path: Path, additional_settings: dict, default_settings: dict):
         super().__init__(path, additional_settings, default_settings)
+        self._settings = default_settings | additional_settings
 
     def check_test(self):
-        pass
-
-
-
-data = """
-memory: 512MB
-kolejka:
-    image       : 'kolejka/satori:extended'
-    exclusive   : false
-    collect     : [ 'log.zip' ]
-    limits: 
-        memory      : '4G'
-        swap        : 0
-        network     : false
-        pids        : 256
-        storage     : '2G'
-"""
-default = """
-    time        : '20s'
-    memory      : '4G'
-    swap        : 0
-    cpus        : 4
-    network     : false
-    pids        : 256
-    storage     : '2G'
-    workspace   : '2G'
-"""
-doc = yaml.safe_load(data)
-defaultd = yaml.safe_load(default)
-# print(doc)
-# print(doc.has_key('image'))
-
-print(doc)
-print(defaultd)
-print(key_to_value_search('cpus', doc))
-dict1 = merge_settings(defaultd, doc)
-print(dict1)
-print(get_value_from_nested_dict('memory', doc))
-set_value_to_key('memory', doc, '8G')
-print(doc)
-set_value_to_nested_dict('limits: memory', doc, '2M')
-
-print(doc)
+        return PackageManager.check_validation(self._settings, TestF.SETTINGS_VALIDATION)

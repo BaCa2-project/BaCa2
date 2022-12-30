@@ -137,3 +137,6 @@ for f in (SETTINGS_DIR / 'app_configurations').glob('[!_]*.py'):
 
 if (SETTINGS_DIR / "settings_local.py").exists():
     exec(open(SETTINGS_DIR / "settings_local.py", "rb").read())
+
+
+SUPPORTED_EXTENSIONS = ['cpp']

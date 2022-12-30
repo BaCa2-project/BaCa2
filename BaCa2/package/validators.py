@@ -133,9 +133,9 @@ def valid_memory_size(first: str, second: str):
     return False
 
 #check if val has structure like <isInt><isIn, 'B', 'K', 'M', 'G'>
-def isSize(val, max_size: str):
-    val_resolved = re.search(">.*<", val).group(0)[1: -1].strip()
-    return hasStrucure(val_resolved[:-2], "<isInt>") and hasStrucure(val_resolved[-1], "<isIn, 'B', 'K', 'M', 'G'>") and valid_memory_size(val_resolved, max_size)
+def isSize(val :str, max_size: str):
+    val = val.strip()
+    return hasStrucure(val[:-2], "<isInt>") and hasStrucure(val[-1], "<isIn, 'B', 'K', 'M', 'G'>") and valid_memory_size(val, max_size)
 
 #check if val is a list and every element from list fulfill at least one validator from args
 def isList(val, *args):
