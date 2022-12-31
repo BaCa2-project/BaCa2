@@ -42,11 +42,9 @@ def isFloatBetween(val, a: int, b: int):
 
 #check if val can be converted to string
 def isStr(val):
-    try:
-        str(val)
+    if type(val) == str:
         return True
-    except ValueError:
-        return False
+    return False
 
 #check if val is exacly like schema
 def is_(val, schema: str):

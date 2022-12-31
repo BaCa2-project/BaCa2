@@ -1,14 +1,11 @@
 from pathlib import Path
-from validators import *
+from .validators import isAny, isNone, isInt, isIntBetween, isFloat, isFloatBetween, isStr, is_, isIn, isShorter, isDict, isPath, isSize, isList, memory_converting, valid_memory_size
 import yaml
-from BaCa2.settings import SUPPORTED_EXTENSIONS
+from BaCa2.settings import SUPPORTED_EXTENSIONS, BASE_DIR
 from BaCa2.exceptions import NoTestFound, NoSetFound
 from os import remove, replace, walk, mkdir
 from shutil import rmtree
 
-def search_val(key, s_dict: dict):
-    if key in s_dict.keys():
-        return s_dict[key]
 
 class PackageManager:
     def __init__(self, path: Path, settings_init: Path or dict, default_settings: dict):
@@ -27,11 +24,10 @@ class PackageManager:
 
 
     def __getattr__(self, arg: str):
-        searched_val = search_val(arg, self._settings)
-        if searched_val is not None:
-            return searched_val
-        raise KeyError
-
+        try:
+            return self._settings[arg]
+        except KeyError:
+            raise KeyError(f'No key named {arg} has found in self_settings')
     def __setattr__(self, arg: str, val):
         self._settings[arg] = val
         #effect changes to yaml settings
@@ -40,15 +36,15 @@ class PackageManager:
             yaml.dump(self._settings, file)
 
     @staticmethod
-    def check_validation(arg, val_dict):
+    def check_validation(arg, validators):
         for i, j in arg.items():
             check = False
-            for k in val_dict[i]:
+            for k in validators[i]:
                 check |= k[0](j, *k[1:])
         return check
 
 class Package(PackageManager):
-    MAX_SUBMIT_MEMORY = '10 G'
+    MAX_SUBMIT_MEMORY = '10G'
     MAX_SUBMIT_TIME = 600
     SETTINGS_VALIDATION = {
         'title': [[isStr]],
@@ -73,9 +69,6 @@ class Package(PackageManager):
     def __init__(self, path: Path):
         config_path = path / 'config.yml'
         super().__init__(path, config_path, Package.DEFAULT_SETTINGS)
-        config = {}
-        with open(config_path, mode="wt", encoding="utf-8") as file:
-            yaml.dump(config, file)
         self._sets = []
         for i in [x[0].replace(str(BASE_DIR  / 'package') + '\\', '') for x in walk(BASE_DIR  / "package")][1:]:
             self._sets.append(TSet(path / i))
@@ -98,14 +91,14 @@ class Package(PackageManager):
                 self._sets.remove(i)
                 if isPath(self._path / set_name):
                     rmtree(self._path / set_name)
-
+                return
         raise NoSetFound(f'Any set directory named {set_name} has found to delete')
 
     def check_package(self, subtree: bool=True):
         result = True
         if subtree:
             for i in self._sets:
-                result &= PackageManager.check_validation(i, TSet.SETTINGS_VALIDATION)
+                result &= i.check_set()
 
         return PackageManager.check_validation(self._settings, Package.SETTINGS_VALIDATION) & result
 
@@ -133,12 +126,9 @@ class TSet(PackageManager):
     def __init__(self, path: Path):
         config_path = path / 'config.yml'
         super().__init__(path, config_path, TSet.DEFAULT_SETTINGS)
-        config = {}
-        with open(config_path, mode="wt", encoding="utf-8") as file:
-            yaml.dump(config, file)
         self._tests = []
-        for i, j in config['tests'].items():
-            test_path = i.replace("test", "") + 'in'
+        for i, j in self._settings['tests'].items():
+            test_path = i.replace("test", "") + '.in'
             self._tests.append(TestF(path / test_path, j, TSet.DEFAULT_SETTINGS))
 
 
@@ -163,6 +153,7 @@ class TSet(PackageManager):
                     remove(in_to_delete)
                 if isPath(self._path / out_to_delete):
                     remove(out_to_delete)
+                return
         raise NoTestFound(f'Any test named {test_name} has found to delete')
 
     def move_test(self, test_name: str, to_set: 'TSet'):
@@ -176,14 +167,14 @@ class TSet(PackageManager):
                         replace(self._path / process_name, to_set._path / process_name)
                     process_name.replace('.in', '.out')
                     if isPath('test' + test_name, self._path):
-                        replace(self._path / (process_name), to_set._path / (process_name))
+                        replace(self._path / process_name, to_set._path / process_name)
         raise NoTestFound(f'Any test named {test_name} has found to move to to_set')
 
     def check_set(self, subtree=True):
         result = True
         if subtree:
             for i in self._tasks:
-                result &= PackageManager.check_validation(i, TestF.SETTINGS_VALIDATION)
+                result &= i.check_test()
 
         return PackageManager.check_validation(self._settings, TSet.SETTINGS_VALIDATION) & result
 
@@ -191,11 +182,14 @@ class TestF(PackageManager):
     SETTINGS_VALIDATION = {
         'name': [[isStr]],
         'memory_limit': [[isNone],[isSize, Package.MAX_SUBMIT_MEMORY]],
-        'time_limit': [[isNone],[isIntBetween, 0, Package.MAX_SUBMIT_TIME], [isFloat, 0, Package.MAX_SUBMIT_TIME]],
+        'time_limit': [[isNone],[isIntBetween, 0, Package.MAX_SUBMIT_TIME], [isFloatBetween, 0, Package.MAX_SUBMIT_TIME]],
     }
     def __init__(self, path: Path, additional_settings: dict, default_settings: dict):
         super().__init__(path, additional_settings, default_settings)
-        self._settings = default_settings | additional_settings
 
+    def __setattr__(self, key, value):
+        pass
+    def __getattr__(self, key):
+        pass
     def check_test(self):
         return PackageManager.check_validation(self._settings, TestF.SETTINGS_VALIDATION)
