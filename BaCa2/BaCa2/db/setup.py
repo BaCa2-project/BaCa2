@@ -25,4 +25,10 @@ DEFAULT_DB_SETTINGS = {
     'PASSWORD': 'zaqwsxcde',
     'HOST': 'localhost',
     'PORT': '',
+    'TIME_ZONE': None,
+    'CONN_HEALTH_CHECKS': False,
+    'CONN_MAX_AGE': 0,
+    'AUTOCOMMIT': True,
+    'OPTIONS': {},
+    'ATOMIC_REQUESTS': False
 }

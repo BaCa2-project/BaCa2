@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/4.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
-
+from contextvars import ContextVar
 from pathlib import Path
 from BaCa2.db.setup import DEFAULT_DB_SETTINGS
 
@@ -78,6 +78,18 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'BaCa2.wsgi.application'
 
+# Internationalization
+# https://docs.djangoproject.com/en/4.1/topics/i18n/
+
+LANGUAGE_CODE = 'pl'
+
+TIME_ZONE = 'Europe/Warsaw'
+
+USE_I18N = True
+
+USE_TZ = True
+
+
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
@@ -87,6 +99,12 @@ DATABASES = {
 }
 if (SETTINGS_DIR / 'db/ext_databases.py').exists():
     exec(open((SETTINGS_DIR / 'db/ext_databases.py'), "rb").read())
+
+# DB routing
+# https://docs.djangoproject.com/en/4.1/topics/db/multi-db/
+DATABASE_ROUTERS = ['course.routing.ContextCourseRouter']
+
+currentDB = ContextVar('currentDB')
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
@@ -106,16 +124,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# Internationalization
-# https://docs.djangoproject.com/en/4.1/topics/i18n/
 
-LANGUAGE_CODE = 'pl'
-
-TIME_ZONE = 'Europe/Warsaw'
-
-USE_I18N = True
-
-USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
