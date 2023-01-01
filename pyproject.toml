@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "baca2"
-version = "0.1.0"
-description = ""
+version = "0.1.1"
+description = "Bachelor project: automated programming task checking and scoring system BaCa2"
 authors = ["BaCa2 Team"]
 readme = "README.md"
 
@@ -12,6 +12,7 @@ psycopg2-binary = "^2.9.5"
 django-allauth = "^0.51.0"
 django-extensions = "^3.2.1"
 django-dbbackup = "^4.0.2"
+pyyaml = "^6.0"
 
 
 [build-system]
