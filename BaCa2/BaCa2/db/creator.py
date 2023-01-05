@@ -104,7 +104,8 @@ def migrateAll():
     from BaCa2.settings import DATABASES
     log.info(f"Migrating all databases.")
     for db in DATABASES.keys():
-        migrateDB(db)
+        if db != 'default':
+            migrateDB(db)
     log.info(f"All databases migrated.")
 
 
