@@ -1,5 +1,4 @@
 import logging
-from time import sleep
 
 import psycopg2
 from threading import Lock
@@ -31,7 +30,7 @@ def _raw_root_connection():
 
 def createDB(db_name, verbose=False, **db_kwargs):
     """
-    > It creates a new database, adds it to the `DATABASES` dictionary in `settings.py`, and saves the new database's
+    It creates a new database, adds it to the `DATABASES` dictionary in `settings.py`, and saves the new database's
     settings to `ext_databases.py`
 
     :param db_name: The name of the database you want to create
