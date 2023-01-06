@@ -5,6 +5,8 @@ from BaCa2.choices import TaskJudgingMode, ResultStatus
 from BaCa2.exceptions import ModelValidationError, DataError
 from BaCa2.settings import BASE_DIR
 
+from main.models import User
+
 SUBMITS_DIR = BASE_DIR / 'submits'
 
 __all__ = ['Round', 'Task', 'TestSet', 'Test', 'Submit', 'Result']
@@ -67,8 +69,8 @@ class Task(models.Model):
         :return: The last submit of a user for a task.
         """
         if amount == 1:
-            return Submit.objects.filter(task=self, usr=usr).order_by('-submit_date').first()
-        return Submit.objects.filter(task=self, usr=usr).order_by('-submit_date').all()[:amount]
+            return Submit.objects.filter(task=self, usr=usr.pk).order_by('-submit_date').first()
+        return Submit.objects.filter(task=self, usr=usr.pk).order_by('-submit_date').all()[:amount]
 
     def best_submit(self, usr, amount=1):
         """
@@ -79,8 +81,8 @@ class Task(models.Model):
         :return: The best submit of a user for a task.
         """
         if amount == 1:
-            return Submit.objects.filter(task=self, usr=usr).order_by('-final_score').first()
-        return Submit.objects.filter(task=self, usr=usr).order_by('-final_score').all()[:amount]
+            return Submit.objects.filter(task=self, usr=usr.pk).order_by('-final_score').first()
+        return Submit.objects.filter(task=self, usr=usr.pk).order_by('-final_score').all()[:amount]
 
 
 class TestSet(models.Model):
@@ -114,11 +116,22 @@ class Submit(models.Model):
     submit_date = models.DateTimeField(auto_now_add=True)
     source_code = models.FileField(upload_to=SUBMITS_DIR)
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
-    usr = models.FloatField()  # TODO: user id
+    usr = models.BigIntegerField(validators=[User.exists])
     final_score = models.FloatField(default=-1)
 
+    @classmethod
+    def create_new(cls, **kwargs):
+        user = kwargs.get('usr')
+        if isinstance(user, User):
+            kwargs['usr'] = user.pk
+        return cls.objects.create(**kwargs)
+
+    @property
+    def user(self):
+        return User.objects.get(pk=self.usr)
+
     def __str__(self):
-        return f"Submit {self.pk}: User: {self.usr}; Task: {self.task.task_name}; " \
+        return f"Submit {self.pk}: User: {self.user}; Task: {self.task.task_name}; " \
                f"Score: {self.final_score if self.final_score > -1 else 'PENDING'}"
 
     def score(self, rejudge=False):

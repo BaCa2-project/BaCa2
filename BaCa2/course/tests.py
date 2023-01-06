@@ -13,6 +13,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from BaCa2.choices import TaskJudgingMode, ResultStatus
 from BaCa2.tools import random_string
+from main.models import User
 from .models import *
 from .routing import InCourse
 from .manager import create_course, delete_course
@@ -124,7 +125,7 @@ def create_random_submit(course_name: str,
     if not allow_pending_status:
         allowed_statuses.remove(ResultStatus.PND)
     with InCourse(course_name):
-        new_submit = Submit.objects.create(
+        new_submit = Submit.create_new(
             submit_date=submit_date,
             source_code=source_file,
             task=parent_task,
@@ -178,7 +179,9 @@ def create_simple_course(course_name: str,
         create_course(course_name)
 
     if submits is None:
-        submits = ({'usr': 1, 'task': 1},)
+        usr = None
+        usr = User.objects.last()
+        submits = ({'usr': usr, 'task': 1},)
     sleep(time_offset)
     with InCourse(course_name):
         r = Round.objects.create(
@@ -220,15 +223,24 @@ def submiter(course_name: str,
 # It creates a simple course, adds a random submit to it, and scores it
 class ASimpleTestCase(TestCase):
     course_name = 'test_simple_course'
+    u1 = None
 
     @classmethod
     def setUpClass(cls):
+        cls.u1 = User.objects.create_user(
+            'user1@gmail.com',
+            'user1',
+            'psswd',
+            first_name='first name',
+            last_name='last name'
+        )
         delete_course(cls.course_name)
         create_simple_course(cls.course_name, create_db=True)
 
     @classmethod
     def tearDownClass(cls):
         delete_course(cls.course_name)
+        cls.u1.delete()
 
     def test_create_simple_course(self):
         """
@@ -251,7 +263,7 @@ class ASimpleTestCase(TestCase):
         """
         with InCourse(self.course_name):
             t = Task.objects.first()
-        create_random_submit(self.course_name, usr=1, parent_task=t)
+        create_random_submit(self.course_name, usr=self.u1, parent_task=t)
         with InCourse(self.course_name):
             sub = Submit.objects.last()
             self.assertTrue(sub.task == t)
@@ -264,7 +276,7 @@ class ASimpleTestCase(TestCase):
         """
         with InCourse(self.course_name):
             t = Task.objects.first()
-        create_random_submit(self.course_name, usr=1, parent_task=t)
+        create_random_submit(self.course_name, usr=self.u1, parent_task=t)
 
         with InCourse(self.course_name):
             sub = Submit.objects.last()
@@ -277,6 +289,7 @@ class ASimpleTestCase(TestCase):
 class BMultiThreadTest(TestCase):
     course1 = 'sample_course2'
     course2 = 'sample_course3'
+    u1 = u2 = u3 = u4 = None
 
     @classmethod
     def setUpClass(cls):
@@ -287,6 +300,35 @@ class BMultiThreadTest(TestCase):
 
         :param cls: the class object
         """
+        cls.u1 = User.objects.create_user(
+            'user1@gmail.com',
+            'user1',
+            'psswd',
+            first_name='first name',
+            last_name='last name'
+        )
+        cls.u2 = User.objects.create_user(
+            'user2@gmail.com',
+            'user2',
+            'psswd',
+            first_name='first name',
+            last_name='last name'
+        )
+        cls.u3 = User.objects.create_user(
+            'user3@gmail.com',
+            'user3',
+            'psswd',
+            first_name='first name',
+            last_name='last name'
+        )
+        cls.u4 = User.objects.create_user(
+            'user4@gmail.com',
+            'user4',
+            'psswd',
+            first_name='first name',
+            last_name='last name'
+        )
+
         delete_course(cls.course1)
         delete_course(cls.course2)
         create1 = Thread(target=create_simple_course, args=(cls.course1,),
@@ -295,12 +337,12 @@ class BMultiThreadTest(TestCase):
                              'sleep_intervals': 0.5,
                              'package_instances': (1, 2, 3, 4, 5),
                              'submits': [
-                                 {'usr': 1, 'task': 1, 'pass_chance': 1},
-                                 {'usr': 1, 'task': 2},
-                                 {'usr': 2, 'task': 1},
-                                 {'usr': 3, 'task': 3, 'pass_chance': 0},
-                                 {'usr': 3, 'task': 1, 'pass_chance': 1},
-                                 {'usr': 1, 'task': 1, 'pass_chance': 0},
+                                 {'usr': cls.u1, 'task': 1, 'pass_chance': 1},
+                                 {'usr': cls.u1, 'task': 2},
+                                 {'usr': cls.u2, 'task': 1},
+                                 {'usr': cls.u3, 'task': 3, 'pass_chance': 0},
+                                 {'usr': cls.u3, 'task': 1, 'pass_chance': 1},
+                                 {'usr': cls.u1, 'task': 1, 'pass_chance': 0},
                              ]
                          })
         create2 = Thread(target=create_simple_course, args=(cls.course2,),
@@ -309,12 +351,12 @@ class BMultiThreadTest(TestCase):
                              'sleep_intervals': 0.3,
                              'package_instances': (1, 2, 3),
                              'submits': [
-                                 {'usr': 3, 'task': 1, 'pass_chance': 1},
-                                 {'usr': 3, 'task': 2},
-                                 {'usr': 1, 'task': 1, 'pass_chance': 0},
-                                 {'usr': 2, 'task': 2, 'pass_chance': 0},
-                                 {'usr': 2, 'task': 1, 'pass_chance': 1},
-                                 {'usr': 3, 'task': 1, 'pass_chance': 0},
+                                 {'usr': cls.u3, 'task': 1, 'pass_chance': 1},
+                                 {'usr': cls.u3, 'task': 2},
+                                 {'usr': cls.u1, 'task': 1, 'pass_chance': 0},
+                                 {'usr': cls.u2, 'task': 2, 'pass_chance': 0},
+                                 {'usr': cls.u2, 'task': 1, 'pass_chance': 1},
+                                 {'usr': cls.u3, 'task': 1, 'pass_chance': 0},
                              ]
                          })
 
@@ -327,6 +369,10 @@ class BMultiThreadTest(TestCase):
     def tearDownClass(cls):
         delete_course(cls.course1)
         delete_course(cls.course2)
+        cls.u1.delete()
+        cls.u2.delete()
+        cls.u3.delete()
+        cls.u4.delete()
 
     def test_tasks_amount(self):
         """
@@ -342,9 +388,9 @@ class BMultiThreadTest(TestCase):
         It checks that user 1 has submitted 3 times in course 1 and 1 time in course 2
         """
         with InCourse(self.course1):
-            self.assertEqual(Submit.objects.filter(usr=1).count(), 3)
+            self.assertEqual(Submit.objects.filter(usr=self.u1.pk).count(), 3)
         with InCourse(self.course2):
-            self.assertEqual(Submit.objects.filter(usr=1).count(), 1)
+            self.assertEqual(Submit.objects.filter(usr=self.u1.pk).count(), 1)
 
     def test_no_pending_score(self):
         """
@@ -365,11 +411,11 @@ class BMultiThreadTest(TestCase):
         self.test_no_pending_score()
         with InCourse(self.course1):
             t = Task.objects.filter(pk=1).first()
-            self.assertEqual(t.best_submit(usr=1).score(), 1)
+            self.assertEqual(t.best_submit(usr=self.u1).score(), 1)
 
             with InCourse(self.course2):
                 t = Task.objects.filter(pk=1).first()
-                self.assertEqual(t.best_submit(usr=1).score(), 0)
+                self.assertEqual(t.best_submit(usr=self.u1).score(), 0)
 
     def test_without_InCourse_call(self):
         """
@@ -390,14 +436,14 @@ class BMultiThreadTest(TestCase):
         """
         with InCourse(self.course1):
             t1 = Task.objects.filter(pk=4).first()
-            submiter1 = Thread(target=submiter, args=(self.course1, 5, t1), kwargs={
+            submiter1 = Thread(target=submiter, args=(self.course1, self.u4, t1), kwargs={
                 'submit_amount': submits,
                 'pass_chance': 0,
                 'time_interval': time_interval
             })
         with InCourse(self.course2):
             t2 = Task.objects.filter(pk=3).first()
-            submiter2 = Thread(target=submiter, args=(self.course2, 5, t2), kwargs={
+            submiter2 = Thread(target=submiter, args=(self.course2, self.u4, t2), kwargs={
                 'submit_amount': submits,
                 'pass_chance': 1,
                 'time_interval': time_interval

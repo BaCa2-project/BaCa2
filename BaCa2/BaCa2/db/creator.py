@@ -28,7 +28,7 @@ def _raw_root_connection():
     return conn
 
 
-def createDB(db_name, verbose=False, **db_kwargs):
+def createDB(db_name, verbose=False, auto_migrate=True, **db_kwargs):
     """
     It creates a new database, adds it to the `DATABASES` dictionary in `settings.py`, and saves the new database's
     settings to `ext_databases.py`
@@ -79,6 +79,8 @@ DATABASES['{db_key}'] = {'{'}
     if verbose:
         print("Settings saved to file.")
 
+    # migrateDB(db_name)
+
     _db_root_access.release()
 
     log.info(f"DB {db_name} settings saved to ext_databases.")
@@ -92,6 +94,7 @@ def migrateDB(db_name):
     """
     from django.core.management import call_command
     # call_command('makemigrations')
+
     call_command('migrate', database=db_name, interactive=False, skip_checks=True)
     log.info(f"Migration for DB {db_name} applied.")
 

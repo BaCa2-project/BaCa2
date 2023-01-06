@@ -72,6 +72,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.username
 
+    @classmethod
+    def exists(cls, user_id):
+        return cls.objects.exists(pk=user_id)
+
 
 class Course(models.Model):
     name = models.CharField(
