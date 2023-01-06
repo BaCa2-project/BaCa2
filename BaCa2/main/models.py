@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
+from django.contrib.auth.models import Group, Permission
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 
@@ -70,3 +71,38 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.username
+
+
+class Course(models.Model):
+    name = models.CharField(
+        max_length=255
+    )
+    short_name = models.CharField(
+        max_length=31
+    )
+
+
+class GroupCourse(models.Model):
+    group = models.ForeignKey(
+        Group,
+        on_delete=models.CASCADE
+    )
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE
+    )
+
+
+class UserCourse(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE
+    )
+    group_course = models.ForeignKey(
+        GroupCourse,
+        on_delete=models.CASCADE
+    )
