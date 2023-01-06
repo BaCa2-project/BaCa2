@@ -1,5 +1,5 @@
 from pathlib import Path
-import re
+from re import findall, split
 from BaCa2.settings import BASE_DIR
 
 #any non-empty value is allowed
@@ -67,12 +67,16 @@ def isDict(val):
     return type(val) == dict
 
 #check if val is path in package_dir
-def isPath(val, package_dir: Path):
-    if isStr(val):
-        path_to_check = package_dir / val
-        if path_to_check.exists():
+def isPath(val):
+    if val is None:
+        return False
+    try:
+        val = Path(val)
+        if val.exists():
             return True
-    return False
+        return False
+    except ValueError:
+        return False
 
 #takes the validator function with arguments, and check that if validator function is true for arg (other arguments for func)
 def resolve_validator(func_list, arg):
@@ -82,16 +86,16 @@ def resolve_validator(func_list, arg):
 
 #check if val has structure provided by struct and fulfills validators functions from struct
 def hasStrucure(val, struct: str):
-    validators = re.findall("<.*?>", struct)
+    validators = findall("<.*?>", struct)
     validators = [i[1:-1].split(',') for i in validators]
-    constant_words = re.findall("[^<>]{0,}<", struct) + re.findall("[^>]{0,}$", struct)
+    constant_words = findall("[^<>]{0,}<", struct) + findall("[^>]{0,}$", struct)
     constant_words = [i.strip("<") for i in constant_words]
     if len(validators) == 1:
         values_to_check = [val]
     else:
         # words_in_pattern = [i for i in constant_words if i != '|' and i != '']
         # regex_pattern = '|'.join([i for i in constant_words if i != '|' and i != ''])
-        values_to_check = re.split('|'.join([i for i in constant_words if i != '|' and i != '']), val)
+        values_to_check = split('|'.join([i for i in constant_words if i != '|' and i != '']), val)
     if struct.startswith('<') == False:
         values_to_check = values_to_check[1:]
     valid_idx = 0
@@ -145,13 +149,3 @@ def isList(val, *args):
             if not result:
                 return result
     return True
-
-
-
-
-
-
-
-
-
-
