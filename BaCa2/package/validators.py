@@ -85,7 +85,7 @@ def resolve_validator(func_list, arg):
     return eval(func_name + '("' + str(arg) + '"' + func_arguments_ext + ')')
 
 #check if val has structure provided by struct and fulfills validators functions from struct
-def hasStrucure(val, struct: str):
+def hasStructure(val, struct: str):
     validators = findall("<.*?>", struct)
     validators = [i[1:-1].split(',') for i in validators]
     constant_words = findall("[^<>]{0,}<", struct) + findall("[^>]{0,}$", struct)
@@ -137,7 +137,7 @@ def valid_memory_size(first: str, second: str):
 #check if val has structure like <isInt><isIn, 'B', 'K', 'M', 'G'>
 def isSize(val :str, max_size: str):
     val = val.strip()
-    return hasStrucure(val[:-2], "<isInt>") and hasStrucure(val[-1], "<isIn, 'B', 'K', 'M', 'G'>") and valid_memory_size(val, max_size)
+    return hasStructure(val[:-2], "<isInt>") and hasStructure(val[-1], "<isIn, 'B', 'K', 'M', 'G'>") and valid_memory_size(val, max_size)
 
 #check if val is a list and every element from list fulfill at least one validator from args
 def isList(val, *args):
@@ -145,7 +145,7 @@ def isList(val, *args):
         result = False
         for i in val:
             for j in args:
-                result |= hasStrucure(i, j)
+                result |= hasStructure(i, j)
             if not result:
                 return result
     return True

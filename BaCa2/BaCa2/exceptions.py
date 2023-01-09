@@ -1,7 +1,6 @@
 class ModelValidationError(Exception):
     pass
 
-
 class DataError(Exception):
     pass
 
@@ -9,10 +8,8 @@ class DataError(Exception):
 class NewDBError(Exception):
     pass
 
-
 class NoTestFound(Exception):
     pass
-
 
 class NoSetFound(Exception):
     pass
@@ -22,3 +19,5 @@ class RoutingError(Exception):
 
 class TestExistError(Exception):
     pass
+
+
