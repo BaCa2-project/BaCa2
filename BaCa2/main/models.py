@@ -5,6 +5,7 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseU
 from django.contrib.auth.models import Group, Permission
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 from BaCa2.choices import PermissionTypes
 
@@ -13,7 +14,7 @@ class UserManager(BaseUserManager):
 
     def _create_user(self, email, username, password, is_staff, is_superuser, **other_fields):
         if not email:
-            raise ValueError('Email address is required')
+            raise ValidationError('Email address is required')
 
         now = timezone.now()
         _email = self.normalize_email(email)
@@ -168,6 +169,9 @@ class GroupCourse(models.Model):
         on_delete=models.CASCADE
     )
 
+    def __str__(self):
+        return f'groupcourse: {self.group.name} for {self.course}'
+
 
 class UserCourse(models.Model):
     user = models.ForeignKey(
@@ -182,3 +186,6 @@ class UserCourse(models.Model):
         GroupCourse,
         on_delete=models.CASCADE
     )
+
+    def __str__(self):
+        return f'usercourse: {self.user} to {self.group_course}'
