@@ -116,7 +116,7 @@ class Submit(models.Model):
     submit_date = models.DateTimeField(auto_now_add=True)
     source_code = models.FileField(upload_to=SUBMITS_DIR)
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
+    user = models.FloatField()
     final_score = models.FloatField(default=-1)
 
     def __str__(self):

@@ -32,45 +32,20 @@ class UserManager(BaseUserManager):
         return self._create_user(email, username, password, True, True, **other_fields)
 
 
-class User(AbstractBaseUser, PermissionsMixin):
-    email = models.EmailField(
-        _("email address"),
-        max_length=255,
-        unique=True
+class Course(models.Model):
+    name = models.CharField(
+        max_length=255
     )
-    username = models.CharField(
-        _("username"),
-        max_length=255,
-        unique=True
+    short_name = models.CharField(
+        max_length=31
     )
-    is_staff = models.BooleanField(
-        default=False
+    db_name = models.CharField(
+        max_length=127,
+        default='default'
     )
-    is_superuser = models.BooleanField(
-        default=False
-    )
-    first_name = models.CharField(
-        _("first name"),
-        max_length=255,
-        blank=True
-    )
-    last_name = models.CharField(
-        _("last name"),
-        max_length=255,
-        blank=True
-    )
-    date_joined = models.DateField(
-        auto_now_add=True
-    )
-
-    USERNAME_FIELD = 'username'
-    EMAIL_FIELD = 'email'
-    REQUIRED_FIELDS = ['email']
-
-    objects = UserManager()
 
     def __str__(self):
-        return self.username
+        return f"{self.db_name}"
 
 
 class Course(models.Model):
