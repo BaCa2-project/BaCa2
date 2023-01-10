@@ -1,8 +1,12 @@
+from typing import List
+
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.contrib.auth.models import Group, Permission
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+
+from BaCa2.choices import PermissionTypes
 
 
 class UserManager(BaseUserManager):
@@ -48,13 +52,110 @@ class Course(models.Model):
         return f"{self.db_name}"
 
 
-class Course(models.Model):
-    name = models.CharField(
-        max_length=255
+class User(AbstractBaseUser, PermissionsMixin):
+    email = models.EmailField(
+        _("email address"),
+        max_length=255,
+        unique=True
     )
-    short_name = models.CharField(
-        max_length=31
+    username = models.CharField(
+        _("username"),
+        max_length=255,
+        unique=True
     )
+    is_staff = models.BooleanField(
+        default=False
+    )
+    is_superuser = models.BooleanField(
+        default=False
+    )
+    first_name = models.CharField(
+        _("first name"),
+        max_length=255,
+        blank=True
+    )
+    last_name = models.CharField(
+        _("last name"),
+        max_length=255,
+        blank=True
+    )
+    date_joined = models.DateField(
+        auto_now_add=True
+    )
+
+    USERNAME_FIELD = 'username'
+    EMAIL_FIELD = 'email'
+    REQUIRED_FIELDS = ['email']
+
+    objects = UserManager()
+
+    def __str__(self):
+        return self.username
+
+    def can_access_course(self, course: Course):
+        if UserCourse.objects.filter(course=course, user=self).exists():
+            return True
+        return False
+
+    def check_general_permissions(
+            self,
+            model: models.Model,
+            permissions: str or PermissionTypes or List[PermissionTypes] = 'all'
+    ):
+        if permissions == 'all':
+            permissions = Permission.objects.filter(
+                content_type__model=model
+            )
+        elif isinstance(permissions, str):
+            permissions = Permission.objects.filter(
+                codename=permissions
+            )
+
+        if isinstance(permissions, PermissionTypes):
+            permissions = Permission.objects.filter(
+                codename=f'{permissions.label}_{model._meta.model_name}'
+            )
+
+        if isinstance(permissions, List):
+            codenames = []
+            for p in permissions:
+                codenames.append(f'{p.label}_{model._meta.model_name}')
+
+            permissions = Permission.objects.filter(
+                codename__in=codenames
+            )
+
+        for permission in permissions:
+            if not Group.objects.filter(
+                permissions=permission,
+                user_set=self
+            ).exists():
+                return False
+        return True
+
+    def check_course_permissions(
+            self,
+            course: Course,
+            model: models.Model,
+            permissions: 'all' or PermissionTypes or List[PermissionTypes] = 'all'
+    ):
+        if not self.can_access_course(course):
+            return False
+
+        if permissions == 'all':
+            permissions = PermissionTypes[:]
+
+        if isinstance(permissions, PermissionTypes):
+            permissions = [permissions]
+
+        for permission in permissions:
+            if not Group.objects.filter(
+                    permissions__codename=f'{permission.label}_{model._meta.model_name}',
+                    groupcourse__course=course,
+                    groupcourse__usercourse__user=self
+            ).exists():
+                return False
+        return True
 
 
 class GroupCourse(models.Model):

@@ -17,3 +17,10 @@ class ResultStatus(models.TextChoices):
     CME = 'CME', _('Compilation error')
     EXT = 'EXT', _('Unknown extension')
     INT = 'INT', _('Internal error')
+
+
+class PermissionTypes(models.TextChoices):
+    ADD = 'ADD', 'add'
+    DEL = 'DEL', 'delete'
+    EDIT = 'EDIT', 'edit'
+    VIEW = 'VIEW', 'view'
