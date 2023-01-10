@@ -12,6 +12,8 @@ def isNone(val):
 
 #check if val can be converted to int
 def isInt(val):
+    if type(val) == float:
+        return False
     try:
         int(val)
         return True
@@ -59,7 +61,7 @@ def isIn(val, *args):
 #check if val is string and has len < len(l)
 def isShorter(val, l: int):
     if isStr(val):
-        return val.length() < l
+        return len(val) < l
     return False
 
 #check if val has dict type

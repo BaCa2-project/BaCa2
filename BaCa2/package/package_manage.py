@@ -8,7 +8,339 @@ from BaCa2.exceptions import NoTestFound, NoSetFound, TestExistError
 from os import remove, replace, walk, mkdir, rename, listdir
 from shutil import rmtree
 from copy import deepcopy
+import random
+import string
 
+'''def generate_rand_int():
+    return random.randint(0, 10000000)
+
+
+def compare_memory_unit(unit1, unit2):
+    if unit1 == 'B':
+        return True
+    elif unit1 == 'K' and (unit2 == 'K' or unit2 == 'M' or unit2 == 'G'):
+        return True
+    elif unit1 == 'M' and (unit2 == 'M' or unit2 == 'G'):
+        return True
+    elif unit1 == 'G' and unit2 == 'G':
+        return True
+    return False
+
+
+def generate_rand_dict():
+    _dict = {}
+    for i in range(100):
+        key1 = random.choice(string.ascii_letters)
+        value1 = random.randint(1, 10000)
+        key2 = random.randint(1, 10000)
+        value2 = random.choice(string.ascii_letters)
+        if i % 4 == 0:
+            _dict[key1] = value1
+        elif i % 4 == 1:
+            _dict[key2] = value2
+        elif i % 4 == 2:
+            _dict[key1] = value2
+        else:
+            _dict[key2] = value1
+    return _dict
+
+
+def generate_rand_list():
+    _list = []
+    for i in range(100):
+        val1 = random.choice(string.ascii_letters)
+        val2 = random.randint(1, 10000)
+        val3 = random.uniform(1, 10000)
+        val4 = generate_rand_dict()
+        _list.append(val1)
+        _list.append(val2)
+        _list.append(val3)
+        _list.append(val4)
+    return list
+
+
+class ValidationsTests(TestCase):
+
+    def test_isInt(self):
+        for i in range(1000):
+            a = generate_rand_int()
+            self.assertTrue(isInt(a))
+            float(a)
+            self.assertTrue(isInt(a))
+            str(a)
+            self.assertTrue(isInt(a))
+
+        self.assertFalse(isInt(0.5))
+        self.assertFalse(isInt('0.5'))
+        self.assertFalse(isInt(1235.4567))
+        self.assertFalse(isInt('1235.4567'))
+        self.assertFalse(isInt('5,5'))
+        self.assertFalse(isInt("5 and more"))
+        self.assertFalse(isInt("It is just a string"))
+
+    def test_isIntBetween(self):  # a <= val < b
+        for i in range(1000):
+            a = generate_rand_int()
+            b = generate_rand_int()
+            if a > b:
+                a, b = b, a
+            val = random.randint(a, b - 1)
+            self.assertTrue(isIntBetween(val, a, b))
+            float(a)
+            float(b)
+            float(val)
+            self.assertTrue(isIntBetween(val, a, b))
+            val = random.randint(0, a - 1)
+            self.assertFalse(isIntBetween(val, a, b))
+            val = random.randint(b + 1, 10000001)
+            self.assertFalse(isIntBetween(val, a, b))
+        self.assertTrue(isIntBetween(5, 2, 10))
+        self.assertTrue(isIntBetween(68, 68, 78))
+        self.assertTrue(isIntBetween(-4, -7, -1))
+        self.assertTrue(isIntBetween(-6, -6, 0))
+        self.assertFalse(isIntBetween(5, 1, 3))
+        self.assertFalse(isIntBetween(5, -7, -1))
+        self.assertFalse(isIntBetween(5, -6, 0))
+        self.assertFalse(isIntBetween(5, 6, 67))
+        self.assertFalse(isIntBetween(67, 6, 67))
+
+    def test_isFloat(self):
+        for i in range(1000):
+            a = random.uniform(0.1, 100000.0)
+            self.assertTrue(isFloat(a))
+            float(a)
+            self.assertTrue(isFloat(a))
+            str(a)
+            self.assertTrue(isFloat(a))
+            a = random.random()
+            self.assertTrue(isFloat(a))
+            float(a)
+            self.assertTrue(isFloat(a))
+            str(a)
+            self.assertTrue(isFloat(a))
+        self.assertTrue(isFloat('5'))
+        self.assertTrue(isFloat(5))
+        self.assertTrue(isFloat(0))
+        self.assertTrue(isFloat('0'))
+        self.assertTrue(isFloat(123456))
+        self.assertTrue(isFloat('123456'))
+        self.assertTrue(isFloat(0.5))
+        self.assertTrue(isFloat('0.5'))
+        self.assertTrue(isFloat(1235.4567))
+        self.assertTrue(isFloat('1235.4567'))
+        self.assertFalse(isFloat('5,5'))
+        self.assertFalse(isFloat("5 and more"))
+        self.assertFalse(isFloat("53.46 and more"))
+        self.assertFalse(isFloat("It is just a string"))
+
+    def test_isFloatBetween(self):
+        for i in range(1000):
+            a = random.randint(1, 10000000)
+            b = random.randint(1, 10000000)
+            if a > b:
+                a, b = b, a
+            val = random.uniform(a, b - 1)
+            self.assertTrue(isFloatBetween(val, a, b))
+            float(a)
+            float(b)
+            float(val)
+            self.assertTrue(isFloatBetween(val, a, b))
+            val = random.uniform(0.0, a - 1.0)
+            self.assertFalse(isFloatBetween(val, a, b))
+            val = random.uniform(b + 1.0, 10000001.0)
+            self.assertFalse(isFloatBetween(val, a, b))
+
+    def test_isStr(self):
+        for i in range(1000):
+            val = random.choice(string.ascii_letters)
+            self.assertTrue(isStr(val))
+        for i in range(10000):
+            val2 = random.randint(1, 10000000)
+            self.assertFalse(isStr(val2))
+            float(val2)
+            self.assertFalse(isStr(val2))
+
+    def test_is_(self):
+        for i in range(1000):
+            val = random.choice(string.ascii_letters)
+            schema = val
+            self.assertTrue(is_(val, schema))
+            schema = random.choice(string.ascii_letters)
+            if (schema != val):
+                self.assertFalse(is_(val, schema))
+            val = random.randint(1, 100000)
+            self.assertFalse(is_(val, schema))
+            float(val)
+            self.assertFalse(is_(val, schema))
+
+    
+
+    def test_isSize(self):
+        unit_list = ['B', 'K', 'M', 'G']
+        for i in range(1000):
+            size = random.randint(1, 100000)
+            max_size = random.randint(size, 100001)
+            unit1 = random.choice(unit_list)
+            unit2 = random.choice(unit_list)
+            if not (compare_memory_unit(unit1, unit2)):
+                unit1, unit2 = unit2, unit1  # now unit1 is smaller than unit
+            mem_size = str(size) + unit1
+            max_mem_size = str(max_size) + unit2
+            self.assertTrue(isSize(mem_size, max_mem_size))
+
+    def test_isList(self):
+        for i in range(1000):
+            _list = generate_rand_list()
+            self.assertTrue(isList(_list))
+
+    def test_memory_converting(self):
+        # error message in case if test case got failed
+        message = "First value and second value are not equal!"
+        # assertEqual() to check equality of first & second value
+        size = 456
+        val = str(size) + "B"
+        # test for B unit value
+        self.assertEqual(memory_converting(val), size, message)
+        val = str(size) + "K"
+        # test for K unit value
+        self.assertEqual(memory_converting(val), size*1024, message)
+        val = str(size) + "M"
+        # test for M unit value
+        self.assertEqual(memory_converting(val), size*1024*1024, message)
+        val = str(size) + "G"
+        # test for G unit value
+        self.assertEqual(memory_converting(val), size*1024*1024*1024, message)
+
+    def test_valid_memory_size(self):
+        unit_list = ['B', 'K', 'M', 'G']
+        for i in range(1000):
+            size = random.randint(1, 100000)
+            max_size = random.randint(size, 100001)
+            unit1 = random.choice(unit_list)
+            unit2 = random.choice(unit_list)
+            if not (compare_memory_unit(unit1, unit2)):
+                unit1, unit2 = unit2, unit1  # now unit1 is smaller than unit
+            mem_size = str(size) + unit1
+            max_mem_size = str(max_size) + unit2
+            self.assertTrue(valid_memory_size(mem_size, max_mem_size))
+
+    def test_hasStructure(self):
+        # validator at the end of a string
+        structure = "set<isInt>"
+        self.assertTrue(hasStructure("set123", structure))
+        self.assertFalse(hasStructure("set", structure))
+        self.assertFalse(hasStructure("set_1234", structure))
+        self.assertFalse(hasStructure("123.set_123", structure))
+        structure = "test_<isIn,'a','wrong','0'>"
+        self.assertTrue(hasStructure("test_a", structure))
+        self.assertTrue(hasStructure("test_wrong", structure))
+        self.assertTrue(hasStructure("test_0", structure))
+        self.assertFalse(hasStructure("test_", structure))
+        self.assertFalse(hasStructure("test_01234", structure))
+        self.assertFalse(hasStructure("test_right", structure))
+        # structure at the end and in the middle
+        structure = "test<isInt>_set<isInt>"
+        self.assertTrue(hasStructure("test123_set123", structure))
+        self.assertFalse(hasStructure("test_13_set12", structure))
+        self.assertFalse(hasStructure("test12set34", structure))
+        self.assertFalse(hasStructure("test123_set", structure))
+        self.assertFalse(hasStructure("test_123_set", structure))
+        self.assertFalse(hasStructure("test_123", structure))
+        self.assertFalse(hasStructure("set124", structure))
+        self.assertFalse(hasStructure("_test123_set15", structure))
+        # structure at the beginning and at the end
+        structure = "<isStr>|<isInt>_course<isInt>"
+        # only two structures
+        structure = "<isInt><isIn, 'B', 'K', 'M', 'G'>"
+        self.assertTrue(hasStructure("1234B", structure))
+        self.assertTrue(hasStructure("1234 B", structure))
+        self.assertTrue(hasStructure("1234K", structure))
+        self.assertTrue(hasStructure("1234 K", structure))
+        self.assertTrue(hasStructure("1234M", structure))
+        self.assertTrue(hasStructure("1234 M", structure))
+        self.assertTrue(hasStructure("1234G", structure))
+        self.assertTrue(hasStructure("1234 G", structure))
+        self.assertFalse(hasStructure("1234", structure))
+        self.assertFalse(hasStructure("B", structure))
+        self.assertFalse(hasStructure("K", structure))
+        self.assertFalse(hasStructure("M", structure))
+        self.assertFalse(hasStructure("G", structure))
+        self.assertFalse(hasStructure("It is string", structure))
+        self.assertFalse(hasStructure("1234 T", structure))
+        self.assertFalse(hasStructure("1234T", structure))
+        # structure at the beginning
+        structure = "<isInt>.in"
+        self.assertTrue(hasStructure("1.in", structure))
+        self.assertFalse(hasStructure("1. in", structure))
+        self.assertFalse(hasStructure("str.in", structure))
+        self.assertFalse(hasStructure("2.5.in", structure))
+        # structure at the beginning and in the middle
+        structure = "<isStr>.<isIn: 'out', 'in'>"
+        self.assertTrue(hasStructure("sol.in", structure))
+        self.assertTrue(hasStructure("sol.out", structure))
+        self.assertFalse(hasStructure("sol.inn", structure))
+        self.assertFalse(hasStructure("solin", structure))
+        self.assertFalse(hasStructure("solout", structure))
+        # two structures with alternative at beginning
+        structure = "<isStr>|<isInt>_course"
+        self.assertTrue(hasStructure("ASD_course", structure))
+        self.assertTrue(hasStructure("MD_course", structure))
+        self.assertTrue(hasStructure("123_course", structure))
+        self.assertFalse(hasStructure("MD course", structure))
+        self.assertFalse(hasStructure("123 course", structure))
+        self.assertFalse(hasStructure("ASDcourse", structure))
+        self.assertFalse(hasStructure("ASD_course_", structure))
+        # structure at the beginning, middle and at the end
+        structure = "<isInt>test<isStr>|<isInt>|<isFloat>"
+        self.assertTrue(hasStructure("23test23", structure))
+        self.assertTrue(hasStructure("123testSTR", structure))
+        self.assertTrue(hasStructure("123test5.67", structure))
+        self.assertFalse(hasStructure("123test"))
+        self.assertFalse(hasStructure("test", structure))
+        self.assertFalse(hasStructure("34testwrong", structure))
+        self.assertFalse(hasStructure("34TEST23", structure))
+
+    def test_isAny(self):
+        for i in range(1000):
+            val = random.randint(0, 10000000)
+            self.assertTrue(isAny(val))
+            float(val)
+            self.assertTrue(isAny(val))
+            str(val)
+            self.assertTrue(isAny(val))
+            val = random.uniform(0.1, 100000.0)
+            self.assertTrue(isAny(val))
+            float(val)
+            self.assertTrue(isAny(val))
+            str(val)
+            self.assertTrue(isAny(val))
+            a = random.random()
+            self.assertTrue(isAny(val))
+            float(val)
+            self.assertTrue(isAny(val))
+            str(val)
+            self.assertTrue(isAny(val))
+            val = random.choice(string.ascii_letters)
+            self.assertTrue(isAny(val))
+            _dict = generate_rand_dict()
+            self.assertTrue(isAny(_dict))
+            _list = generate_rand_list()
+            self.assertTrue(isAny(_list))
+
+    def test_isNone(self):
+        for i in range(1000):
+            val = random.randint(0, 10000000)
+            self.assertFalse(isNone(val))
+            float(val)
+            self.assertFalse(isNone(val))
+            str(val)
+            val = random.choice(string.ascii_letters)
+            self.assertFalse(isNone(val))
+            _dict = generate_rand_dict()
+            self.assertFalse(isNone(_dict))
+            _list = generate_rand_list()
+            self.assertFalse(isNone(_list))
+            self.assertTrue(isNone(None))'''
 
 def merge_settings(default: dict, to_add: dict) -> dict:
     """
