@@ -28,7 +28,7 @@ def _raw_root_connection():
     return conn
 
 
-def createDB(db_name, verbose=False, auto_migrate=True, **db_kwargs):
+def createDB(db_name, verbose=False, **db_kwargs):
     """
     It creates a new database, adds it to the `DATABASES` dictionary in `settings.py`, and saves the new database's
     settings to `ext_databases.py`
@@ -49,7 +49,8 @@ def createDB(db_name, verbose=False, auto_migrate=True, **db_kwargs):
     conn = _raw_root_connection()
     cursor = conn.cursor()
 
-    sql = f''' CREATE DATABASE {db_name}; '''
+    sql = f'''DROP DATABASE IF EXISTS {db_name};
+              CREATE DATABASE {db_name}; '''
     if verbose:
         print(f"DB {db_name} created.")
 
