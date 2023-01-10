@@ -1,0 +1,5 @@
+memoryLimit: 10M
+name: set0
+points: 1
+tests: {}
+timeLimit: 10

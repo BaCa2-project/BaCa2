@@ -123,13 +123,16 @@ class Submit(models.Model):
         return f"Submit {self.pk}: User: {self.user}; Task: {self.task.task_name}; " \
                f"Score: {self.final_score if self.final_score > -1 else 'PENDING'}"
 
-    def score(self, rejudge=False):
+    def score(self, rejudge: bool = False):
         """
         It calculates the score of a submit
 
         :param rejudge: If True, the score will be recalculated even if it was already calculated before,
-        defaults to False (optional)
+            defaults to False (optional)
+        :type rejudge: bool
         :return: The score of the submit.
+        :raise DataError: if there is more results than tests
+        :raise NotImplementedError: if selected judging mode is not implemented
         """
 
         if rejudge:
@@ -181,7 +184,8 @@ class Submit(models.Model):
             elif judging_mode == TaskJudgingMode.UNA:
                 results_aggregated[test_set]['score'] = float(s.get('OK', 0) == s['SUM'])
             else:
-                raise DataError(f"Submit ({self}): Task {self.task.pk} has invalid judging mode.")
+                raise NotImplementedError(f"Submit ({self}): Task {self.task.pk} has judging mode " +
+                                          f"which is not implemented.")
 
         # It's calculating the score of a submit, as weighted average of sets scores.
         final_score = 0
