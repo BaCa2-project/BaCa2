@@ -13,6 +13,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from BaCa2.choices import TaskJudgingMode, ResultStatus
 from BaCa2.tools import random_string
+from main.models import User
 from .models import *
 from .routing import InCourse
 from .manager import create_course, delete_course
@@ -124,7 +125,7 @@ def create_random_submit(course_name: str,
     if not allow_pending_status:
         allowed_statuses.remove(ResultStatus.PND)
     with InCourse(course_name):
-        new_submit = Submit.objects.create(
+        new_submit = Submit.create_new(
             submit_date=submit_date,
             source_code=source_file,
             task=parent_task,
@@ -178,7 +179,9 @@ def create_simple_course(course_name: str,
         create_course(course_name)
 
     if submits is None:
-        submits = ({'usr': 1, 'task': 1},)
+        usr = None
+        usr = User.objects.last()
+        submits = ({'usr': usr, 'task': 1},)
     sleep(time_offset)
     with InCourse(course_name):
         r = Round.objects.create(
@@ -220,19 +223,19 @@ def submiter(course_name: str,
 # It creates a simple course, adds a random submit to it, and scores it
 class ASimpleTestCase(TestCase):
     course_name = 'test_simple_course'
+    u1 = None
 
     @classmethod
     def setUpClass(cls):
-        from main.models import User
-        delete_course(cls.course_name)
-        create_simple_course(cls.course_name, create_db=True)
         cls.u1 = User.objects.create_user(
             'user1@gmail.com',
             'user1',
             'psswd',
-            'first name',
-            'last name'
+            first_name='first name',
+            last_name='last name'
         )
+        delete_course(cls.course_name)
+        create_simple_course(cls.course_name, create_db=True)
 
     @classmethod
     def tearDownClass(cls):
@@ -286,6 +289,7 @@ class ASimpleTestCase(TestCase):
 class BMultiThreadTest(TestCase):
     course1 = 'sample_course2'
     course2 = 'sample_course3'
+    u1 = u2 = u3 = u4 = None
 
     @classmethod
     def setUpClass(cls):
@@ -296,40 +300,37 @@ class BMultiThreadTest(TestCase):
 
         :param cls: the class object
         """
-        from main.models import User
-
-        delete_course(cls.course1)
-        delete_course(cls.course2)
-
         cls.u1 = User.objects.create_user(
             'user1@gmail.com',
             'user1',
             'psswd',
-            'first name',
-            'last name'
+            first_name='first name',
+            last_name='last name'
         )
         cls.u2 = User.objects.create_user(
             'user2@gmail.com',
             'user2',
             'psswd',
-            'first name',
-            'last name'
+            first_name='first name',
+            last_name='last name'
         )
         cls.u3 = User.objects.create_user(
             'user3@gmail.com',
             'user3',
             'psswd',
-            'first name',
-            'last name'
+            first_name='first name',
+            last_name='last name'
         )
         cls.u4 = User.objects.create_user(
             'user4@gmail.com',
             'user4',
             'psswd',
-            'first name',
-            'last name'
+            first_name='first name',
+            last_name='last name'
         )
 
+        delete_course(cls.course1)
+        delete_course(cls.course2)
         create1 = Thread(target=create_simple_course, args=(cls.course1,),
                          kwargs={
                              'time_offset': 2,
@@ -368,7 +369,6 @@ class BMultiThreadTest(TestCase):
     def tearDownClass(cls):
         delete_course(cls.course1)
         delete_course(cls.course2)
-
         cls.u1.delete()
         cls.u2.delete()
         cls.u3.delete()
@@ -388,9 +388,9 @@ class BMultiThreadTest(TestCase):
         It checks that user 1 has submitted 3 times in course 1 and 1 time in course 2
         """
         with InCourse(self.course1):
-            self.assertEqual(Submit.objects.filter(usr=self.u1).count(), 3)
+            self.assertEqual(Submit.objects.filter(usr=self.u1.pk).count(), 3)
         with InCourse(self.course2):
-            self.assertEqual(Submit.objects.filter(usr=self.u1).count(), 1)
+            self.assertEqual(Submit.objects.filter(usr=self.u1.pk).count(), 1)
 
     def test_no_pending_score(self):
         """

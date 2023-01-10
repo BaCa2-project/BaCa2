@@ -93,10 +93,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.username
 
-    def can_access_course(self, course: Course):
-        if UserCourse.objects.filter(course=course, user=self).exists():
-            return True
-        return False
+    @classmethod
+    def exists(cls, user_id):
+        return cls.objects.exists(pk=user_id)
+
 
     def check_general_permissions(
             self,
