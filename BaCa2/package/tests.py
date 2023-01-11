@@ -10,6 +10,7 @@ import random
 import string
 import os
 
+
 def generate_rand_int():
     return random.randint(0, 10000000)
 

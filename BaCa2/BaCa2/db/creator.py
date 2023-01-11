@@ -49,12 +49,14 @@ def createDB(db_name, verbose=False, **db_kwargs):
     conn = _raw_root_connection()
     cursor = conn.cursor()
 
-    sql = f'''DROP DATABASE IF EXISTS {db_name};
-              CREATE DATABASE {db_name}; '''
+    drop_if_exist = f'''DROP DATABASE IF EXISTS {db_name};'''
+    sql = f''' CREATE DATABASE {db_name}; '''
+
+    cursor.execute(drop_if_exist)
+    cursor.execute(sql)
     if verbose:
         print(f"DB {db_name} created.")
 
-    cursor.execute(sql)
     conn.close()
     log.info(f"DB {db_name} created successfully.")
 
