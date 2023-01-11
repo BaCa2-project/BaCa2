@@ -22,5 +22,10 @@ class ResultStatus(models.TextChoices):
 class PermissionTypes(models.TextChoices):
     ADD = 'ADD', 'add'
     DEL = 'DEL', 'delete'
-    EDIT = 'EDIT', 'edit'
+    EDIT = 'EDIT', 'change'
     VIEW = 'VIEW', 'view'
+
+
+class DefaultCourseGroups(models.TextChoices):
+    ADMIN = 'ADMIN', 'admin'
+    VIEWER = 'VIEWER', 'viewer'

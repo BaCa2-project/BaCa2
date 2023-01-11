@@ -2,7 +2,7 @@ from typing import List
 
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
-from django.contrib.auth.models import Group, Permission
+from django.contrib.auth.models import Group, Permission, ContentType
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django.core.exceptions import ValidationError
@@ -15,6 +15,10 @@ class UserManager(BaseUserManager):
     def _create_user(self, email, username, password, is_staff, is_superuser, **other_fields):
         if not email:
             raise ValidationError('Email address is required')
+        if not username:
+            raise ValidationError('Username is required')
+        if not password:
+            raise ValidationError('Password is required')
 
         now = timezone.now()
         _email = self.normalize_email(email)
@@ -97,40 +101,62 @@ class User(AbstractBaseUser, PermissionsMixin):
     def exists(cls, user_id):
         return cls.objects.exists(pk=user_id)
 
+    def can_access_course(
+            self,
+            course: Course
+    ):
+        """
+        Check whether the user has been assigned to the given course through the UserCourse model.
+
+        :param course: Course to check user access to.
+        :type course: Course
+        :return: True if user has been assigned to the given course.
+        """
+
+        if UserCourse.objects.filter(
+            user=self,
+            course=course
+        ).exists():
+            return True
+        return False
 
     def check_general_permissions(
             self,
             model: models.Model,
             permissions: str or PermissionTypes or List[PermissionTypes] = 'all'
     ):
+        """
+        Check permissions relating to default database models (non-course models).
+
+        :param model: The model to check permissions for.
+        :type model: models.Model
+        :param permissions: Permissions to check for the given model. Permissions can be given as a PermissionTypes
+        object/List of objects or as a string (in the format <app_label>.<permission_codename>) - the default option
+        'all' checks all permissions related to the model, both standard and custom. The 'all_standard' option checks
+        the 'view', 'change', 'add' and 'delete' permissions for the given model.
+        :type permissions: str or PermissionTypes or List[PermissionTypes] = 'all'
+        :returns: True if user possesses given permissions for the given model.
+        """
+
         if permissions == 'all':
-            permissions = Permission.objects.filter(
-                content_type__model=model
-            )
-        elif isinstance(permissions, str):
-            permissions = Permission.objects.filter(
-                codename=permissions
-            )
+            permissions = [f'{model._meta.app_label}.{p.codename}' for p in Permission.objects.filter(
+                content_type=ContentType.objects.get_for_model(model).id
+            )]
 
-        if isinstance(permissions, PermissionTypes):
-            permissions = Permission.objects.filter(
-                codename=f'{permissions.label}_{model._meta.model_name}'
-            )
+        elif permissions == 'all_standard':
+            permissions = [f'{model._meta.app_label}.{p.label}_{model._meta.model_name}' for p in PermissionTypes]
 
-        if isinstance(permissions, List):
-            codenames = []
-            for p in permissions:
-                codenames.append(f'{p.label}_{model._meta.model_name}')
+        elif isinstance(permissions, PermissionTypes):
+            permissions = [f'{model._meta.app_label}.{permissions.label}_{model._meta.model_name}']
 
-            permissions = Permission.objects.filter(
-                codename__in=codenames
-            )
+        elif isinstance(permissions, List):
+            permissions = [f'{model._meta.app_label}.{p.label}_{model._meta.model_name}' for p in permissions]
 
-        for permission in permissions:
-            if not Group.objects.filter(
-                permissions=permission,
-                user_set=self
-            ).exists():
+        else:
+            permissions = [permissions]
+
+        for p in permissions:
+            if not self.has_perm(p):
                 return False
         return True
 
@@ -140,11 +166,25 @@ class User(AbstractBaseUser, PermissionsMixin):
             model: models.Model,
             permissions: 'all' or PermissionTypes or List[PermissionTypes] = 'all'
     ):
+        """
+        Check permissions relating to course database models (checks whether the user has been assigned given
+        model permissions within the scope of a particular course).
+
+        :param course: The course to check the model permissions within.
+        :type course: Course
+        :param model: The model to check the permissions for.
+        :type model: models.Model
+        :param permissions: Permissions to check for the given model within the confines of the course. Permissions can
+        be given as a PermissionTypes object/List of objects or 'all' - the default 'all' option checks all permissions
+        related to the model.
+        :returns: True if the user possesses given permissions for the given model within the scope of the course.
+        """
+
         if not self.can_access_course(course):
             return False
 
         if permissions == 'all':
-            permissions = PermissionTypes[:]
+            permissions = PermissionTypes
 
         if isinstance(permissions, PermissionTypes):
             permissions = [permissions]
