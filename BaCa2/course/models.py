@@ -7,6 +7,8 @@ from BaCa2.settings import BASE_DIR
 
 from main.models import User
 
+from package.models import PackageInstance
+
 SUBMITS_DIR = BASE_DIR / 'submits'
 
 __all__ = ['Round', 'Task', 'TestSet', 'Test', 'Submit', 'Result']
@@ -83,6 +85,10 @@ class Task(models.Model):
         if amount == 1:
             return Submit.objects.filter(task=self, usr=usr.pk).order_by('-final_score').first()
         return Submit.objects.filter(task=self, usr=usr.pk).order_by('-final_score').all()[:amount]
+
+    @classmethod
+    def check_instance(cls, instance_id: PackageInstance) -> bool:
+        pass
 
 
 class TestSet(models.Model):
