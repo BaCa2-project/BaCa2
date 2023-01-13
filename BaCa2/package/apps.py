@@ -7,6 +7,10 @@ class PackageConfig(AppConfig):
     name = 'package'
 
     def ready(self):
-        from .models import PackageInstance
-        for instance in PackageInstance.objects.all():
+        from django.db.utils import ProgrammingError
+        try:
+            from .models import PackageInstance
+            for instance in PackageInstance.objects.all():
+                pass
+        except ProgrammingError:
             pass
