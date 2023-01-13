@@ -163,3 +163,5 @@ if (SETTINGS_DIR / "settings_local.py").exists():
 
 
 SUPPORTED_EXTENSIONS = ['cpp']
+
+PACKAGES = {}
