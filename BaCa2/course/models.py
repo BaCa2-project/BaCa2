@@ -71,7 +71,6 @@ class Task(models.Model):
             kwargs['package_instance_id'] = pkg_instance.pk
         return cls.objects.create(**kwargs)
 
-
     @property
     def sets(self):
         """

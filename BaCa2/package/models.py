@@ -19,7 +19,7 @@ class PackageSource(models.Model):
 
 class PackageInstanceUser(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    package_instance = models.ForeignKey("PackageInstance", on_delete=models.CASCADE)
+    package_instance = models.ForeignKey('PackageInstance', on_delete=models.CASCADE)
 
 
 class PackageInstance(models.Model):

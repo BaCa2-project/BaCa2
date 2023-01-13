@@ -50,6 +50,8 @@ INSTALLED_APPS = [
     'main',  # local app
 
     'course',  # local app
+
+    'package',  # local app
 ]
 
 MIDDLEWARE = [
@@ -92,7 +94,6 @@ TIME_ZONE = 'Europe/Warsaw'
 USE_I18N = True
 
 USE_TZ = True
-
 
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
@@ -160,7 +161,6 @@ for f in (SETTINGS_DIR / 'app_configurations').glob('[!_]*.py'):
 
 if (SETTINGS_DIR / "settings_local.py").exists():
     exec(open(SETTINGS_DIR / "settings_local.py", "rb").read())
-
 
 SUPPORTED_EXTENSIONS = ['cpp']
 
