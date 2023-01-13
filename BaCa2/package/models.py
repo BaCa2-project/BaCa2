@@ -26,6 +26,17 @@ class PackageInstance(models.Model):
     package_source = models.ForeignKey(PackageSource, on_delete=models.CASCADE)
     commit = models.CharField(max_length=2047)
 
+    @classmethod
+    def exists(cls, pkg_id: int):
+        """
+        If the package with the given ID exists, return True, otherwise return False
+
+        :param pkg_id: The id of the package to check for
+        :type pkg_id: int
+        :return: A boolean value.
+        """
+        return cls.objects.filter(pk=pkg_id).exists()
+
     @property
     def package(self):
         package_id = f"{self.package_source.name}.{self.commit}"
