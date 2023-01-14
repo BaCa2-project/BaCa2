@@ -6,12 +6,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
-      - name: Install poetry
-        run: |
-          pip install poetry sphinx_rtd_theme
       - name: Install dependencies
         run: |
-          poetry install
+          pip install sphinx sphinx_rtd_theme django django-allauth django-extensions django-dbbackup pyyaml
       - name: Sphinx build
         run: |
           sphinx-build BaCa2/docs/source BaCa2/docs/build
