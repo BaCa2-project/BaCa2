@@ -21,18 +21,18 @@ jobs:
       - uses: actions/setup-python@v2
       - name: Install db client
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes postgresql-client
+          apt-get update
+          apt-get install --yes postgresql-client
       - name: Add default project database
-        run: sudo psql -h postgres -d postgres_db -U root -c 'CREATE DATABASE baca2db;'
+        run: psql -h postgres -d postgres_db -U root -c 'CREATE DATABASE baca2db;'
         env:
           PGPASSWORD: BaCa2root
       - name: Create default db user for project
-        run: sudo psql -h postgres -d postgres_db -U root -c 'create user baca2 with encrypted password "zaqwsxcde";'
+        run: psql -h postgres -d postgres_db -U root -c 'create user baca2 with encrypted password "zaqwsxcde";'
         env:
           PGPASSWORD: BaCa2root
       - name: Grant privileges to default db user
-        run: sudo psql -h postgres -d postgres_db -U root -c 'grant all privileges on database baca2db to baca2;'
+        run: psql -h postgres -d postgres_db -U root -c 'grant all privileges on database baca2db to baca2;'
         env:
           PGPASSWORD: BaCa2root
       - name: Install dependencies
