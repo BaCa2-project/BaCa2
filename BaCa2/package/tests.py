@@ -8,7 +8,6 @@ from pathlib import Path
 from yaml import safe_load
 import random
 import string
-import os
 
 
 def generate_rand_int():

@@ -1,5 +1,6 @@
 from django.apps import AppConfig
 from BaCa2.settings import PACKAGES
+from package_manage import Package
 
 
 class PackageConfig(AppConfig):
@@ -11,6 +12,6 @@ class PackageConfig(AppConfig):
         try:
             from .models import PackageInstance
             for instance in PackageInstance.objects.all():
-                pass
+                PACKAGES[instance.get_commit(self)] = Package(instance.path(self))
         except ProgrammingError:
             pass

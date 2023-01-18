@@ -2,6 +2,10 @@ from django.db import models
 from main.models import User
 from .validators import isStr
 from BaCa2.settings import BASE_DIR, PACKAGES
+from course.models import Task
+from pathlib import Path
+from BaCa2.settings import PACKAGES
+from package_manage import Package
 
 
 class PackageSource(models.Model):
@@ -37,27 +41,43 @@ class PackageInstance(models.Model):
         """
         return cls.objects.filter(pk=pkg_id).exists()
 
+    def get_commit(self):
+        return f"{self.package_source.name}.{self.commit}"
+
+    def get_package_manager(self):
+        return PACKAGES[self.get_commit()]
+
     @property
     def package(self):
-        package_id = f"{self.package_source.name}.{self.commit}"
+        package_id = self.get_commit()
         return PACKAGES.get(package_id)
 
     @property
     def path(self):
         return self.package_source.path / self.commit
 
-    def create_from_me(self, **kwargs):
-        # PackageInstance.objects.create(...)
-        pass
+    def create_from_me(self, new_path, new_commit):
+        # PackageInstance.objects.create(path)
+        new_package = self.package.copy(new_path, new_commit)
+        PACKAGES[new_package.get_commit()] = Package(new_package.path())
+        return new_package
 
-    # 1) skopiuj wszystko
-    # 2) Zwaliduj
-    # 3) Utwórz nowy wpis w settings.PACKAGES
 
+    """
+           function to delete package commit
+
+           :return: A boolean value.
+    """
     def delete_instance(self):
-        pass
+        if Task.check_instance(self):
+            raise
+        # deleting instance in source directory
+        file = Path(self.package_source.path / self.commit).resolve()
+        file.unlink()
+        # self delete instance
+        self.delete()
 
     def share(self, user: User):
-        #new_instance = self.create_from_me()
-        # PackageInstanceUser.objects.create(user=user, package_instance=new_instance)
-        pass
+        # new_instance = self.create_from_me()
+        new_instance = "x"
+        PackageInstanceUser.objects.create(user=user, package_instance=new_instance)
