@@ -28,7 +28,7 @@ jobs:
         env:
           PGPASSWORD: BaCa2root
       - name: Create default db user for project
-        run: psql -h postgres -d postgres_db -U root -c 'create user baca2 with encrypted password "zaqwsxcde";'
+        run: psql -h postgres -d postgres_db -U root -c "create user baca2 with encrypted password 'zaqwsxcde';"
         env:
           PGPASSWORD: BaCa2root
       - name: Grant privileges to default db user
