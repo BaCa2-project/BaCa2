@@ -12,6 +12,6 @@ class PackageConfig(AppConfig):
         try:
             from .models import PackageInstance
             for instance in PackageInstance.objects.all():
-                PACKAGES[instance.get_commit(self)] = Package(instance.path(self))
+                PACKAGES[instance.key] = Package(instance.path)
         except ProgrammingError:
             pass

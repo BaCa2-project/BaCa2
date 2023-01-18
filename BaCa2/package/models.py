@@ -7,6 +7,9 @@ from pathlib import Path
 from BaCa2.settings import PACKAGES
 from package_manage import Package
 
+from django.utils import timezone
+from django.db import transaction
+
 
 class PackageSource(models.Model):
     MAIN_SOURCE = BASE_DIR / 'packages'
@@ -41,43 +44,58 @@ class PackageInstance(models.Model):
         """
         return cls.objects.filter(pk=pkg_id).exists()
 
-    def get_commit(self):
-        return f"{self.package_source.name}.{self.commit}"
-
-    def get_package_manager(self):
-        return PACKAGES[self.get_commit()]
+    def __str__(self):
+        pass    #TODO
 
     @property
-    def package(self):
-        package_id = self.get_commit()
+    def key(self):
+        return f"{self.package_source.name}.{self.commit}"
+
+    @property
+    def package(self) -> Package:
+        package_id = self.key
         return PACKAGES.get(package_id)
 
     @property
     def path(self):
         return self.package_source.path / self.commit
 
-    def create_from_me(self, new_path, new_commit):
+    def create_from_me(self):
         # PackageInstance.objects.create(path)
-        new_package = self.package.copy(new_path, new_commit)
-        PACKAGES[new_package.get_commit()] = Package(new_package.path())
-        return new_package
+        new_path = self.package_source.path
+        new_commit = timezone.now().timestamp()
 
+        new_package = self.package.copy(new_path, new_commit)  # PackageManager TODO: COPY
+        new_package.check_package()
+
+        commit_msg = f"{self.package_source.name}.{new_commit}"
+        PACKAGES[commit_msg] = new_package
+
+        new_instance = PackageInstance.objects.create(
+            package_source=self.package_source,
+            commit=new_commit
+        )
+
+        return new_instance
 
     """
            function to delete package commit
 
            :return: A boolean value.
     """
+
     def delete_instance(self):
         if Task.check_instance(self):
             raise
+
+        with transaction.atomic():
+            self.package.delete()
+            PACKAGES.pop(self.key)
+            self.delete()
+
         # deleting instance in source directory
-        file = Path(self.package_source.path / self.commit).resolve()
-        file.unlink()
-        # self delete instance
-        self.delete()
+        # # self delete instance
 
     def share(self, user: User):
-        # new_instance = self.create_from_me()
-        new_instance = "x"
+        new_instance = self.create_from_me()
         PackageInstanceUser.objects.create(user=user, package_instance=new_instance)

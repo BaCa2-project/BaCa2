@@ -180,6 +180,12 @@ class Package(PackageManager):
         if isPath(self._path / 'tests' / set_name):
             rmtree(self._path / 'tests' / set_name)
 
+    def copy(self, new_path, new_commit) -> 'Package':
+        pass
+
+    def delete(self):
+        pass
+
     def _add_new_set(self, set_name):
         """
         > This function adds a new test set to the test suite
