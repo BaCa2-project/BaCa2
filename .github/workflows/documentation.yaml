@@ -5,7 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgis/postgis:10-2.5
+        image: postgres:latest
         env:
           # must specify password for PG Docker container image, see: https://registry.hub.docker.com/_/postgres?tab=description&page=1&name=10
           POSTGRES_PASSWORD: BaCa2root
@@ -23,15 +23,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes postgresql-client
       - name: Add default project database
-        run: sudo psql -h root -d postgres_db -U root -c 'CREATE DATABASE baca2db;'
+        run: sudo psql -h postgres -d postgres_db -U root -c 'CREATE DATABASE baca2db;'
         env:
           PGPASSWORD: BaCa2root
       - name: Create default db user for project
-        run: sudo psql -h root -d postgres_db -U root -c "create user baca2 with encrypted password 'zaqwsxcde';"
+        run: sudo psql -h postgres -d postgres_db -U root -c "create user baca2 with encrypted password 'zaqwsxcde';"
         env:
           PGPASSWORD: BaCa2root
       - name: Grant privileges to default db user
-        run: sudo psql -h root -d postgres_db -U root -c "grant all privileges on database baca2db to baca2;"
+        run: sudo psql -h postgres -d postgres_db -U root -c "grant all privileges on database baca2db to baca2;"
         env:
           PGPASSWORD: BaCa2root
       - name: Install dependencies
