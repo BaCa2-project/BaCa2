@@ -3,6 +3,7 @@ on: [push, pull_request, workflow_dispatch]
 jobs:
   docs:
     runs-on: ubuntu-latest
+    container: node:latest
     services:
       postgres:
         image: postgres:latest
@@ -27,11 +28,11 @@ jobs:
         env:
           PGPASSWORD: BaCa2root
       - name: Create default db user for project
-        run: sudo psql -h postgres -d postgres_db -U root -c "create user baca2 with encrypted password 'zaqwsxcde';"
+        run: sudo psql -h postgres -d postgres_db -U root -c 'create user baca2 with encrypted password "zaqwsxcde";'
         env:
           PGPASSWORD: BaCa2root
       - name: Grant privileges to default db user
-        run: sudo psql -h postgres -d postgres_db -U root -c "grant all privileges on database baca2db to baca2;"
+        run: sudo psql -h postgres -d postgres_db -U root -c 'grant all privileges on database baca2db to baca2;'
         env:
           PGPASSWORD: BaCa2root
       - name: Install dependencies
