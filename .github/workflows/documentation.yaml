@@ -23,6 +23,7 @@ jobs:
         run: |
           apt-get update
           apt-get install --yes postgresql-client
+          apt-get install --yes python3-pip
       - name: Add default project database
         run: psql -h postgres -d postgres_db -U root -c 'CREATE DATABASE baca2db;'
         env:
@@ -37,7 +38,7 @@ jobs:
           PGPASSWORD: BaCa2root
       - name: Install dependencies
         run: |
-          pip install sphinx sphinx_rtd_theme django django-allauth django-extensions django-dbbackup pyyaml psycopg2
+          pip3 install sphinx sphinx_rtd_theme django django-allauth django-extensions django-dbbackup pyyaml psycopg2
       - name: Sphinx build
         run: |
           sphinx-build BaCa2/docs/source BaCa2/docs/build
