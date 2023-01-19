@@ -135,28 +135,42 @@ class PackageManager:
                 pass
 
 
-
 class Package(PackageManager):
     """
     It's a class that represents a package
 
-    class has 4 contstance variables:
+    class has 4 constance variables:
 
     * ``MAX_SUBMIT_MEMORY = '10G'``: the maximum number of submit memory size
     * ``MAX_SUBMIT_TIME = 600``: the maximum number of seconds to finish processing submit
-    * ``SETTINGS_VALIDATION``: dictionary witch has some settings such as:
-        ```python
+    * ``SETTINGS_VALIDATION``: dictionary with package settings such as:
+
+    ```
         SETTINGS_VALIDATION = {
-            'title': tytul
-            'points': [[isInt], [isFloat]],
-            'memory_limit':
-            'time_limit': [[isIntBetween, 0, MAX_SUBMIT_TIME], [isFloatBetween, 0, MAX_SUBMIT_TIME]],
-            'allowedExtensions': [[isIn, *SUPPORTED_EXTENSIONS], [isList, [isIn, *SUPPORTED_EXTENSIONS]]],
-            'hinter': [[isNone], [isPath]],
-            'checker': [[isNone], [isPath]],
-             'test_generator':
+            * ``title``: package name
+            * ``points``: maximum amount of points to earn
+            * ``memory_limit``: is a memory limit
+            * ``time_limit``: is a time limit
+            * ``allowedExtensions``: extensions witch are accepted
+            * ``hinter``: is a path or None value to actual hinter
+            * ``checker``: is a path or None value to actual checker
+            * ``test_generator``: is a path or None value to actual generator
+            }
+            ```
+    * ``DEFAULT_SETTINGS``: default settings for SETTINGS_VALIDATION if user will not give any
+
+        ```
+        DEFAULT_SETTINGS = {
+            * ``title``: default title is 'p'
+            * ``points``: default points are 0
+            * ``memory_limit``: default memory_limit is '512M'
+            * ``time_limit``: default time_limit is 10 seconds
+            * ``allowedExtensions``: default allowed_Extensions are 'cpp'
+            * ``hinter``: default hinter is None,
+            * ``checker``: default checker is None,
+            * ``test_generator``: default test_generator is None
         }
-         ```
+        ```
     """
     MAX_SUBMIT_MEMORY = '10G'
     MAX_SUBMIT_TIME = 600
@@ -293,6 +307,39 @@ class Package(PackageManager):
 class TSet(PackageManager):
     """
     It's a class that represents a set of tests
+
+    class has 2 constance variables:
+
+    * ``SETTINGS_VALIDATION``: dictionary with set settings such as:
+
+    ```
+        SETTINGS_VALIDATION = {
+            * ``name``: set name
+            * ``weight``: impact of set score on final score
+            * ``points``: maximum amount of points to earn in set
+            * ``memory_limit``: is a memory limit for set
+            * ``time_limit``: is a time limit for set
+            * ``checker``: is a path or None value to actual checker
+            * ``test_generator``: is a path or None value to actual generator
+            * ``tests``: tests to run in set
+            * ``makefile``: name of makefile
+            }
+            ```
+    * ``DEFAULT_SETTINGS``: default settings for SETTINGS_VALIDATION if user will not give any
+
+        ```
+        DEFAULT_SETTINGS = {
+            * ``title``: default set title is 'set0'
+            * ``weight``: default set weight is 10
+            * ``points``: default points are 0
+            * ``memory_limit``: default memory_limit is '512M'
+            * ``time_limit``: default time_limit is 10 seconds
+            * ``hinter``: default hinter is None,
+            * ``checker``: default checker is None,
+            * ``test_generator``: default test_generator is {}
+            * ``make_file``: default make_file is None
+        }
+        ```
     """
     SETTINGS_VALIDATION = {
         'name': [[isStr]],
@@ -514,7 +561,20 @@ class TSet(PackageManager):
 
 class TestF(PackageManager):
     """
-    class for represent test in set
+    It's a class that represents test in a set.
+
+    class has 2 constance variables:
+
+    * ``SETTINGS_VALIDATION``: dictionary with set settings such as:
+
+        ```
+        SETTINGS_VALIDATION = {
+            * ``name``: test name
+            * ``points``: maximum amount of points to earn in test
+            * ``memory_limit``: is a memory limit for test
+            * ``time_limit``: is a time limit for test
+            }
+        ```
     """
     SETTINGS_VALIDATION = {
         'name': [[isStr]],
@@ -572,7 +632,6 @@ class TestF(PackageManager):
 
         self.save_to_config(settings)
         self._settings[arg] = val
-
 
     def check_test(self):
         """
