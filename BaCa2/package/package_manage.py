@@ -137,6 +137,21 @@ class PackageManager:
 
 class Package(PackageManager):
     """
+    * ``MAX_SUBMIT_TIME`` = 600: the maximum number of seconds to finish processing submit
+    * ``SETTINGS_VALIDATION``: dictionary witch has some settings such as:
+        .. code-block:: python
+
+            SETTINGS_VALIDATION = {
+                'title': tytul
+                'points': [[isInt], [isFloat]],
+                'memory_limit':
+                'time_limit': [[isIntBetween, 0, MAX_SUBMIT_TIME], [isFloatBetween, 0, MAX_SUBMIT_TIME]],
+                'allowedExtensions': [[isIn, *SUPPORTED_EXTENSIONS], [isList, [isIn, *SUPPORTED_EXTENSIONS]]],
+                'hinter': [[isNone], [isPath]],
+                'checker': [[isNone], [isPath]],
+                'test_generator': [[isNone], [isPath]]
+            }
+
     It's a class that represents a package
 
     class has 4 constance variables:
@@ -145,32 +160,35 @@ class Package(PackageManager):
     * ``MAX_SUBMIT_TIME = 600``: the maximum number of seconds to finish processing submit
     * ``SETTINGS_VALIDATION``: dictionary with package settings such as:
 
-    ```
-        SETTINGS_VALIDATION = {
-            * ``title``: package name
-            * ``points``: maximum amount of points to earn
-            * ``memory_limit``: is a memory limit
-            * ``time_limit``: is a time limit
-            * ``allowedExtensions``: extensions witch are accepted
-            * ``hinter``: is a path or None value to actual hinter
-            * ``checker``: is a path or None value to actual checker
-            * ``test_generator``: is a path or None value to actual generator
-            }
-            ```
-    * ``DEFAULT_SETTINGS``: default settings for SETTINGS_VALIDATION if user will not give any
+    ``SETTINGS_VALIDATION`` = {
+        * ``title``: package name
+        * ``points``: maximum amount of points to earn
+        * ``memory_limit``: is a memory limit
+        * ``time_limit``: is a time limit
+        * ``allowedExtensions``: extensions witch are accepted
+        * ``hinter``: is a path or None value to actual hinter
+        * ``checker``: is a path or None value to actual checker
+        * ``test_generator``: is a path or None value to actual generator
+    }
 
-        ```
-        DEFAULT_SETTINGS = {
-            * ``title``: default title is 'p'
-            * ``points``: default points are 0
-            * ``memory_limit``: default memory_limit is '512M'
-            * ``time_limit``: default time_limit is 10 seconds
-            * ``allowedExtensions``: default allowed_Extensions are 'cpp'
-            * ``hinter``: default hinter is None,
-            * ``checker``: default checker is None,
-            * ``test_generator``: default test_generator is None
-        }
-        ```
+
+    ``DEFAULT_SETTINGS`` = {
+        `default settings for SETTINGS_VALIDATION if user will not give any`
+
+        * ``title``: default title is 'p'
+        * ``points``: default points are 0
+        * ``memory_limit``: default memory_limit is '512M'
+        * ``time_limit``: default time_limit is 10 seconds
+        * ``allowedExtensions``: default allowed_Extensions are 'cpp'
+        * ``hinter``: default hinter is None,
+        * ``checker``: default checker is None,
+        * ``test_generator``: default test_generator is None
+    }
+
+    .. data:: MAX_SUBMIT_MEMORY
+
+
+
     """
     MAX_SUBMIT_MEMORY = '10G'
     MAX_SUBMIT_TIME = 600
@@ -184,6 +202,7 @@ class Package(PackageManager):
         'checker': [[isNone], [isPath]],
         'test_generator': [[isNone], [isPath]]
     }
+
     DEFAULT_SETTINGS = {
         'title': 'p',
         'points': 0,
