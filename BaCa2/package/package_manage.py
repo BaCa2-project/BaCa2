@@ -161,19 +161,13 @@ class Package(PackageManager):
     * ``SETTINGS_VALIDATION``: dictionary with package settings such as:
 
     ``SETTINGS_VALIDATION`` = {
-        * ``title``: package name
-        * ``points``: maximum amount of points to earn
-        * ``memory_limit``: is a memory limit
-        * ``time_limit``: is a time limit
-        * ``allowedExtensions``: extensions witch are accepted
-        * ``hinter``: is a path or None value to actual hinter
-        * ``checker``: is a path or None value to actual checker
-        * ``test_generator``: is a path or None value to actual generator
+
     }
 
 
-    ``DEFAULT_SETTINGS`` = {
-        `default settings for SETTINGS_VALIDATION if user will not give any`
+    .. data:: DEFAULT_SETTINGS
+
+    default settings for SETTINGS_VALIDATION if user will not give any`
 
         * ``title``: default title is 'p'
         * ``points``: default points are 0
@@ -190,6 +184,8 @@ class Package(PackageManager):
 
 
     """
+
+    #: Largest file acceptable to upload
     MAX_SUBMIT_MEMORY = '10G'
     MAX_SUBMIT_TIME = 600
     SETTINGS_VALIDATION = {
@@ -202,6 +198,20 @@ class Package(PackageManager):
         'checker': [[isNone], [isPath]],
         'test_generator': [[isNone], [isPath]]
     }
+    """
+    Validation for ``Package`` settings.
+    
+    Available options are:
+    
+        * ``title``: package name
+        * ``points``: maximum amount of points to earn
+        * ``memory_limit``: is a memory limit
+        * ``time_limit``: is a time limit
+        * ``allowedExtensions``: extensions witch are accepted
+        * ``hinter``: is a path or None value to actual hinter
+        * ``checker``: is a path or None value to actual checker
+        * ``test_generator``: is a path or None value to actual generator
+    """
 
     DEFAULT_SETTINGS = {
         'title': 'p',
