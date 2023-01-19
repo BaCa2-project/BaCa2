@@ -46,8 +46,8 @@ class PackageInstanceUser(models.Model):
 
     The class has two fields:
 
-    * user: User associated with the package instance
-    * package_instance: package instance associated with the user
+    * ``user``: User associated with the package instance
+    * ``package_instance``: package instance associated with the user
     """
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     package_instance = models.ForeignKey('PackageInstance', on_delete=models.CASCADE)
@@ -57,9 +57,9 @@ class PackageInstance(models.Model):
     """
     A PackageInstance is a specific version of a PackageSource.
 
-    * package_source:` is a foreign key to the PackageSource class. This means that each
+    * ``package_source``: is a foreign key to the PackageSource class. This means that each
       PackageInstance is associated with a single PackageSource
-    * commit: is a unique identifier for every package instance
+    * ``commit``: is a unique identifier for every package instance
     """
     package_source = models.ForeignKey(PackageSource, on_delete=models.CASCADE)
     commit = models.CharField(max_length=2047)
@@ -71,6 +71,7 @@ class PackageInstance(models.Model):
 
         :param pkg_id: The id of the package to check for
         :type pkg_id: int
+
         :return: A boolean value.
         """
         return cls.objects.filter(pk=pkg_id).exists()

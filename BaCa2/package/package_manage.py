@@ -1,3 +1,4 @@
+from copy import deepcopy
 from pathlib import Path
 from .validators import isAny, isNone, isInt, isIntBetween, isFloat, isFloatBetween, isStr, is_, isIn, isShorter, \
     isDict, isPath, isSize, isList, memory_converting, valid_memory_size
@@ -18,6 +19,7 @@ def merge_settings(default: dict, to_add: dict) -> dict:
     :type default: dict
     :param to_add: The settings you want to add to the default settings
     :type to_add: dict
+
     :return: A dictionary with the keys of the default dictionary and the values of the to_add dictionary.
     """
     new = {}
@@ -67,6 +69,7 @@ class PackageManager:
 
         :param arg: The name of the key to get the value of
         :type arg: str
+
         :return: The value of the key in the dictionary.
         """
         try:
@@ -93,6 +96,7 @@ class PackageManager:
         :param validators: A dictionary of validators. The keys are the names of the settings, and the values are lists of
         validators. Each validator is a tuple of the form (function, *args, **kwargs). The function is called with the
         setting value as the first argument, followed by the *
+
         :return: The check variable is being returned.
         """
         for i, j in self._settings.items():
@@ -114,6 +118,7 @@ class PackageManager:
     def read_from_config(self):
         """
         It reads the config.yml file from the path and returns the contents
+
         :return: The dict from config.yml file is being returned.
         """
         with open(self._path / 'config.yml', mode="rt", encoding="utf-8") as file:
@@ -131,8 +136,28 @@ class PackageManager:
 
 
 
-# It's a class that represents a package
 class Package(PackageManager):
+    """
+    It's a class that represents a package
+
+    class has 4 contstance variables:
+
+    * ``MAX_SUBMIT_MEMORY = '10G'``: the maximum number of submit memory size
+    * ``MAX_SUBMIT_TIME = 600``: the maximum number of seconds to finish processing submit
+    * ``SETTINGS_VALIDATION``: dictionary witch has some settings such as:
+        ```python
+        SETTINGS_VALIDATION = {
+            'title': tytul
+            'points': [[isInt], [isFloat]],
+            'memory_limit':
+            'time_limit': [[isIntBetween, 0, MAX_SUBMIT_TIME], [isFloatBetween, 0, MAX_SUBMIT_TIME]],
+            'allowedExtensions': [[isIn, *SUPPORTED_EXTENSIONS], [isList, [isIn, *SUPPORTED_EXTENSIONS]]],
+            'hinter': [[isNone], [isPath]],
+            'checker': [[isNone], [isPath]],
+             'test_generator':
+        }
+         ```
+    """
     MAX_SUBMIT_MEMORY = '10G'
     MAX_SUBMIT_TIME = 600
     SETTINGS_VALIDATION = {
@@ -181,16 +206,28 @@ class Package(PackageManager):
             rmtree(self._path / 'tests' / set_name)
 
     def copy(self, new_path, new_commit) -> 'Package':
+        """
+        Function copies the package instance and creates new one/
+
+        :param new_path: The path of the package
+        :param new_commit: New unique commit
+
+        :return: new Package
+        """
         pass
 
     def delete(self):
+        """
+        Function deletes the package (itself) from directory
+        """
         pass
 
     def _add_new_set(self, set_name):
         """
-        > This function adds a new test set to the test suite
+        This function adds a new test set to the test suite
 
         :param set_name: The name of the new test set
+
         :return: A new TSet object.
         """
         settings = {'name': set_name} | self._settings
@@ -211,6 +248,7 @@ class Package(PackageManager):
         :type set_name: str
         :param add_new: If True, it will create a new set directory if it doesn't exist, defaults to False
         :type add_new: bool (optional)
+
         :return: The set with the name set_name
         """
         for i in self._sets:
@@ -251,8 +289,11 @@ class Package(PackageManager):
         return self.check_validation(Package.SETTINGS_VALIDATION) & result
 
 
-# It's a class that represents a set of tests
+
 class TSet(PackageManager):
+    """
+    It's a class that represents a set of tests
+    """
     SETTINGS_VALIDATION = {
         'name': [[isStr]],
         'weight': [[isInt], [isFloat]],
@@ -471,8 +512,10 @@ class TSet(PackageManager):
         return self.check_validation(TSet.SETTINGS_VALIDATION) & result
 
 
-# class for represent test in set
 class TestF(PackageManager):
+    """
+    class for represent test in set
+    """
     SETTINGS_VALIDATION = {
         'name': [[isStr]],
         'memory_limit': [[isNone], [isSize, Package.MAX_SUBMIT_MEMORY]],
