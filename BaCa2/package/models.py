@@ -2,10 +2,10 @@ from django.db import models
 from main.models import User
 from .validators import isStr
 from BaCa2.settings import BASE_DIR, PACKAGES
-from course.models import Task
+# from course.models import Task
 from pathlib import Path
 from BaCa2.settings import PACKAGES
-from package_manage import Package
+from .package_manage import Package
 
 from django.utils import timezone
 from django.db import transaction
@@ -15,26 +15,26 @@ class PackageSource(models.Model):
     """
     PackageSource is a source for packages instances
 
-    The class has two fields:
+    The class has one field:
 
-    * MAIN_SOURCE: is a path to the main source
-    * name: is a name of the package
+    * ``name``: is a name of the package
+
+    And one constance:
+
+    * ``MAIN_SOURCE``: is a path to the main source
     """
     MAIN_SOURCE = BASE_DIR / 'packages'
 
     name = models.CharField(max_length=511, validators=[isStr])
 
     def __str__(self):
-        """
-        The __str__ function is a special function that is called when you print an object
-        :return: The name of the package.
-        """
-        return f"Package: {self.name}"
+        return f"Package {self.pk}: {self.name}"
 
     @property
     def path(self):
         """
         It returns the path to the main source directory for package instance
+
         :return: The path to the file.
         """
         return self.MAIN_SOURCE / self.name
@@ -78,6 +78,7 @@ class PackageInstance(models.Model):
     def __str__(self):
         """
         The __str__ function is a special function that is called when you print an object
+
         :return: The key of the package instance.
         """
         return f"Package Instance: {self.key}"
@@ -86,6 +87,7 @@ class PackageInstance(models.Model):
     def key(self):
         """
         It returns a string that is the name of the package source and the commit
+
         :return: The name of the package source and the commit.
         """
         return f"{self.package_source.name}.{self.commit}"
@@ -94,6 +96,7 @@ class PackageInstance(models.Model):
     def package(self) -> Package:
         """
         It returns the package id of the key.
+
         :return: The package object.
         """
         package_id = self.key
@@ -103,13 +106,15 @@ class PackageInstance(models.Model):
     def path(self):
         """
         It returns the path to the package's source code
+
         :return: The path to the package source and the commit.
         """
         return self.package_source.path / self.commit
 
     def create_from_me(self):
         """
-        > Create a new package instance from the current package instance
+        Create a new package instance from the current package instance
+
         :return: A new PackageInstance object.
         """
         new_path = self.package_source.path
@@ -130,8 +135,10 @@ class PackageInstance(models.Model):
 
     def delete_instance(self):
         """
-        If the task is not in the database, raise an exception. Otherwise, delete the task and its package from the database
+        If the task is not in the database, raise an exception.
+        Otherwise, delete the task and its package from the database
         """
+        from course.models import Task
         if Task.check_instance(self):
             raise
 
@@ -144,8 +151,8 @@ class PackageInstance(models.Model):
 
     def share(self, user: User):
         """
-        It creates a new instance of a package, and then creates a new PackageInstanceUser object that links the new package
-        instance to the user
+        It creates a new instance of a package, and then creates a new PackageInstanceUser object that links
+        the new package instance to the user
 
         :param user: The user to share the package with
         :type user: User
