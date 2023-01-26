@@ -14,6 +14,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from BaCa2.choices import TaskJudgingMode, ResultStatus
 from BaCa2.tools import random_string
 from main.models import User
+from package.models import PackageInstance, PackageSource
 from .models import *
 from .routing import InCourse
 from .manager import create_course, delete_course
@@ -21,8 +22,8 @@ from .manager import create_course, delete_course
 
 def create_random_task(course_name: str,
                        round_task: Round,
+                       package_instance: PackageInstance,
                        task_name: str = None,
-                       package_id=1,
                        judging_mode: TaskJudgingMode = None,
                        points: float = None,
                        tests: dict = None,
@@ -35,9 +36,9 @@ def create_random_task(course_name: str,
     :type course_name: str
     :param round_task: the round in which the task will be created
     :type round_task: Round
+    :param package_instance: package_instance that the task will be created in
     :param task_name: the name of the task
     :type task_name: str
-    :param package_id: the id of the package that the task will be created in, defaults to 1 (optional)
     :param judging_mode: judging mode for the task (selected from choices.TaskJudgingMode)
     :type judging_mode: TaskJudgingMode
     :param points: amount of points for the task
@@ -68,9 +69,9 @@ def create_random_task(course_name: str,
             tests[set_name]['test_list'] = [f"t{j}_{random_string(3, ascii_lowercase)}" for j in range(randint(1, 10))]
 
     with InCourse(course_name):
-        new_task = Task.objects.create(
+        new_task = Task.create_new(
             task_name=task_name,
-            package_instance=package_id,
+            package_instance=package_instance,
             round=round_task,
             judging_mode=judging_mode,
             points=points
@@ -151,9 +152,9 @@ def create_random_submit(course_name: str,
 
 
 def create_simple_course(course_name: str,
+                         package_instances: Iterable[PackageInstance],
                          sleep_intervals: float = 0,
                          time_offset: float = 0,
-                         package_instances: Iterable[int] = (1,),
                          submits: Iterable[Dict[str, int]] = None,
                          create_db: bool = True):
     """
@@ -161,13 +162,13 @@ def create_simple_course(course_name: str,
 
     :param course_name: the name of the course to create
     :type course_name: str
+    :param package_instances: a list of package ids that will be used to create tasks
+    :type package_instances: Iterable[PackageInstance]
     :param sleep_intervals: The time between each task creation, defaults to 0
     :type sleep_intervals: float (optional)
     :param time_offset: The time offset between the creation of the course and the creation of the first round,
     defaults to 0
     :type time_offset: float (optional)
-    :param package_instances: a list of package ids that will be used to create tasks
-    :type package_instances: Iterable[int]
     :param submits: a list of dictionaries, each dictionary has at least two keys: usr and task.
     Optionally can contain pass_chance and allow_pending_status (described in create_random_task function)
     :type submits: Iterable[Dict[str, int]]
@@ -194,7 +195,7 @@ def create_simple_course(course_name: str,
         sleep(sleep_intervals)
         course_tasks = []
         for t in package_instances:
-            new_task = create_random_task(course_name, r, package_id=t)
+            new_task = create_random_task(course_name, r, package_instance=t)
             course_tasks.append(new_task)
             sleep(sleep_intervals)
 
@@ -208,13 +209,13 @@ def create_simple_course(course_name: str,
             )
 
 
-def submiter(course_name: str,
-             usr,
-             task: Task,
-             submit_amount: int = 100,
-             time_interval: float = 0.1,
-             allow_pending_status: bool = False,
-             pass_chance: float = 0.5):
+def submitter(course_name: str,
+              usr,
+              task: Task,
+              submit_amount: int = 100,
+              time_interval: float = 0.1,
+              allow_pending_status: bool = False,
+              pass_chance: float = 0.5):
     for i in range(submit_amount):
         create_random_submit(course_name, usr, task, allow_pending_status=allow_pending_status, pass_chance=pass_chance)
         sleep(time_interval)
@@ -224,23 +225,27 @@ def submiter(course_name: str,
 class ASimpleTestCase(TestCase):
     course_name = 'test_simple_course'
     u1 = None
+    inst1 = None
 
     @classmethod
     def setUpClass(cls):
         cls.u1 = User.objects.create_user(
-            'user1@gmail.com',
-            'user1',
+            'user6@gmail.com',
+            'user6',
             'psswd',
             first_name='first name',
             last_name='last name'
         )
+        inst_src = PackageSource.objects.create(name=f'course_testA')
+        cls.inst1 = PackageInstance.objects.create(package_source=inst_src, commit='ints1')
         delete_course(cls.course_name)
-        create_simple_course(cls.course_name, create_db=True)
+        create_simple_course(cls.course_name, create_db=True, package_instances=(cls.inst1, ))
 
     @classmethod
     def tearDownClass(cls):
         delete_course(cls.course_name)
         cls.u1.delete()
+        cls.inst1.delete()
 
     def test_create_simple_course(self):
         """
@@ -290,6 +295,7 @@ class BMultiThreadTest(TestCase):
     course1 = 'sample_course2'
     course2 = 'sample_course3'
     u1 = u2 = u3 = u4 = None
+    i1 = i2 = i3 = i4 = i5 = None
 
     @classmethod
     def setUpClass(cls):
@@ -329,13 +335,20 @@ class BMultiThreadTest(TestCase):
             last_name='last name'
         )
 
+        inst_src = PackageSource.objects.create(name=f'course_testB')
+        cls.i1 = PackageInstance.objects.create(package_source=inst_src, commit='ints1')
+        cls.i2 = PackageInstance.objects.create(package_source=inst_src, commit='ints2')
+        cls.i3 = PackageInstance.objects.create(package_source=inst_src, commit='ints3')
+        cls.i4 = PackageInstance.objects.create(package_source=inst_src, commit='ints4')
+        cls.i5 = PackageInstance.objects.create(package_source=inst_src, commit='ints5')
+
         delete_course(cls.course1)
         delete_course(cls.course2)
         create1 = Thread(target=create_simple_course, args=(cls.course1,),
                          kwargs={
                              'time_offset': 2,
                              'sleep_intervals': 0.5,
-                             'package_instances': (1, 2, 3, 4, 5),
+                             'package_instances': (cls.i1, cls.i2, cls.i3, cls.i4, cls.i5),
                              'submits': [
                                  {'usr': cls.u1, 'task': 1, 'pass_chance': 1},
                                  {'usr': cls.u1, 'task': 2},
@@ -436,14 +449,14 @@ class BMultiThreadTest(TestCase):
         """
         with InCourse(self.course1):
             t1 = Task.objects.filter(pk=4).first()
-            submiter1 = Thread(target=submiter, args=(self.course1, self.u4, t1), kwargs={
+            submiter1 = Thread(target=submitter, args=(self.course1, self.u4, t1), kwargs={
                 'submit_amount': submits,
                 'pass_chance': 0,
                 'time_interval': time_interval
             })
         with InCourse(self.course2):
             t2 = Task.objects.filter(pk=3).first()
-            submiter2 = Thread(target=submiter, args=(self.course2, self.u4, t2), kwargs={
+            submiter2 = Thread(target=submitter, args=(self.course2, self.u4, t2), kwargs={
                 'submit_amount': submits,
                 'pass_chance': 1,
                 'time_interval': time_interval

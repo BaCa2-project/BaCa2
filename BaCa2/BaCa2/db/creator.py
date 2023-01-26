@@ -62,7 +62,8 @@ def createDB(db_name, verbose=False, **db_kwargs):
 
     new_db = DEFAULT_DB_SETTINGS | db_kwargs | {'NAME': db_name}
     DATABASES[db_key] = new_db
-    # connections.create_connection(db_key)
+    # from django.db import connections
+    # connections.configure_settings(None)
     if verbose:
         print("Connection created.")
 
