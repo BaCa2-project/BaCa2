@@ -6,7 +6,7 @@ from django.contrib.auth.models import Group, Permission, ContentType
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-from sqlalchemy import BigInteger
+
 
 from BaCa2.choices import PermissionTypes, DefaultCourseGroups
 
@@ -194,12 +194,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.username
 
     @classmethod
-    def exists(cls, user_id: BigInteger) -> bool:
+    def exists(cls, user_id: int) -> bool:
         """
         Check whether a user with given id exists.
 
         :param user_id: The id of the user in question.
-        :type user_id: BigInteger
+        :type user_id: int
         :return: True if the user exists.
         """
 
@@ -332,12 +332,12 @@ class UserCourse(models.Model):
         User,
         on_delete=models.CASCADE
     )
-    # Course the user is assigned to. :py:class:`Course`
+    #: Course the user is assigned to. :py:class:`Course`
     course = models.ForeignKey(
         Course,
         on_delete=models.CASCADE
     )
-    # GroupCourse object representing the course group user is assigned to. :py:class:`GroupCourse`
+    #: GroupCourse object representing the course group user is assigned to. :py:class:`GroupCourse`
     group_course = models.ForeignKey(
         GroupCourse,
         on_delete=models.CASCADE

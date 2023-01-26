@@ -6,12 +6,13 @@ Models
 ------
 
 .. autoclass:: package.models.PackageSource
-    :members: path
+    :members: main_source, name, path
 
 .. autoclass:: package.models.PackageInstance
-    :members: key, package, path, create_from_me, delete_instance, share
+    :members: package_source, commit, exists, key, package, path, create_from_me, delete_instance, share
 
 .. autoclass:: package.models.PackageInstanceUser
+    :members: user, package_instance
 
 Package Manager
 ---------------
