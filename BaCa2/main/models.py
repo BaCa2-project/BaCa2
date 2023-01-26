@@ -7,7 +7,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
-from BaCa2.choices import PermissionTypes
+from BaCa2.choices import PermissionTypes, DefaultCourseGroups
 
 
 class UserManager(BaseUserManager):
@@ -55,6 +55,18 @@ class Course(models.Model):
 
     def __str__(self):
         return f"{self.db_name}"
+
+    def add_user(self, user: 'User', group: Group):
+        if not group:
+            group = Group.objects.get(
+                groupcourse__course=self,
+                name=DefaultCourseGroups.VIEWER
+            )
+
+        if not group:
+            raise ValidationError('No default viewer group exists for this course')
+
+
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -131,7 +143,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         :param model: The model to check permissions for.
         :type model: models.Model
         :param permissions: Permissions to check for the given model. Permissions can be given as a PermissionTypes
-        object/List of objects or as a string (in the format <app_label>.<permission_codename>) - the default option
+        object/List of objects or as a string (in the format [app_label].[permission_codename]) - the default option
         'all' checks all permissions related to the model, both standard and custom. The 'all_standard' option checks
         the 'view', 'change', 'add' and 'delete' permissions for the given model.
         :type permissions: str or PermissionTypes or List[PermissionTypes] = 'all'
