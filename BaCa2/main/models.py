@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 from sqlalchemy import BigInteger
 
-from BaCa2.choices import PermissionTypes
+from BaCa2.choices import PermissionTypes, DefaultCourseGroups
 
 
 class UserManager(BaseUserManager):
@@ -121,6 +121,18 @@ class Course(models.Model):
         Returns the name of this course's database.
         """
         return f"{self.db_name}"
+
+    def add_user(self, user: 'User', group: Group):
+        if not group:
+            group = Group.objects.get(
+                groupcourse__course=self,
+                name=DefaultCourseGroups.VIEWER
+            )
+
+        if not group:
+            raise ValidationError('No default viewer group exists for this course')
+
+
 
 
 class User(AbstractBaseUser, PermissionsMixin):

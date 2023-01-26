@@ -34,9 +34,10 @@ def merge_settings(default: dict, to_add: dict) -> dict:
     return new
 
 
-
-# It's a class that manages a package's settings
 class PackageManager:
+    """
+    It's a class that manages a package's settings
+    """
     def __init__(self, path: Path, settings_init: Path or dict, default_settings: dict):
         """
         If the settings_init is a dict, assign it to settings. If not, load the settings_init yaml file and assign it to
@@ -89,7 +90,7 @@ class PackageManager:
         # effect changes to yaml settings
         self.save_to_config(self._settings)
 
-    def check_validation(self, validators):
+    def check_validation(self, validators) -> bool:
         """
         It checks if the value of the setting is valid by checking if it matches any of the validators for that setting
 
@@ -137,56 +138,12 @@ class PackageManager:
 
 class Package(PackageManager):
     """
-    * ``MAX_SUBMIT_TIME`` = 600: the maximum number of seconds to finish processing submit
-    * ``SETTINGS_VALIDATION``: dictionary witch has some settings such as:
-        .. code-block:: python
-
-            SETTINGS_VALIDATION = {
-                'title': tytul
-                'points': [[isInt], [isFloat]],
-                'memory_limit':
-                'time_limit': [[isIntBetween, 0, MAX_SUBMIT_TIME], [isFloatBetween, 0, MAX_SUBMIT_TIME]],
-                'allowedExtensions': [[isIn, *SUPPORTED_EXTENSIONS], [isList, [isIn, *SUPPORTED_EXTENSIONS]]],
-                'hinter': [[isNone], [isPath]],
-                'checker': [[isNone], [isPath]],
-                'test_generator': [[isNone], [isPath]]
-            }
-
-    It's a class that represents a package
-
-    class has 4 constance variables:
-
-    * ``MAX_SUBMIT_MEMORY = '10G'``: the maximum number of submit memory size
-    * ``MAX_SUBMIT_TIME = 600``: the maximum number of seconds to finish processing submit
-    * ``SETTINGS_VALIDATION``: dictionary with package settings such as:
-
-    ``SETTINGS_VALIDATION`` = {
-
-    }
-
-
-    .. data:: DEFAULT_SETTINGS
-
-    default settings for SETTINGS_VALIDATION if user will not give any`
-
-        * ``title``: default title is 'p'
-        * ``points``: default points are 0
-        * ``memory_limit``: default memory_limit is '512M'
-        * ``time_limit``: default time_limit is 10 seconds
-        * ``allowedExtensions``: default allowed_Extensions are 'cpp'
-        * ``hinter``: default hinter is None,
-        * ``checker``: default checker is None,
-        * ``test_generator``: default test_generator is None
-    }
-
-    .. data:: MAX_SUBMIT_MEMORY
-
-
-
+    It's a class that represents a package.
     """
 
     #: Largest file acceptable to upload
     MAX_SUBMIT_MEMORY = '10G'
+    #: Largest acceptable submit time
     MAX_SUBMIT_TIME = 600
     SETTINGS_VALIDATION = {
         'title': [[isStr]],
@@ -213,6 +170,7 @@ class Package(PackageManager):
         * ``test_generator``: is a path or None value to actual generator
     """
 
+    #: Default values for Package settings
     DEFAULT_SETTINGS = {
         'title': 'p',
         'points': 0,
@@ -265,7 +223,7 @@ class Package(PackageManager):
         """
         pass
 
-    def _add_new_set(self, set_name):
+    def _add_new_set(self, set_name) -> 'TSet':
         """
         This function adds a new test set to the test suite
 
@@ -283,7 +241,7 @@ class Package(PackageManager):
         self._sets.append(new_set)
         return new_set
 
-    def sets(self, set_name: str, add_new: bool = False):
+    def sets(self, set_name: str, add_new: bool = False) -> 'TSet':
         """
         It returns the set with the name `set_name` if it exists, otherwise it raises an error
 
@@ -317,7 +275,7 @@ class Package(PackageManager):
                 return
         raise NoSetFound(f'Any set directory named {set_name} has found to delete')
 
-    def check_package(self, subtree: bool = True):
+    def check_package(self, subtree: bool = True) -> bool | int:
         """
         It checks the package.
 
@@ -332,43 +290,9 @@ class Package(PackageManager):
         return self.check_validation(Package.SETTINGS_VALIDATION) & result
 
 
-
 class TSet(PackageManager):
     """
-    It's a class that represents a set of tests
-
-    class has 2 constance variables:
-
-    * ``SETTINGS_VALIDATION``: dictionary with set settings such as:
-
-    ```
-        SETTINGS_VALIDATION = {
-            * ``name``: set name
-            * ``weight``: impact of set score on final score
-            * ``points``: maximum amount of points to earn in set
-            * ``memory_limit``: is a memory limit for set
-            * ``time_limit``: is a time limit for set
-            * ``checker``: is a path or None value to actual checker
-            * ``test_generator``: is a path or None value to actual generator
-            * ``tests``: tests to run in set
-            * ``makefile``: name of makefile
-            }
-            ```
-    * ``DEFAULT_SETTINGS``: default settings for SETTINGS_VALIDATION if user will not give any
-
-        ```
-        DEFAULT_SETTINGS = {
-            * ``title``: default set title is 'set0'
-            * ``weight``: default set weight is 10
-            * ``points``: default points are 0
-            * ``memory_limit``: default memory_limit is '512M'
-            * ``time_limit``: default time_limit is 10 seconds
-            * ``hinter``: default hinter is None,
-            * ``checker``: default checker is None,
-            * ``test_generator``: default test_generator is {}
-            * ``make_file``: default make_file is None
-        }
-        ```
+    It's a class that represents a set of tests and modifies it
     """
     SETTINGS_VALIDATION = {
         'name': [[isStr]],
@@ -382,6 +306,22 @@ class TSet(PackageManager):
         'tests': [[isNone], [isAny]],
         'makefile': [[isNone], [isPath]]
     }
+
+    """
+        Validation for ``TSet`` settings.
+
+        Available options are:
+            * ``name``: set name
+            * ``weight``: impact of set score on final score
+            * ``points``: maximum amount of points to earn in set
+            * ``memory_limit``: is a memory limit for set
+            * ``time_limit``: is a time limit for set
+            * ``checker``: is a path or None value to actual checker
+            * ``test_generator``: is a path or None value to actual generator
+            * ``tests``: tests to run in set
+            * ``makefile``: name of a makefile
+        """
+    #: Default values for set settings
     DEFAULT_SETTINGS = {
         'name': 'set0',
         'weight': 10,
@@ -445,7 +385,7 @@ class TSet(PackageManager):
                 name_dict = {'name': i}
                 self._tests.append(TestF(self._path, name_dict, self._test_settings))
 
-    def tests(self, test_name: str, add_new: bool = False):
+    def tests(self, test_name: str, add_new: bool = False) -> 'TestF':
         """
         It returns a test object with the given name, if it exists, or creates a new one if it doesn't
 
@@ -453,6 +393,7 @@ class TSet(PackageManager):
         :type test_name: str
         :param add_new: if True, then if the test is not found, it will be created, defaults to False
         :type add_new: bool (optional)
+
         :return: A TestF object
         """
         for i in self._tests:
@@ -512,7 +453,7 @@ class TSet(PackageManager):
 
     def _move_chosen_test(self, test: 'TestF', to_set: 'TSet'):
         """
-        > Move a test from one test set to another
+         Move a test from one test set to another
 
         :param test: 'TestF' - the test to be moved
         :type test: 'TestF'
@@ -573,11 +514,12 @@ class TSet(PackageManager):
             raise NoTestFound(f'Any test named {test_name} has found to move to to_set')
 
     # check set validation
-    def check_set(self, subtree=True):
+    def check_set(self, subtree=True) -> bool | int:
         """
         It checks the set.
 
         :param subtree: If True, check the subtree of tests, defaults to True (optional)
+
         :return: The result of the check_validation() method and the result of the check_set() method.
         """
         result = True
@@ -591,19 +533,6 @@ class TSet(PackageManager):
 class TestF(PackageManager):
     """
     It's a class that represents test in a set.
-
-    class has 2 constance variables:
-
-    * ``SETTINGS_VALIDATION``: dictionary with set settings such as:
-
-        ```
-        SETTINGS_VALIDATION = {
-            * ``name``: test name
-            * ``points``: maximum amount of points to earn in test
-            * ``memory_limit``: is a memory limit for test
-            * ``time_limit``: is a time limit for test
-            }
-        ```
     """
     SETTINGS_VALIDATION = {
         'name': [[isStr]],
@@ -612,6 +541,15 @@ class TestF(PackageManager):
                        [isFloatBetween, 0, Package.MAX_SUBMIT_TIME]],
         'points': [[isInt], [isFloat]]
     }
+    """
+       Validation for ``TestF`` settings.
+
+       Available options are:
+        * ``name``: test name
+        * ``points``: maximum amount of points to earn in test
+        * ``memory_limit``: is a memory limit for test
+        * ``time_limit``: is a time limit for test
+       """
 
     def __init__(self, path: Path, additional_settings: dict or Path, default_settings: dict):
         """
@@ -662,7 +600,7 @@ class TestF(PackageManager):
         self.save_to_config(settings)
         self._settings[arg] = val
 
-    def check_test(self):
+    def check_test(self) -> bool:
         """
         It checks if the test is valid
         :return: The return value is the result of the check_validation method.

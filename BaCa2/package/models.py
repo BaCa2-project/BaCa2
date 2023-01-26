@@ -9,19 +9,15 @@ from .package_manage import Package
 
 from django.utils import timezone
 from django.db import transaction
+from django.core.exceptions import ValidationError
 
 
 class PackageSource(models.Model):
     """
     PackageSource is a source for packages instances
 
-    The class has one field:
-
-    * ``name``: is a name of the package
-
-    And one constance:
-
-    * ``MAIN_SOURCE``: is a path to the main source
+    * ``name``: name of the package
+    * ``MAIN_SOURCE``: path to the main source
     """
     MAIN_SOURCE = BASE_DIR / 'packages'
 
@@ -31,7 +27,7 @@ class PackageSource(models.Model):
         return f"Package {self.pk}: {self.name}"
 
     @property
-    def path(self):
+    def path(self) -> Path:
         """
         It returns the path to the main source directory for package instance
 
@@ -44,8 +40,6 @@ class PackageInstanceUser(models.Model):
     """
     A PackageInstanceUser is a user who is associated with a package instance"
 
-    The class has two fields:
-
     * ``user``: User associated with the package instance
     * ``package_instance``: package instance associated with the user
     """
@@ -55,17 +49,17 @@ class PackageInstanceUser(models.Model):
 
 class PackageInstance(models.Model):
     """
-    A PackageInstance is a specific version of a PackageSource.
+    A PackageInstance is a unique version of a PackageSource.
 
-    * ``package_source``: is a foreign key to the PackageSource class. This means that each
+    * ``package_source``: foreign key to the PackageSource class :py:class:`PackageSource` This means that each
       PackageInstance is associated with a single PackageSource
-    * ``commit``: is a unique identifier for every package instance
+    * ``commit``: unique identifier for every package instance
     """
     package_source = models.ForeignKey(PackageSource, on_delete=models.CASCADE)
     commit = models.CharField(max_length=2047)
 
     @classmethod
-    def exists(cls, pkg_id: int):
+    def exists(cls, pkg_id: int) -> bool:
         """
         If the package with the given ID exists, return True, otherwise return False
 
@@ -85,7 +79,7 @@ class PackageInstance(models.Model):
         return f"Package Instance: {self.key}"
 
     @property
-    def key(self):
+    def key(self) -> str:
         """
         It returns a string that is the name of the package source and the commit
 
@@ -104,7 +98,7 @@ class PackageInstance(models.Model):
         return PACKAGES.get(package_id)
 
     @property
-    def path(self):
+    def path(self) -> Path:
         """
         It returns the path to the package's source code
 
@@ -112,7 +106,7 @@ class PackageInstance(models.Model):
         """
         return self.package_source.path / self.commit
 
-    def create_from_me(self):
+    def create_from_me(self) -> 'PackageInstance':
         """
         Create a new package instance from the current package instance
 
@@ -141,7 +135,7 @@ class PackageInstance(models.Model):
         """
         from course.models import Task
         if Task.check_instance(self):
-            raise
+            raise ValidationError('Package is used and you cannot delete it')
 
         with transaction.atomic():
             # deleting instance in source directory
