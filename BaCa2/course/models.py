@@ -5,7 +5,9 @@ from BaCa2.choices import TaskJudgingMode, ResultStatus
 from BaCa2.exceptions import ModelValidationError, DataError
 from BaCa2.settings import BASE_DIR
 
-from main.models import User
+from main.models import User, Course
+
+from package.models import PackageInstance
 
 SUBMITS_DIR = BASE_DIR / 'submits'
 
@@ -38,7 +40,7 @@ class Round(models.Model):
 
 
 class Task(models.Model):
-    package_instance = models.IntegerField()  # TODO: add foreign key
+    package_instance_id = models.BigIntegerField(validators=[PackageInstance.exists])
     task_name = models.CharField(max_length=1023)
     round = models.ForeignKey(Round, on_delete=models.CASCADE)
     judging_mode = models.CharField(
@@ -50,7 +52,24 @@ class Task(models.Model):
 
     def __str__(self):
         return f"Task {self.pk}: {self.task_name}; Judging mode: {TaskJudgingMode[self.judging_mode].label};" \
-               f" Package: {self.package_instance}"
+               f"Package: {self.package_instance}"
+
+    @classmethod
+    def create_new(cls, **kwargs):
+        """
+        If the user passes in a PackageInstance object, we'll use the object's primary key as the value for the
+        package_instance_id field.
+
+        :return: A new instance of the class.
+        """
+        pkg_instance = kwargs.get('package_instance')
+        if isinstance(pkg_instance, PackageInstance):
+            kwargs['package_instance_id'] = pkg_instance.pk
+            del kwargs['package_instance']
+        pkg_instance = kwargs.get('package_instance_id')
+        if isinstance(pkg_instance, PackageInstance):
+            kwargs['package_instance_id'] = pkg_instance.pk
+        return cls.objects.create(**kwargs)
 
     @property
     def sets(self):
@@ -59,6 +78,10 @@ class Task(models.Model):
         :return: A list of all the TestSet objects that are associated with the Task object.
         """
         return TestSet.objects.filter(task=self).all()
+
+    @property
+    def package_instance(self):
+        return PackageInstance.objects.get(pk=self.package_instance_id)
 
     def last_submit(self, usr, amount=1):
         """
@@ -83,6 +106,31 @@ class Task(models.Model):
         if amount == 1:
             return Submit.objects.filter(task=self, usr=usr.pk).order_by('-final_score').first()
         return Submit.objects.filter(task=self, usr=usr.pk).order_by('-final_score').all()[:amount]
+
+    @classmethod
+    def check_instance(cls, pkg_instance: PackageInstance, in_every_course: bool = True) -> bool:
+        """
+        Check if a package instance exists in every course, optionally checking in context given course
+
+        :param cls: the class of the model you're checking for
+        :param pkg_instance: The PackageInstance object that you want to check for
+        :type pkg_instance: PackageInstance
+        :param in_every_course: If True, the package instance must be in every course.
+        If False, it must be in at least one course, defaults to True
+        :type in_every_course: bool (optional)
+        :return: A boolean value.
+        """
+        if not in_every_course:
+            return cls.objects.filter(package_instance_id=pkg_instance.pk).exists()
+
+        # check in every course
+        from .routing import InCourse
+        courses = Course.objects.all()
+        for course in courses:
+            with InCourse(course):
+                if cls.objects.filter(package_instance_id=pkg_instance.pk).exists():
+                    return True
+        return False
 
 
 class TestSet(models.Model):

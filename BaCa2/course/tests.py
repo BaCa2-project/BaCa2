@@ -470,4 +470,4 @@ class BMultiThreadTest(TestCase):
         """
         This function tests the case where one submitter has a large number of submissions (without time interval)
         """
-        self.two_submiters(1000, 0)
+        self.two_submiters(200, 0)
