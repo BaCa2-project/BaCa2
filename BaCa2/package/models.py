@@ -1,7 +1,7 @@
 from django.db import models
 from main.models import User
 from .validators import isStr
-from BaCa2.settings import BASE_DIR, PACKAGES
+from BaCa2.settings import BASE_DIR
 # from course.models import Task
 from pathlib import Path
 from BaCa2.settings import PACKAGES
@@ -15,12 +15,10 @@ from django.core.exceptions import ValidationError
 class PackageSource(models.Model):
     """
     PackageSource is a source for packages instances
-
-    * ``name``: name of the package
-    * ``MAIN_SOURCE``: path to the main source
     """
+    #: path to the main source
     MAIN_SOURCE = BASE_DIR / 'packages'
-
+    #: name of the package
     name = models.CharField(max_length=511, validators=[isStr])
 
     def __str__(self):
@@ -38,24 +36,22 @@ class PackageSource(models.Model):
 
 class PackageInstanceUser(models.Model):
     """
-    A PackageInstanceUser is a user who is associated with a package instance"
-
-    * ``user``: User associated with the package instance
-    * ``package_instance``: package instance associated with the user
+    A PackageInstanceUser is a user who is associated with a package instance.
     """
+    #: User associated with the package instance
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    #: package instance associated with the user
     package_instance = models.ForeignKey('PackageInstance', on_delete=models.CASCADE)
 
 
 class PackageInstance(models.Model):
     """
     A PackageInstance is a unique version of a PackageSource.
-
-    * ``package_source``: foreign key to the PackageSource class :py:class:`PackageSource` This means that each
-      PackageInstance is associated with a single PackageSource
-    * ``commit``: unique identifier for every package instance
     """
+    #: foreign key to the PackageSource class :py:class:`PackageSource`
+    # This means that each PackageInstance is associated with a single PackageSource
     package_source = models.ForeignKey(PackageSource, on_delete=models.CASCADE)
+    #: unique identifier for every package instance
     commit = models.CharField(max_length=2047)
 
     @classmethod
