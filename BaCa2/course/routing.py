@@ -3,6 +3,9 @@ from django.db import models
 from BaCa2.settings import currentDB
 
 class SimpleCourseRouter:
+    """
+    Basic usability for all routers in this project.
+    """
 
     @staticmethod
     def _test_course_db(model, **hints):
@@ -16,19 +19,45 @@ class SimpleCourseRouter:
         return self._test_course_db(model, **hints)
 
     def allow_relation(self, obj1, obj2, **hints):
+        """
+        If the two objects are in the same database, or if the second object is in the default database, then allow the
+        relationship
+
+        :param obj1: The first object in the relation
+        :param obj2: The object that is being created
+        :return: The database alias.
+        """
         if obj1._state.db == obj2._state.db or obj2._state.db == 'default':
             return True
         return None
 
     def allow_migrate(self, db, app_label, model_name=None, **hints):
+        """
+        If the database is 'default' and the app_label is 'course', or if the database is not 'default' and the app_label is
+        not 'course', then return True
+
+        :param db: The alias of the database that is being used
+        :param app_label: The name of the application that contains the model
+        :param model_name: The name of the model to migrate
+        :return: True or False
+        """
         if (db == 'default') ^ (app_label == 'course'):
             return True
         return False
 
 
 class ContextCourseRouter(SimpleCourseRouter):
+    """
+    Router that uses context given by :py:class:`InCourse' context manager.
+    """
     @staticmethod
     def _get_context(model, **hints):
+        """
+        It returns the name of the database to use for a given model. It gets it from context manager.
+
+        :param model: The model class that is being queried
+        :return: The name of the database to use.
+        """
         if model._meta.app_label != "course":
             return 'default'
 
@@ -45,14 +74,41 @@ class ContextCourseRouter(SimpleCourseRouter):
         return db
 
     def db_for_read(self, model, **hints):
+        """
+        Returns database for reading operations using :py:func:`ContextCourseRouter._get_context`.
+
+        :param model: Model to be filled with data from specific database.
+        :return: Database name
+        """
         return self._get_context(model, **hints)
 
     def db_for_write(self, model, **hints):
+        """
+        Returns database for writing operations using :py:func:`ContextCourseRouter._get_context`.
+
+        :param model: Model to be saved to specific database.
+        :return: Database name
+        """
         return self._get_context(model, **hints)
 
 
 class InCourse:
-    def __init__(self, db):
+    """
+    It allows you to give the context database. Everything called inside this context manager
+    will be performed on database specified on initialization.
+
+    Usage example:
+
+    .. code-block:: python
+
+        from course.routing import InCourse
+
+        using InCourse('course123'):
+            Submit.create_new(...)
+
+    This code will create new submission inside of course ``course123``.
+    """
+    def __init__(self, db: str):
         self.db = db
 
     def __enter__(self):

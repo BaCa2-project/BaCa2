@@ -8,7 +8,7 @@ from BaCa2.exceptions import NewDBError
 
 log = logging.getLogger(__name__)
 
-# A lock that prevents multiple threads from accessing the database as root at the same time.
+#: A lock that prevents multiple threads from accessing the database as root at the same time.
 _db_root_access = Lock()
 
 
@@ -28,13 +28,18 @@ def _raw_root_connection():
     return conn
 
 
-def createDB(db_name, verbose=False, **db_kwargs):
+def createDB(db_name: str, verbose: bool=False, **db_kwargs):
     """
-    It creates a new database, adds it to the `DATABASES` dictionary in `settings.py`, and saves the new database's
-    settings to `ext_databases.py`
+    It creates a new database, adds it to the settings file and to the runtime database connections.
 
-    :param db_name: The name of the database you want to create
+    While runtime :py:data:`_db_root_access` is acquired.
+
+    :param db_name: The name of the database to create
+    :type db_name: str
+    :param verbose: If True, prints out the progress of the function, defaults to False
+    :type verbose: bool (optional)
     """
+
     db_key = db_name
     db_name += '_db'
     from BaCa2.settings import DATABASES, SETTINGS_DIR
@@ -90,11 +95,12 @@ DATABASES['{db_key}'] = {'{'}
     log.info(f"DB {db_name} settings saved to ext_databases.")
 
 
-def migrateDB(db_name):
+def migrateDB(db_name: str):
     """
     It runs the Django command `migrate` on the database specified by `db_name`
 
     :param db_name: The name of the database to migrate
+    :type db_name: str
     """
     from django.core.management import call_command
     # call_command('makemigrations')
@@ -105,7 +111,7 @@ def migrateDB(db_name):
 
 def migrateAll():
     """
-    It loops through all the databases in the settings file and runs the migrateDB function on each one
+    It loops through all the databases in the settings file and runs the migrateDB function on each one.
     """
     from BaCa2.settings import DATABASES
     log.info(f"Migrating all databases.")
@@ -122,12 +128,17 @@ WHERE pg_stat_activity.datname = '%s'
 '''
 
 
-def deleteDB(db_name, verbose=False):
+def deleteDB(db_name: str, verbose: bool=False):
     """
-    It deletes the database from the settings.DATABASES dictionary, deletes the database from the ext_databases.py file, and
-    then deletes the database from the postgres server
+    It deletes a database from the settings.DATABASES dictionary, deletes the database settings from the ext_databases.py
+    file, closes all connections to the database, and then drops the database.
 
-    :param db_name: The name of the database to be deleted
+    While runtime :py:data:`_db_root_access` is acquired.
+
+    :param db_name: str
+    :type db_name: str
+    :param verbose: if True, prints out what's happening, defaults to False
+    :type verbose: bool (optional)
     """
     from BaCa2.settings import DATABASES, BASE_DIR
 
