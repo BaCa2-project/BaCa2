@@ -362,7 +362,7 @@ class BMultiThreadTest(TestCase):
                          kwargs={
                              'time_offset': 1,
                              'sleep_intervals': 0.3,
-                             'package_instances': (1, 2, 3),
+                             'package_instances': (cls.i1, cls.i2, cls.i3),
                              'submits': [
                                  {'usr': cls.u3, 'task': 1, 'pass_chance': 1},
                                  {'usr': cls.u3, 'task': 2},
@@ -386,6 +386,12 @@ class BMultiThreadTest(TestCase):
         cls.u2.delete()
         cls.u3.delete()
         cls.u4.delete()
+
+        cls.i1.delete()
+        cls.i2.delete()
+        cls.i3.delete()
+        cls.i4.delete()
+        cls.i5.delete()
 
     def test_tasks_amount(self):
         """
