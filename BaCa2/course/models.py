@@ -1,8 +1,11 @@
+from typing import List
+
 from django.db import models
-from django.db.models import Count
+from django.db.models import Count, QuerySet
+from django.core.exceptions import ValidationError
 
 from BaCa2.choices import TaskJudgingMode, ResultStatus
-from BaCa2.exceptions import ModelValidationError, DataError
+from BaCa2.exceptions import DataError
 from BaCa2.settings import BASE_DIR
 
 from main.models import User, Course
@@ -14,40 +17,56 @@ SUBMITS_DIR = BASE_DIR / 'submits'
 __all__ = ['Round', 'Task', 'TestSet', 'Test', 'Submit', 'Result']
 
 
-# "A round is a period of time in which a tasks can be submitted."
-#
-# The class has four fields:
-#
-# * start_date: The date and time when the round starts.
-# * end_date: The date and time when ends possibility to gain max points.
-# * deadline_date: The date and time when the round ends for submitting.
-# * reveal_date: The date and time when the round results will be visible for everyone.
 class Round(models.Model):
+    """
+    A round is a period of time in which a tasks can be submitted.
+    """
+
+    #: The date and time when the round starts.
     start_date = models.DateTimeField()
+    #: The date and time when ends possibility to gain max points.
     end_date = models.DateTimeField(null=True)
+    #: The date and time when the round ends for submitting.
     deadline_date = models.DateTimeField()
+    #: The date and time when the round results will be visible for everyone.
     reveal_date = models.DateTimeField(null=True)
 
     @property
     def validate(self):
+        """
+        If the end date is not None, then the end date must be greater than the start date and the deadline date must be
+        greater than the end date. If the end date is None, then the deadline date must be greater than the start date.
+
+        :raise ValidationError: If validation is not successful.
+        """
         if self.end_date is not None and (self.end_date <= self.start_date or self.deadline_date < self.end_date):
-            raise ModelValidationError("Round: End date out of bounds of start date and deadline.")
+            raise ValidationError("Round: End date out of bounds of start date and deadline.")
         elif self.deadline_date <= self.start_date:
-            raise ModelValidationError("Round: Start date can't be later then deadline.")
+            raise ValidationError("Round: Start date can't be later then deadline.")
 
     def __str__(self):
         return f"Round {self.pk}"
 
 
+
 class Task(models.Model):
+    """
+    It represents a task that user can submit a solution to. The task is judged and scored automatically
+    """
+
+    #: Pseudo-foreign key to package instance.
     package_instance_id = models.BigIntegerField(validators=[PackageInstance.exists])
+    #: Represents displayed task name
     task_name = models.CharField(max_length=1023)
+    #: Foreign key to round, which task is assigned to.
     round = models.ForeignKey(Round, on_delete=models.CASCADE)
+    #: Judging mode as choice from BaCa2.choices.TaskJudgingMode (enum-type choice)
     judging_mode = models.CharField(
         max_length=3,
         choices=TaskJudgingMode.choices,
         default=TaskJudgingMode.LIN
     )
+    #: Maximum amount of points to be earned by completing this task.
     points = models.FloatField()
 
     def __str__(self):
@@ -55,7 +74,7 @@ class Task(models.Model):
                f"Package: {self.package_instance}"
 
     @classmethod
-    def create_new(cls, **kwargs):
+    def create_new(cls, **kwargs) -> 'Task':
         """
         If the user passes in a PackageInstance object, we'll use the object's primary key as the value for the
         package_instance_id field.
@@ -72,18 +91,24 @@ class Task(models.Model):
         return cls.objects.create(**kwargs)
 
     @property
-    def sets(self):
+    def sets(self) -> QuerySet:
         """
         It returns all the test sets that are associated with the task
+
         :return: A list of all the TestSet objects that are associated with the Task object.
         """
         return TestSet.objects.filter(task=self).all()
 
     @property
-    def package_instance(self):
+    def package_instance(self) -> PackageInstance:
+        """
+        It returns the package instance associated with the current package instance
+
+        :return: A PackageInstance object.
+        """
         return PackageInstance.objects.get(pk=self.package_instance_id)
 
-    def last_submit(self, usr, amount=1):
+    def last_submit(self, usr, amount=1) -> 'Submit' | List['Submit']:
         """
         It returns the last submit of a user for a task or a list of 'amount' last submits to that task.
 
@@ -95,7 +120,7 @@ class Task(models.Model):
             return Submit.objects.filter(task=self, usr=usr.pk).order_by('-submit_date').first()
         return Submit.objects.filter(task=self, usr=usr.pk).order_by('-submit_date').all()[:amount]
 
-    def best_submit(self, usr, amount=1):
+    def best_submit(self, usr, amount=1) -> 'Submit' | List['Submit']:
         """
         It returns the best submit of a user for a task or list of 'amount' best submits to that task.
 
@@ -134,24 +159,39 @@ class Task(models.Model):
 
 
 class TestSet(models.Model):
+    """
+    Model groups single tests into a set of tests. Gives them a set name, and weight, used while calculating results for
+    whole task.
+    """
+
+    #: Foreign key to task, with which tests set is associated.
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
+    #: Name of set - short description of test set (f.e. "n<=40", where n stands for task parameter)
     short_name = models.CharField(max_length=255)
+    #: Weight of test set in final task result.
     weight = models.FloatField()
 
     def __str__(self):
         return f"TestSet {self.pk}: Task/set: {self.task.task_name}/{self.short_name} (w: {self.weight})"
 
     @property
-    def tests(self):
+    def tests(self) -> QuerySet:
         """
         It returns all the tests that are associated with the test set
+
         :return: A list of all the tests in the test set.
         """
         return Test.objects.filter(test_set=self).all()
 
 
 class Test(models.Model):
+    """
+    Single test. Primary object to be connected with students' results.
+    """
+
+    #: Simple description what exactly is tested. Corresponds to :py:class:`package.package_manage.TestF`.
     short_name = models.CharField(max_length=255)
+    #: Foreign key to :py:class:`TestSet`.
     test_set = models.ForeignKey(TestSet, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -159,32 +199,51 @@ class Test(models.Model):
                f"{self.short_name}/{self.test_set.short_name}/{self.test_set.task.task_name}"
 
 
-# It's a model for a submit. It has a submit date, source code, task, user id, and final score
 class Submit(models.Model):
+    """
+    Model containing single submit information. It is assigned to task and user.
+    """
+
+    #: Datetime when submit took place.
     submit_date = models.DateTimeField(auto_now_add=True)
+    #: Field submitted to the task
     source_code = models.FileField(upload_to=SUBMITS_DIR)
+    #: :py:class:`Task` model, to which submit is assigned.
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
+    #: Pseudo-foreign key to :py:class:`main.models.User` model (user), who submitted to the task.
     usr = models.BigIntegerField(validators=[User.exists])
+    #: Final score (as percent), gained by user's submission. Before solution check score is set to ``-1``.
     final_score = models.FloatField(default=-1)
 
     @classmethod
-    def create_new(cls, **kwargs):
+    def create_new(cls, **kwargs) -> 'Submit':
+        """
+        Creates new Submit, but changes ``usr`` attribute to its primary key, when passed as model. This is because of
+        simulating Primary Key for user.
+
+        :return: New created submit.
+        """
         user = kwargs.get('usr')
         if isinstance(user, User):
             kwargs['usr'] = user.pk
         return cls.objects.create(**kwargs)
 
     @property
-    def user(self):
+    def user(self) -> User:
+        """
+        Simulates user model for Submit.
+
+        :return: Returns user model
+        """
         return User.objects.get(pk=self.usr)
 
     def __str__(self):
         return f"Submit {self.pk}: User: {self.user}; Task: {self.task.task_name}; " \
                f"Score: {self.final_score if self.final_score > -1 else 'PENDING'}"
 
-    def score(self, rejudge: bool = False):
+    def score(self, rejudge: bool = False) -> float:
         """
-        It calculates the score of a submit
+        It calculates the score of *self* submit.
 
         :param rejudge: If True, the score will be recalculated even if it was already calculated before,
             defaults to False (optional)
@@ -257,10 +316,16 @@ class Submit(models.Model):
         return self.final_score
 
 
-# `Result` is a class that represents a result of a test for a given submit and task (test set)
 class Result(models.Model):  # TODO: +pola z kolejki
+    """
+    Result of single :py:class:`Test` testing.
+    """
+
+    #: :py:class:`Test` which is scored.
     test = models.ForeignKey(Test, on_delete=models.CASCADE)
+    #: :py:class:`Submit` model this test is connected to.
     submit = models.ForeignKey(Submit, on_delete=models.CASCADE)
+    #: Status result. Described as one of choices from :py:class:`BaCa2.choices.ResultStatus`
     status = models.CharField(
         max_length=3,
         choices=ResultStatus.choices,
