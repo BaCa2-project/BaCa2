@@ -28,4 +28,5 @@ class PermissionTypes(models.TextChoices):
 
 class DefaultCourseGroups(models.TextChoices):
     ADMIN = 'ADMIN', 'admin'
+    MOD = 'MOD', 'moderator'
     VIEWER = 'VIEWER', 'viewer'

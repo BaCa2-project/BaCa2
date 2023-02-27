@@ -2,16 +2,31 @@ from pathlib import Path
 from re import findall, split
 from BaCa2.settings import BASE_DIR
 
-#any non-empty value is allowed
+
 def isAny(val):
+    """
+    any non-empty value is allowed
+
+    :return: A boolean value.
+    """
     return bool(val)
 
-#check if val is None
+
 def isNone(val):
+    """
+    check if val is None
+
+    :return: A boolean value.
+    """
     return val is None
 
-#check if val can be converted to int
+
 def isInt(val):
+    """
+    check if val can be converted to int
+
+    :return: A boolean value.
+    """
     if type(val) == float:
         return False
     try:
@@ -20,56 +35,101 @@ def isInt(val):
     except ValueError:
         return False
 
-#check if val is a int value between a and b
+
 def isIntBetween(val, a: int, b: int):
+    """
+    check if val is an int value between a and b
+
+    :return: A boolean value.
+    """
     if isInt(val):
         if a <= val < b:
             return True
     return False
 
-#check if val can be converted to float
+
 def isFloat(val):
+    """
+    check if val can be converted to float
+
+    :return: A boolean value.
+    """
     try:
         float(val)
         return True
     except ValueError:
         return False
 
-#check if val is a float value between a and b
+
 def isFloatBetween(val, a: int, b: int):
+    """
+    check if val is a float value between a and b
+
+    :return: A boolean value.
+    """
     if isFloat(val):
         if a <= val < b:
             return True
     return False
 
-#check if val can be converted to string
+
 def isStr(val):
+    """
+    check if val can be converted to string
+
+    :return: A boolean value.
+    """
     if type(val) == str:
         return True
     return False
 
-#check if val is exacly like schema
+
 def is_(val, schema: str):
+    """
+    check if val is exactly like schema
+
+    :return: A boolean value.
+    """
     if isStr(val):
         return val == schema
     return False
 
-#check if val is in args
+
 def isIn(val, *args):
+    """
+    check if val is in args
+
+    :return: A boolean value.
+    """
     return val in args
 
-#check if val is string and has len < len(l)
+
 def isShorter(val, l: int):
+    """
+    check if val is string and has len < len(l)
+
+    :return: A boolean value.
+    """
     if isStr(val):
         return len(val) < l
     return False
 
-#check if val has dict type
+
 def isDict(val):
+    """
+    check if val has dict type
+
+    :return: A boolean value.
+    """
     return type(val) == dict
 
-#check if val is path in package_dir
+
 def isPath(val):
+    """
+    check if val is path in package_dir
+
+    :return: A boolean value.
+    """
     if val is None:
         return False
     try:
@@ -80,14 +140,21 @@ def isPath(val):
     except ValueError:
         return False
 
-#takes the validator function with arguments, and check that if validator function is true for arg (other arguments for func)
 def resolve_validator(func_list, arg):
+    """
+    takes the validator function with arguments, and check that if validator function is true for arg (other arguments for func)
+    """
     func_name = str(func_list[0])
     func_arguments_ext = ',' + ','.join(func_list[1:])
     return eval(func_name + '("' + str(arg) + '"' + func_arguments_ext + ')')
 
-#check if val has structure provided by struct and fulfills validators functions from struct
+
 def hasStructure(val, struct: str):
+    """
+    check if val has structure provided by struct and fulfills validators functions from struct
+
+    :return: A boolean value.
+    """
     validators = findall("<.*?>", struct)
     validators = [i[1:-1].split(',') for i in validators]
     constant_words = findall("[^<>]{0,}<", struct) + findall("[^>]{0,}$", struct)
@@ -119,8 +186,13 @@ def hasStructure(val, struct: str):
         const_w_idx += 1
     return result
 
-#do memory converting from others units to bytes  --> do wyciągnięcia z tego pliku
+
 def memory_converting(val: str):
+    """
+     function is converting memory from others units to bytes
+
+     :return: Memory converted to bytes. (In INT type)
+    """
     if val[-1] == 'B':
         return int(val[0:-1])
     elif val[-1] == 'K':
@@ -130,19 +202,34 @@ def memory_converting(val: str):
     elif val[-1] == 'G':
         return int(val[0:-1]) * 1024 * 1024 * 1024
 
-#check if first is smaller than second considering memory
+
 def valid_memory_size(first: str, second: str):
+    """
+    checks if first is smaller than second considering memory
+
+    :return: A boolean value.
+    """
     if memory_converting(first) <= memory_converting(second):
         return True
     return False
 
-#check if val has structure like <isInt><isIn, 'B', 'K', 'M', 'G'>
-def isSize(val :str, max_size: str):
+
+def isSize(val: str, max_size: str):
+    """
+    check if val has structure like <isInt><isIn, 'B', 'K', 'M', 'G'>
+
+    :return: A boolean value.
+    """
     val = val.strip()
     return hasStructure(val[:-2], "<isInt>") and hasStructure(val[-1], "<isIn, 'B', 'K', 'M', 'G'>") and valid_memory_size(val, max_size)
 
-#check if val is a list and every element from list fulfill at least one validator from args
+
 def isList(val, *args):
+    """
+    check if val is a list and every element from list fulfill at least one validator from args
+
+    :return: A boolean value.
+    """
     if type(val) == list:
         result = False
         for i in val:

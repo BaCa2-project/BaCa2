@@ -8,7 +8,6 @@ from pathlib import Path
 from yaml import safe_load
 import random
 import string
-import os
 
 
 def generate_rand_int():
@@ -51,11 +50,9 @@ def generate_rand_list():
         val1 = random.choice(string.ascii_letters)
         val2 = random.randint(1, 10000)
         val3 = random.uniform(1, 10000)
-        #val4 = generate_rand_dict()
         _list.append(val1)
         _list.append(val2)
         _list.append(val3)
-        #_list.append(val4)
     return list
 
 
@@ -83,8 +80,7 @@ class ValidationsTests(TestCase):
 
     def test_isIntBetween(self):  # a <= val < b
         """
-        It checks if a number is between two other numbers.
-        """
+        It tests if the function is_IntBetween() works correctly        """
         for i in range(1000):
             a = generate_rand_int()
             b = generate_rand_int()
@@ -112,7 +108,7 @@ class ValidationsTests(TestCase):
 
     def test_isFloat(self):
         """
-        It checks if a given value is a float
+        It tests if the function isFloat() works correctly
         """
         for i in range(1000):
             a = random.uniform(0.1, 100000.0)
@@ -144,8 +140,7 @@ class ValidationsTests(TestCase):
 
     def test_isFloatBetween(self):
         """
-        It tests the function isFloatBetween() by generating random numbers and checking that the function returns the
-        correct value
+        It tests if the function isFloatBetween() works correctly
         """
         for i in range(1000):
             a = random.randint(1, 10000000)
@@ -165,7 +160,7 @@ class ValidationsTests(TestCase):
 
     def test_isStr(self):
         """
-        The above function tests if the input is a string.
+        It tests if the function isStr() works correctly
         """
         for i in range(1000):
             val = random.choice(string.ascii_letters)
@@ -178,8 +173,7 @@ class ValidationsTests(TestCase):
 
     def test_is_(self):
         """
-        > The function `test_is_` tests the function `is_` by generating random strings and integers and comparing them to
-        the function `is_`
+        It tests if the function is_() works correctly
         """
         for i in range(1000):
             val = random.choice(string.ascii_letters)
@@ -195,7 +189,7 @@ class ValidationsTests(TestCase):
 
     def test_isShorter(self):
         """
-        It checks if the length of the string is shorter than the integer.
+        It tests if the function isShorter() works correctly
         """
         for i in range(1000):
             val = random.choice(string.ascii_letters)
@@ -212,7 +206,7 @@ class ValidationsTests(TestCase):
 
     def test_isDict(self):
         """
-        It tests the isDict function.
+        It tests if the function isDict() works correctly
         """
         for i in range(1000):
             _dict = generate_rand_dict()
@@ -227,8 +221,7 @@ class ValidationsTests(TestCase):
 
     def test_isList(self):
         """
-        It tests the isList function by generating 1000 random lists and checking if the isList function returns true for
-        each of them.
+        It tests if the function isList() works correctly
         """
         for i in range(1000):
             _list = generate_rand_list()
@@ -236,7 +229,7 @@ class ValidationsTests(TestCase):
 
     def test_memory_converting(self):
         """
-        It takes a string of the form "123M" and returns the number of bytes that represents
+        It tests if the function memory_converting() works correctly
         """
         # error message in case if test case got failed
         message = "First value and second value are not equal!"
@@ -257,7 +250,7 @@ class ValidationsTests(TestCase):
 
     def test_valid_memory_size(self):
         """
-        It generates random numbers and units, and then checks if the memory size is valid
+        It tests if the function memory_size() works correctly
         """
         unit_list = ['B', 'K', 'M', 'G']
         for i in range(1000):
@@ -273,7 +266,7 @@ class ValidationsTests(TestCase):
 
     def test_hasStructure(self):
         """
-        It checks if a string has a certain structure
+        It tests if the function hasStructure() works correctly
         """
         # validator at the end of a string
         structure = "set<isInt>"
@@ -312,7 +305,7 @@ class ValidationsTests(TestCase):
 
     def test_isAny(self):
         """
-        It tests the isAny function.
+        It tests if the function isAny() works correctly
         """
         for i in range(1000):
             val = random.randint(0, 10000000)
@@ -342,7 +335,7 @@ class ValidationsTests(TestCase):
 
     def test_isNone(self):
         """
-        It tests the isNone function by generating random values and checking if the function returns the correct value
+        It tests if the function isNone() works correctly
         """
         for i in range(1000):
             val = random.randint(0, 10000000)
@@ -360,8 +353,7 @@ class ValidationsTests(TestCase):
 
     def test_isIn(self):
         """
-        The function isIn takes in a variable and a list of variables and returns True if the variable is in the list of
-        variables and False otherwise
+        It tests if the function isIn() works correctly
         """
         rand_int = generate_rand_int()
         rand_float = random.uniform(0.1, 0.9)
@@ -379,7 +371,7 @@ class ValidationsTests(TestCase):
 
     def test_isPath(self):
         """
-        It checks if the path is correct.
+        It tests if the function isPath() works correctly.
         """
         abs_path = Path("BaCa2/package/packages/tests_to_testing/config.yml").resolve()
         self.assertTrue(isPath(abs_path))
@@ -397,6 +389,9 @@ class ValidationsTests(TestCase):
         self.assertFalse(isPath(abs_path))
 
     def test_isSize(self):
+        """
+        It tests if the function isSize() works correctly
+        """
         unit_list = ['B', 'K', 'M', 'G']
         for i in range(1000):
             size = random.randint(1, 100000)

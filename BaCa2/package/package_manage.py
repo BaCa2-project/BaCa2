@@ -1,3 +1,4 @@
+from copy import deepcopy
 from pathlib import Path
 from .validators import isAny, isNone, isInt, isIntBetween, isFloat, isFloatBetween, isStr, is_, isIn, isShorter, \
     isDict, isPath, isSize, isList, memory_converting, valid_memory_size
@@ -7,340 +8,7 @@ from BaCa2.settings import SUPPORTED_EXTENSIONS, BASE_DIR
 from BaCa2.exceptions import NoTestFound, NoSetFound, TestExistError
 from os import remove, replace, walk, mkdir, rename, listdir
 from shutil import rmtree
-from copy import deepcopy
-import random
-import string
 
-'''def generate_rand_int():
-    return random.randint(0, 10000000)
-
-
-def compare_memory_unit(unit1, unit2):
-    if unit1 == 'B':
-        return True
-    elif unit1 == 'K' and (unit2 == 'K' or unit2 == 'M' or unit2 == 'G'):
-        return True
-    elif unit1 == 'M' and (unit2 == 'M' or unit2 == 'G'):
-        return True
-    elif unit1 == 'G' and unit2 == 'G':
-        return True
-    return False
-
-
-def generate_rand_dict():
-    _dict = {}
-    for i in range(100):
-        key1 = random.choice(string.ascii_letters)
-        value1 = random.randint(1, 10000)
-        key2 = random.randint(1, 10000)
-        value2 = random.choice(string.ascii_letters)
-        if i % 4 == 0:
-            _dict[key1] = value1
-        elif i % 4 == 1:
-            _dict[key2] = value2
-        elif i % 4 == 2:
-            _dict[key1] = value2
-        else:
-            _dict[key2] = value1
-    return _dict
-
-
-def generate_rand_list():
-    _list = []
-    for i in range(100):
-        val1 = random.choice(string.ascii_letters)
-        val2 = random.randint(1, 10000)
-        val3 = random.uniform(1, 10000)
-        val4 = generate_rand_dict()
-        _list.append(val1)
-        _list.append(val2)
-        _list.append(val3)
-        _list.append(val4)
-    return list
-
-
-class ValidationsTests(TestCase):
-
-    def test_isInt(self):
-        for i in range(1000):
-            a = generate_rand_int()
-            self.assertTrue(isInt(a))
-            float(a)
-            self.assertTrue(isInt(a))
-            str(a)
-            self.assertTrue(isInt(a))
-
-        self.assertFalse(isInt(0.5))
-        self.assertFalse(isInt('0.5'))
-        self.assertFalse(isInt(1235.4567))
-        self.assertFalse(isInt('1235.4567'))
-        self.assertFalse(isInt('5,5'))
-        self.assertFalse(isInt("5 and more"))
-        self.assertFalse(isInt("It is just a string"))
-
-    def test_isIntBetween(self):  # a <= val < b
-        for i in range(1000):
-            a = generate_rand_int()
-            b = generate_rand_int()
-            if a > b:
-                a, b = b, a
-            val = random.randint(a, b - 1)
-            self.assertTrue(isIntBetween(val, a, b))
-            float(a)
-            float(b)
-            float(val)
-            self.assertTrue(isIntBetween(val, a, b))
-            val = random.randint(0, a - 1)
-            self.assertFalse(isIntBetween(val, a, b))
-            val = random.randint(b + 1, 10000001)
-            self.assertFalse(isIntBetween(val, a, b))
-        self.assertTrue(isIntBetween(5, 2, 10))
-        self.assertTrue(isIntBetween(68, 68, 78))
-        self.assertTrue(isIntBetween(-4, -7, -1))
-        self.assertTrue(isIntBetween(-6, -6, 0))
-        self.assertFalse(isIntBetween(5, 1, 3))
-        self.assertFalse(isIntBetween(5, -7, -1))
-        self.assertFalse(isIntBetween(5, -6, 0))
-        self.assertFalse(isIntBetween(5, 6, 67))
-        self.assertFalse(isIntBetween(67, 6, 67))
-
-    def test_isFloat(self):
-        for i in range(1000):
-            a = random.uniform(0.1, 100000.0)
-            self.assertTrue(isFloat(a))
-            float(a)
-            self.assertTrue(isFloat(a))
-            str(a)
-            self.assertTrue(isFloat(a))
-            a = random.random()
-            self.assertTrue(isFloat(a))
-            float(a)
-            self.assertTrue(isFloat(a))
-            str(a)
-            self.assertTrue(isFloat(a))
-        self.assertTrue(isFloat('5'))
-        self.assertTrue(isFloat(5))
-        self.assertTrue(isFloat(0))
-        self.assertTrue(isFloat('0'))
-        self.assertTrue(isFloat(123456))
-        self.assertTrue(isFloat('123456'))
-        self.assertTrue(isFloat(0.5))
-        self.assertTrue(isFloat('0.5'))
-        self.assertTrue(isFloat(1235.4567))
-        self.assertTrue(isFloat('1235.4567'))
-        self.assertFalse(isFloat('5,5'))
-        self.assertFalse(isFloat("5 and more"))
-        self.assertFalse(isFloat("53.46 and more"))
-        self.assertFalse(isFloat("It is just a string"))
-
-    def test_isFloatBetween(self):
-        for i in range(1000):
-            a = random.randint(1, 10000000)
-            b = random.randint(1, 10000000)
-            if a > b:
-                a, b = b, a
-            val = random.uniform(a, b - 1)
-            self.assertTrue(isFloatBetween(val, a, b))
-            float(a)
-            float(b)
-            float(val)
-            self.assertTrue(isFloatBetween(val, a, b))
-            val = random.uniform(0.0, a - 1.0)
-            self.assertFalse(isFloatBetween(val, a, b))
-            val = random.uniform(b + 1.0, 10000001.0)
-            self.assertFalse(isFloatBetween(val, a, b))
-
-    def test_isStr(self):
-        for i in range(1000):
-            val = random.choice(string.ascii_letters)
-            self.assertTrue(isStr(val))
-        for i in range(10000):
-            val2 = random.randint(1, 10000000)
-            self.assertFalse(isStr(val2))
-            float(val2)
-            self.assertFalse(isStr(val2))
-
-    def test_is_(self):
-        for i in range(1000):
-            val = random.choice(string.ascii_letters)
-            schema = val
-            self.assertTrue(is_(val, schema))
-            schema = random.choice(string.ascii_letters)
-            if (schema != val):
-                self.assertFalse(is_(val, schema))
-            val = random.randint(1, 100000)
-            self.assertFalse(is_(val, schema))
-            float(val)
-            self.assertFalse(is_(val, schema))
-
-    
-
-    def test_isSize(self):
-        unit_list = ['B', 'K', 'M', 'G']
-        for i in range(1000):
-            size = random.randint(1, 100000)
-            max_size = random.randint(size, 100001)
-            unit1 = random.choice(unit_list)
-            unit2 = random.choice(unit_list)
-            if not (compare_memory_unit(unit1, unit2)):
-                unit1, unit2 = unit2, unit1  # now unit1 is smaller than unit
-            mem_size = str(size) + unit1
-            max_mem_size = str(max_size) + unit2
-            self.assertTrue(isSize(mem_size, max_mem_size))
-
-    def test_isList(self):
-        for i in range(1000):
-            _list = generate_rand_list()
-            self.assertTrue(isList(_list))
-
-    def test_memory_converting(self):
-        # error message in case if test case got failed
-        message = "First value and second value are not equal!"
-        # assertEqual() to check equality of first & second value
-        size = 456
-        val = str(size) + "B"
-        # test for B unit value
-        self.assertEqual(memory_converting(val), size, message)
-        val = str(size) + "K"
-        # test for K unit value
-        self.assertEqual(memory_converting(val), size*1024, message)
-        val = str(size) + "M"
-        # test for M unit value
-        self.assertEqual(memory_converting(val), size*1024*1024, message)
-        val = str(size) + "G"
-        # test for G unit value
-        self.assertEqual(memory_converting(val), size*1024*1024*1024, message)
-
-    def test_valid_memory_size(self):
-        unit_list = ['B', 'K', 'M', 'G']
-        for i in range(1000):
-            size = random.randint(1, 100000)
-            max_size = random.randint(size, 100001)
-            unit1 = random.choice(unit_list)
-            unit2 = random.choice(unit_list)
-            if not (compare_memory_unit(unit1, unit2)):
-                unit1, unit2 = unit2, unit1  # now unit1 is smaller than unit
-            mem_size = str(size) + unit1
-            max_mem_size = str(max_size) + unit2
-            self.assertTrue(valid_memory_size(mem_size, max_mem_size))
-
-    def test_hasStructure(self):
-        # validator at the end of a string
-        structure = "set<isInt>"
-        self.assertTrue(hasStructure("set123", structure))
-        self.assertFalse(hasStructure("set", structure))
-        self.assertFalse(hasStructure("set_1234", structure))
-        self.assertFalse(hasStructure("123.set_123", structure))
-        structure = "test_<isIn,'a','wrong','0'>"
-        self.assertTrue(hasStructure("test_a", structure))
-        self.assertTrue(hasStructure("test_wrong", structure))
-        self.assertTrue(hasStructure("test_0", structure))
-        self.assertFalse(hasStructure("test_", structure))
-        self.assertFalse(hasStructure("test_01234", structure))
-        self.assertFalse(hasStructure("test_right", structure))
-        # structure at the end and in the middle
-        structure = "test<isInt>_set<isInt>"
-        self.assertTrue(hasStructure("test123_set123", structure))
-        self.assertFalse(hasStructure("test_13_set12", structure))
-        self.assertFalse(hasStructure("test12set34", structure))
-        self.assertFalse(hasStructure("test123_set", structure))
-        self.assertFalse(hasStructure("test_123_set", structure))
-        self.assertFalse(hasStructure("test_123", structure))
-        self.assertFalse(hasStructure("set124", structure))
-        self.assertFalse(hasStructure("_test123_set15", structure))
-        # structure at the beginning and at the end
-        structure = "<isStr>|<isInt>_course<isInt>"
-        # only two structures
-        structure = "<isInt><isIn, 'B', 'K', 'M', 'G'>"
-        self.assertTrue(hasStructure("1234B", structure))
-        self.assertTrue(hasStructure("1234 B", structure))
-        self.assertTrue(hasStructure("1234K", structure))
-        self.assertTrue(hasStructure("1234 K", structure))
-        self.assertTrue(hasStructure("1234M", structure))
-        self.assertTrue(hasStructure("1234 M", structure))
-        self.assertTrue(hasStructure("1234G", structure))
-        self.assertTrue(hasStructure("1234 G", structure))
-        self.assertFalse(hasStructure("1234", structure))
-        self.assertFalse(hasStructure("B", structure))
-        self.assertFalse(hasStructure("K", structure))
-        self.assertFalse(hasStructure("M", structure))
-        self.assertFalse(hasStructure("G", structure))
-        self.assertFalse(hasStructure("It is string", structure))
-        self.assertFalse(hasStructure("1234 T", structure))
-        self.assertFalse(hasStructure("1234T", structure))
-        # structure at the beginning
-        structure = "<isInt>.in"
-        self.assertTrue(hasStructure("1.in", structure))
-        self.assertFalse(hasStructure("1. in", structure))
-        self.assertFalse(hasStructure("str.in", structure))
-        self.assertFalse(hasStructure("2.5.in", structure))
-        # structure at the beginning and in the middle
-        structure = "<isStr>.<isIn: 'out', 'in'>"
-        self.assertTrue(hasStructure("sol.in", structure))
-        self.assertTrue(hasStructure("sol.out", structure))
-        self.assertFalse(hasStructure("sol.inn", structure))
-        self.assertFalse(hasStructure("solin", structure))
-        self.assertFalse(hasStructure("solout", structure))
-        # two structures with alternative at beginning
-        structure = "<isStr>|<isInt>_course"
-        self.assertTrue(hasStructure("ASD_course", structure))
-        self.assertTrue(hasStructure("MD_course", structure))
-        self.assertTrue(hasStructure("123_course", structure))
-        self.assertFalse(hasStructure("MD course", structure))
-        self.assertFalse(hasStructure("123 course", structure))
-        self.assertFalse(hasStructure("ASDcourse", structure))
-        self.assertFalse(hasStructure("ASD_course_", structure))
-        # structure at the beginning, middle and at the end
-        structure = "<isInt>test<isStr>|<isInt>|<isFloat>"
-        self.assertTrue(hasStructure("23test23", structure))
-        self.assertTrue(hasStructure("123testSTR", structure))
-        self.assertTrue(hasStructure("123test5.67", structure))
-        self.assertFalse(hasStructure("123test"))
-        self.assertFalse(hasStructure("test", structure))
-        self.assertFalse(hasStructure("34testwrong", structure))
-        self.assertFalse(hasStructure("34TEST23", structure))
-
-    def test_isAny(self):
-        for i in range(1000):
-            val = random.randint(0, 10000000)
-            self.assertTrue(isAny(val))
-            float(val)
-            self.assertTrue(isAny(val))
-            str(val)
-            self.assertTrue(isAny(val))
-            val = random.uniform(0.1, 100000.0)
-            self.assertTrue(isAny(val))
-            float(val)
-            self.assertTrue(isAny(val))
-            str(val)
-            self.assertTrue(isAny(val))
-            a = random.random()
-            self.assertTrue(isAny(val))
-            float(val)
-            self.assertTrue(isAny(val))
-            str(val)
-            self.assertTrue(isAny(val))
-            val = random.choice(string.ascii_letters)
-            self.assertTrue(isAny(val))
-            _dict = generate_rand_dict()
-            self.assertTrue(isAny(_dict))
-            _list = generate_rand_list()
-            self.assertTrue(isAny(_list))
-
-    def test_isNone(self):
-        for i in range(1000):
-            val = random.randint(0, 10000000)
-            self.assertFalse(isNone(val))
-            float(val)
-            self.assertFalse(isNone(val))
-            str(val)
-            val = random.choice(string.ascii_letters)
-            self.assertFalse(isNone(val))
-            _dict = generate_rand_dict()
-            self.assertFalse(isNone(_dict))
-            _list = generate_rand_list()
-            self.assertFalse(isNone(_list))
-            self.assertTrue(isNone(None))'''
 
 def merge_settings(default: dict, to_add: dict) -> dict:
     """
@@ -351,6 +19,7 @@ def merge_settings(default: dict, to_add: dict) -> dict:
     :type default: dict
     :param to_add: The settings you want to add to the default settings
     :type to_add: dict
+
     :return: A dictionary with the keys of the default dictionary and the values of the to_add dictionary.
     """
     new = {}
@@ -365,9 +34,10 @@ def merge_settings(default: dict, to_add: dict) -> dict:
     return new
 
 
-
-# It's a class that manages a package's settings
 class PackageManager:
+    """
+    It's a class that manages a package's settings
+    """
     def __init__(self, path: Path, settings_init: Path or dict, default_settings: dict):
         """
         If the settings_init is a dict, assign it to settings. If not, load the settings_init yaml file and assign it to
@@ -400,6 +70,7 @@ class PackageManager:
 
         :param arg: The name of the key to get the value of
         :type arg: str
+
         :return: The value of the key in the dictionary.
         """
         try:
@@ -419,13 +90,14 @@ class PackageManager:
         # effect changes to yaml settings
         self.save_to_config(self._settings)
 
-    def check_validation(self, validators):
+    def check_validation(self, validators) -> bool:
         """
         It checks if the value of the setting is valid by checking if it matches any of the validators for that setting
 
         :param validators: A dictionary of validators. The keys are the names of the settings, and the values are lists of
         validators. Each validator is a tuple of the form (function, *args, **kwargs). The function is called with the
         setting value as the first argument, followed by the *
+
         :return: The check variable is being returned.
         """
         for i, j in self._settings.items():
@@ -447,6 +119,7 @@ class PackageManager:
     def read_from_config(self):
         """
         It reads the config.yml file from the path and returns the contents
+
         :return: The dict from config.yml file is being returned.
         """
         with open(self._path / 'config.yml', mode="rt", encoding="utf-8") as file:
@@ -463,10 +136,14 @@ class PackageManager:
                 pass
 
 
-
-# It's a class that represents a package
 class Package(PackageManager):
+    """
+    It's a class that represents a package.
+    """
+
+    #: Largest file acceptable to upload
     MAX_SUBMIT_MEMORY = '10G'
+    #: Largest acceptable submit time
     MAX_SUBMIT_TIME = 600
     SETTINGS_VALIDATION = {
         'title': [[isStr]],
@@ -478,6 +155,22 @@ class Package(PackageManager):
         'checker': [[isNone], [isPath]],
         'test_generator': [[isNone], [isPath]]
     }
+    """
+    Validation for ``Package`` settings.
+    
+    Available options are:
+    
+        * ``title``: package name
+        * ``points``: maximum amount of points to earn
+        * ``memory_limit``: is a memory limit
+        * ``time_limit``: is a time limit
+        * ``allowedExtensions``: extensions witch are accepted
+        * ``hinter``: is a path or None value to actual hinter
+        * ``checker``: is a path or None value to actual checker
+        * ``test_generator``: is a path or None value to actual generator
+    """
+
+    #: Default values for Package settings
     DEFAULT_SETTINGS = {
         'title': 'p',
         'points': 0,
@@ -513,11 +206,29 @@ class Package(PackageManager):
         if isPath(self._path / 'tests' / set_name):
             rmtree(self._path / 'tests' / set_name)
 
-    def _add_new_set(self, set_name):
+    def copy(self, new_path, new_commit) -> 'Package':
         """
-        > This function adds a new test set to the test suite
+        Function copies the package instance and creates new one/
+
+        :param new_path: The path of the package
+        :param new_commit: New unique commit
+
+        :return: new Package
+        """
+        pass
+
+    def delete(self):
+        """
+        Function deletes the package (itself) from directory
+        """
+        pass
+
+    def _add_new_set(self, set_name) -> 'TSet':
+        """
+        This function adds a new test set to the test suite
 
         :param set_name: The name of the new test set
+
         :return: A new TSet object.
         """
         settings = {'name': set_name} | self._settings
@@ -530,7 +241,7 @@ class Package(PackageManager):
         self._sets.append(new_set)
         return new_set
 
-    def sets(self, set_name: str, add_new: bool = False):
+    def sets(self, set_name: str, add_new: bool = False) -> 'TSet':
         """
         It returns the set with the name `set_name` if it exists, otherwise it raises an error
 
@@ -538,6 +249,7 @@ class Package(PackageManager):
         :type set_name: str
         :param add_new: If True, it will create a new set directory if it doesn't exist, defaults to False
         :type add_new: bool (optional)
+
         :return: The set with the name set_name
         """
         for i in self._sets:
@@ -563,7 +275,7 @@ class Package(PackageManager):
                 return
         raise NoSetFound(f'Any set directory named {set_name} has found to delete')
 
-    def check_package(self, subtree: bool = True):
+    def check_package(self, subtree: bool = True) -> bool | int:
         """
         It checks the package.
 
@@ -578,8 +290,10 @@ class Package(PackageManager):
         return self.check_validation(Package.SETTINGS_VALIDATION) & result
 
 
-# It's a class that represents a set of tests
 class TSet(PackageManager):
+    """
+    It's a class that represents a set of tests and modifies it
+    """
     SETTINGS_VALIDATION = {
         'name': [[isStr]],
         'weight': [[isInt], [isFloat]],
@@ -592,6 +306,22 @@ class TSet(PackageManager):
         'tests': [[isNone], [isAny]],
         'makefile': [[isNone], [isPath]]
     }
+
+    """
+        Validation for ``TSet`` settings.
+
+        Available options are:
+            * ``name``: set name
+            * ``weight``: impact of set score on final score
+            * ``points``: maximum amount of points to earn in set
+            * ``memory_limit``: is a memory limit for set
+            * ``time_limit``: is a time limit for set
+            * ``checker``: is a path or None value to actual checker
+            * ``test_generator``: is a path or None value to actual generator
+            * ``tests``: tests to run in set
+            * ``makefile``: name of a makefile
+        """
+    #: Default values for set settings
     DEFAULT_SETTINGS = {
         'name': 'set0',
         'weight': 10,
@@ -655,7 +385,7 @@ class TSet(PackageManager):
                 name_dict = {'name': i}
                 self._tests.append(TestF(self._path, name_dict, self._test_settings))
 
-    def tests(self, test_name: str, add_new: bool = False):
+    def tests(self, test_name: str, add_new: bool = False) -> 'TestF':
         """
         It returns a test object with the given name, if it exists, or creates a new one if it doesn't
 
@@ -663,6 +393,7 @@ class TSet(PackageManager):
         :type test_name: str
         :param add_new: if True, then if the test is not found, it will be created, defaults to False
         :type add_new: bool (optional)
+
         :return: A TestF object
         """
         for i in self._tests:
@@ -722,7 +453,7 @@ class TSet(PackageManager):
 
     def _move_chosen_test(self, test: 'TestF', to_set: 'TSet'):
         """
-        > Move a test from one test set to another
+         Move a test from one test set to another
 
         :param test: 'TestF' - the test to be moved
         :type test: 'TestF'
@@ -783,11 +514,12 @@ class TSet(PackageManager):
             raise NoTestFound(f'Any test named {test_name} has found to move to to_set')
 
     # check set validation
-    def check_set(self, subtree=True):
+    def check_set(self, subtree=True) -> bool | int:
         """
         It checks the set.
 
         :param subtree: If True, check the subtree of tests, defaults to True (optional)
+
         :return: The result of the check_validation() method and the result of the check_set() method.
         """
         result = True
@@ -798,8 +530,10 @@ class TSet(PackageManager):
         return self.check_validation(TSet.SETTINGS_VALIDATION) & result
 
 
-# class for represent test in set
 class TestF(PackageManager):
+    """
+    It's a class that represents test in a set.
+    """
     SETTINGS_VALIDATION = {
         'name': [[isStr]],
         'memory_limit': [[isNone], [isSize, Package.MAX_SUBMIT_MEMORY]],
@@ -807,6 +541,15 @@ class TestF(PackageManager):
                        [isFloatBetween, 0, Package.MAX_SUBMIT_TIME]],
         'points': [[isInt], [isFloat]]
     }
+    """
+       Validation for ``TestF`` settings.
+
+       Available options are:
+        * ``name``: test name
+        * ``points``: maximum amount of points to earn in test
+        * ``memory_limit``: is a memory limit for test
+        * ``time_limit``: is a time limit for test
+       """
 
     def __init__(self, path: Path, additional_settings: dict or Path, default_settings: dict):
         """
@@ -857,8 +600,7 @@ class TestF(PackageManager):
         self.save_to_config(settings)
         self._settings[arg] = val
 
-
-    def check_test(self):
+    def check_test(self) -> bool:
         """
         It checks if the test is valid
         :return: The return value is the result of the check_validation method.
