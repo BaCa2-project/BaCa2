@@ -133,8 +133,6 @@ class Course(models.Model):
             raise ValidationError('No default viewer group exists for this course')
 
 
-
-
 class User(AbstractBaseUser, PermissionsMixin):
     """
     This class stores user information. Its methods can be used to check permissions pertaining to the default database
