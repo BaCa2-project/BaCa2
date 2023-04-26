@@ -1,7 +1,10 @@
 BaCa2 Project
 =============
 
-**BaCa2** is automated checking system for programming tasks. Firstly 
-developed for Jagiellonian University in Cracow, Poland. Main advantage of this system is 
-either simplicity of usage and complexity of possible to be checked tasks.
+**BaCa2** is an automated, online code checking system for programming tasks. It is currently being developed for the Faculty of Mathematics and Computer Science of the Jagiellonian University in Cracow, Poland. The system aims to ensure simplicity and ease of use while allowing for significant complexity of both the programming tasks and solution checking methods.
 
+BaCa2 is currently being developed by a team of four UJ students:
+Bartosz Deptuła,
+Izabela Golec,
+Mateusz Kadula,
+Krzysztof Kalita
