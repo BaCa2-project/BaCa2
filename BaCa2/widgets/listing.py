@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 from django.db import models
 from django.db.models.query import QuerySet
 
@@ -7,24 +7,19 @@ class Record:
     def __init__(self,
                  model: models.Model,
                  fields: List[str],
-                 fields_type: dict = None,
-                 fields_style: dict = None
-                 ):
+                 labels: Dict[str, str]) -> None:
         self.fields = []
         for field in fields:
-            self.fields.append([getattr(model, field), 1])
+            self.fields.append([getattr(model, field), labels[field]])
 
 
 class Table:
     def __init__(self,
                  queryset: QuerySet,
                  cols: List[str],
-                 header: dict = None,
-                 cols_type: dict = None,
-                 cols_style: dict = None,
-                 sort_by: str = None,
-                 sort_order: str = 'desc'
-                 ):
+                 header: Dict[str, str] = None,
+                 sortable: bool = False,
+                 searchable: bool = False) -> None:
         self.cols = cols
 
         if header:
@@ -35,14 +30,14 @@ class Table:
             if col not in self.header:
                 self.header[col] = col
 
-        if cols_style:
-            self.cols_style = cols_style
-        else:
-            self.cols_style = {}
-
         self.records = []
-        for i in queryset:
-            self.records.append(Record(i, self.cols, cols_type))
+        for model in queryset:
+            self.records.append(Record(model=model,
+                                       fields=self.cols,
+                                       labels=self.header))
+
+        self.sortable = sortable
+        self.searchable = searchable
 
     def get_context(self) -> dict:
         context = {
@@ -50,7 +45,15 @@ class Table:
             'records_num': len(self.records),
             'cols': self.cols,
             'header': [self.header[_] for _ in self.cols],
-            'records': self.records
+            'records': self.records,
+            'sortable': self.sortable,
+            'searchable': self.searchable,
+            'class': "",
         }
+
+        if self.sortable:
+            context['class'] += "table-sortable"
+        if self.searchable:
+            context['class'] += " table-searchable"
 
         return context

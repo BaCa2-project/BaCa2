@@ -1,5 +1,5 @@
 from django.views.generic.base import TemplateView
-from .models import Course
+from .models import Course, Group
 from widgets.querying import get_queryset
 from widgets.listing import Table
 
@@ -10,12 +10,29 @@ class TestView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context['courses'] = get_queryset(
+        queryset = get_queryset(
             Course
         )
+        table = Table(
+            queryset=queryset,
+            cols=['name', 'short_name', 'db_name'],
+            header={'name': 'Course Name', 'short_name': 'Short Name'},
+            sortable=True,
+            searchable=True
+        )
 
-        context['names'] = [context['courses'][_].name for _ in range(len(context['courses']))]
-        context['short_names'] = [context['courses'][_].short_name for _ in range(len(context['courses']))]
+        queryset2 = get_queryset(
+            Group
+        )
+        table2 = Table(
+            queryset=queryset2,
+            cols=['name'],
+            header={'name': 'Group Name'},
+            sortable=True,
+        )
+
+        context['table1'] = table.get_context()
+        context['table2'] = table2.get_context()
         return context
 
 
@@ -30,10 +47,9 @@ class TestViewList(TemplateView):
             {'id': [1, 2, 3]}
         )
         table = Table(
-            queryset,
-            ['name', 'short_name', 'db_name'],
-            None,
-            {'name': 'Course Name', 'short_name': 'Short Name'}
+            queryset=queryset,
+            cols=['name', 'short_name', 'db_name'],
+            header={'name': 'Course Name', 'short_name': 'Short Name'}
         )
 
         context['table'] = table.get_context()

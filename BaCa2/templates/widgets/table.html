@@ -1,0 +1,24 @@
+<table class="{{ table.class }}">
+    <thead>
+        <tr>
+            {% for col_name in table.header %}
+                {% if table.searchable %}
+                    <th>
+                        <input type="text" class="search-input" placeholder="{{ col_name }}">
+                    </th>
+                {% else %}
+                    <th>{{ col_name }}</th>
+                {% endif %}
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for record in table.records %}
+            <tr>
+                {% for field in record.fields %}
+                    <td data-label="{{ field.1 }}">{{ field.0 }}</td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>

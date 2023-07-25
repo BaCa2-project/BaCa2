@@ -1,0 +1,50 @@
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #2f2f2f;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+th, td {
+    padding: 0.5rem 1rem;
+}
+
+th {
+    text-transform: capitalize;
+    text-align: left;
+    font-weight: 600;
+    color: #969696;
+    background-color: #1f1f1f;
+}
+
+tr:nth-of-type(2n) {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+@media (max-width: 600px) {
+    th {
+        display: none;
+    }
+
+    td {
+        display: grid;
+        gap: 0.5rem;
+        grid-template-columns: 15ch auto;
+    }
+
+    td:first-child {
+        padding-top: 1rem;
+    }
+
+    td:last-child {
+        padding-bottom: 1rem;
+    }
+
+    td::before {
+        content: attr(data-label) ": ";
+        font-weight: 600;
+        color: #9b9b9b;
+        text-transform: capitalize;
+    }
+}

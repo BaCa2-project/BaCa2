@@ -1,12 +1,19 @@
-<script src="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/js/tabler.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/css/tabler.min.css">
-<a href="#" class="btn btn-ghost-primary w-100">Primary</a>
-<hr/>
-{% for i in names %}
-    {{ i }}
-    <hr/>
-{% endfor %}
-{% for i in short_names %}
-    {{ i }}
-    <hr/>
-{% endfor %}
+{% extends 'base.html' %}
+{% load static %}
+
+{% block head %}
+    <link rel="stylesheet" href="{% static 'css/table.css' %}">
+    <link rel="stylesheet" href="{% static 'css/table_sortable.css' %}">
+    <link rel="stylesheet" href="{% static 'css/table_searchable.css' %}">
+{% endblock %}
+
+{% block content %}
+    {% with table1 as table %}
+        {% include 'widgets/table.html' %}
+    {% endwith %}
+    {% with table2 as table %}
+        {% include 'widgets/table.html' %}
+    {% endwith %}
+    <script src="{% static 'js/table_sort.js' %}"></script>
+    <script src="{% static 'js/table_search.js' %}"></script>
+{% endblock %}

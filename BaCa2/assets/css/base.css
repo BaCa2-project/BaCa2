@@ -1,0 +1,18 @@
+html {
+    color-scheme: dark;
+}
+
+body {
+    font-size: 1.2rem;
+    font-family: 'consolas', sans-serif;
+}
+
+.clickable {
+    cursor: pointer;
+}
+
+.clickable:hover {
+    color: white;
+    background-color: rgba(255, 46, 99, 0.7);
+    transition: 0.5s;
+}
