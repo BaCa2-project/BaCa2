@@ -111,7 +111,7 @@ class PackageInstance(models.Model):
         new_path = self.package_source.path
         new_commit = timezone.now().timestamp()
 
-        new_package = self.package.copy(new_path, new_commit)  # PackageManager TODO: COPY
+        new_package = self.package.make_commit(new_commit)
         new_package.check_package()
 
         commit_msg = f"{self.package_source.name}.{new_commit}"

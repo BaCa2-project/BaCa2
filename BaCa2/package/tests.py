@@ -1,3 +1,4 @@
+import shutil
 from unittest import TestCase
 from django.test import TestCase
 from BaCa2.exceptions import NoSetFound, NoTestFound
@@ -449,7 +450,7 @@ class TSetTests(TestCase):
         The function `setUp` is a method of the class `TestTSet` that creates three instances of the class `TSet` and
         assigns them to the variables `self.set0`, `self.set1`, and `self.set2`
         """
-        self.path = Path(__file__).resolve().parent / 'packages\\1\\tests'
+        self.path = Path(__file__).resolve().parent / 'packages\\1\\1\\tests'
         self.set0 = TSet(self.path / 'set0')
         self.set1 = TSet(self.path / 'set1')
         self.set2 = TSet(self.path / 'set2')
@@ -541,14 +542,15 @@ class PackageTests(TestCase):
         The function takes a path to a package and returns a package object
         """
         self.path = Path(__file__).resolve().parent.parent / 'package\packages\\1'
-        self.package = Package(self.path)
+        self.package = Package(self.path, commit='1')
+        self.path = self.path / '1'
 
     def test_init(self):
         """
         The function tests that the package's path is the same as the path that was passed to the function, and that the
         package's title is the same as the title in the config.yml file
         """
-        self.assertEqual(self.package._path, self.path)
+        self.assertEqual(self.package.commit_path, self.path)
         with open(self.path / 'config.yml', mode="rt", encoding="utf-8") as file:
             settings = safe_load(file)
         self.assertEqual(self.package['title'], settings['title'])
@@ -586,3 +588,23 @@ class PackageTests(TestCase):
         It checks if the package is valid.
         """
         self.assertTrue(self.package.check_package())
+
+    def test_make_commit(self):
+        """
+        It tests if the function make_commit() works.
+        """
+        new_comm = self.package.make_commit('2')
+        self.assertIsInstance(new_comm, Package)
+        self.assertEqual(new_comm._commit, '2')
+        shutil.rmtree(new_comm.commit_path)
+
+    def test_make_commit_and_delete(self):
+        """
+        It tests if deleting commit works.
+        """
+        new_comm = self.package.make_commit('3')
+        self.assertIsInstance(new_comm, Package)
+        self.assertEqual(new_comm._commit, '3')
+        path_to_comm = new_comm.commit_path
+        new_comm.delete()
+        self.assertFalse(path_to_comm.exists())
