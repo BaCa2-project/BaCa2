@@ -11,11 +11,15 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 from contextvars import ContextVar
 from pathlib import Path
+from typing import Dict
+
 from BaCa2.db.setup import DEFAULT_DB_SETTINGS
+import baca2PackageManager as pkg
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 SETTINGS_DIR = Path(__file__).resolve().parent
+PACKAGES_DIR = BASE_DIR / 'packages_source'
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
@@ -161,6 +165,10 @@ for f in (SETTINGS_DIR / 'app_configurations').glob('[!_]*.py'):
 if (SETTINGS_DIR / "settings_local.py").exists():
     exec(open(SETTINGS_DIR / "settings_local.py", "rb").read())
 
-SUPPORTED_EXTENSIONS = ['cpp']
+if not PACKAGES_DIR.is_dir():
+    PACKAGES_DIR.mkdir()
 
-PACKAGES = {}
+pkg.set_base_dir(PACKAGES_DIR)
+pkg.add_supported_extensions('cpp')
+
+PACKAGES: Dict[str, pkg.Package] = {}

@@ -1,11 +1,11 @@
 from django.db import models
 from main.models import User
-from .validators import isStr
+from baca2PackageManager.validators import isStr
 from BaCa2.settings import BASE_DIR
 # from course.models import Task
 from pathlib import Path
 from BaCa2.settings import PACKAGES
-from .package_manage import Package
+from baca2PackageManager import Package
 
 from django.utils import timezone
 from django.db import transaction
