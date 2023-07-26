@@ -1,5 +1,6 @@
 from copy import deepcopy
 from pathlib import Path
+
 from .validators import isAny, isNone, isInt, isIntBetween, isFloat, isFloatBetween, isStr, is_, isIn, isShorter, \
     isDict, isPath, isSize, isList, memory_converting, valid_memory_size
 from yaml import safe_load, dump
@@ -7,7 +8,7 @@ from re import match
 from BaCa2.settings import SUPPORTED_EXTENSIONS, BASE_DIR
 from BaCa2.exceptions import NoTestFound, NoSetFound, TestExistError
 from os import remove, replace, walk, mkdir, rename, listdir
-from shutil import rmtree
+from shutil import rmtree, copytree
 
 
 def merge_settings(default: dict, to_add: dict) -> dict:
@@ -182,7 +183,7 @@ class Package(PackageManager):
         'test_generator': None
     }
 
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, commit: str) -> None:
         """
         It takes a path to a folder, and then it creates a list of all the subfolders in that folder, and then it creates a
         TSet object for each of those subfolders
@@ -190,12 +191,27 @@ class Package(PackageManager):
         :param path: Path - the path to the package
         :type path: Path
         """
-        config_path = path / 'config.yml'
-        sets_path = path / 'tests'
+        self._path = path
+        self._commit = commit
+
+        config_path = self.commit_path / 'config.yml'
+        sets_path = self.commit_path / 'tests'
         super().__init__(path, config_path, Package.DEFAULT_SETTINGS)
+        print(sets_path)
         self._sets = []
         for i in [x[0].replace(str(sets_path) + '\\', '') for x in walk(sets_path)][1:]:
             self._sets.append(TSet(sets_path / i))
+
+    @property
+    def commit_path(self) -> Path:
+        """
+        It returns the path to the commit
+        TODO: After implementing internal git system, this should be changed
+
+        :return: The path to the commit
+        :rtype: Path
+        """
+        return self._path / self._commit
 
     def rm_tree(self, set_name):
         """
@@ -203,10 +219,10 @@ class Package(PackageManager):
 
         :param set_name: The name of the test set
         """
-        if isPath(self._path / 'tests' / set_name):
-            rmtree(self._path / 'tests' / set_name)
+        if isPath(self.commit_path / 'tests' / set_name):
+            rmtree(self.commit_path / 'tests' / set_name)
 
-    def copy(self, new_path, new_commit) -> 'Package':
+    def make_commit(self, new_commit: str) -> 'Package':
         """
         Function copies the package instance and creates new one/
 
@@ -215,13 +231,18 @@ class Package(PackageManager):
 
         :return: new Package
         """
-        pass
+        new_commit_path = self._path / new_commit
+        copytree(self.commit_path, new_commit_path)
+        return Package(self._path, new_commit)
 
-    def delete(self):
+    def delete(self) -> None:
         """
         Function deletes the package (itself) from directory
+
+        :return: None
         """
-        pass
+        rmtree(self.commit_path)
+        del self
 
     def _add_new_set(self, set_name) -> 'TSet':
         """
@@ -232,7 +253,7 @@ class Package(PackageManager):
         :return: A new TSet object.
         """
         settings = {'name': set_name} | self._settings
-        set_path = self._path / 'tests' / set_name
+        set_path = self.commit_path / 'tests' / set_name
         if not isPath(set_path):
             mkdir(set_path)
             with open(set_path / 'config.yml', 'w') as file:
