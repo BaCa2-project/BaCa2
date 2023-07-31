@@ -6,7 +6,7 @@ from django.contrib.auth.models import Group, Permission, ContentType
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-from sqlalchemy import BigInteger
+# from sqlalchemy import BigInteger
 
 from BaCa2.choices import PermissionTypes, DefaultCourseGroups
 
@@ -132,6 +132,14 @@ class Course(models.Model):
         if not group:
             raise ValidationError('No default viewer group exists for this course')
 
+    def get_data(self) -> dict:
+        return {
+            'id': self.id,
+            'name': self.name,
+            'short_name': self.short_name,
+            'db_name': self.db_name
+        }
+
 
 class User(AbstractBaseUser, PermissionsMixin):
     """
@@ -192,7 +200,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.username
 
     @classmethod
-    def exists(cls, user_id: BigInteger) -> bool:
+    def exists(cls, user_id) -> bool:
         """
         Check whether a user with given id exists.
 

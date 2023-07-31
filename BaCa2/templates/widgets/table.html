@@ -1,24 +1,48 @@
-<table class="{{ table.class }}">
+<table id="{{ table.table_id }}">
     <thead>
         <tr>
             {% for col_name in table.header %}
-                {% if table.searchable %}
-                    <th>
-                        <input type="text" class="search-input" placeholder="{{ col_name }}">
-                    </th>
-                {% else %}
-                    <th>{{ col_name }}</th>
-                {% endif %}
+                <th>{{ col_name }}</th>
             {% endfor %}
         </tr>
     </thead>
-    <tbody>
-        {% for record in table.records %}
-            <tr>
-                {% for field in record.fields %}
-                    <td data-label="{{ field.1 }}">{{ field.0 }}</td>
-                {% endfor %}
-            </tr>
-        {% endfor %}
-    </tbody>
 </table>
+
+<script type="text/javascript">
+
+    const table = $('#{{ table.table_id }}').DataTable({
+        ajax: "/main/jsontest",
+        columns: [
+            {% for col_name in table.cols %}
+                {"data": "{{ col_name }}"},
+            {% endfor %}
+        ],
+        {% if table.paging %}
+            pageLength: parseInt({{ table.page_length }}),
+            {% if table.length_change %}
+                lengthMenu: [
+                    [{% for length in table.length_menu %}
+                        {{ length }},
+                    {% endfor %}],
+                    [{% for length in table.length_menu %}
+                        {% if length == -1 %}
+                            "All",
+                        {% else %}
+                            {{ length }},
+                        {% endif %}
+                    {% endfor %}],
+                ],
+            {% else %}
+                lengthChange: false,
+            {% endif %}
+        {% else %}
+            paging:false,
+        {% endif %}
+        searching: false,
+    });
+    {% if table.refresh %}
+        setInterval(() => {
+            table.ajax.reload();
+        }, {{ table.refresh_interval }});
+    {% endif %}
+</script>

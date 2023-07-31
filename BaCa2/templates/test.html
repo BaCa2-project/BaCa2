@@ -2,18 +2,11 @@
 {% load static %}
 
 {% block head %}
-    <link rel="stylesheet" href="{% static 'css/table.css' %}">
-    <link rel="stylesheet" href="{% static 'css/table_sortable.css' %}">
-    <link rel="stylesheet" href="{% static 'css/table_searchable.css' %}">
+    <!-- DataTables -->
+    <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.css" />
 {% endblock %}
 
 {% block content %}
-    {% with table1 as table %}
-        {% include 'widgets/table.html' %}
-    {% endwith %}
-    {% with table2 as table %}
-        {% include 'widgets/table.html' %}
-    {% endwith %}
-    <script src="{% static 'js/table_sort.js' %}"></script>
-    <script src="{% static 'js/table_search.js' %}"></script>
+    {% include 'widgets/table.html' %}
 {% endblock %}
