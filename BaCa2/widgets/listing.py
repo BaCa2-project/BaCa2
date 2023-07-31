@@ -15,13 +15,21 @@ class Table:
                  length_change: bool = False,
                  length_menu: List[int] = None,
                  refresh: bool = False,
-                 refresh_interval: int = 30000, ) -> None:
+                 refresh_interval: int = 30000,
+                 style: str = "",
+                 stripe: bool = True) -> None:
         self.model_cls = model_cls
         self.paging = paging
         self.page_length = page_length
         self.length_change = length_change
         self.refresh = refresh
         self.refresh_interval = refresh_interval
+
+        self.table_class = ''
+        if style:
+            self.table_class += style + ' '
+        if stripe:
+            self.table_class += 'stripe '
 
         if table_id:
             self.table_id = table_id
@@ -61,6 +69,7 @@ class Table:
             'length_menu': self.length_menu,
             'refresh': self.refresh,
             'refresh_interval': self.refresh_interval,
+            'table_class': self.table_class,
         }
 
         return context
