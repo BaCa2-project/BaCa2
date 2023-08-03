@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     'django_extensions',  # https://github.com/django-extensions/django-extensions
     'dbbackup',  # https://github.com/jazzband/django-dbbackup
 
+    'widget_tweaks',  # https://github.com/jazzband/django-widget-tweaks
+
     'main',  # local app
 
     'course',  # local app
@@ -144,6 +146,8 @@ SITE_ID = 1  # allauth required
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
 STATIC_URL = '/static/'
+
+LOGIN_URL = '/login/'
 
 STATICFILES_DIRS = (
     Path.joinpath(BASE_DIR, 'assets'),

@@ -1,0 +1,22 @@
+{% load widget_tweaks %}
+
+<form method="post">
+    {% csrf_token %}
+
+    {% if form_widget.display_non_field_errors %}
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger" role="alert">
+                {% for error in form.non_field_errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endif %}
+
+    {% block form_fields %}
+    {% endblock %}
+
+    <div class="form-footer">
+        <button type="submit" class="btn btn-primary w-100">{{ form_widget.button_text }}</button>
+    </div>
+</form>
