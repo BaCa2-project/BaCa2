@@ -4,10 +4,10 @@ from django.db import models
 T = TypeVar('T', bound=models.Model)
 
 
-class Table:
+class TableWidget:
     def __init__(self,
                  model_cls: Type[T],
-                 table_id: str = "",
+                 table_id: str = '',
                  cols: List[str] = None,
                  header: Dict[str, str] = None,
                  paging: bool = False,

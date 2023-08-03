@@ -17,10 +17,13 @@ from django.contrib import admin
 from django.urls import path, include
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
+from main.views import BaCa2LoginView
+
 urlpatterns = [
     # path('polls/', include('polls.urls')),
     path('baca/', admin.site.urls),
-    path('main/', include('main.urls'))
+    path('main/', include('main.urls')),
+    path('login/', BaCa2LoginView.as_view(), name='login'),
 ]
 
 urlpatterns += staticfiles_urlpatterns()

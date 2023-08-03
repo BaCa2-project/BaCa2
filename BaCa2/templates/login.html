@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+    <div class="page page-center">
+        <div class="container container-tight">
+            <div class="card card-md">
+                <div class="card-body">
+                    <h2 class="h2 text-center mb-4">Zaloguj się</h2>
+
+                    {% include "widget_templates/form_default.html" %}
+
+                </div>
+                <div class="hr-text hr-text-center hr-text-spaceless">lub</div>
+                <div class="card-body">
+                    <a href="#" class="btn w-100">
+                        <img src="{% static 'icons/university.svg' %}" alt="usos_logo"
+                        class="icon">
+                        Zaloguj się przez USOS
+                    </a>
+                </div>
+            </div>
+            <div class="text-center text-muted mt-3">
+                Nie masz konta? <a href="{% url 'login' %}">Zarejestruj się</a>
+            </div>
+        </div>
+    </div>
+{% endblock %}
