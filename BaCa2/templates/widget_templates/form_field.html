@@ -1,6 +1,9 @@
 {% load widget_tweaks %}
-
-<label class="form-label">{{ field.label }}</label>
+{% if form_widget.floating_labels %}
+    <div class="form-floating">
+{% else %}
+    <label for="{{ field.name }}" class="form-label">{{ field.label }}</label>
+{% endif %}
 
 {% if form_widget.display_field_validation %}
 
@@ -13,12 +16,17 @@
                 </div>
             {% endfor %}
         {% else %}
-            {% render_field field class="form-control is-valid" %}
+            {% render_field field class="form-control is-valid" id=field.name placeholder="n" %}
         {% endif %}
     {% endif %}
 
 {% else %}
-    {% render_field field class="form-control" %}
+    {% render_field field class="form-control" id=field.name placeholder="n" %}
+{% endif %}
+
+{% if form_widget.floating_labels %}
+    <label for="{{ field.name }}" class="form-label">{{ field.label }}</label>
+    </div>
 {% endif %}
 
 {% if field.help_text %}
