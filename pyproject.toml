@@ -3,7 +3,7 @@ name = "baca2"
 version = "0.1.1"
 description = "Bachelor project: automated programming task checking and scoring system BaCa2"
 authors = ["BaCa2 Team"]
-readme = "README.md"
+readme = "README.rst"
 
 [tool.poetry.dependencies]
 python = "^3.10"
