@@ -1,0 +1,14 @@
+{
+  "name": "baca2",
+  "version": "1.0.0",
+  "description": "BaCa2 Project\r =============",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Krzysztof Kalita",
+  "license": "ISC",
+  "dependencies": {
+    "bootstrap": "^5.3.1"
+  }
+}
