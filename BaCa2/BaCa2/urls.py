@@ -19,4 +19,7 @@ from django.urls import path, include
 urlpatterns = [
     # path('polls/', include('polls.urls')),
     path('baca/', admin.site.urls),
+
+    # necessary for broker api
+    path('broker_api/', include('broker_api.urls'))
 ]
