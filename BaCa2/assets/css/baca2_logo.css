@@ -1,0 +1,48 @@
+.logo-wrapper .letter {
+  fill: black;
+}
+
+.logo-wrapper .logo-horizontal {
+  display: none;
+}
+.logo-wrapper .logo-square {
+  display: none;
+}
+.logo-wrapper .logo-icon {
+  display: none;
+}
+.logo-wrapper .logo-horizontal {
+  display: block;
+}
+
+.logo-wrapper.logo-horizontal .logo-square {
+  display: none;
+}
+.logo-wrapper.logo-horizontal .logo-icon {
+  display: none;
+}
+.logo-wrapper.logo-horizontal .logo-horizontal {
+  display: block;
+}
+
+.logo-wrapper.logo-square .logo-horizontal {
+  display: none;
+}
+.logo-wrapper.logo-square .logo-icon {
+  display: none;
+}
+.logo-wrapper.logo-square .logo-square {
+  display: block;
+}
+
+.logo-wrapper.logo-icon .logo-horizontal {
+  display: none;
+}
+.logo-wrapper.logo-icon .logo-square {
+  display: none;
+}
+.logo-wrapper.logo-icon .logo-icon {
+  display: block;
+}
+
+/*# sourceMappingURL=baca2_logo.css.map */

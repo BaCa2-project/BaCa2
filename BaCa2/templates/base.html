@@ -5,7 +5,10 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width initial-scale=1.0">
-        <title>BaCa2</title>
+        <title>
+            {% block title %}
+            {% endblock %}
+        </title>
 
         <!-- jQuery -->
         <script src="https://code.jquery.com/jquery-3.7.0.min.js"
@@ -24,6 +27,7 @@
                 crossorigin="anonymous"></script>
 
         <!-- stylesheets -->
+        <link rel="stylesheet" href="{% static 'css/baca2_logo.css' %}">
         <link rel="stylesheet" href="{% static 'css/base.css' %}">
         <link rel="stylesheet" href="{% static 'css/cards.css' %}">
         <link rel="stylesheet" href="{% static 'css/separator.css' %}">

@@ -1,0 +1,35 @@
+$LOGO_VERSIONS: horizontal, square, icon;
+$DEFAULT_LOGO_VERSION: horizontal;
+
+.logo-wrapper .letter {
+  fill: black;
+}
+
+.logo-wrapper {
+  @each $version in $LOGO_VERSIONS {
+    .logo-#{$version} {
+      display: none;
+    }
+  }
+  .logo-#{$DEFAULT_LOGO_VERSION} {
+    display: block;
+  }
+}
+
+@each $version in $LOGO_VERSIONS {
+  .logo-wrapper {
+    &.logo-#{$version} {
+      @each $v in $LOGO_VERSIONS {
+        @if $v != $version {
+          .logo-#{$v} {
+            display: none;
+          }
+        }
+      }
+      .logo-#{$version} {
+        display: block;
+      }
+    }
+  }
+}
+

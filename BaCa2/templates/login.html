@@ -1,8 +1,15 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block title %}Logowanie {% endblock %}
+
 {% block content %}
-    <div class="h-100 d-flex justify-content-center align-items-center">
+    <div class="h-100 d-flex flex-column justify-content-center align-items-center">
+        <div class="row mb-4">
+            <div class="logo-wrapper">
+                {% include "icons/baca2_logo.html" %}
+            </div>
+        </div>
         <div class="row">
             <div class="col col-auto">
                 <div class="card card-small">
