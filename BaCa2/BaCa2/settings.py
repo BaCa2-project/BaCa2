@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sites',
 
+    'broker_api.apps.BrokerApiConfig',
+
     'allauth',  # https://github.com/pennersr/django-allauth
     'allauth.account',
     'allauth.socialaccount',
