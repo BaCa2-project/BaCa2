@@ -1,35 +1,66 @@
 $LOGO_VERSIONS: horizontal, square, icon;
+$LOGO_SIZES: (
+    s: (
+        horizontal: 2rem,
+        square: 4rem,
+        icon: 2rem
+    ),
+    m: (
+        horizontal: 4rem,
+        square: 8rem,
+        icon: 4rem
+    ),
+    l: (
+        horizontal: 8rem,
+        square: 12rem,
+        icon: 8rem
+    )
+);
 $DEFAULT_LOGO_VERSION: horizontal;
 
-.logo-wrapper .letter {
-  fill: black;
+.logo-wrapper .logo-stroke {
+    fill: black;
 }
 
 .logo-wrapper {
-  @each $version in $LOGO_VERSIONS {
-    .logo-#{$version} {
-      display: none;
+    @each $version in $LOGO_VERSIONS {
+        .logo-#{$version} {
+            display: none;
+        }
     }
-  }
-  .logo-#{$DEFAULT_LOGO_VERSION} {
-    display: block;
-  }
+
+    .logo-#{$DEFAULT_LOGO_VERSION} {
+        display: block;
+    }
+
+    @each $version in $LOGO_VERSIONS {
+        &.logo-#{$version} {
+            @each $v in $LOGO_VERSIONS {
+                @if $v != $version {
+                    .logo-#{$v} {
+                        display: none;
+                    }
+                }
+            }
+
+            .logo-#{$version} {
+                display: block;
+            }
+        }
+    }
+
+    @each $size in map-keys($LOGO_SIZES) {
+        &.logo-#{$size} {
+            @each $version in $LOGO_VERSIONS {
+                div.logo-#{$version} {
+                    svg {
+                        width: auto;
+                        height: map-get(map-get($LOGO_SIZES, $size), $version);
+                    }
+                }
+            }
+        }
+    }
 }
 
-@each $version in $LOGO_VERSIONS {
-  .logo-wrapper {
-    &.logo-#{$version} {
-      @each $v in $LOGO_VERSIONS {
-        @if $v != $version {
-          .logo-#{$v} {
-            display: none;
-          }
-        }
-      }
-      .logo-#{$version} {
-        display: block;
-      }
-    }
-  }
-}
 

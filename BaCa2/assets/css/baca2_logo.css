@@ -1,4 +1,4 @@
-.logo-wrapper .letter {
+.logo-wrapper .logo-stroke {
   fill: black;
 }
 
@@ -14,7 +14,6 @@
 .logo-wrapper .logo-horizontal {
   display: block;
 }
-
 .logo-wrapper.logo-horizontal .logo-square {
   display: none;
 }
@@ -24,7 +23,6 @@
 .logo-wrapper.logo-horizontal .logo-horizontal {
   display: block;
 }
-
 .logo-wrapper.logo-square .logo-horizontal {
   display: none;
 }
@@ -34,7 +32,6 @@
 .logo-wrapper.logo-square .logo-square {
   display: block;
 }
-
 .logo-wrapper.logo-icon .logo-horizontal {
   display: none;
 }
@@ -43,6 +40,42 @@
 }
 .logo-wrapper.logo-icon .logo-icon {
   display: block;
+}
+.logo-wrapper.logo-s div.logo-horizontal svg {
+  width: auto;
+  height: 2rem;
+}
+.logo-wrapper.logo-s div.logo-square svg {
+  width: auto;
+  height: 4rem;
+}
+.logo-wrapper.logo-s div.logo-icon svg {
+  width: auto;
+  height: 2rem;
+}
+.logo-wrapper.logo-m div.logo-horizontal svg {
+  width: auto;
+  height: 4rem;
+}
+.logo-wrapper.logo-m div.logo-square svg {
+  width: auto;
+  height: 8rem;
+}
+.logo-wrapper.logo-m div.logo-icon svg {
+  width: auto;
+  height: 4rem;
+}
+.logo-wrapper.logo-l div.logo-horizontal svg {
+  width: auto;
+  height: 8rem;
+}
+.logo-wrapper.logo-l div.logo-square svg {
+  width: auto;
+  height: 12rem;
+}
+.logo-wrapper.logo-l div.logo-icon svg {
+  width: auto;
+  height: 8rem;
 }
 
 /*# sourceMappingURL=baca2_logo.css.map */
