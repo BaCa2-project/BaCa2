@@ -1,3 +1,110 @@
+html, body {
+  height: 100%;
+}
+
+.logo-wrapper .logo-stroke {
+  fill: #000000;
+}
+.logo-wrapper .logo-large-triangle {
+  fill: #08D9D6;
+}
+.logo-wrapper .logo-medium-triangle {
+  fill: #D3CABD;
+}
+.logo-wrapper .logo-small-triangle {
+  fill: #FE2E63;
+}
+
+[data-bs-theme=dark] .logo-wrapper .logo-stroke {
+  fill: #ffffff;
+}
+
+.logo-wrapper .logo-horizontal {
+  display: none;
+}
+.logo-wrapper .logo-square {
+  display: none;
+}
+.logo-wrapper .logo-icon {
+  display: none;
+}
+.logo-wrapper .logo-horizontal {
+  display: block;
+}
+.logo-wrapper.logo-horizontal .logo-square {
+  display: none;
+}
+.logo-wrapper.logo-horizontal .logo-icon {
+  display: none;
+}
+.logo-wrapper.logo-horizontal .logo-horizontal {
+  display: block;
+}
+.logo-wrapper.logo-square .logo-horizontal {
+  display: none;
+}
+.logo-wrapper.logo-square .logo-icon {
+  display: none;
+}
+.logo-wrapper.logo-square .logo-square {
+  display: block;
+}
+.logo-wrapper.logo-icon .logo-horizontal {
+  display: none;
+}
+.logo-wrapper.logo-icon .logo-square {
+  display: none;
+}
+.logo-wrapper.logo-icon .logo-icon {
+  display: block;
+}
+.logo-wrapper.logo-s div.logo-horizontal svg {
+  width: auto;
+  height: 2rem;
+}
+.logo-wrapper.logo-s div.logo-square svg {
+  width: auto;
+  height: 4rem;
+}
+.logo-wrapper.logo-s div.logo-icon svg {
+  width: auto;
+  height: 2rem;
+}
+.logo-wrapper.logo-m div.logo-horizontal svg {
+  width: auto;
+  height: 4rem;
+}
+.logo-wrapper.logo-m div.logo-square svg {
+  width: auto;
+  height: 8rem;
+}
+.logo-wrapper.logo-m div.logo-icon svg {
+  width: auto;
+  height: 4rem;
+}
+.logo-wrapper.logo-l div.logo-horizontal svg {
+  width: auto;
+  height: 8rem;
+}
+.logo-wrapper.logo-l div.logo-square svg {
+  width: auto;
+  height: 12rem;
+}
+.logo-wrapper.logo-l div.logo-icon svg {
+  width: auto;
+  height: 8rem;
+}
+
+.card.card-s {
+  width: 15rem;
+}
+.card.card-m {
+  width: 25rem;
+}
+.card.card-l {
+  width: 40rem;
+}
+
 .icon-wrapper {
   display: table;
 }
@@ -13,9 +120,93 @@
   width: auto;
   height: 3rem;
 }
+.icon-wrapper.icon-fill-baca2_blue svg {
+  fill: #08D9D6;
+}
+.icon-wrapper.icon-fill-baca2_beige svg {
+  fill: #D3CABD;
+}
+.icon-wrapper.icon-fill-baca2_pink svg {
+  fill: #FE2E63;
+}
+.icon-wrapper.icon-fill-primary svg {
+  fill: #FE2E63;
+}
+.icon-wrapper.icon-fill-secondary svg {
+  fill: #D3CABD;
+}
+.icon-wrapper.icon-fill-success svg {
+  fill: #198754;
+}
+.icon-wrapper.icon-fill-info svg {
+  fill: #0dcaf0;
+}
+.icon-wrapper.icon-fill-warning svg {
+  fill: #ffc107;
+}
+.icon-wrapper.icon-fill-danger svg {
+  fill: #dc3545;
+}
+.icon-wrapper.icon-fill-light svg {
+  fill: #f8f9fa;
+}
+.icon-wrapper.icon-fill-dark svg {
+  fill: #212529;
+}
+.icon-wrapper.icon-stroke-baca2_blue svg {
+  stroke: #08D9D6;
+}
+.icon-wrapper.icon-stroke-baca2_beige svg {
+  stroke: #D3CABD;
+}
+.icon-wrapper.icon-stroke-baca2_pink svg {
+  stroke: #FE2E63;
+}
+.icon-wrapper.icon-stroke-primary svg {
+  stroke: #FE2E63;
+}
+.icon-wrapper.icon-stroke-secondary svg {
+  stroke: #D3CABD;
+}
+.icon-wrapper.icon-stroke-success svg {
+  stroke: #198754;
+}
+.icon-wrapper.icon-stroke-info svg {
+  stroke: #0dcaf0;
+}
+.icon-wrapper.icon-stroke-warning svg {
+  stroke: #ffc107;
+}
+.icon-wrapper.icon-stroke-danger svg {
+  stroke: #dc3545;
+}
+.icon-wrapper.icon-stroke-light svg {
+  stroke: #f8f9fa;
+}
+.icon-wrapper.icon-stroke-dark svg {
+  stroke: #212529;
+}
 
-html, body {
-  height: 100%;
+.separator {
+  display: flex;
+  align-items: center;
+  text-align: center;
+}
+
+.separator::before,
+.separator::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid;
+  border-bottom-color: lightgray;
+}
+
+.separator:not(:empty)::before {
+  margin-right: 0.25em;
+}
+
+.separator:not(:empty)::after {
+  margin-left: 0.25em;
 }
 
 /*# sourceMappingURL=base.css.map */

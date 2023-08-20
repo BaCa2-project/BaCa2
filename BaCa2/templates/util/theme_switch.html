@@ -24,5 +24,12 @@
     function switchTheme() {
         const element = document.body;
         element.dataset.bsTheme = element.dataset.bsTheme === 'dark' ? 'light' : 'dark';
+        if (element.classList.contains('dark-theme')) {
+            element.classList.remove('dark-theme');
+            element.classList.add('light-theme');
+        } else {
+            element.classList.remove('light-theme');
+            element.classList.add('dark-theme');
+        }
     }
 </script>

@@ -1,0 +1,30 @@
+@import "baca2_variables";
+
+.icon-wrapper {
+    display: table;
+
+    @each $size in map-keys($icon_sizes) {
+        &.icon-#{$size} {
+            svg {
+                width: auto;
+                height: map-get($icon_sizes, $size);
+            }
+        }
+    }
+
+    @each $color in map-keys($theme-colors) {
+        &.icon-fill-#{$color} {
+            svg {
+                fill: map-get($theme-colors, $color);
+            }
+        }
+    }
+
+    @each $color in map-keys($theme-colors) {
+        &.icon-stroke-#{$color} {
+            svg {
+                stroke: map-get($theme-colors, $color);
+            }
+        }
+    }
+}
