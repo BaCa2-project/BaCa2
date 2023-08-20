@@ -7,6 +7,7 @@ $secondary: #D3CABD;
 // imports necessary for extending theme-colors
 @import '../../../node_modules/bootstrap/scss/_functions';
 @import '../../../node_modules/bootstrap/scss/_variables';
+@import '../../../node_modules/bootstrap/scss/variables-dark';
 
 // theme-colors extension
 $baca2-theme-colors: (

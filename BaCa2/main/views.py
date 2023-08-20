@@ -1,4 +1,4 @@
-from django.views.generic.base import TemplateView
+from django.views.generic.base import TemplateView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
 from django.http import JsonResponse
@@ -11,10 +11,22 @@ from widgets.forms import FormWidget
 
 class BaCa2LoginView(LoginView):
     template_name = 'login.html'
+    redirect_authenticated_user = True
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['form_widget'] = FormWidget(button_text='Zaloguj').get_context()
+        context['display_navbar'] = False
+        context['data_bs_theme'] = 'dark'
+        return context
+
+
+class DashboardView(LoginRequiredMixin, TemplateView):
+    template_name = 'dashboard.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['display_navbar'] = True
         return context
 
 
@@ -29,7 +41,7 @@ class TestView(LoginRequiredMixin, TemplateView):
                             refresh_interval=30000,
                             paging=True,
                             page_length=4,
-                            length_change=True, )
+                            length_change=True,)
 
         context['table'] = table.get_context()
         return context

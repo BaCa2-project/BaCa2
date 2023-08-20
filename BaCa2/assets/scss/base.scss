@@ -1,0 +1,22 @@
+$ICON_SIZES: (
+    s: 1rem,
+    m: 2rem,
+    l: 3rem
+);
+
+.icon-wrapper {
+    display: table;
+
+    @each $size in map-keys($ICON_SIZES) {
+        &.icon-#{$size} {
+            svg {
+                width: auto;
+                height: map-get($ICON_SIZES, $size);
+            }
+        }
+    }
+}
+
+html, body {
+    height: 100%;
+}

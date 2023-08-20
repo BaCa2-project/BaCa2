@@ -7,10 +7,10 @@
     <div class="h-100 d-flex flex-column justify-content-center align-items-center">
         <div class="row mb-4">
             <div class="logo-wrapper logo-horizontal logo-m">
-                {% include "icons/baca2_logo.html" %}
+                {% include "util/baca2_logo.html" %}
             </div>
         </div>
-        <div class="row">
+        <div class="row mb-4">
             <div class="col col-auto">
                 <div class="card card-small">
                     <div class="card-body p-4">
@@ -31,6 +31,11 @@
                 <div class="text-center text-muted mt-3">
                         Nie masz konta? <a href="{% url 'login' %}">Zarejestruj się</a>
                 </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col col-auto">
+                {% include "util/theme_switch.html" %}
             </div>
         </div>
     </div>
