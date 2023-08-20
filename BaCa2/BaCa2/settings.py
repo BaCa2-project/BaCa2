@@ -149,6 +149,8 @@ STATIC_URL = '/static/'
 
 LOGIN_URL = '/login/'
 
+LOGIN_REDIRECT_URL = '/main/dashboard'
+
 STATICFILES_DIRS = (
     Path.joinpath(BASE_DIR, 'assets'),
 )

@@ -22,8 +22,8 @@ from main.views import BaCa2LoginView
 urlpatterns = [
     # path('polls/', include('polls.urls')),
     path('baca/', admin.site.urls),
-    path('main/', include('main.urls')),
     path('login/', BaCa2LoginView.as_view(), name='login'),
+    path('main/', include('main.urls')),
 ]
 
 urlpatterns += staticfiles_urlpatterns()

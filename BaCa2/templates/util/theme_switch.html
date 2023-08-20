@@ -1,0 +1,28 @@
+<div class="d-flex flex-row justify-content-center align-items-center text-muted">
+    <div class="col pb-1">
+        <div class="icon-wrapper icon-s">
+            {% include "icons/moon.svg" %}
+        </div>
+    </div>
+    <div class="col ms-2">
+        <div class="form-check form-switch">
+            <input
+                class="form-check-input p-2"
+                type="checkbox"
+                role="switch"
+                onclick="switchTheme()"/>
+        </div>
+    </div>
+    <div class="col pb-1">
+        <div class="icon-wrapper icon-s">
+            {% include "icons/sun.svg" %}
+        </div>
+    </div>
+</div>
+
+<script>
+    function switchTheme() {
+        const element = document.body;
+        element.dataset.bsTheme = element.dataset.bsTheme === 'dark' ? 'light' : 'dark';
+    }
+</script>

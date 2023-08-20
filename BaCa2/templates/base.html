@@ -36,9 +36,11 @@
         {% block head %}
         {% endblock %}
     </head>
-    <body>
-        <header>
-        </header>
+    <body data-bs-theme="{{ data_bs_theme }}">
+        {% if display_navbar %}
+            {% include 'widget_templates/navbar.html' %}
+        {% endif %}
+
         <div class="h-100 container">
             {% block content %}
             {% endblock %}
