@@ -21,7 +21,17 @@ class BaCa2LoginView(LoginView):
         return context
 
 
-class DashboardView(LoginRequiredMixin, TemplateView):
+class LoggedInView(LoginRequiredMixin, TemplateView):
+    template_name = None
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['display_navbar'] = True
+        context['data_bs_theme'] = self.request.user.user_settings.theme
+        return context
+
+
+class DashboardView(LoggedInView):
     template_name = 'dashboard.html'
 
     def get_context_data(self, **kwargs):
