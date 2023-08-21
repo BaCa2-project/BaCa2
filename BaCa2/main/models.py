@@ -17,6 +17,18 @@ class UserManager(BaseUserManager):
     superusers with moderation privileges.
     The class extends BaseUserManager provided in django.contrib.auth and replaces the default UserManager model.
     """
+    @staticmethod
+    def _create_settings(self) -> 'Settings':
+        """
+        Create a new user settings object.
+
+        :return: New user settings object.
+        :rtype: Settings
+        """
+
+        settings = Settings()
+        settings.save(using='default')
+        return settings
 
     def _create_user(
             self,
@@ -59,6 +71,7 @@ class UserManager(BaseUserManager):
             is_staff=is_staff,
             is_superuser=is_superuser,
             date_joined=now,
+            user_settings=self._create_settings(self),
             **other_fields
         )
         user.set_password(password)
@@ -141,6 +154,18 @@ class Course(models.Model):
         }
 
 
+class Settings(models.Model):
+    """
+    This model represents user settings. It is used to store user-specific settings in the database.
+    """
+    #: User's preferred UI theme.
+    theme = models.CharField(
+        _("UI theme"),
+        max_length=255,
+        default='dark'
+    )
+
+
 class User(AbstractBaseUser, PermissionsMixin):
     """
     This class stores user information. Its methods can be used to check permissions pertaining to the default database
@@ -184,6 +209,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     #: Date of account creation.
     date_joined = models.DateField(
         auto_now_add=True
+    )
+    #: User's settings.
+    user_settings = models.OneToOneField(
+        Settings,
+        on_delete=models.CASCADE
     )
 
     #: Indicates which field should be considered as username. Required when replacing default Django User model.
