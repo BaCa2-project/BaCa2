@@ -95,8 +95,8 @@ html, body {
   height: 8rem;
 }
 
-.nav-item.active a {
-  color: #ffffff;
+.nav-item .dropdown-toggle::after {
+  display: none;
 }
 
 body.navbar-padding {
@@ -104,11 +104,29 @@ body.navbar-padding {
 }
 
 [data-bs-theme=light] .navbar {
-  background-color: #212529;
+  background-color: #f8f9fa;
+}
+[data-bs-theme=light] .navbar .links .nav-item a {
+  color: #212529;
+}
+[data-bs-theme=light] .navbar .links .nav-item.active a {
+  color: #FE2E63;
+}
+[data-bs-theme=light] .navbar .icon-wrapper svg {
+  stroke: #212529;
 }
 
 [data-bs-theme=dark] .navbar {
-  background-color: #000000;
+  background-color: black;
+}
+[data-bs-theme=dark] .navbar .links .nav-item a {
+  color: gray;
+}
+[data-bs-theme=dark] .navbar .links .nav-item.active a {
+  color: white;
+}
+[data-bs-theme=dark] .navbar .icon-wrapper svg {
+  stroke: white;
 }
 
 .card.card-s {
@@ -121,20 +139,17 @@ body.navbar-padding {
   width: 40rem;
 }
 
-.icon-wrapper {
-  display: table;
-}
 .icon-wrapper.icon-s svg {
   width: auto;
   height: 1rem;
 }
 .icon-wrapper.icon-m svg {
   width: auto;
-  height: 2rem;
+  height: 1.5rem;
 }
 .icon-wrapper.icon-l svg {
   width: auto;
-  height: 3rem;
+  height: 2rem;
 }
 .icon-wrapper.icon-fill-baca2_blue svg {
   fill: #08D9D6;

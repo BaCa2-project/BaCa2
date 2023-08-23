@@ -1,8 +1,6 @@
 @import "baca2_variables";
 
 .icon-wrapper {
-    display: table;
-
     @each $size in map-keys($icon_sizes) {
         &.icon-#{$size} {
             svg {

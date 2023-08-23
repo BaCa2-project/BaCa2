@@ -1,4 +1,4 @@
-<div class="d-flex flex-row justify-content-center align-items-center text-muted">
+<div class="d-flex flex-row justify-content-center align-items-center">
     <div class="col-auto pb-1">
         <div class="icon-wrapper icon-s">
             {% include "icons/moon.svg" %}
@@ -12,7 +12,10 @@
                     class="form-check-input p-2"
                     type="checkbox"
                     role="switch"
-                    onclick="switchTheme()"/>
+                    onclick="switchTheme()"
+                    {% if data_bs_theme == "light" %}
+                        checked
+                    {% endif %}/>
             </div>
         </form>
     </div>

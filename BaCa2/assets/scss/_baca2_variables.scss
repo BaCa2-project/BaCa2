@@ -1,5 +1,8 @@
 @use 'sass:map';
 
+// themes
+$themes: light, dark;
+
 // bootstrap theme-colors overrides
 $primary: #FE2E63;
 $secondary: #D3CABD;
@@ -50,8 +53,8 @@ $logo_large_triangle: $baca2_blue;
 // icon variables
 $icon_sizes: (
     s: 1rem,
-    m: 2rem,
-    l: 3rem
+    m: 1.5rem,
+    l: 2rem
 );
 
 // card variables
@@ -62,7 +65,18 @@ $card_sizes: (
 );
 
 // navbar variables
-$navbar_bg_color_dark_theme: #000000;
-$navbar_bg_color_light_theme: $dark;
-$navbar_active_link_color: #ffffff;
+$navbar_theme_variables: (
+    light: (
+        bg: $light,
+        text: $dark,
+        active_link: $primary,
+        icon_color: $dark,
+    ),
+    dark: (
+        bg: black,
+        text: gray,
+        active_link: white,
+        icon_color: white,
+    )
+);
 $navbar_padding: 4rem;

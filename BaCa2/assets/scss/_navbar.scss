@@ -1,17 +1,29 @@
 @import "baca2_variables";
 
-.nav-item.active a {
-    color: $navbar_active_link_color;
+.nav-item .dropdown-toggle::after {
+    display: none;
 }
 
 body.navbar-padding {
     padding-top: $navbar_padding;
 }
 
-[data-bs-theme="light"] .navbar {
-    background-color: $navbar_bg_color_light_theme;
+@each $theme, $map in $navbar_theme_variables {
+    [data-bs-theme="#{$theme}"] .navbar {
+        background-color: map-get($map, bg);
 
-}
-[data-bs-theme="dark"] .navbar {
-    background-color: $navbar_bg_color_dark_theme;
+        .links {
+            .nav-item a {
+                color: map-get($map, text);
+            }
+
+            .nav-item.active a {
+                color: map-get($map, active_link);
+            }
+        }
+
+        .icon-wrapper svg {
+            stroke: map-get($map, icon_color);
+        }
+    }
 }
