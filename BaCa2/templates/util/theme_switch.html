@@ -1,19 +1,22 @@
 <div class="d-flex flex-row justify-content-center align-items-center text-muted">
-    <div class="col pb-1">
+    <div class="col-auto pb-1">
         <div class="icon-wrapper icon-s">
             {% include "icons/moon.svg" %}
         </div>
     </div>
-    <div class="col ms-2">
-        <div class="form-check form-switch">
-            <input
-                class="form-check-input p-2"
-                type="checkbox"
-                role="switch"
-                onclick="switchTheme()"/>
-        </div>
+    <div class="col-auto ms-2">
+        <form>
+            {% csrf_token %}
+            <div class="form-check form-switch">
+                <input
+                    class="form-check-input p-2"
+                    type="checkbox"
+                    role="switch"
+                    onclick="switchTheme()"/>
+            </div>
+        </form>
     </div>
-    <div class="col pb-1">
+    <div class="col-auto pb-1">
         <div class="icon-wrapper icon-s">
             {% include "icons/sun.svg" %}
         </div>
@@ -31,5 +34,20 @@
             element.classList.remove('light-theme');
             element.classList.add('dark-theme');
         }
+        postThemeSwitch(element);
+    }
+
+    function postThemeSwitch(element) {
+        $.ajax({
+            type: "POST",
+            url: "{% url 'main:change-theme' %}",
+            data: {
+                csrfmiddlewaretoken: '{{ csrf_token }}',
+                theme: element.dataset.bsTheme
+            },
+            success: function (data) {
+                console.log(data);
+            }
+        })
     }
 </script>

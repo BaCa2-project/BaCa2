@@ -32,7 +32,7 @@ class LoggedInView(LoginRequiredMixin, TemplateView):
 
 
 class DashboardView(LoggedInView):
-    template_name = 'dashboard.html'
+    template_name = 'dashboar d.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -59,3 +59,13 @@ class TestView(LoginRequiredMixin, TemplateView):
 
 def jsontest(request):
     return JsonResponse({'data': [course.get_data() for course in get_queryset(Course)]})
+
+
+def change_theme(request):
+    if request.method == 'POST':
+        if request.user.is_authenticated:
+            theme = request.POST.get('theme')
+            request.user.user_settings.theme = theme
+            request.user.user_settings.save()
+        return JsonResponse({'status': 'ok'})
+    return JsonResponse({'status': 'error'})
