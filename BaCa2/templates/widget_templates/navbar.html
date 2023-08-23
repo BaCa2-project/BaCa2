@@ -1,9 +1,30 @@
 {% load static %}
 
-<nav class="navbar navbar-light bg-light">
-    <div class="container d-flex align-items-center">
-        <a href="{% url 'main:dashboard' %}">
-            <img src="{% static 'logo/logo_square.png' %}" alt="logo" height="40rem">
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+    <div class="container"> <!-- d-flex align-items-center -->
+        <a class="navbar-brand me-4" href="{% url 'main:dashboard' %}">
+            <div class="logo-wrapper logo-horizontal logo-s">
+                {% include 'util/baca2_logo.html' %}
+            </div>
         </a>
+        <button class="navbar-toggler"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#navbarNav"
+                aria-controls="navbarNav"
+                aria-expanded="false"
+                aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                {% for link in navbar.links %}
+                    <li class="nav-item {% if request.path == link.url %} active {% endif %} me-2">
+                        <a class="nav-link" href="{{ link.url }}">{{ link.name }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
     </div>
 </nav>

@@ -33,7 +33,10 @@
         {% block head %}
         {% endblock %}
     </head>
-    <body data-bs-theme="{{ data_bs_theme }}">
+    <body data-bs-theme="{{ data_bs_theme }}"
+    {% if display_navbar %}
+        class="navbar-padding"
+    {% endif %}>
         {% if display_navbar %}
             {% include 'widget_templates/navbar.html' %}
         {% endif %}

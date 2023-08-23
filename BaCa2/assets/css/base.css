@@ -58,41 +58,57 @@ html, body {
 .logo-wrapper.logo-icon .logo-icon {
   display: block;
 }
-.logo-wrapper.logo-s div.logo-horizontal svg {
+.logo-wrapper.logo-s .logo-horizontal {
+  width: auto;
+  height: 1.5rem;
+}
+.logo-wrapper.logo-s .logo-square {
   width: auto;
   height: 2rem;
 }
-.logo-wrapper.logo-s div.logo-square svg {
+.logo-wrapper.logo-s .logo-icon {
+  width: auto;
+  height: 1.5rem;
+}
+.logo-wrapper.logo-m .logo-horizontal {
   width: auto;
   height: 4rem;
 }
-.logo-wrapper.logo-s div.logo-icon svg {
-  width: auto;
-  height: 2rem;
-}
-.logo-wrapper.logo-m div.logo-horizontal svg {
-  width: auto;
-  height: 4rem;
-}
-.logo-wrapper.logo-m div.logo-square svg {
+.logo-wrapper.logo-m .logo-square {
   width: auto;
   height: 8rem;
 }
-.logo-wrapper.logo-m div.logo-icon svg {
+.logo-wrapper.logo-m .logo-icon {
   width: auto;
   height: 4rem;
 }
-.logo-wrapper.logo-l div.logo-horizontal svg {
+.logo-wrapper.logo-l .logo-horizontal {
   width: auto;
   height: 8rem;
 }
-.logo-wrapper.logo-l div.logo-square svg {
+.logo-wrapper.logo-l .logo-square {
   width: auto;
   height: 12rem;
 }
-.logo-wrapper.logo-l div.logo-icon svg {
+.logo-wrapper.logo-l .logo-icon {
   width: auto;
   height: 8rem;
+}
+
+.nav-item.active a {
+  color: #ffffff;
+}
+
+body.navbar-padding {
+  padding-top: 4rem;
+}
+
+[data-bs-theme=light] .navbar {
+  background-color: #212529;
+}
+
+[data-bs-theme=dark] .navbar {
+  background-color: #000000;
 }
 
 .card.card-s {

@@ -1,0 +1,17 @@
+@import "baca2_variables";
+
+.nav-item.active a {
+    color: $navbar_active_link_color;
+}
+
+body.navbar-padding {
+    padding-top: $navbar_padding;
+}
+
+[data-bs-theme="light"] .navbar {
+    background-color: $navbar_bg_color_light_theme;
+
+}
+[data-bs-theme="dark"] .navbar {
+    background-color: $navbar_bg_color_dark_theme;
+}

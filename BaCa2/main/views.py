@@ -2,6 +2,7 @@ from django.views.generic.base import TemplateView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
 from django.http import JsonResponse
+from django.urls import reverse_lazy
 
 from .models import Course
 from widgets.querying import get_queryset
@@ -26,13 +27,28 @@ class LoggedInView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
         context['display_navbar'] = True
+        context['navbar'] = self.get_navbar_context()
+
         context['data_bs_theme'] = self.request.user.user_settings.theme
+        return context
+
+    def get_navbar_context(self):
+        context = {'links': [
+            {'name': 'Dashboard', 'url': reverse_lazy('main:dashboard')},
+            {'name': 'Kursy', 'url': '#'},  # TODO
+            {'name': 'Zadania', 'url': '#'},  # TODO
+        ]}
+
+        if self.request.user.is_staff:
+            context['links'].append({'name': 'Paczki', 'url': '#'})  # TODO
+
         return context
 
 
 class DashboardView(LoggedInView):
-    template_name = 'dashboar d.html'
+    template_name = 'dashboard.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
