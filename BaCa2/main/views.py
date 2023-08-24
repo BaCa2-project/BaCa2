@@ -1,4 +1,4 @@
-from django.views.generic.base import TemplateView, RedirectView
+from django.views.generic.base import TemplateView, RedirectView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout
@@ -46,7 +46,7 @@ class LoggedInView(LoginRequiredMixin, TemplateView):
     def get_navbar_context(self):
         context = {'links': [
             {'name': 'Dashboard', 'url': reverse_lazy('main:dashboard')},
-            {'name': 'Kursy', 'url': '#'},  # TODO
+            {'name': 'Kursy', 'url': reverse_lazy('main:courses')},
             {'name': 'Zadania', 'url': '#'},  # TODO
         ]}
 
@@ -65,7 +65,22 @@ class DashboardView(LoggedInView):
         return context
 
 
-class TestView(LoginRequiredMixin, TemplateView):
+class CoursesView(LoggedInView):
+    template_name = 'courses.html'
+
+
+class JsonView(LoginRequiredMixin, View):
+    @staticmethod
+    def get(request, *args, **kwargs):
+        if kwargs['model_name'] == 'course':
+            return JsonResponse(
+                {'data': [course.get_data() for course in Course.objects.filter(
+                    usercourse__user=request.user
+                )]}
+            )
+
+
+class TestView(LoggedInView):
     template_name = 'test.html'
 
     def get_context_data(self, **kwargs):
