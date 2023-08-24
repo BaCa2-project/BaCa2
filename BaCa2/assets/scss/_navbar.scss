@@ -4,6 +4,10 @@
     display: none;
 }
 
+.nav-link {
+    position: relative;
+}
+
 body.navbar-padding {
     padding-top: $navbar_padding;
 }
@@ -24,6 +28,38 @@ body.navbar-padding {
 
         .icon-wrapper svg {
             stroke: map-get($map, icon_color);
+        }
+
+        .hover-underline::after {
+            content: '';
+            height: 2px;
+            width: 100%;
+            background-color: map-get($map, hover_color);
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            opacity: 0;
+            transition: opacity 0.25s ease-in-out;
+        }
+
+        .hover-underline:hover::after {
+            opacity: 1;
+        }
+
+        .hover-highlight {
+            transition: color 0.25s ease-in-out;
+
+            svg {
+                transition: stroke 0.25s ease-in-out;
+            }
+        }
+
+        .hover-highlight:hover {
+            color: map-get($map, hover_color);
+
+            svg {
+                stroke: map-get($map, hover_color);
+            }
         }
     }
 }

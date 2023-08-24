@@ -69,14 +69,16 @@ $navbar_theme_variables: (
     light: (
         bg: $light,
         text: $dark,
-        active_link: $primary,
+        active_link: $baca2_pink,
         icon_color: $dark,
+        hover_color: $baca2_pink,
     ),
     dark: (
         bg: black,
         text: gray,
         active_link: white,
         icon_color: white,
+        hover_color: $baca2_pink,
     )
 );
 $navbar_padding: 4rem;

@@ -21,17 +21,19 @@
             <ul class="navbar-nav me-auto links">
                 {% for link in navbar.links %}
                     <li class="nav-item {% if request.path == link.url %} active {% endif %} me-2">
-                        <a class="nav-link" href="{{ link.url }}">{{ link.name }}</a>
+                        <a class="nav-link hover-underline" href="{{ link.url }}">{{ link.name }}</a>
                     </li>
                 {% endfor %}
             </ul>
             <ul class="navbar-nav align-items-center">
                 <li class="nav-item">
-                    {% include 'util/theme_button.html' %}
+                    <div class="d-flex nav-link hover-highlight">
+                        {% include 'util/theme_button.html' %}
+                    </div>
                 </li>
                 <li class="nav-item">
                     <!-- TODO -->
-                    <a class="nav-link" href="#">
+                    <a class="nav-link hover-highlight" href="#">
                         <div class="icon-wrapper icon-m d-flex">
                             {% include 'icons/bell.svg' %}
                         </div>
@@ -39,7 +41,7 @@
                 </li>
                 <li class="nav-item dropdown">
                     <!-- TODO -->
-                    <a class="nav-link dropdown-toggle"
+                    <a class="nav-link dropdown-toggle hover-highlight"
                        href="#"
                        id="user-links"
                        data-bs-toggle="dropdown"
