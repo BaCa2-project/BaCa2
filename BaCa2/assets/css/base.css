@@ -218,6 +218,20 @@ body.navbar-padding {
   stroke: #212529;
 }
 
+[data-bs-theme=dark] .theme-button #moon svg {
+  display: none;
+}
+[data-bs-theme=dark] .theme-button #sun svg {
+  display: block;
+}
+
+[data-bs-theme=light] .theme-button #moon svg {
+  display: block;
+}
+[data-bs-theme=light] .theme-button #sun svg {
+  display: none;
+}
+
 .separator {
   display: flex;
   align-items: center;

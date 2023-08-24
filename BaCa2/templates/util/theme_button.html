@@ -1,0 +1,13 @@
+{% load static %}
+<script src="{% static 'js/themes.js' %}"></script>
+
+<div class="theme-button d-flex">
+    <a class="nav-link" href="#" onclick="switchTheme()">
+        <div class="d-flex icon-wrapper icon-m" id="moon">
+            {% include "icons/moon.svg" %}
+        </div>
+        <div class="d-flex icon-wrapper icon-m" id="sun">
+            {% include "icons/sun.svg" %}
+        </div>
+    </a>
+</div>

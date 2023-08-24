@@ -1,56 +1,32 @@
-<div class="d-flex flex-row justify-content-center align-items-center">
-    <div class="col-auto pb-1">
-        <div class="icon-wrapper icon-s">
-            {% include "icons/moon.svg" %}
-        </div>
-    </div>
-    <div class="col-auto ms-2">
-        <form>
-            {% csrf_token %}
-            <div class="form-check form-switch">
-                <input
-                    class="form-check-input p-2"
-                    type="checkbox"
-                    role="switch"
-                    onclick="switchTheme()"
-                    {% if data_bs_theme == "light" %}
-                        checked
-                    {% endif %}/>
+{% load static %}
+<script src="{% static 'js/themes.js' %}"></script>
+
+<div class="theme-switch d-flex">
+    <div class="d-flex flex-row justify-content-center align-items-center">
+        <div class="col-auto pb-1">
+            <div class="icon-wrapper icon-s">
+                {% include "icons/moon.svg" %}
             </div>
-        </form>
-    </div>
-    <div class="col-auto pb-1">
-        <div class="icon-wrapper icon-s">
-            {% include "icons/sun.svg" %}
+        </div>
+        <div class="col-auto ms-2">
+            <form>
+                {% csrf_token %}
+                <div class="form-check form-switch">
+                    <input
+                        class="form-check-input p-2"
+                        type="checkbox"
+                        role="switch"
+                        onclick="switchTheme()"
+                        {% if data_bs_theme == "light" %}
+                            checked
+                        {% endif %}/>
+                </div>
+            </form>
+        </div>
+        <div class="col-auto pb-1">
+            <div class="icon-wrapper icon-s">
+                {% include "icons/sun.svg" %}
+            </div>
         </div>
     </div>
 </div>
-
-<script>
-    function switchTheme() {
-        const element = document.body;
-        element.dataset.bsTheme = element.dataset.bsTheme === 'dark' ? 'light' : 'dark';
-        if (element.classList.contains('dark-theme')) {
-            element.classList.remove('dark-theme');
-            element.classList.add('light-theme');
-        } else {
-            element.classList.remove('light-theme');
-            element.classList.add('dark-theme');
-        }
-        postThemeSwitch(element);
-    }
-
-    function postThemeSwitch(element) {
-        $.ajax({
-            type: "POST",
-            url: "{% url 'main:change-theme' %}",
-            data: {
-                csrfmiddlewaretoken: '{{ csrf_token }}',
-                theme: element.dataset.bsTheme
-            },
-            success: function (data) {
-                console.log(data);
-            }
-        })
-    }
-</script>
