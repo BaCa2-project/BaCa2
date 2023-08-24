@@ -15,7 +15,7 @@
 <script type="text/javascript">
 
     const table = $('#{{ table.table_id }}').DataTable({
-        ajax: "/main/jsontest",
+        ajax: "/main/json/{{ table.model_name }}",
         columns: [
             {% for col_name in table.cols %}
                 {"data": "{{ col_name }}"},

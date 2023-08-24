@@ -19,6 +19,7 @@ class TableWidget:
                  style: str = "",
                  stripe: bool = True) -> None:
         self.model_cls = model_cls
+        self.model_name = model_cls.__name__.lower()
         self.paging = paging
         self.page_length = page_length
         self.length_change = length_change
@@ -34,7 +35,7 @@ class TableWidget:
         if table_id:
             self.table_id = table_id
         else:
-            self.table_id = f'{model_cls.__name__.lower()}-table'
+            self.table_id = f'{self.model_name}-table'
 
         if cols:
             self.cols = cols
@@ -60,6 +61,7 @@ class TableWidget:
         context = {
             'table_id': self.table_id,
             'model_cls': self.model_cls,
+            'model_name': self.model_name,
             'cols': self.cols,
             'header': [self.header[_] for _ in self.cols],
             'cols_num': len(self.cols),

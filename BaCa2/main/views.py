@@ -68,6 +68,16 @@ class DashboardView(LoggedInView):
 class CoursesView(LoggedInView):
     template_name = 'courses.html'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        table = TableWidget(model_cls=Course,
+                            refresh=False,
+                            paging=False)
+
+        context['table'] = table.get_context()
+        return context
+
 
 class JsonView(LoginRequiredMixin, View):
     @staticmethod
@@ -78,27 +88,7 @@ class JsonView(LoginRequiredMixin, View):
                     usercourse__user=request.user
                 )]}
             )
-
-
-class TestView(LoggedInView):
-    template_name = 'test.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        table = TableWidget(model_cls=Course,
-                            refresh=True,
-                            refresh_interval=30000,
-                            paging=True,
-                            page_length=4,
-                            length_change=True,)
-
-        context['table'] = table.get_context()
-        return context
-
-
-def jsontest(request):
-    return JsonResponse({'data': [course.get_data() for course in get_queryset(Course)]})
+        return JsonResponse({'status': 'error'})
 
 
 def change_theme(request):
