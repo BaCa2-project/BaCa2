@@ -1,4 +1,4 @@
-function switchTheme() {
+function switchTheme(post_url, csrf_token) {
     const element = document.body;
     element.dataset.bsTheme = element.dataset.bsTheme === 'dark' ? 'light' : 'dark';
     if (element.classList.contains('dark-theme')) {
@@ -8,15 +8,15 @@ function switchTheme() {
         element.classList.remove('light-theme');
         element.classList.add('dark-theme');
     }
-    postThemeSwitch(element);
+    postThemeSwitch(element, post_url, csrf_token);
 }
 
-function postThemeSwitch(element) {
+function postThemeSwitch(element, post_url, csrf_token) {
     $.ajax({
         type: "POST",
-        url: "{% url 'main:change-theme' %}",
+        url: post_url,
         data: {
-            csrfmiddlewaretoken: '{{ csrf_token }}',
+            csrfmiddlewaretoken: csrf_token,
             theme: element.dataset.bsTheme
         },
         success: function (data) {

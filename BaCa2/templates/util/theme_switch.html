@@ -16,7 +16,9 @@
                         class="form-check-input p-2"
                         type="checkbox"
                         role="switch"
-                        onclick="switchTheme()"
+                        onclick="switchTheme(
+                            post_url='{% url 'main:change-theme' %}',
+                            csrf_token='{{ csrf_token }}')"
                         {% if data_bs_theme == "light" %}
                             checked
                         {% endif %}/>
