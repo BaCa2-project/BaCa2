@@ -1,6 +1,7 @@
-from django.views.generic.base import TemplateView, View
+from django.views.generic.base import TemplateView, RedirectView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
+from django.contrib.auth import logout
 from django.http import JsonResponse
 from django.urls import reverse_lazy
 
@@ -20,6 +21,14 @@ class BaCa2LoginView(LoginView):
         context['display_navbar'] = False
         context['data_bs_theme'] = 'dark'
         return context
+
+
+class BaCa2LogoutView(RedirectView):
+    url = reverse_lazy('login')
+
+    def get(self, request, *args, **kwargs):
+        logout(request)
+        return super().get(request, *args, **kwargs)
 
 
 class LoggedInView(LoginRequiredMixin, TemplateView):
