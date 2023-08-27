@@ -19,6 +19,7 @@ class BrokerSubmit(models.Model):
 
     package_path = models.FilePathField(allow_folders=True)
     solution_path = models.FilePathField(allow_folders=True)
+    output_path = models.FilePathField(allow_folders=True)
     status = models.IntegerField(StatusEnum, default=StatusEnum.NEW)
 
     update_date = models.DateTimeField(default=timezone.now)

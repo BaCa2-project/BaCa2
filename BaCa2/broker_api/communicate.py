@@ -28,16 +28,24 @@ class BrokerSubmitManager:
             "course": submit.course.name,
             "submit_id": submit.submit_id,
             "package_path": submit.package_path,
-            "solution_path": submit.solution_path
+            "solution_path": submit.solution_path,
+            "output_path": submit.output_path
         }
-        connection.putheader('Accept', 'text/json')
+        bin_content = bin(json.dumps(content))
+        connection.putheader('Accept', 'application/json')
+        connection.putheader("Content-Length", str(len(bin_content)))
         connection.endheaders()
-        connection.send(json.dumps(content))
+        connection.send(bin_content)
         out = connection.getresponse() == 200
         connection.close()
         return out
 
-    def add_and_send(self, course: Course, submit_id: int, package: Bpm.Package, solution: Path) -> BrokerSubmit:
+    def add_and_send(self,
+                     course: Course,
+                     submit_id: int,
+                     package: Bpm.Package,
+                     solution: Path,
+                     output_path: Path) -> BrokerSubmit:
         if BrokerSubmit.objects.filter(course=course, submit_id=submit_id).exists():
             raise Exception
         new_submit = BrokerSubmit.objects.create(
@@ -45,7 +53,8 @@ class BrokerSubmitManager:
             submit_id=submit_id,
             package_path=package.commit_path,
             solution_path=solution,
-            solution=BrokerSubmit.StatusEnum.NEW
+            output_path=output_path,
+            status=BrokerSubmit.StatusEnum.NEW
         )
         success = self._send_submit(new_submit)
         if not success:
