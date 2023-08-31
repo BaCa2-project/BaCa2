@@ -53,6 +53,9 @@ class LoggedInView(LoginRequiredMixin, TemplateView):
         if self.request.user.is_staff:
             context['links'].append({'name': 'Paczki', 'url': '#'})  # TODO
 
+        if self.request.user.is_superuser:
+            context['links'].append({'name': 'Admin', 'url': '/baca/'})
+
         return context
 
 
