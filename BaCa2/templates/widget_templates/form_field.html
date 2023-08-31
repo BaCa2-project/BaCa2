@@ -7,7 +7,7 @@
 
 {% if form_widget.display_field_validation %}
 
-    {% if form.is_bound %}
+    {% if form_widget.form.is_bound %}
         {% if field.errors %}
             {% render_field field class="form-control is-invalid" %}
             {% for error in field.errors %}

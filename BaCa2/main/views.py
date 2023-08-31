@@ -1,14 +1,13 @@
 from django.views.generic.base import TemplateView, RedirectView, View
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout
 from django.http import JsonResponse
 from django.urls import reverse_lazy
 
 from .models import Course
-from widgets.querying import get_queryset
 from widgets.listing import TableWidget
-from widgets.forms import FormWidget
+from widgets.forms import FormWidget, NewCourseForm
 
 
 class BaCa2LoginView(LoginView):
@@ -17,7 +16,8 @@ class BaCa2LoginView(LoginView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['form_widget'] = FormWidget(button_text='Zaloguj').get_context()
+        context['form_widget'] = FormWidget(form=context['form'],
+                                            button_text='Zaloguj').get_context()
         context['display_navbar'] = False
         context['data_bs_theme'] = 'dark'
         return context
@@ -54,7 +54,7 @@ class LoggedInView(LoginRequiredMixin, TemplateView):
             context['links'].append({'name': 'Paczki', 'url': '#'})  # TODO
 
         if self.request.user.is_superuser:
-            context['links'].append({'name': 'Admin', 'url': '/baca/'})
+            context['links'].append({'name': 'Admin', 'url': reverse_lazy('main:admin')})
 
         return context
 

@@ -2,7 +2,7 @@
 {% load widget_tweaks %}
 
 {% block form_fields %}
-    {% for field in form.visible_fields %}
+    {% for field in form_widget.form.visible_fields %}
         <div class="form-group mb-3">
             {% include 'widget_templates/form_field.html' %}
         </div>
