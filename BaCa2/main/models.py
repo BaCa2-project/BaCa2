@@ -6,9 +6,9 @@ from django.contrib.auth.models import Group, Permission, ContentType
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-# from sqlalchemy import BigInteger
 
 from BaCa2.choices import PermissionTypes, DefaultCourseGroups
+from course.manager import create_course as create_course_db, delete_course as delete_course_db
 
 
 class UserManager(BaseUserManager):
@@ -109,6 +109,75 @@ class UserManager(BaseUserManager):
         return self._create_user(email, username, password, True, True, **other_fields)
 
 
+class CourseManager(models.Manager):
+    def create_course(self, name: str, short_name: str = "") -> 'Course':
+        """
+        Create a new course with given name and short name. If short name is not provided, it is automatically
+        generated. A new database for the course is also created.
+
+        :param name: Name of the new course.
+        :type name: str
+        :param short_name: Short name of the new course.
+        :type short_name: str
+        :return: The newly created course.
+        :rtype: Course
+        """
+        if short_name:
+            if Course.objects.filter(short_name=short_name).exists():
+                raise ValidationError('A course with this short name already exists')
+        else:
+            short_name = self._generate_short_name(name)
+
+        create_course_db(short_name)
+        db_name = short_name + '_db'
+        course = self.model(
+            name=name,
+            short_name=short_name,
+            db_name=db_name
+        )
+        course.save(using='default')
+
+    @staticmethod
+    def delete_course(course: 'Course') -> None:
+        """
+        Delete the given course and its database.
+
+        :param course: The course to delete.
+        :type course: Course
+        """
+        delete_course_db(course.short_name)
+        course.delete(using='default')
+
+    @staticmethod
+    def _generate_short_name(name: str) -> str:
+        """
+        Generate a short name for a course based on its name.
+
+        :param name: Name of the course.
+        :type name: str
+        :return: Short name of the course.
+        :rtype: str
+        """
+        name_list = name.split()
+        short_name = ""
+        for word in name_list:
+            short_name += word[0]
+
+        now = timezone.now()
+        short_name += str(now.year)
+
+        if Course.objects.filter(short_name=short_name).exists():
+            short_name += str(now.month)
+        if Course.objects.filter(short_name=short_name).exists():
+            short_name += str(now.day)
+        if Course.objects.filter(short_name=short_name).exists():
+            short_name += str(now.hour)
+        if Course.objects.filter(short_name=short_name).exists():
+            raise ValidationError('Could not generate a unique short name for the course')
+
+        return short_name
+
+
 class Course(models.Model):
     """
     This class represents a course in the default database and contains a field pointing to the course's database.
@@ -121,13 +190,17 @@ class Course(models.Model):
     )
     #: Short name of the course.
     short_name = models.CharField(
-        max_length=31
+        max_length=31,
+        unique=True
     )
     #: Name of the course's database. :py:class:`course.routing.InCourse` :py:mod:`course.models`
     db_name = models.CharField(
         max_length=127,
-        default='default'
+        unique=True
     )
+
+    #: Indicates which class is used to manage Course objects.
+    objects = CourseManager()
 
     def __str__(self):
         """
