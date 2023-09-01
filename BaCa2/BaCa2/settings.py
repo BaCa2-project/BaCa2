@@ -53,6 +53,8 @@ INSTALLED_APPS = [
     'course',  # local app
 
     'package',  # local app
+
+    'util',  # local app
 ]
 
 MIDDLEWARE = [
