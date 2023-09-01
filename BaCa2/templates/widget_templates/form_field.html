@@ -1,13 +1,17 @@
 {% load widget_tweaks %}
-{% if form_widget.floating_labels %}
-    <div class="form-floating">
-{% else %}
-    <label for="{{ field.name }}" class="form-label">{{ field.label }}</label>
-{% endif %}
+{% load custom_tags %}
 
-{% if form_widget.display_field_validation %}
+<div class="input-group mb-3
+            {% if field.name in form_widget.toggleable_fields %}
+                toggleable toggleable-off
+            {% endif %}">
+    {% if form_widget.floating_labels %}
+        <div class="form-floating">
+    {% else %}
+        <label for="{{ field.name }}" class="form-label">{{ field.label }}</label>
+    {% endif %}
 
-    {% if form_widget.form.is_bound %}
+    {% if form_widget.display_field_errors and form_widget.form.is_bound %}
         {% if field.errors %}
             {% render_field field class="form-control is-invalid" %}
             {% for error in field.errors %}
@@ -16,19 +20,30 @@
                 </div>
             {% endfor %}
         {% else %}
-            {% render_field field class="form-control is-valid" id=field.name placeholder="n" %}
+            {% render_field field class="form-control is-valid" id=field.name placeholder="-" %}
         {% endif %}
+    {% else %}
+        {% render_field field class="form-control" id=field.name placeholder="-" %}
     {% endif %}
 
-{% else %}
-    {% render_field field class="form-control" id=field.name placeholder="n" %}
-{% endif %}
+    {% if form_widget.floating_labels %}
+        <label for="{{ field.name }}" class="form-label">{{ field.label }}</label>
+        </div>
+    {% endif %}
 
-{% if form_widget.floating_labels %}
-    <label for="{{ field.name }}" class="form-label">{{ field.label }}</label>
-    </div>
-{% endif %}
+    {% if field.help_text %}
+        <small class="form-text text-muted">{{ field.help_text }}</small>
+    {% endif %}
 
-{% if field.help_text %}
-    <small class="form-text text-muted">{{ field.help_text }}</small>
-{% endif %}
+    {% if field.name in form_widget.toggleable_fields %}
+        {% with button_params=form_widget.toggleable_fields_params|get_item:field.name %}
+            <button class="btn btn-outline-secondary"
+                    type="button"
+                    onclick="toggleField('{{ field.name }}',
+                            '{{ button_params|get_item:'button_text_off' }}',
+                            '{{ button_params|get_item:'button_text_on' }}')">
+                {{ button_params|get_item:'button_text_off'}}
+            </button>
+        {% endwith %}
+    {% endif %}
+</div>
