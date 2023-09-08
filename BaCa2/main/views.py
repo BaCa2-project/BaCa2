@@ -59,6 +59,23 @@ class LoggedInView(LoginRequiredMixin, TemplateView):
         return context
 
 
+class AdminView(LoggedInView, UserPassesTestMixin):
+    template_name = 'admin.html'
+
+    def test_func(self):
+        return self.request.user.is_superuser
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context['new_course_form_widget'] = FormWidget(
+            form=NewCourseForm(),
+            button_text='Dodaj kurs',
+            toggleable_fields=['short_name'],
+        ).get_context()
+        return context
+
+
 class DashboardView(LoggedInView):
     template_name = 'dashboard.html'
 

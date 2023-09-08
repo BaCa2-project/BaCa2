@@ -57,7 +57,7 @@ class NewCourseForm(forms.Form):
         required=True
     )
     short_name = forms.CharField(
-        label='Skrócona nazwa kursu',
+        label='Kod kursu',
         max_length=Course._meta.get_field('short_name').max_length,
         required=False
     )
