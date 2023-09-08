@@ -50,14 +50,50 @@ class FormWidget:
         return context
 
 
-class NewCourseForm(forms.Form):
+class BaCa2Form(forms.Form):
+    form_name = forms.CharField(
+        label='Nazwa formularza',
+        max_length=100,
+        widget=forms.HiddenInput(),
+        required=True,
+        initial='form'
+    )
+
+
+class CourseShortName(forms.CharField):
+    def __init__(self, **kwargs):
+        super().__init__(
+            label='Kod kursu',
+            max_length=Course._meta.get_field('short_name').max_length,
+            **kwargs
+        )
+
+    def validate(self, value):
+        super().validate(value)
+        if Course.objects.filter(short_name=value).exists():
+            raise forms.ValidationError('Kod kursu jest już zajęty.')
+
+
+class NewCourseForm(BaCa2Form):
     name = forms.CharField(
         label='Nazwa kursu',
         max_length=Course._meta.get_field('name').max_length,
         required=True
     )
-    short_name = forms.CharField(
-        label='Skrócona nazwa kursu',
-        max_length=Course._meta.get_field('short_name').max_length,
-        required=False
-    )
+    short_name = CourseShortName(required=True)
+
+    def __init__(self, **kwargs):
+        super().__init__(initial={'form_name': 'new_course_form'}, **kwargs)
+
+
+class NewCourseFormWidget(FormWidget):
+    def __init__(self, form: NewCourseForm = None, **kwargs):
+        if not form:
+            form = NewCourseForm()
+
+        super().__init__(
+            form=form,
+            button_text='Dodaj kurs',
+            toggleable_fields=['short_name'],
+            **kwargs
+        )

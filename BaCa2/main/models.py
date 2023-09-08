@@ -110,7 +110,7 @@ class UserManager(BaseUserManager):
 
 
 class CourseManager(models.Manager):
-    def create_course(self, name: str, short_name: str = "") -> 'Course':
+    def create_course(self, name: str, short_name: str = "") -> None:
         """
         Create a new course with given name and short name. If short name is not provided, it is automatically
         generated. A new database for the course is also created.
@@ -123,6 +123,7 @@ class CourseManager(models.Manager):
         :rtype: Course
         """
         if short_name:
+            short_name = short_name.lower()
             if Course.objects.filter(short_name=short_name).exists():
                 raise ValidationError('A course with this short name already exists')
         else:
@@ -175,7 +176,7 @@ class CourseManager(models.Manager):
         if Course.objects.filter(short_name=short_name).exists():
             raise ValidationError('Could not generate a unique short name for the course')
 
-        return short_name
+        return short_name.lower()
 
 
 class Course(models.Model):

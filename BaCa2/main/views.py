@@ -7,7 +7,7 @@ from django.urls import reverse_lazy
 
 from .models import Course
 from widgets.listing import TableWidget
-from widgets.forms import FormWidget, NewCourseForm
+from widgets.forms import FormWidget, NewCourseForm, NewCourseFormWidget
 
 
 class BaCa2LoginView(LoginView):
@@ -17,7 +17,8 @@ class BaCa2LoginView(LoginView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['form_widget'] = FormWidget(form=context['form'],
-                                            button_text='Zaloguj').get_context()
+                                            button_text='Zaloguj',
+                                            display_field_errors=False).get_context()
         context['display_navbar'] = False
         context['data_bs_theme'] = 'dark'
         return context
@@ -57,6 +58,38 @@ class LoggedInView(LoginRequiredMixin, TemplateView):
             context['links'].append({'name': 'Admin', 'url': reverse_lazy('main:admin')})
 
         return context
+
+
+class AdminView(LoggedInView, UserPassesTestMixin):
+    template_name = 'admin.html'
+
+    def test_func(self):
+        return self.request.user.is_superuser
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if 'new_course_form_widget' not in context.keys():
+            context['new_course_form_widget'] = NewCourseFormWidget().get_context()
+        return context
+
+    def post(self, request, *args, **kwargs):
+        if request.POST.get('form_name', None) == 'new_course_form':
+            form = NewCourseForm(data=request.POST)
+
+            if form.is_valid():
+                Course.objects.create_course(
+                    name=form.cleaned_data['name'],
+                    short_name=form.cleaned_data.get('short_name', None),
+                )
+                return JsonResponse({'status': 'ok'})
+            else:
+                kwargs['new_course_form_widget'] = NewCourseFormWidget(form=form).get_context()
+                return self.get(request, *args, **kwargs)
+        else:
+            return JsonResponse(
+                {'status': 'error, unknown form name',
+                 'form_name': request.POST.get('form_name', None)}
+            )
 
 
 class DashboardView(LoggedInView):

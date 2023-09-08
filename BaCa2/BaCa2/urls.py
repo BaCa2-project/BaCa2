@@ -21,7 +21,7 @@ from main.views import BaCa2LoginView, BaCa2LogoutView
 
 urlpatterns = [
     # path('polls/', include('polls.urls')),
-    path('baca/', admin.site.urls, name='admin'),
+    path('baca/', admin.site.urls),
     path('login/', BaCa2LoginView.as_view(), name='login'),
     path('logout/', BaCa2LogoutView.as_view(), name='logout'),
     path('main/', include('main.urls')),
