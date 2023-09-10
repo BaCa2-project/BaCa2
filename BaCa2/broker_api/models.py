@@ -19,7 +19,6 @@ class BrokerSubmit(models.Model):
 
     package_path = models.FilePathField(allow_folders=True)
     solution_path = models.FilePathField(allow_folders=True)
-    output_path = models.FilePathField(allow_folders=True)
     status = models.IntegerField(StatusEnum, default=StatusEnum.NEW)
 
     update_date = models.DateTimeField(default=timezone.now)
@@ -30,3 +29,4 @@ class BrokerSubmit(models.Model):
             raise ValueError(f"Attempted to change status from {self.status} to {new_status}.")
         self.status = new_status
         self.update_date = timezone.now()
+        self.save()
