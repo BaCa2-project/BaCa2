@@ -1,45 +1,77 @@
 
+import os
+import json
 from http import server
+import cgi
 from threading import Thread
 from pathlib import Path
 
-from django.test import TestCase
+import requests
+from django.test import TestCase, Client
 
+from baca2PackageManager import Package
 from main.models import Course
+
+from .message import *
 from .communicate import BrokerSubmitManager
-import baca2PackageManager as Bpm
 
 
-class RequestHandler(server.BaseHTTPRequestHandler):
+class BacaApiHandler(server.BaseHTTPRequestHandler):
 
-  def do_GET(self):
-    request_path = self.path
-    self.send_response(200)
-    self.send_header('Content-type', 'application/json')
-    self.end_headers()
-    print(self.rfile.read())
+    def do_POST(self):
+        type_, pdict = cgi.parse_header(self.headers.get('content-type'))
+
+        if type_ != 'application/json':
+            self.send_response(400)
+            self.end_headers()
+            return
+
+        length = int(self.headers.get('content-length'))
+        message = json.loads(self.rfile.read(length))
+
+        try:
+            content = BacaToBroker(**message)
+        except TypeError:  # TODO
+            self.send_response(400)
+            self.end_headers()
+            return
+
+        self.send_response(200)
+        self.end_headers()
 
 
-class TestOne(TestCase):
+class General(TestCase):
 
     def setUp(self) -> None:
-        BrokerSubmitManager('127.0.0.1', 8001)
-        self.bsm_instance = BrokerSubmitManager.instance
-        self.http_server = server.HTTPServer(('127.0.0.1', 8001), RequestHandler)
-        self.thread = Thread(target=self.http_server.serve_forever)
+        self.instance = BrokerSubmitManager('http://127.0.0.1:8180/')
+        self.server = server.HTTPServer(('127.0.0.1', 8180), BacaApiHandler)
+        self.thread = Thread(target=self.server.serve_forever)
         self.thread.start()
 
     def tearDown(self) -> None:
-        self.http_server.shutdown()
+        self.server.shutdown()
+        self.server.server_close()
         self.thread.join()
 
-    def test_one(self):  # TODO: finish test
+    def test_basic(self):
         course = Course(
-            name='course_one',
+            name='course1',
             short_name='c1',
-            db_name='test_course'
+            db_name='course1_db'
         )
         course.save()
-        package = Bpm.Package(Path('/sample'), '12121')
-        print(type(course))
-        self.bsm_instance.add_and_send(course, 121, package, Path('/sample'))
+        package = Package(
+            path=Path(os.path.dirname(__file__) + '/test/kolejka'),
+            commit='commit1'
+        )
+        submit = self.instance.send(course, 1, package, 'sample/path')
+        c = Client()
+        r = c.post(path='http://127.0.0.1:8000/broker_api/result/course1/1',
+                   data={
+                        'course_name': 'course1',
+                        'submit_id': 1,
+                        'tests': [{'status': 1, 'time_real': 2.0, 'time_cpu': 1.0, 'runtime_memory': 126}]
+                    },
+                   content_type='application/json')
+        submit.refresh_from_db()
+        self.assertTrue(submit.status == submit.StatusEnum.CHECKED)
