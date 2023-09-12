@@ -11,6 +11,7 @@ from main.models import Course
 from .models import BrokerSubmit
 from .message import BacaToBroker, BrokerToBaca
 
+# TODO: Move all communication to models.BrokerSubmit
 
 class BrokerSubmitManager:
     # TODO: improve data integrity fail saves (self.lock)

@@ -174,3 +174,6 @@ pkg.set_base_dir(PACKAGES_DIR)
 pkg.add_supported_extensions('cpp')
 
 PACKAGES: Dict[str, pkg.Package] = {}
+
+BROKER_URL = ''
+BROKER_TIMEOUT = 30
