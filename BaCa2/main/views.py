@@ -1,3 +1,5 @@
+from importlib import import_module
+
 from django.views.generic.base import TemplateView, RedirectView, View
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView
@@ -7,6 +9,7 @@ from django.urls import reverse_lazy
 
 from .models import Course
 from widgets.listing import TableWidget
+from widgets import forms
 from widgets.forms import FormWidget, NewCourseForm, NewCourseFormWidget
 
 
@@ -125,6 +128,26 @@ class JsonView(LoginRequiredMixin, View):
                 )]}
             )
         return JsonResponse({'status': 'error'})
+
+
+class FieldValidationView(LoginRequiredMixin, View):
+    class FieldClassException(Exception):
+        pass
+
+    @staticmethod
+    def get(request, *args, **kwargs):
+        field_cls_name = request.GET.get('field_cls', None)
+
+        if not field_cls_name:
+            raise FieldValidationView.FieldClassException('No field class name provided.')
+
+        return JsonResponse(
+            forms.get_field_validation_status(
+                field_cls=field_cls_name,
+                value=request.GET.get('value', ''),
+                required=request.GET.get('required', False),
+                min_length=request.GET.get('min_length', False))
+        )
 
 
 def change_theme(request):

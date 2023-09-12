@@ -31,3 +31,33 @@ function toggleField(field_name, button_text_off, button_text_on) {
         button.text(button_text_off);
     }
 }
+
+function update_validation_status(field, field_cls, required, min_length, url) {
+    const value = $(field).val();
+    $.ajax({
+        url: url,
+        data: {
+            'field_cls': field_cls,
+            'value': value,
+            'required': required,
+            'min_length': min_length,
+        },
+        dataType: 'json',
+        success: function (data) {
+            if (data.status === 'ok') {
+                $(field).removeClass('is-invalid');
+                $(field).addClass('is-valid');
+                const input_block = $(field).closest('.input-block');
+                $(input_block).find('.invalid-feedback').remove();
+            } else {
+                $(field).removeClass('is-valid');
+                $(field).addClass('is-invalid');
+                const input_block = $(field).closest('.input-block');
+                $(input_block).find('.invalid-feedback').remove();
+                for (let i = 0; i < data.messages.length; i++) {
+                    $(input_block).append("<div class='invalid-feedback'>" + data.messages[i] + "</div>");
+                }
+            }
+        }
+    });
+}
