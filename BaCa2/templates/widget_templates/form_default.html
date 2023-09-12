@@ -1,6 +1,10 @@
 {% extends 'widget_templates/form_base.html' %}
 
 {% block form_fields %}
+    {% for hidden_field in form_widget.form.hidden_fields %}
+        {{ hidden_field.errors }}
+        {{ hidden_field }}
+    {% endfor %}
     {% for field in form_widget.form.visible_fields %}
         {% include 'widget_templates/form_field.html' %}
     {% endfor %}

@@ -7,6 +7,10 @@ html, body {
   font-size: 0.85rem;
 }
 
+.invalid-feedback {
+  display: block;
+}
+
 .logo-wrapper .logo-stroke {
   fill: #000000;
 }
