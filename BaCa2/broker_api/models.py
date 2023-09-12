@@ -3,7 +3,9 @@ from django.db import models
 from django.utils import timezone
 
 from main.models import Course
-
+from package.models import PackageInstance
+from course.routing import InCourse
+from course.models import Submit
 
 class BrokerSubmit(models.Model):
 
@@ -17,11 +19,16 @@ class BrokerSubmit(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     submit_id = models.BigIntegerField()
 
-    package_path = models.FilePathField(allow_folders=True)
-    solution_path = models.FilePathField(allow_folders=True)
+    package_instance = models.ForeignKey(PackageInstance, on_delete=models.CASCADE)
     status = models.IntegerField(StatusEnum, default=StatusEnum.NEW)
 
     update_date = models.DateTimeField(default=timezone.now)
+
+    @property
+    def solution(self):
+        with InCourse(str(self.course)):
+            return Submit.objects.get(id=self.submit_id).first().source_code
+        # TODO: Check if it works
 
     def update_status(self, new_status: StatusEnum):
         # new_status is purely for safety reasons
