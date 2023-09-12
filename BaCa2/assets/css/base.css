@@ -243,7 +243,7 @@ body.navbar-padding {
   fill: #D3CABD;
 }
 .icon-wrapper.icon-fill-success svg {
-  fill: #198754;
+  fill: #08D9D6;
 }
 .icon-wrapper.icon-fill-info svg {
   fill: #0dcaf0;
@@ -252,7 +252,7 @@ body.navbar-padding {
   fill: #ffc107;
 }
 .icon-wrapper.icon-fill-danger svg {
-  fill: #dc3545;
+  fill: #FE2E63;
 }
 .icon-wrapper.icon-fill-light svg {
   fill: #f8f9fa;
@@ -276,7 +276,7 @@ body.navbar-padding {
   stroke: #D3CABD;
 }
 .icon-wrapper.icon-stroke-success svg {
-  stroke: #198754;
+  stroke: #08D9D6;
 }
 .icon-wrapper.icon-stroke-info svg {
   stroke: #0dcaf0;
@@ -285,7 +285,7 @@ body.navbar-padding {
   stroke: #ffc107;
 }
 .icon-wrapper.icon-stroke-danger svg {
-  stroke: #dc3545;
+  stroke: #FE2E63;
 }
 .icon-wrapper.icon-stroke-light svg {
   stroke: #f8f9fa;
