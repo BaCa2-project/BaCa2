@@ -1,16 +1,21 @@
-<div class="table-responsive">
-    <table class="{{ table.table_class }}"
-           id="{{ table.table_id }}"
-           style="width:100%">
-        <thead>
-            <tr>
-                {% for col_name in table.header %}
-                    <th>{{ col_name }}</th>
-                {% endfor %}
-            </tr>
-        </thead>
-    </table>
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="{{ table.table_class }}"
+                   id="{{ table.table_id }}"
+                   style="width:100%">
+                <thead>
+                    <tr>
+                        {% for col_name in table.header %}
+                            <th>{{ col_name }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
 </div>
+
 
 <script type="text/javascript">
 
