@@ -177,3 +177,8 @@ PACKAGES: Dict[str, pkg.Package] = {}
 
 BROKER_URL = ''
 BROKER_TIMEOUT = 30
+
+# Passwords for protecting communication channels between the broker and BaCa2.
+# PASSWORDS HAVE TO DIFFERENT IN ORDER TO BE EFFECTIVE
+BACA_PASSWORD = 'tmp-baca-password'
+BROKER_PASSWORD = 'tmp-broker-password'
