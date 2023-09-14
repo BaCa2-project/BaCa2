@@ -1,0 +1,35 @@
+test2:
+  !include :   test.yaml
+  #generator : !file generator.cpp
+  # ./generator > file.in  < [input]
+  #hinter : !file hinter.cpp
+  # ./hinter > file.out < file.in
+  #checker : !file checker.cpp
+  # ./checker input hint answer ## Check return code
+  #environment : !file makefile
+  memory: 8M
+  time: 8s
+  input: !file 2.in
+  hint: !file 2.out
+  cpp_standard   : c++17
+  gcc_arguments  : '-pthread -O2 -static'
+  compile_time   : 30s
+  compile_memory : 512MB
+  source_size    : 100KB
+  binary_size    : 10MB
+  output_size    : 1GB
+  error_size     : 1MB
+test3:
+  !include :   test.yaml
+  time: 9s
+  memory: 6M
+  input: !file 3.in
+  hint: !file 3.out
+  cpp_standard   : c++17
+  gcc_arguments  : '-pthread -O2 -static'
+  compile_time   : 30s
+  compile_memory : 512MB
+  source_size    : 100KB
+  binary_size    : 10MB
+  output_size    : 1GB
+  error_size     : 1MB

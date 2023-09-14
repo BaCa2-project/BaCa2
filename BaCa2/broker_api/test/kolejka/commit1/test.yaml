@@ -1,9 +1,0 @@
-!include : ../common/test.yaml
-cpp_standard   : c++17
-gcc_arguments  : '-pthread -O2 -static'
-compile_time   : 30s
-compile_memory : 512MB
-source_size    : 100KB
-binary_size    : 10MB
-output_size    : 1GB
-error_size     : 1MB

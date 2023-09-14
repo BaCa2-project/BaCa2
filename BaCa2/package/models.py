@@ -4,7 +4,7 @@ from baca2PackageManager.validators import isStr
 from BaCa2.settings import BASE_DIR
 # from course.models import Task
 from pathlib import Path
-from BaCa2.settings import PACKAGES
+from BaCa2.settings import PACKAGES, PACKAGES_DIR
 from baca2PackageManager import Package
 
 from django.utils import timezone
@@ -17,7 +17,7 @@ class PackageSource(models.Model):
     PackageSource is a source for packages instances
     """
     #: path to the main source
-    MAIN_SOURCE = BASE_DIR / 'packages'
+    MAIN_SOURCE = PACKAGES_DIR  # TODO
     #: name of the package
     name = models.CharField(max_length=511, validators=[isStr])
 
