@@ -1,18 +1,14 @@
 from datetime import datetime, timedelta
 
-import os
 import json
 from http import server
 import cgi
 from django.core.files.uploadedfile import SimpleUploadedFile
 from threading import Thread
-from pathlib import Path
 
-import requests
 from django.test import TestCase, Client
 
 from BaCa2.settings import BACA_PASSWORD
-from baca2PackageManager import Package
 from broker_api.broker_communication import BacaToBroker, BrokerToBaca
 from broker_api.models import BrokerSubmit
 from course.manager import create_course, delete_course

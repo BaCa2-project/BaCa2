@@ -1,5 +1,3 @@
-from hashlib import sha256
-
 from django.db import models, transaction
 from django.utils import timezone
 
@@ -77,13 +75,12 @@ class BrokerSubmit(models.Model):
     @transaction.atomic
     def handle_result(cls, broker_submit_id: str, response: BrokerToBaca) -> None:
         # Authentication
-        message = BrokerToBaca.parse(response)
         submit = cls.objects.get(broker_id=broker_submit_id)
-        if message.submit_id != broker_submit_id:
+        if response.submit_id != broker_submit_id:
             raise ValueError('broker_submit_id in the url and in the json message have to match.')
         if submit is None:
-            raise ValueError(f"No submit with id broker_id {broker_submit_id} exists.")
-        if message.pass_hash != submit.hash_password(BACA_PASSWORD):
+            raise ValueError(f"No submit with broker_id {broker_submit_id} exists.")
+        if response.pass_hash != submit.hash_password(BACA_PASSWORD):
             raise PermissionError("Wrong password.")
         submit.update_status(cls.StatusEnum.CHECKED)
         # Data processing
