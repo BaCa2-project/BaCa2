@@ -3,8 +3,7 @@ import json
 from django.http import HttpResponse
 
 from .models import BrokerSubmit
-# from baca2PackageManager.broker_communication import *
-from .broker_communication import *  # TODO: ^ replace with the above
+from baca2PackageManager.broker_communication import *
 
 
 def handle_broker_result(request, broker_submit_id: str):
