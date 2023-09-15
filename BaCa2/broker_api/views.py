@@ -17,7 +17,7 @@ def handle_broker_result(request, broker_submit_id: str):
         data = BrokerToBaca.parse(json.loads(request.body))
         BrokerSubmit.handle_result(broker_submit_id, data)
     except Exception as e:
-        ...  # TODO
+        return HttpResponse(str(e), 401)
     else:
         return HttpResponse("Good", 200)
 

@@ -1,6 +1,8 @@
 from dataclasses import dataclass, asdict
 from hashlib import sha256
 
+# TODO: get rid of this file
+
 
 @dataclass
 class BacaToBroker:
