@@ -71,6 +71,6 @@ def create_broker_submit_id(course_name: str, submit_id: int) -> str:
 
 def make_hash(password: str, broker_submit_id: str) -> str:
     hash_obj = sha256()
-    hash_obj.update(password + '___')
-    hash_obj.update(broker_submit_id)
+    hash_obj.update((password + '___').encode('utf-8'))
+    hash_obj.update(broker_submit_id.encode('utf-8'))
     return hash_obj.hexdigest()

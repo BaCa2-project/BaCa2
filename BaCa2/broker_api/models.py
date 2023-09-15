@@ -4,8 +4,7 @@ from django.db import models, transaction
 from django.utils import timezone
 
 import requests
-# from baca2PackageManager.broker_communication import *
-from .broker_communication import *  # TODO: ^ replace with the above
+from baca2PackageManager.broker_communication import *
 
 from BaCa2.settings import BROKER_PASSWORD, BACA_PASSWORD, BROKER_URL
 from main.models import Course
