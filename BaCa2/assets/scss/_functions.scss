@@ -1,0 +1,7 @@
+@function safe_get($map, $default_map, $key) {
+    @if map-has-key($map, $key) {
+        @return map-get($map, $key);
+    } @else {
+        @return map-get($default_map, $key);
+    }
+}

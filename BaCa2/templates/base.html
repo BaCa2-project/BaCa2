@@ -17,7 +17,7 @@
 
         <!-- DataTables -->
         <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.js"></script>
-        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.css" />
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.css"/>
 
         <!-- Bootstrap theme - customised -->
         <link rel="stylesheet" href="{% static 'css/baca2_theme.css' %}">
@@ -32,18 +32,41 @@
         <!-- template-specific -->
         {% block head %}
         {% endblock %}
+
     </head>
-    <body data-bs-theme="{{ data_bs_theme }}"
-    {% if display_navbar %}
-        class="navbar-padding"
-    {% endif %}>
+
+    <body data-bs-theme="{{ data_bs_theme }}">
+
         {% if display_navbar %}
             {% include 'widget_templates/navbar.html' %}
         {% endif %}
 
-        <div class="h-100 container">
-            {% block content %}
-            {% endblock %}
+        <div class="h-100 container main-container">
+            {% if display_navbar %}
+                <div class="navbar-padding">
+            {% endif %}
+                {% if display_side_nav %}
+                    <div class="row main-row">
+                    {% include 'widget_templates/side_nav.html' %}
+                {% endif %}
+
+                    {% if display_side_nav %}
+                        <div class="col">
+                    {% endif %}
+
+                        {% block content %}
+                        {% endblock %}
+
+                    {% if display_side_nav %}
+                        </div>
+                    {% endif %}
+
+                {% if display_side_nav %}
+                    </div>
+                {% endif %}
+            {% if display_navbar%}
+                </div>
+            {% endif %}
         </div>
     </body>
 </html>

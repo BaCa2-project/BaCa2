@@ -1,9 +1,24 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
-    <div class="col-6">
-        {% with new_course_form_widget as form_widget %}
-                {% include "widget_templates/form_default.html" %}
-        {% endwith %}
+    <div class ="tab-wrapper" id="users-tab">
+        <div class="side-nav-tab">
+            Users
+        </div>
+    </div>
+    <div class="tab-wrapper" id="courses-tab">
+        <div class="side-nav-tab">
+            <div class="col-8">
+                {% with new_course_form_widget as form_widget %}
+                        {% include "widget_templates/form_default.html" %}
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+    <div class="tab-wrapper" id="packages-tab">
+        <div class="side-nav-tab">
+            Packages
+        </div>
     </div>
 {% endblock %}

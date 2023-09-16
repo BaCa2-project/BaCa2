@@ -1,4 +1,5 @@
 @import "baca2_variables";
+@import "functions";
 
 .nav-item .dropdown-toggle::after {
     display: none;
@@ -8,33 +9,33 @@
     position: relative;
 }
 
-body.navbar-padding {
+.navbar-padding {
     padding-top: $navbar_padding;
 }
 
 @each $theme, $map in $navbar_theme_variables {
     [data-bs-theme="#{$theme}"] .navbar {
-        background-color: map-get($map, bg);
+        background-color: safe_get($map, $navbar_default_variables, bg);
 
         .links {
             .nav-item a {
-                color: map-get($map, text);
+                color: safe_get($map, $navbar_default_variables, link_color);
             }
 
             .nav-item.active a {
-                color: map-get($map, active_link);
+                color: safe_get($map, $navbar_default_variables, active_link_color);
             }
         }
 
         .icon-wrapper svg {
-            stroke: map-get($map, icon_color);
+            stroke: safe_get($map, $navbar_default_variables, icon_color);
         }
 
         .hover-underline::after {
             content: '';
             height: 2px;
             width: 100%;
-            background-color: map-get($map, hover_color);
+            background-color: safe_get($map, $navbar_default_variables, hover_color);
             position: absolute;
             bottom: 0;
             left: 0;
@@ -55,10 +56,28 @@ body.navbar-padding {
         }
 
         .hover-highlight:hover {
-            color: map-get($map, hover_color);
+            color: safe_get($map, $navbar_default_variables, hover_color);
 
             svg {
-                stroke: map-get($map, hover_color);
+                stroke: safe_get($map, $navbar_default_variables, hover_color);
+            }
+        }
+
+        .navbar-brand:hover {
+            .logo-wrapper {
+                .logo-stroke {
+                    fill: safe_get($map, $navbar_default_variables, logo_hover_color);
+                }
+
+                #triangle {
+                    path {
+                        fill: safe_get($map, $navbar_default_variables, logo_hover_color);
+                    }
+                }
+
+                path {
+                    transition: fill 0.5s;
+                }
             }
         }
     }

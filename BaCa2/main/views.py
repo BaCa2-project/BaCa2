@@ -1,4 +1,4 @@
-from importlib import import_module
+from abc import ABC, abstractmethod
 
 from django.views.generic.base import TemplateView, RedirectView, View
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -63,16 +63,29 @@ class LoggedInView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class AdminView(LoggedInView, UserPassesTestMixin):
+class SideNavMixin(ABC):
+    def get_context_data(self, **kwargs):
+        context = {'display_side_nav': True,
+                   'side_nav': self.get_sidenav_context()}
+        return context
+
+    @abstractmethod
+    def get_sidenav_context(self):
+        pass
+
+
+class AdminView(LoggedInView, SideNavMixin, UserPassesTestMixin):
     template_name = 'admin.html'
 
     def test_func(self):
         return self.request.user.is_superuser
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+        context = LoggedInView.get_context_data(self, **kwargs) | SideNavMixin.get_context_data(self, **kwargs)
+
         if 'new_course_form_widget' not in context.keys():
             context['new_course_form_widget'] = NewCourseFormWidget().get_context()
+
         return context
 
     def post(self, request, *args, **kwargs):
@@ -93,6 +106,13 @@ class AdminView(LoggedInView, UserPassesTestMixin):
                 {'status': 'error, unknown form name',
                  'form_name': request.POST.get('form_name', None)}
             )
+
+    def get_sidenav_context(self):
+        return {'links': [
+            {'name': 'Użytkownicy', 'data_id': 'users-tab'},
+            {'name': 'Kursy', 'data_id': 'courses-tab'},
+            {'name': 'Paczki', 'data_id': 'packages-tab'},
+        ]}
 
 
 class DashboardView(LoggedInView):

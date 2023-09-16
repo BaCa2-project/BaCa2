@@ -1,6 +1,5 @@
 @import "baca2_variables";
 
-
 // color styling
 .logo-wrapper {
     .logo-stroke {
@@ -59,25 +58,5 @@
                 }
             }
         }
-    }
-}
-
-.navbar-brand:hover {
-    .logo-wrapper {
-        .logo-stroke {
-            fill: $baca2_blue;
-        }
-
-        #triangle {
-            path {
-                fill: $baca2_blue;
-            }
-        }
-    }
-}
-
-.logo-wrapper {
-    path {
-        transition: fill 0.5s;
     }
 }
