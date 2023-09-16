@@ -5,8 +5,17 @@ T = TypeVar('T', bound=models.Model)
 
 
 class TableWidget:
+    ACCESS_MODES = [
+        'user',
+        'admin',
+    ]
+
+    class AccessModeError(Exception):
+        pass
+
     def __init__(self,
                  model_cls: Type[T],
+                 access_mode: str = 'user',
                  table_id: str = '',
                  cols: List[str] = None,
                  header: Dict[str, str] = None,
@@ -25,6 +34,11 @@ class TableWidget:
         self.length_change = length_change
         self.refresh = refresh
         self.refresh_interval = refresh_interval
+
+        if access_mode not in TableWidget.ACCESS_MODES:
+            raise TableWidget.AccessModeError('Access mode not recognized.')
+        else:
+            self.access_mode = access_mode
 
         self.table_class = ''
         if style:
@@ -61,6 +75,7 @@ class TableWidget:
         context = {
             'table_id': self.table_id,
             'model_cls': self.model_cls,
+            'access_mode': self.access_mode,
             'model_name': self.model_name,
             'cols': self.cols,
             'header': [self.header[_] for _ in self.cols],

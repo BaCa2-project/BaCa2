@@ -86,6 +86,11 @@ class AdminView(LoggedInView, SideNavMixin, UserPassesTestMixin):
         if 'new_course_form_widget' not in context.keys():
             context['new_course_form_widget'] = NewCourseFormWidget().get_context()
 
+        context['courses_table'] = TableWidget(model_cls=Course,
+                                               access_mode='admin',
+                                               refresh=False,
+                                               paging=False)
+
         return context
 
     def post(self, request, *args, **kwargs):
@@ -142,12 +147,23 @@ class JsonView(LoginRequiredMixin, View):
     @staticmethod
     def get(request, *args, **kwargs):
         if kwargs['model_name'] == 'course':
-            return JsonResponse(
-                {'data': [course.get_data() for course in Course.objects.filter(
-                    usercourse__user=request.user
-                )]}
-            )
-        return JsonResponse({'status': 'error'})
+            if kwargs['access_mode'] == 'user':
+                return JsonResponse(
+                    {'data': [course.get_data() for course in Course.objects.filter(
+                        usercourse__user=request.user
+                    )]}
+                )
+            elif kwargs['access_mode'] == 'admin':
+                if request.user.is_superuser:
+                    return JsonResponse(
+                        {'data': [course.get_data() for course in Course.objects.all()]}
+                    )
+                else:
+                    return JsonResponse({'status': 'error',
+                                         'message': 'Access denied.'})
+
+        return JsonResponse({'status': 'error',
+                             'message': 'Model name not recognized.'})
 
 
 class FieldValidationView(LoginRequiredMixin, View):
