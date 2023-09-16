@@ -1,3 +1,5 @@
+{% load custom_tags %}
+
 <div class="card">
     <div class="card-body">
         <div class="table-responsive">
@@ -6,8 +8,8 @@
                    style="width:100%">
                 <thead>
                     <tr>
-                        {% for col_name in table.header %}
-                            <th>{{ col_name }}</th>
+                        {% for col in table.cols %}
+                            <th>{{ table.header|get_item:col }}</th>
                         {% endfor %}
                     </tr>
                 </thead>
