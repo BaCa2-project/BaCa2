@@ -413,6 +413,12 @@ html, body {
 [data-bs-theme=light] .side-nav .side-nav-button.active .side-nav-link {
   color: #212529;
 }
+[data-bs-theme=light] .side-nav .side-nav-button.active:hover {
+  background-position: 33.3333333333% 0;
+}
+[data-bs-theme=light] .side-nav .side-nav-button.active:hover .side-nav-link {
+  color: #212529;
+}
 
 [data-bs-theme=dark] .side-nav .side-nav-button {
   background-size: 400% 100%;
@@ -446,6 +452,12 @@ html, body {
 }
 [data-bs-theme=dark] .side-nav .side-nav-button.active .side-nav-link {
   color: #000;
+}
+[data-bs-theme=dark] .side-nav .side-nav-button.active:hover {
+  background-position: 33.3333333333% 0;
+}
+[data-bs-theme=dark] .side-nav .side-nav-button.active:hover .side-nav-link {
+  color: #fff;
 }
 
 /*# sourceMappingURL=base.css.map */

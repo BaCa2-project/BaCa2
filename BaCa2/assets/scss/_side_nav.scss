@@ -106,6 +106,14 @@
                 .side-nav-link {
                     color: safe_get($map, $side_nav_default_variables, active_link_color);
                 }
+
+                &:hover {
+                    background-position: calc(100% / 3) 0;
+
+                    .side-nav-link {
+                        color: safe_get($map, $side_nav_default_variables, hover_link_color);
+                    }
+                }
             }
         }
     }
