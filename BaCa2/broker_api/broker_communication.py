@@ -1,5 +1,6 @@
 from dataclasses import dataclass, asdict
 from hashlib import sha256
+import re
 
 # TODO: get rid of this file
 
@@ -69,6 +70,14 @@ class BrokerToBaca:
 
 def create_broker_submit_id(course_name: str, submit_id: int) -> str:
     return f'{course_name}___{submit_id}'
+
+
+def split_broker_submit_id(broker_submit_id: str) -> (str, int):
+    r = re.compile(r'(\w+?)___([0-9]+)')
+    m = re.fullmatch(r, broker_submit_id)
+    course_name = m.group(1)
+    submit_id = int(m.group(2))
+    return course_name, submit_id
 
 
 def make_hash(password: str, broker_submit_id: str) -> str:
