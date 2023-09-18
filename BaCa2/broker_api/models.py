@@ -2,7 +2,7 @@ from django.db import models, transaction
 from django.utils import timezone
 
 import requests
-from baca2PackageManager.broker_communication import *
+import baca2PackageManager.broker_communication as brcom
 
 from BaCa2.settings import BROKER_PASSWORD, BACA_PASSWORD, BROKER_URL
 from main.models import Course
@@ -32,23 +32,23 @@ class BrokerSubmit(models.Model):
 
     @property
     def broker_id(self):
-        return create_broker_submit_id(self.course.name, int(self.submit_id))
+        return brcom.create_broker_submit_id(self.course.name, int(self.submit_id))
 
     def hash_password(self, password: str) -> str:
-        return make_hash(password, self.broker_id)
+        return brcom.make_hash(password, self.broker_id)
 
-    def _send_submit(self, url: str, password: str) -> (BacaToBroker, int):
+    def _send_submit(self, url: str, password: str) -> (brcom.BacaToBroker, int):
         with InCourse(self.course.name):
             tmp = Submit.objects.get(pk=self.submit_id)
             src_code = tmp.source_code.path
-        message = BacaToBroker(
+        message = brcom.BacaToBroker(
             pass_hash=self.hash_password(password),
             submit_id=self.broker_id,
             package_path=str(self.package_instance.path),
             commit_id=self.package_instance.commit,
             submit_path=src_code
         )
-        r = requests.post(url, json=asdict(message))
+        r = requests.post(url, json=message.serialize())
         return message, r.status_code
 
     @classmethod
@@ -73,9 +73,10 @@ class BrokerSubmit(models.Model):
 
     @classmethod
     @transaction.atomic
-    def handle_result(cls, broker_submit_id: str, response: BrokerToBaca) -> None:
+    def handle_result(cls, broker_submit_id: str, response: brcom.BrokerToBaca) -> None:
         # Authentication
-        submit = cls.objects.get(broker_id=broker_submit_id)
+        course_name, submit_id = brcom.split_broker_submit_id(broker_submit_id)
+        submit = cls.objects.get(course__name=course_name, submit_id=submit_id)
         if response.submit_id != broker_submit_id:
             raise ValueError('broker_submit_id in the url and in the json message have to match.')
         if submit is None:
@@ -94,8 +95,7 @@ class BrokerSubmit(models.Model):
 
     @transaction.atomic
     def update_status(self, new_status: StatusEnum):
-        # new_status is purely for safety reasons
-        if new_status - 1 != self.status:
+        if new_status - 1 != self.status and new_status != self.StatusEnum.EXPIRED:
             raise ValueError(f"Attempted to change status from {self.status} to {new_status}.")
         self.status = new_status
         self.update_date = timezone.now()
