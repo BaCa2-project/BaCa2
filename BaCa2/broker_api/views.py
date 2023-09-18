@@ -1,11 +1,13 @@
 import json
 
 from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
 
 from .models import BrokerSubmit
 from baca2PackageManager.broker_communication import *
 
 
+@csrf_exempt
 def handle_broker_result(request, broker_submit_id: str):
     if request.method != 'POST':
         return HttpResponse("Not found", 404)
