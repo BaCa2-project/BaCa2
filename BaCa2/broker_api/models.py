@@ -75,7 +75,9 @@ class BrokerSubmit(models.Model):
     def handle_result(cls, broker_submit_id: str, response: brcom.BrokerToBaca) -> None:
         # Authentication
         course_name, submit_id = brcom.split_broker_submit_id(broker_submit_id)
-        broker_submit = cls.objects.get(course__name=course_name, submit_id=submit_id)
+        print(f'{course_name=}, {submit_id=}')
+        broker_submit = cls.objects.filter(course__name=course_name, submit_id=submit_id).first()
+        print(f'{broker_submit=}')
         if response.submit_id != broker_submit_id:
             raise ValueError('broker_submit_id in the url and in the json message have to match.')
         if broker_submit is None:
@@ -83,10 +85,16 @@ class BrokerSubmit(models.Model):
         if response.pass_hash != broker_submit.hash_password(BACA_PASSWORD):
             raise PermissionError("Wrong password.")
 
+        print('update status')
         broker_submit.update_status(cls.StatusEnum.CHECKED)
 
+        print('unpack results')
         with InCourse(course_name):
             Result.unpack_results(submit_id, response)
+            submit = Submit.objects.get(pk=submit_id)
+            submit.score()
+            print(submit)
+        print('done')
 
         broker_submit.update_status(cls.StatusEnum.SAVED)
 

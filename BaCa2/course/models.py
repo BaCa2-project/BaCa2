@@ -400,6 +400,7 @@ class Result(models.Model):  # TODO: +pola z kolejki
         :return: None
         """
         submit = Submit.objects.get(pk=submit_id)
+        print(submit)
         for set_name, set_result in results.results.items():
             test_set = TestSet.objects.get(task=submit.task, short_name=set_name)
             for test_name, test_result in set_result.tests.items():
