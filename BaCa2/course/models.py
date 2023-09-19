@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Self
 
 from django.db import models
 from django.db.models import Count, QuerySet
@@ -11,6 +11,7 @@ from BaCa2.settings import SUBMITS_DIR
 from main.models import User, Course
 
 from package.models import PackageInstance
+from baca2PackageManager import Package, TSet, TestF
 
 __all__ = ['Round', 'Task', 'TestSet', 'Test', 'Submit', 'Result']
 
@@ -46,7 +47,6 @@ class Round(models.Model):
         return f"Round {self.pk}"
 
 
-
 class Task(models.Model):
     """
     It represents a task that user can submit a solution to. The task is judged and scored automatically
@@ -71,8 +71,18 @@ class Task(models.Model):
         return f"Task {self.pk}: {self.task_name}; Judging mode: {TaskJudgingMode[self.judging_mode].label};" \
                f"Package: {self.package_instance}"
 
+    def initialise_task(self) -> None:
+        """
+        It initialises the task by creating a new instance of the Task class, and adding all task sets and tests to db.
+
+        :return: None
+        """
+        pkg = self.package_instance.package
+        for t_set in pkg.sets():
+            TestSet.create_from_package(t_set, self)
+
     @classmethod
-    def create_new(cls, **kwargs) -> 'Task':
+    def create_new(cls, initialise=True, **kwargs) -> 'Task':
         """
         If the user passes in a PackageInstance object, we'll use the object's primary key as the value for the
         package_instance_id field.
@@ -86,7 +96,12 @@ class Task(models.Model):
         pkg_instance = kwargs.get('package_instance_id')
         if isinstance(pkg_instance, PackageInstance):
             kwargs['package_instance_id'] = pkg_instance.pk
-        return cls.objects.create(**kwargs)
+
+        task_obj = cls.objects.create(**kwargs)
+        task_obj.save()
+        if initialise:
+            task_obj.initialise_task()
+        return task_obj
 
     @property
     def sets(self) -> QuerySet:
@@ -172,6 +187,25 @@ class TestSet(models.Model):
     def __str__(self):
         return f"TestSet {self.pk}: Task/set: {self.task.task_name}/{self.short_name} (w: {self.weight})"
 
+    @classmethod
+    def create_from_package(cls, t_set: TSet, task: Task) -> Self:
+        """
+        It creates a new TestSet object from a TSet object.
+
+        :param t_set: The TSet object that you want to create a TestSet object from.
+        :type t_set: TSet
+        :param task: The task that you want to associate the TestSet object with.
+        :type task: Task
+
+        :return: A new TestSet object.
+        :rtype: TestSet
+        """
+        test_set = cls.objects.create(short_name=t_set['name'], weight=t_set['weight'], task=task)
+        test_set.save()
+        for test in t_set.tests():
+            Test.create_from_package(test, test_set)
+        return test_set
+
     @property
     def tests(self) -> QuerySet:
         """
@@ -191,6 +225,21 @@ class Test(models.Model):
     short_name = models.CharField(max_length=255)
     #: Foreign key to :py:class:`TestSet`.
     test_set = models.ForeignKey(TestSet, on_delete=models.CASCADE)
+
+    @classmethod
+    def create_from_package(cls, test: TestF, test_set: TestSet) -> Self:
+        """
+        It creates a new Test object from a TestF object.
+
+        :param test: The TestF object that you want to create a Test object from.
+        :type test: TestF
+        :param test_set: The test set that you want to associate the Test object with.
+        :type test_set: TestSet
+
+        :return: A new Test object.
+        :rtype: Test
+        """
+        return cls.objects.create(short_name=test['name'], test_set=test_set)
 
     def __str__(self):
         return f"Test {self.pk}: Test/set/task: " \
@@ -214,7 +263,7 @@ class Submit(models.Model):
     final_score = models.FloatField(default=-1)
 
     @classmethod
-    def create_new(cls, **kwargs) -> 'Submit':
+    def create_new(cls, **kwargs) -> Self:
         """
         Creates new Submit, but changes ``usr`` attribute to its primary key, when passed as model. This is because of
         simulating Primary Key for user.
