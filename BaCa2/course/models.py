@@ -1,6 +1,6 @@
 from typing import List, Self
 
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Count, QuerySet
 from django.core.exceptions import ValidationError
 
@@ -12,6 +12,7 @@ from main.models import User, Course
 
 from package.models import PackageInstance
 from baca2PackageManager import Package, TSet, TestF
+from baca2PackageManager.broker_communication import BrokerToBaca
 
 __all__ = ['Round', 'Task', 'TestSet', 'Test', 'Submit', 'Result']
 
@@ -378,6 +379,39 @@ class Result(models.Model):  # TODO: +pola z kolejki
         choices=ResultStatus.choices,
         default=ResultStatus.PND
     )
+    #: Time of test execution in seconds.
+    time_real = models.FloatField(null=True, default=None)
+    #: Time of test execution in seconds, measured by CPU.
+    time_cpu = models.FloatField(null=True, default=None)
+    #: Memory used by test in bytes.
+    runtime_memory = models.IntegerField(null=True, default=None)
+
+    @classmethod
+    @transaction.atomic
+    def unpack_results(cls, submit_id, results: BrokerToBaca) -> None:
+        """
+        It unpacks the results from the BrokerToBaca object and saves them to the database.
+
+        :param submit_id: The submit id that you want to unpack the results for.
+        :type submit_id: str
+        :param results: The BrokerToBaca object that you want to unpack the results from.
+        :type results: BrokerToBaca
+
+        :return: None
+        """
+        submit = Submit.objects.get(pk=submit_id)
+        for set_name, set_result in results.results.items():
+            test_set = TestSet.objects.get(task=submit.task, short_name=set_name)
+            for test_name, test_result in set_result.tests.items():
+                test = Test.objects.get(test_set=test_set, short_name=test_name)
+                cls.objects.create(
+                    test=test,
+                    submit=submit,
+                    status=test_result.status,
+                    time_real=test_result.time_real,
+                    time_cpu=test_result.time_cpu,
+                    runtime_memory=test_result.runtime_memory,
+                )
 
     def __str__(self):
         return f"Result {self.pk}: Set[{self.test.test_set.short_name}] Test[{self.test.short_name}]; " \

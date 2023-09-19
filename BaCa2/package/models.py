@@ -1,3 +1,5 @@
+from typing import Self
+
 from django.db import models
 from main.models import User
 from baca2PackageManager.validators import isStr
@@ -55,6 +57,37 @@ class PackageInstance(models.Model):
     commit = models.CharField(max_length=2047)
 
     @classmethod
+    def commit_msg(cls, pkg: PackageSource, commit: str) -> str:
+        """
+        It returns a string that is the name of the package source and the commit
+
+        :param pkg: The package source
+        :type pkg: PackageSource
+        :param commit: The commit of the package
+        :type commit: str
+
+        :return: The name of the package source and the commit.
+        """
+        return f"{pkg.name}.{commit}"
+
+    @classmethod
+    def create_from_name(cls, name: str, commit) -> Self:
+        """
+        Create a new package instance from the given path
+
+        :param pkg_path: The path to the package source
+        :type pkg_path: Path
+        :param commit: The commit of the package
+        :type commit: str
+
+        :return: A new PackageInstance object.
+        """
+        pkg_source, _ = PackageSource.objects.get_or_create(name=name)
+        pkg_instance = cls.objects.create(package_source=pkg_source, commit=commit)
+        PACKAGES[cls.commit_msg(pkg_source, commit)] = Package(pkg_source.path, commit)
+        return pkg_instance
+
+    @classmethod
     def exists(cls, pkg_id: int) -> bool:
         """
         If the package with the given ID exists, return True, otherwise return False
@@ -81,7 +114,7 @@ class PackageInstance(models.Model):
 
         :return: The name of the package source and the commit.
         """
-        return f"{self.package_source.name}.{self.commit}"
+        return self.commit_msg(self.package_source, self.commit)
 
     @property
     def package(self) -> Package:
