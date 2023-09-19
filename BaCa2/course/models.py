@@ -6,13 +6,11 @@ from django.core.exceptions import ValidationError
 
 from BaCa2.choices import TaskJudgingMode, ResultStatus
 from BaCa2.exceptions import DataError
-from BaCa2.settings import BASE_DIR
+from BaCa2.settings import SUBMITS_DIR
 
 from main.models import User, Course
 
 from package.models import PackageInstance
-
-SUBMITS_DIR = BASE_DIR / 'submits'
 
 __all__ = ['Round', 'Task', 'TestSet', 'Test', 'Submit', 'Result']
 
@@ -207,7 +205,7 @@ class Submit(models.Model):
     #: Datetime when submit took place.
     submit_date = models.DateTimeField(auto_now_add=True)
     #: Field submitted to the task
-    source_code = models.FileField(upload_to=SUBMITS_DIR)
+    source_code = models.FilePathField(path=SUBMITS_DIR, allow_files=True)
     #: :py:class:`Task` model, to which submit is assigned.
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
     #: Pseudo-foreign key to :py:class:`main.models.User` model (user), who submitted to the task.

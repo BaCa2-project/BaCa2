@@ -175,10 +175,12 @@ pkg.add_supported_extensions('cpp')
 
 PACKAGES: Dict[str, pkg.Package] = {}
 
-BROKER_URL = ''
-BROKER_TIMEOUT = 30
+BROKER_URL = 'http://127.0.0.1:8180/baca/'
+BROKER_TIMEOUT = 600  # seconds
+
+SUBMITS_DIR = BASE_DIR / 'submits'
 
 # Passwords for protecting communication channels between the broker and BaCa2.
 # PASSWORDS HAVE TO DIFFERENT IN ORDER TO BE EFFECTIVE
 BACA_PASSWORD = 'tmp-baca-password'
-BROKER_PASSWORD = 'tmp-broker-password'
+BROKER_PASSWORD = 'tmp-broker-password-chuj'
