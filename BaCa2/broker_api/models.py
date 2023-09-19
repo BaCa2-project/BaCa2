@@ -8,7 +8,8 @@ from BaCa2.settings import BROKER_PASSWORD, BACA_PASSWORD, BROKER_URL
 from main.models import Course
 from package.models import PackageInstance
 from course.routing import InCourse
-from course.models import Submit
+from course.models import Submit, Result
+
 
 # HELP:
 # package_path = package_instance.package_source.path
@@ -22,6 +23,7 @@ class BrokerSubmit(models.Model):
         NEW = 0
         AWAITING_RESPONSE = 1
         CHECKED = 2
+        SAVED = 3
 
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     submit_id = models.BigIntegerField()
@@ -38,15 +40,12 @@ class BrokerSubmit(models.Model):
         return brcom.make_hash(password, self.broker_id)
 
     def _send_submit(self, url: str, password: str) -> (brcom.BacaToBroker, int):
-        with InCourse(self.course.name):
-            tmp = Submit.objects.get(pk=self.submit_id)
-            src_code = tmp.source_code
         message = brcom.BacaToBroker(
             pass_hash=self.hash_password(password),
             submit_id=self.broker_id,
             package_path=str(self.package_instance.package_source.path),
             commit_id=self.package_instance.commit,
-            submit_path=src_code
+            submit_path=self.solution
         )
         r = requests.post(url, json=message.serialize())
         return message, r.status_code
@@ -76,22 +75,25 @@ class BrokerSubmit(models.Model):
     def handle_result(cls, broker_submit_id: str, response: brcom.BrokerToBaca) -> None:
         # Authentication
         course_name, submit_id = brcom.split_broker_submit_id(broker_submit_id)
-        submit = cls.objects.get(course__name=course_name, submit_id=submit_id)
+        broker_submit = cls.objects.get(course__name=course_name, submit_id=submit_id)
         if response.submit_id != broker_submit_id:
             raise ValueError('broker_submit_id in the url and in the json message have to match.')
-        if submit is None:
+        if broker_submit is None:
             raise ValueError(f"No submit with broker_id {broker_submit_id} exists.")
-        if response.pass_hash != submit.hash_password(BACA_PASSWORD):
+        if response.pass_hash != broker_submit.hash_password(BACA_PASSWORD):
             raise PermissionError("Wrong password.")
-        submit.update_status(cls.StatusEnum.CHECKED)
-        # Data processing
-        ...  # TODO: implement
+
+        broker_submit.update_status(cls.StatusEnum.CHECKED)
+
+        with InCourse(course_name):
+            Result.unpack_results(submit_id, response)
+
+        broker_submit.update_status(cls.StatusEnum.SAVED)
 
     @property
     def solution(self):
-        with InCourse(str(self.course)):
-            return Submit.objects.get(id=self.submit_id).first().source_code
-        # TODO: Check if it works
+        with InCourse(self.course.name):
+            return Submit.objects.get(id=self.submit_id).source_code
 
     @transaction.atomic
     def update_status(self, new_status: StatusEnum):
