@@ -60,9 +60,7 @@ class General(TestCase):
         cls.course.save()
         create_course(cls.course.name)
 
-        package = PackageSource.objects.create(name='dosko')
-        cls.pkg_instance = PackageInstance.objects.create(package_source=package, commit='1')
-        package.save()
+        cls.pkg_instance = PackageInstance.create_from_name('dosko', '1')
         cls.pkg_instance.save()
 
         cls.user = User.objects.create_user(username=f'user1_{datetime.now().timestamp()}',
@@ -136,4 +134,6 @@ class General(TestCase):
 
         broker_submit = BrokerSubmit.send(self.course, submit_id, self.pkg_instance)
 
-        sleep(300)
+        while broker_submit.status != BrokerSubmit.StatusEnum.SAVED:
+            sleep(1)
+            broker_submit.refresh_from_db()
