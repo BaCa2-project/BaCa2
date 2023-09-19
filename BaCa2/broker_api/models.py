@@ -40,11 +40,11 @@ class BrokerSubmit(models.Model):
     def _send_submit(self, url: str, password: str) -> (brcom.BacaToBroker, int):
         with InCourse(self.course.name):
             tmp = Submit.objects.get(pk=self.submit_id)
-            src_code = tmp.source_code.path
+            src_code = tmp.source_code
         message = brcom.BacaToBroker(
             pass_hash=self.hash_password(password),
             submit_id=self.broker_id,
-            package_path=str(self.package_instance.path),
+            package_path=str(self.package_instance.package_source.path),
             commit_id=self.package_instance.commit,
             submit_path=src_code
         )
