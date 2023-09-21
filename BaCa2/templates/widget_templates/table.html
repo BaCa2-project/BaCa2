@@ -1,20 +1,32 @@
 {% load custom_tags %}
 
-<div class="card">
+<div class="table-wrapper card">
     <div class="card-body">
         <div class="table-responsive">
             <table class="{{ table.table_class }}"
                    id="{{ table.table_id }}"
                    style="width:100%">
                 <thead>
-                    <tr>
-                        {% for col in table.cols %}
-                            <th>{{ table.header|get_item:col }}</th>
-                        {% endfor %}
-                    </tr>
+                <tr>
+                    {% for col in table.cols %}
+                        <th>{{ table.header|get_item:col }}</th>
+                    {% endfor %}
+                </tr>
                 </thead>
             </table>
         </div>
+    </div>
+</div>
+
+<div class="table-icons-util">
+    <div class="icon-wrapper icon-m d-flex details-icon">
+        {% include 'icons/3-lines.svg' %}
+    </div>
+    <div class="icon-wrapper icon-m d-flex edit-icon">
+        {% include 'icons/pencil.svg' %}
+    </div>
+    <div class="icon-wrapper icon-m d-flex delete-icon">
+        {% include 'icons/trash.svg' %}
     </div>
 </div>
 
@@ -22,12 +34,13 @@
 <script type="text/javascript">
 
     const table = $('#{{ table.table_id }}').DataTable({
-        ajax: "/main/json/{{ table.model_name }}-{{ table.access_mode }}",
-        columns: [
+        'ajax': "/main/json/{{ table.model_name }}-{{ table.access_mode }}",
+        'columns': [
             {% for col_name in table.cols %}
                 {"data": "{{ col_name }}"},
             {% endfor %}
         ],
+        order: [[{{ table.default_order_col }}, '{{ table.default_order }}']],
         {% if table.paging %}
             pageLength: parseInt({{ table.page_length }}),
             {% if table.length_change %}
@@ -47,9 +60,62 @@
                 lengthChange: false,
             {% endif %}
         {% else %}
-            paging:false,
+            paging: false,
         {% endif %}
         searching: false,
+        columnDefs: [
+            {
+                'targets': [{% for index in table.non_sortable_indexes %} {{ index }}, {% endfor %}],
+                'orderable': false,
+            },
+            {% if table.record_methods.select.on %}
+                {
+                    'targets': [{{ table.record_methods.select.col_index }}],
+                    'data': null,
+                    'render': function (data, type, row, meta) {
+                        return render_checkbox(`checkbox-${row.id}`);
+                    }
+                },
+            {% endif %}
+            {% if table.record_methods.details.on %}
+                {
+                    'targets': [{{ table.record_methods.details.col_index }}],
+                    'data': null,
+                    'render': function (data, type, row, meta) {
+                        const button = document.createElement('a');
+                        $(button).addClass('record-method-link');
+                        button.innerHTML = $('.table-icons-util').find('.details-icon')[0].outerHTML
+                        return button.outerHTML;
+                    }
+                },
+            {% endif %}
+            {% if table.record_methods.edit.on %}
+                {
+                    'targets': [{{ table.record_methods.edit.col_index }}],
+                    'data': null,
+                    'render': function (data, type, row, meta) {
+                        const button = document.createElement('a');
+                        $(button).addClass('record-method-link');
+
+                        button.innerHTML = $('.table-icons-util').find('.edit-icon')[0].outerHTML
+                        return button.outerHTML;
+                    }
+                },
+            {% endif %}
+            {% if table.record_methods.delete.on %}
+                {
+                    'targets': [{{ table.record_methods.delete.col_index }}],
+                    'data': null,
+                    'render': function (data, type, row, meta) {
+                        const button = document.createElement('a');
+                        $(button).addClass('record-method-link');
+
+                        button.innerHTML = $('.table-icons-util').find('.delete-icon')[0].outerHTML
+                        return button.outerHTML;
+                    }
+                },
+            {% endif %}
+        ]
     });
 
     {% if table.refresh %}
@@ -58,4 +124,90 @@
         }, {{ table.refresh_interval }});
     {% endif %}
 
+    function method_cell_content({
+                                     inner_element_reference,
+                                     wrapper_element_tag,
+                                     wrapper_element_attrs = {},
+                                     inner_element_attrs = {}
+                                 } = {}) {
+        const inner_element = $($(`#${inner_element_reference}`).children()[0]);
+        const content = $(document.createElement(wrapper_element_tag));
+
+        for (let i in wrapper_element_attrs) {
+            content.prop(i, wrapper_element_attrs[i])
+        }
+        for (let i in inner_element_attrs) {
+            inner_element.prop(i, inner_element_attrs[i])
+        }
+
+        content[0].innerHTML = inner_element[0].outerHTML
+        return content[0];
+    }
+
+    let shift_pressed = false;
+    let last_selected_row = null;
+
+    document.addEventListener("keydown", function (e) {
+        if (e.key === 'Shift') {
+            shift_pressed = true;
+        }
+    })
+
+    document.addEventListener("keyup", function (e) {
+        if (e.key === 'Shift') {
+            shift_pressed = false;
+        }
+    })
+
+    function table_select (current_checkbox) {
+        if ($(current_checkbox).prop('checked')) {
+            const selected_row = $(current_checkbox).closest('tr');
+
+            if (shift_pressed === true && last_selected_row !== null) {
+                const selected_row_index = table.row(selected_row).index();
+                const last_selected_row_index = table.row(last_selected_row).index();
+                const rows = table.rows({ order: 'applied' }).nodes().to$();
+                let selecting = false;
+
+                for (let i = 0; i < rows.length; i++) {
+                    let row = rows[i];
+
+                    if (selecting) {
+                        if (table.row(row).index() === selected_row_index ||
+                        table.row(row).index() === last_selected_row_index) {
+                            break;
+                        } else {
+                            let checkbox = $(row).find(".form-check-input");
+                            if (!checkbox.prop('checked')) {
+                                checkbox.prop('checked', true);
+                            }
+                        }
+                    } else {
+                        if (table.row(row).index() === selected_row_index ||
+                        table.row(row).index() === last_selected_row_index) {
+                            selecting = true;
+                        }
+                    }
+                }
+            }
+
+            last_selected_row = selected_row;
+        } else {
+            last_selected_row = null;
+        }
+    }
+
+    function render_checkbox (id) {
+        const checkbox = document.createElement('div');
+        $(checkbox).addClass('select-checkbox');
+
+        const checkbox_child = document.createElement('input');
+        $(checkbox_child).addClass('form-check-input');
+        $(checkbox_child).prop('type', 'checkbox');
+        $(checkbox_child).prop('id', id);
+        checkbox_child.setAttribute('onclick', 'table_select(this)');
+
+        checkbox.appendChild(checkbox_child);
+        return checkbox.outerHTML;
+    }
 </script>

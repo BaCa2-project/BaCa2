@@ -222,6 +222,10 @@ html, body {
   width: 40rem;
 }
 
+.icon-wrapper {
+  width: fit-content;
+  height: fit-content;
+}
 .icon-wrapper.icon-s svg {
   width: auto;
   height: 1rem;
@@ -458,6 +462,50 @@ html, body {
 }
 [data-bs-theme=dark] .side-nav .side-nav-button.active:hover .side-nav-link {
   color: #fff;
+}
+
+.table-icons-util {
+  display: none;
+}
+
+.table-wrapper .record-method-link {
+  display: flex;
+  width: fit-content;
+  height: fit-content;
+}
+
+[data-bs-theme=light] .table-wrapper .record-method-link .icon-wrapper svg {
+  transition: stroke ease 0.5s;
+  stroke: gray;
+}
+[data-bs-theme=light] .table-wrapper .record-method-link .icon-wrapper.details-icon:hover svg {
+  stroke: #212529;
+}
+[data-bs-theme=light] .table-wrapper .record-method-link .icon-wrapper.edit-icon:hover svg {
+  stroke: #212529;
+}
+[data-bs-theme=light] .table-wrapper .record-method-link .icon-wrapper.delete-icon:hover svg {
+  stroke: #FE2E63;
+}
+[data-bs-theme=light] .table-wrapper .form-check {
+  width: fit-content;
+}
+
+[data-bs-theme=dark] .table-wrapper .record-method-link .icon-wrapper svg {
+  transition: stroke ease 0.5s;
+  stroke: gray;
+}
+[data-bs-theme=dark] .table-wrapper .record-method-link .icon-wrapper.details-icon:hover svg {
+  stroke: #fff;
+}
+[data-bs-theme=dark] .table-wrapper .record-method-link .icon-wrapper.edit-icon:hover svg {
+  stroke: #fff;
+}
+[data-bs-theme=dark] .table-wrapper .record-method-link .icon-wrapper.delete-icon:hover svg {
+  stroke: #FE2E63;
+}
+[data-bs-theme=dark] .table-wrapper .form-check {
+  width: fit-content;
 }
 
 /*# sourceMappingURL=base.css.map */

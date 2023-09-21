@@ -111,4 +111,19 @@ $side_nav_theme_variables: (
         border_color: $muted,
         hover_border_color: $white,
     )
-)
+);
+
+// table variables
+$table_default_variables: (
+    icon_color: $muted,
+    hover_icon_color_details: $dark,
+    hover_icon_color_edit: $dark,
+    hover_icon_color_delete: $baca2_pink,
+);
+$table_theme_variables: (
+    light: (),
+    dark: (
+        hover_icon_color_details: $white,
+        hover_icon_color_edit: $white,
+    )
+);

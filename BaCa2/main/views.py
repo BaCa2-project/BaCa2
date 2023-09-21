@@ -88,10 +88,16 @@ class AdminView(LoggedInView, SideNavMixin, UserPassesTestMixin):
 
         context['courses_table'] = TableWidget(model_cls=Course,
                                                access_mode='admin',
+                                               create=True,
+                                               details=True,
+                                               edit=True,
+                                               delete=True,
+                                               select=True,
                                                cols=['id', 'name'],
                                                header={'name': 'Course Name'},
+                                               default_order_col='name',
                                                refresh=False,
-                                               paging=False)
+                                               paging=False).get_context()
 
         return context
 

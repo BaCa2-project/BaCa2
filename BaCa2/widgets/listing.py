@@ -1,14 +1,14 @@
 from typing import List, Dict, TypeVar, Type
 from django.db import models
 
+import json
+
 T = TypeVar('T', bound=models.Model)
 
 
 class TableWidget:
-    ACCESS_MODES = [
-        'user',
-        'admin',
-    ]
+    ACCESS_MODES = ['user', 'admin']
+    RECORD_METHODS = ['details', 'edit', 'delete', 'select']
 
     class AccessModeError(Exception):
         pass
@@ -26,7 +26,15 @@ class TableWidget:
                  refresh: bool = False,
                  refresh_interval: int = 30000,
                  style: str = "",
-                 stripe: bool = True) -> None:
+                 stripe: bool = True,
+                 default_order_col: str = '',
+                 default_order_asc: bool = True,
+                 create: bool = False,
+                 details: bool = False,
+                 edit: bool = False,
+                 delete: bool = False,
+                 select: bool = False,
+                 non_sortable: List[str] or 'all' = None) -> None:
         self.model_cls = model_cls
         self.model_name = model_cls.__name__.lower()
         self.paging = paging
@@ -34,6 +42,12 @@ class TableWidget:
         self.length_change = length_change
         self.refresh = refresh
         self.refresh_interval = refresh_interval
+        self.record_methods = {method: {'on': False, 'col_index': -1} for method in TableWidget.RECORD_METHODS}
+
+        if default_order_asc:
+            self.default_order = 'asc'
+        else:
+            self.default_order = 'desc'
 
         if access_mode not in TableWidget.ACCESS_MODES:
             raise TableWidget.AccessModeError('Access mode not recognized.')
@@ -71,6 +85,43 @@ class TableWidget:
         else:
             self.length_menu = [self.page_length * i for i in range(1, 4)] + [-1]
 
+        if not non_sortable:
+            self.non_sortable = []
+        else:
+            self.non_sortable = non_sortable
+
+        if select:
+            self._add_record_method('select')
+        if details:
+            self._add_record_method('details')
+        if edit:
+            self._add_record_method('edit')
+        if delete:
+            self._add_record_method('delete')
+
+        if non_sortable == 'all':
+            self.non_sortable_indexes = [i for i in range(len(cols))]
+        else:
+            self.non_sortable_indexes = [self.cols.index(col) for col in self.non_sortable]
+
+        if not default_order_col:
+            if select:
+                default_order_col = self.cols[1]
+            else:
+                default_order_col = self.cols[0]
+        self.default_order_col = self.cols.index(default_order_col)
+
+    def _add_record_method(self, name: str, header: str = ''):
+        if name != 'select':
+            self.cols.append(name)
+        else:
+            self.cols = [name] + self.cols
+
+        self.header[name] = header
+        self.non_sortable.append(name)
+        self.record_methods[name]['on'] = True
+        self.record_methods[name]['col_index'] = self.cols.index(name)
+
     def get_context(self) -> dict:
         context = {
             'table_id': self.table_id,
@@ -78,7 +129,7 @@ class TableWidget:
             'access_mode': self.access_mode,
             'model_name': self.model_name,
             'cols': self.cols,
-            'header': [self.header[_] for _ in self.cols],
+            'header': self.header,
             'cols_num': len(self.cols),
             'paging': self.paging,
             'page_length': self.page_length,
@@ -87,6 +138,11 @@ class TableWidget:
             'refresh': self.refresh,
             'refresh_interval': self.refresh_interval,
             'table_class': self.table_class,
+            'non_sortable_indexes': self.non_sortable_indexes,
+            'default_order_col': self.default_order_col,
+            'default_order': self.default_order,
+            'record_methods': self.record_methods,
+            'record_methods_json': json.dumps(self.record_methods)
         }
 
         return context

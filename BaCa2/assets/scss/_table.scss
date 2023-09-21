@@ -1,0 +1,37 @@
+@import "baca2_variables";
+@import "functions";
+
+.table-icons-util {
+    display: none;
+}
+
+.table-wrapper {
+    .record-method-link {
+        display: flex;
+        width: fit-content;
+        height: fit-content;
+    }
+}
+
+@each $theme, $map in $table_theme_variables {
+    [data-bs-theme="#{$theme}"] .table-wrapper {
+        .record-method-link {
+            .icon-wrapper {
+                svg {
+                    transition: stroke ease 0.5s;
+                    stroke: safe_get($map, $table_default_variables, icon_color);
+                }
+
+                @each $icon in [details, edit, delete] {
+                    &.#{$icon}-icon:hover svg {
+                        stroke: safe_get($map, $table_default_variables, hover_icon_color_#{$icon})
+                    }
+                }
+            }
+        }
+
+        .form-check {
+            width: fit-content;
+        }
+    }
+}
