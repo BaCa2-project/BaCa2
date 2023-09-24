@@ -16,12 +16,12 @@ model_cls = TypeVar("model_cls", bound=Type[models.Model])
 
 class UserManager(BaseUserManager):
     """
-    This class manages the creation of new user objects. Its methods allow to create instances of default users and
-    superusers with moderation privileges.
+    This class manages the creation of new user objects. Its methods allow for creation of default and superuser user
+    instances.
     The class extends BaseUserManager provided in django.contrib.auth and replaces the default UserManager model.
     """
     @staticmethod
-    def _create_settings(self) -> 'Settings':
+    def _create_settings() -> 'Settings':
         """
         Create a new user settings object.
 
@@ -74,7 +74,7 @@ class UserManager(BaseUserManager):
             is_staff=is_staff,
             is_superuser=is_superuser,
             date_joined=now,
-            user_settings=self._create_settings(self),
+            user_settings=self._create_settings(),
             **other_fields
         )
         user.set_password(password)
@@ -91,7 +91,7 @@ class UserManager(BaseUserManager):
         :type username: str
         :param password: New user's password.
         :type password: str
-        :param **other_fields: Values for non-required user fields.
+        :param other_fields: Values for non-required user fields.
         """
 
         return self._create_user(email, username, password, False, False, **other_fields)
@@ -106,13 +106,17 @@ class UserManager(BaseUserManager):
         :type username: str
         :param password: New user's password.
         :type password: str
-        :param **other_fields: Values for non-required user fields.
+        :param other_fields: Values for non-required user fields.
         """
 
         return self._create_user(email, username, password, True, True, **other_fields)
 
 
 class CourseManager(models.Manager):
+    """
+    This class manages the creation and deletion of course objects. It calls on :mod:`course.manager` methods to create
+    and delete course databases along with corresponding course objects in the 'default' database.
+    """
     def create_course(self, name: str, short_name: str = "") -> None:
         """
         Create a new course with given name and short name. If short name is not provided, it is automatically
@@ -221,6 +225,8 @@ class Course(models.Model):
 
         if not group:
             raise ValidationError('No default viewer group exists for this course')
+
+        # TODO
 
     def get_data(self) -> dict:
         return {

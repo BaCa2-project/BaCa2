@@ -125,6 +125,7 @@ class CourseShortName(forms.CharField):
             min_length=2,
             max_length=Course._meta.get_field('short_name').max_length,
             validators=[CourseShortName.validate_uniqueness],
+            required=False,
             **kwargs
         )
 
