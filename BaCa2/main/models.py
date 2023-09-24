@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Type, TypeVar
 
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
@@ -9,6 +9,9 @@ from django.core.exceptions import ValidationError
 
 from BaCa2.choices import PermissionTypes, DefaultCourseGroups
 from course.manager import create_course as create_course_db, delete_course as delete_course_db
+
+
+model_cls = TypeVar("model_cls", bound=Type[models.Model])
 
 
 class UserManager(BaseUserManager):
@@ -333,7 +336,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def check_general_permissions(
             self,
-            model: models.Model,
+            model: model_cls,
             permissions: str or PermissionTypes or List[PermissionTypes] = 'all'
     ) -> bool:
         """
@@ -374,7 +377,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     def check_course_permissions(
             self,
             course: Course,
-            model: models.Model,
+            model: model_cls,
             permissions: str or PermissionTypes or List[PermissionTypes] = 'all'
     ) -> bool:
         """
