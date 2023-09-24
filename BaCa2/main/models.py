@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Type, TypeVar
 
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
@@ -9,6 +9,9 @@ from django.core.exceptions import ValidationError
 
 from BaCa2.choices import PermissionTypes, DefaultCourseGroups
 from course.manager import create_course as create_course_db, delete_course as delete_course_db
+
+
+model_cls = TypeVar("model_cls", bound=Type[models.Model])
 
 
 class UserManager(BaseUserManager):
@@ -333,14 +336,14 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def check_general_permissions(
             self,
-            model: models.Model,
+            model: model_cls,
             permissions: str or PermissionTypes or List[PermissionTypes] = 'all'
     ) -> bool:
         """
         Check permissions relating to default database models (non-course models).
 
         :param model: The model to check permissions for.
-        :type model: models.Model
+        :type model: Type[models.Model]
         :param permissions: Permissions to check for the given model. Permissions can be given as a PermissionTypes
             object/List of objects or as a string (in the format <app_label>.<permission_codename>) - the default
             option 'all' checks all permissions related to the model, both standard and custom. The 'all_standard'
@@ -374,7 +377,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     def check_course_permissions(
             self,
             course: Course,
-            model: models.Model,
+            model: model_cls,
             permissions: str or PermissionTypes or List[PermissionTypes] = 'all'
     ) -> bool:
         """
@@ -384,7 +387,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         :param course: The course to check the model permissions within.
         :type course: Course
         :param model: The model to check the permissions for.
-        :type model: models.Model
+        :type model: Type[models.Model]
         :param permissions: Permissions to check for the given model within the confines of the course. Permissions can
             be given as a PermissionTypes object/List of objects or 'all' - the default 'all' option checks all
             permissions related to the model.
