@@ -29,6 +29,14 @@
         <!-- stylesheets -->
         <link rel="stylesheet" href="{% static 'css/base.css' %}">
 
+        <!-- scripts -->
+        {% if widgets.tables %}
+            <script src="{% static 'js/tables.js' %}"></script>
+            <script>
+                const tables = {};
+            </script>
+        {% endif %}
+
         <!-- template-specific -->
         {% block head %}
         {% endblock %}

@@ -86,18 +86,22 @@ class AdminView(LoggedInView, SideNavMixin, UserPassesTestMixin):
         if 'new_course_form_widget' not in context.keys():
             context['new_course_form_widget'] = NewCourseFormWidget().get_context()
 
-        context['courses_table'] = TableWidget(model_cls=Course,
-                                               access_mode='admin',
-                                               create=True,
-                                               details=True,
-                                               edit=True,
-                                               delete=True,
-                                               select=True,
-                                               cols=['id', 'name'],
-                                               header={'name': 'Course Name'},
-                                               default_order_col='name',
-                                               refresh=False,
-                                               paging=False).get_context()
+        context['widgets'] = {}
+        context['widgets']['tables'] = {}
+        context['widgets']['tables']['courses_table'] = TableWidget(
+            model_cls=Course,
+            access_mode='admin',
+            create=True,
+            details=True,
+            edit=True,
+            delete=True,
+            select=True,
+            cols=['id', 'name'],
+            header={'name': 'Course Name'},
+            default_order_col='name',
+            refresh=False,
+            paging=False
+        ).get_context()
 
         return context
 

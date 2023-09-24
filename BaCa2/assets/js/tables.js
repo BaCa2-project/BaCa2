@@ -1,6 +1,6 @@
 function create_table(
     {
-        tables,
+        tables_dict,
         table_id,
         model_name,
         access_mode,
@@ -18,12 +18,13 @@ function create_table(
     } = {}
 ) {
     const table_params = {};
-    table_params['ajax'] = `main/json/${model_name}-${access_mode}`;
+    table_params['ajax'] = `/main/json/${model_name}-${access_mode}`;
+    table_params['order'] = [[default_order_col, default_order]];
 
     const cols_data = [];
-    for (let col_name in cols) {
-        cols_data.push({'data': col_name});
-    }
+    for (let i = 0; i < cols.length; i++) {
+            cols_data.push({'data': cols[i]});
+        }
     table_params['columns'] = cols_data;
 
     if (paging) {
@@ -47,6 +48,8 @@ function create_table(
         } else {
             table_params['lengthChange'] = false;
         }
+    } else {
+        table_params['paging'] = false;
     }
 
     table_params['searching'] = false;
@@ -60,33 +63,43 @@ function create_table(
     }
     if (record_methods['select']['on']) {
         column_defs.push({
-            'targets': record_methods['select']['col_index'],
+            'targets': [record_methods['select']['col_index']],
             'data': null,
             'render': function (data, type, row, meta) {
-                return render_checkbox(`checkbox-${row.id}`);
+                return render_checkbox(`checkbox-${row.id}`, table_id);
             }
         });
     }
     if (record_methods['edit']['on']) {
         column_defs.push({
-            'targets': record_methods['edit']['col_index'],
+            'targets': [record_methods['edit']['col_index']],
             'data': null,
             'render': function (data, type, row, meta) {
-                return render_checkbox(`checkbox-${row.id}`);
+                return render_method_button('edit');
+            }
+        });
+    }
+    if (record_methods['delete']['on']) {
+        column_defs.push({
+            'targets': [record_methods['delete']['col_index']],
+            'data': null,
+            'render': function (data, type, row, meta) {
+                return render_method_button('delete');
             }
         });
     }
     table_params['columnDefs'] = column_defs;
 
-    tables[table_id] = $(`#${table_id}`).DataTable({
-        ajax: `main/json/${model_name}-${access_mode}`,
-        columns: cols_data,
-        order: [[default_order_col, default_order]],
+    tables_dict[table_id] = $(`#${table_id}`).DataTable(table_params);
 
-    });
+    if (refresh) {
+        setInterval(() => {
+            tables_dict[table_id].ajax.reload();
+        }, refresh_interval);
+    }
 }
 
-function render_checkbox (id) {
+function render_checkbox (id, table_id) {
     const checkbox = document.createElement('div');
     $(checkbox).addClass('select-checkbox');
 
@@ -94,7 +107,7 @@ function render_checkbox (id) {
     $(checkbox_child).addClass('form-check-input');
     $(checkbox_child).prop('type', 'checkbox');
     $(checkbox_child).prop('id', id);
-    checkbox_child.setAttribute('onclick', 'table_select(this)');
+    checkbox_child.setAttribute('onclick', `table_select(this, "${table_id}")`);
 
     checkbox.appendChild(checkbox_child);
     return checkbox.outerHTML;
@@ -103,61 +116,149 @@ function render_checkbox (id) {
 function render_method_button (method) {
     const button = document.createElement('a');
     $(button).addClass('record-method-link');
-    const icon = $('.table-icons-util').find(`.${method}-icon`);
-    button.appendChild(icon[0]);
+    button.innerHTML = $('.table-icons-util').find(`.${method}-icon`)[0].outerHTML
     return button.outerHTML;
 }
 
-
 let shift_pressed = false;
+let ctrl_pressed = false;
 let last_selected_row = null;
+let last_deselected_row = null;
 
-document.addEventListener("keydown", function (e) {
-    if (e.key === 'Shift') {
-        shift_pressed = true;
-    }
+$(document).ready(() => {
+    document.addEventListener("keydown", function (e) {
+        if (e.key === 'Shift') {
+            shift_pressed = true;
+        } else if (e.key === 'Control') {
+            ctrl_pressed = true;
+        }
+    })
+
+    document.addEventListener("keyup", function (e) {
+        if (e.key === 'Shift') {
+            shift_pressed = false;
+        } else if (e.key === 'Control') {
+            ctrl_pressed = false;
+        }
+    })
 })
 
-document.addEventListener("keyup", function (e) {
-    if (e.key === 'Shift') {
-        shift_pressed = false;
-    }
-})
+function table_select (current_checkbox, table_id) {
+    const toggled_row = $(current_checkbox).closest('tr');
+    const table = tables[table_id]
 
-function table_select (current_checkbox) {
+    console.log(last_deselected_row);
+    console.log(last_selected_row);
+    console.log(shift_pressed);
+    console.log(ctrl_pressed);
+
     if ($(current_checkbox).prop('checked')) {
-        const selected_row = $(current_checkbox).closest('tr');
+        if (shift_pressed && last_selected_row !== null) {
+            toggle_range(
+                table,
+                [table.row(toggled_row).index(), table.row(last_selected_row).index()]
+            )
+        }
+        last_selected_row = toggled_row;
+        last_deselected_row = null;
+    } else {
+        if (ctrl_pressed && last_deselected_row !== null) {
+            toggle_range(
+                table,
+                [table.row(toggled_row).index(), table.row(last_deselected_row).index()],
+                false
+            )
+        }
+        last_selected_row = null;
+        last_deselected_row = toggled_row
+    }
+    update_master_checkbox(table_id)
+}
 
-        if (shift_pressed === true && last_selected_row !== null) {
-            const selected_row_index = table.row(selected_row).index();
-            const last_selected_row_index = table.row(last_selected_row).index();
-            const rows = table.rows({ order: 'applied' }).nodes().to$();
-            let selecting = false;
+function toggle_range (table, range, on = true) {
+    const rows = table.rows({ order: 'applied' }).nodes().to$();
+    let selecting = false;
+    let last_index = false;
 
-            for (let i = 0; i < rows.length; i++) {
-                let row = rows[i];
+    for (let i = 0; i < rows.length; i++) {
+        let row = rows[i];
 
-                if (selecting) {
-                    if (table.row(row).index() === selected_row_index ||
-                    table.row(row).index() === last_selected_row_index) {
-                        break;
-                    } else {
-                        let checkbox = $(row).find(".form-check-input");
-                        if (!checkbox.prop('checked')) {
-                            checkbox.prop('checked', true);
-                        }
-                    }
-                } else {
-                    if (table.row(row).index() === selected_row_index ||
-                    table.row(row).index() === last_selected_row_index) {
-                        selecting = true;
-                    }
-                }
+        if (table.row(row).index() === range[0] || table.row(row).index() === range[1]) {
+            if (selecting) {
+                last_index = true;
+            } else {
+                selecting = true;
             }
         }
 
-        last_selected_row = selected_row;
+        if (selecting) {
+            let checkbox = $(row).find(".form-check-input");
+            if (on && !checkbox.prop('checked')) {
+                toggle_checkbox(checkbox);
+            } else if (!on && checkbox.prop('checked')) {
+                toggle_checkbox(checkbox);
+            }
+        }
+
+        if (last_index) {
+            break;
+        }
+    }
+}
+
+function toggle_all (checkbox, table_id) {
+    const table = tables[table_id];
+    const rows_indexes = table.rows({ order: 'applied' }).indexes().to$();
+    const range = [rows_indexes[0], rows_indexes[rows_indexes.length - 1]];
+
+    if ($(checkbox).data('state') === 'on') {
+        $(checkbox).prop({checked: false, indeterminate: false});
+        $(checkbox).data('state', 'off');
+        toggle_range(table, range, false);
     } else {
-        last_selected_row = null;
+        $(checkbox).prop({checked: true, indeterminate: false});
+        $(checkbox).data('state', 'on');
+        toggle_range(table, range);
+    }
+}
+
+function update_master_checkbox (table_id) {
+    const master_checkbox = $(`#${table_id}`).find('.master-checkbox');
+    const table = tables[table_id];
+    const rows = table.rows().nodes().to$();
+    let all_selected = true;
+    let all_deselected = true;
+
+    for (let i = 0; i < rows.length; i++) {
+        let row = rows[i];
+        let checkbox = $(row).find(".form-check-input");
+
+        if (checkbox.prop('checked')) {
+            all_deselected = false;
+        } else {
+            all_selected = false;
+        }
+
+        if (!all_deselected && !all_selected) {
+            master_checkbox.prop({checked: false, indeterminate: true});
+            master_checkbox.data('state', 'indeterminate');
+            return;
+        }
+    }
+
+    if (all_selected) {
+        master_checkbox.prop({checked: true, indeterminate: false});
+        master_checkbox.data('state', 'on');
+    } else {
+        master_checkbox.prop({checked: false, indeterminate: false});
+        master_checkbox.data('state', 'off');
+    }
+}
+
+function toggle_checkbox (checkbox) {
+    if (checkbox.prop('checked')) {
+        checkbox.prop('checked', false);
+    } else {
+        checkbox.prop('checked', true);
     }
 }

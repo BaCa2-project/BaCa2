@@ -42,7 +42,7 @@ class TableWidget:
         self.length_change = length_change
         self.refresh = refresh
         self.refresh_interval = refresh_interval
-        self.record_methods = {method: {'on': False, 'col_index': -1} for method in TableWidget.RECORD_METHODS}
+        self.record_methods = {method: {'on': 'false', 'col_index': -1} for method in TableWidget.RECORD_METHODS}
 
         if default_order_asc:
             self.default_order = 'asc'
@@ -91,9 +91,9 @@ class TableWidget:
             self.non_sortable = non_sortable
 
         if select:
-            self._add_record_method('select')
+            self._add_record_method('select', col_index=0)
         if details:
-            self._add_record_method('details')
+            self._add_record_method('details', col_index=None)
         if edit:
             self._add_record_method('edit')
         if delete:
@@ -111,16 +111,22 @@ class TableWidget:
                 default_order_col = self.cols[0]
         self.default_order_col = self.cols.index(default_order_col)
 
-    def _add_record_method(self, name: str, header: str = ''):
-        if name != 'select':
-            self.cols.append(name)
-        else:
-            self.cols = [name] + self.cols
+    def _add_record_method(self, name: str, header: str = '', col_index: int or None = -1):
+        if col_index is not None:
+            if col_index == -1:
+                self.cols.append(name)
+                self.record_methods[name]['col_index'] = self.cols.index(name)
+            else:
+                self.cols.insert(col_index, name)
+                for method in self.record_methods.keys():
+                    if self.record_methods[method]['col_index'] >= col_index:
+                        self.record_methods[method]['col_index'] += 1
+                self.record_methods[name]['col_index'] = self.cols.index(name)
 
-        self.header[name] = header
-        self.non_sortable.append(name)
-        self.record_methods[name]['on'] = True
-        self.record_methods[name]['col_index'] = self.cols.index(name)
+            self.header[name] = header
+            self.non_sortable.append(name)
+
+        self.record_methods[name]['on'] = 'true'
 
     def get_context(self) -> dict:
         context = {
@@ -131,18 +137,17 @@ class TableWidget:
             'cols': self.cols,
             'header': self.header,
             'cols_num': len(self.cols),
-            'paging': self.paging,
+            'paging': json.dumps(self.paging),
             'page_length': self.page_length,
-            'length_change': self.length_change,
+            'length_change': json.dumps(self.length_change),
             'length_menu': self.length_menu,
-            'refresh': self.refresh,
+            'refresh': json.dumps(self.refresh),
             'refresh_interval': self.refresh_interval,
             'table_class': self.table_class,
             'non_sortable_indexes': self.non_sortable_indexes,
             'default_order_col': self.default_order_col,
             'default_order': self.default_order,
-            'record_methods': self.record_methods,
-            'record_methods_json': json.dumps(self.record_methods)
+            'record_methods': self.record_methods
         }
 
         return context
