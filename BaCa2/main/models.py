@@ -1,14 +1,18 @@
-from typing import List, Type, TypeVar
+from typing import (List, Type, TypeVar)
 
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
-from django.contrib.auth.models import Group, Permission, ContentType
+from django.contrib.auth.models import (AbstractBaseUser,
+                                        PermissionsMixin,
+                                        BaseUserManager,
+                                        Group,
+                                        Permission,
+                                        ContentType)
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
-from BaCa2.choices import PermissionTypes, DefaultCourseGroups
-from course.manager import create_course as create_course_db, delete_course as delete_course_db
+from BaCa2.choices import (PermissionTypes, DefaultCourseGroups)
+from course.manager import (create_course as create_course_db, delete_course as delete_course_db)
 
 
 model_cls = TypeVar("model_cls", bound=Type[models.Model])
@@ -16,17 +20,18 @@ model_cls = TypeVar("model_cls", bound=Type[models.Model])
 
 class UserManager(BaseUserManager):
     """
-    This class manages the creation of new user objects. Its methods allow for creation of default and superuser user
-    instances.
-    The class extends BaseUserManager provided in django.contrib.auth and replaces the default UserManager model.
+    This class manages the creation of new :class:`User` objects. Its methods allow for creation of default and
+    superuser user instances.
+    This class extends the BaseUserManager provided in :mod:`django.contrib.auth` and replaces the default UserManager
+    class.
     """
     @staticmethod
     def _create_settings() -> 'Settings':
         """
-        Create a new user settings object.
+        Create a new user :class:`Settings` object.
 
         :return: New user settings object.
-        :rtype: Settings
+        :rtype: :class:`Settings`
         """
 
         settings = Settings()
@@ -43,8 +48,8 @@ class UserManager(BaseUserManager):
             **other_fields
     ) -> 'User':
         """
-        Create a new user using the provided information. This method is used by the create_user method and the
-        create_superuser method.
+        Create a new :class:`User` with provided information. This method is used by the :meth:`create_user` method and
+        the :meth:`create_superuser` method.
 
         :param email: New user's email.
         :type email: str
@@ -57,6 +62,9 @@ class UserManager(BaseUserManager):
         :param is_superuser: Indicates whether the new user has all moderation privileges.
         :type is_superuser: bool
         :param **other_fields: Values for non-required user fields.
+
+        :return: The newly created user.
+        :rtype: :class:`User`
         """
 
         if not email:
@@ -83,7 +91,7 @@ class UserManager(BaseUserManager):
 
     def create_user(self, email: str, username: str, password: str, **other_fields) -> 'User':
         """
-        Create a new user without moderation privileges.
+        Create a new :class:`User` without moderation privileges.
 
         :param email: New user's email.
         :type email: str
@@ -92,13 +100,21 @@ class UserManager(BaseUserManager):
         :param password: New user's password.
         :type password: str
         :param other_fields: Values for non-required user fields.
+
+        :return: The newly created user.
+        :rtype: :class:`User`
         """
 
-        return self._create_user(email, username, password, False, False, **other_fields)
+        return self._create_user(email=email,
+                                 username=username,
+                                 password=password,
+                                 is_staff=False,
+                                 is_superuser=False,
+                                 **other_fields)
 
     def create_superuser(self, email: str, username: str, password: str, **other_fields) -> 'User':
         """
-        Create a new user with all moderation privileges.
+        Create a new :class:`User` with all moderation privileges.
 
         :param email: New user's email.
         :type email: str
@@ -107,25 +123,34 @@ class UserManager(BaseUserManager):
         :param password: New user's password.
         :type password: str
         :param other_fields: Values for non-required user fields.
+
+        :return: The newly created superuser.
+        :rtype: :class:`User`
         """
 
-        return self._create_user(email, username, password, True, True, **other_fields)
+        return self._create_user(email=email,
+                                 username=username,
+                                 password=password,
+                                 is_staff=True,
+                                 is_superuser=True,
+                                 **other_fields)
 
 
 class CourseManager(models.Manager):
     """
-    This class manages the creation and deletion of course objects. It calls on :mod:`course.manager` methods to create
-    and delete course databases along with corresponding course objects in the 'default' database.
+    This class manages the creation and deletion of :class:`Course` objects. It calls on :mod:`course.manager` methods
+    to create and delete course databases along with corresponding course objects in the 'default' database.
     """
     def create_course(self, name: str, short_name: str = "") -> None:
         """
-        Create a new course with given name and short name. If short name is not provided, it is automatically
+        Create a new :class:`Course` with given name and short name. If short name is not provided, it is automatically
         generated. A new database for the course is also created.
 
         :param name: Name of the new course.
         :type name: str
         :param short_name: Short name of the new course.
         :type short_name: str
+
         :return: The newly created course.
         :rtype: Course
         """
@@ -148,7 +173,7 @@ class CourseManager(models.Manager):
     @staticmethod
     def delete_course(course: 'Course') -> None:
         """
-        Delete the given course and its database.
+        Delete given :class:`Course` and its database.
 
         :param course: The course to delete.
         :type course: Course
@@ -159,11 +184,12 @@ class CourseManager(models.Manager):
     @staticmethod
     def _generate_short_name(name: str) -> str:
         """
-        Generate a short name for a course based on its name.
+        Generate a unique short name for a :class:`Course` based on its name.
 
         :param name: Name of the course.
         :type name: str
-        :return: Short name of the course.
+
+        :return: Short name for the course.
         :rtype: str
         """
         name_list = name.split()
