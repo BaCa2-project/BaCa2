@@ -14,24 +14,25 @@ from django.core.exceptions import ValidationError
 from BaCa2.choices import (PermissionTypes, DefaultCourseGroups)
 from course.manager import (create_course as create_course_db, delete_course as delete_course_db)
 
-
 model_cls = TypeVar("model_cls", bound=Type[models.Model])
 
 
 class UserManager(BaseUserManager):
     """
-    This class manages the creation of new :class:`User` objects. Its methods allow for creation of default and
-    superuser user instances.
-    This class extends the BaseUserManager provided in :mod:`django.contrib.auth` and replaces the default UserManager
-    class.
+    This class manages the creation of new :py:class:`User` objects. Its methods allow for creation
+    of default and superuser user instances.
+
+    This class extends the BaseUserManager provided in  :py:mod:`django.contrib.auth` and replaces
+    the default UserManager class.
     """
+
     @staticmethod
     def _create_settings() -> 'Settings':
         """
-        Create a new user :class:`Settings` object.
+        Create a new user :py:class:`Settings` object.
 
         :return: New user settings object.
-        :rtype: :class:`Settings`
+        :rtype: :py:class:`Settings`
         """
 
         settings = Settings()
@@ -48,8 +49,9 @@ class UserManager(BaseUserManager):
             **other_fields
     ) -> 'User':
         """
-        Create a new :class:`User` with provided information. This method is used by the :meth:`create_user` method and
-        the :meth:`create_superuser` method.
+        Create a new :py:class:`User` object along with its :py:class:`Settings` object. This
+        private method is used by the :py:meth:`create_user` and :py:meth:`create_superuser`
+        manager methods.
 
         :param email: New user's email.
         :type email: str
@@ -61,10 +63,10 @@ class UserManager(BaseUserManager):
         :type is_staff: bool
         :param is_superuser: Indicates whether the new user has all moderation privileges.
         :type is_superuser: bool
-        :param **other_fields: Values for non-required user fields.
+        :param other_fields: Values for non-required user model fields.
 
         :return: The newly created user.
-        :rtype: :class:`User`
+        :rtype: :py:class:`User`
         """
 
         if not email:
@@ -91,7 +93,7 @@ class UserManager(BaseUserManager):
 
     def create_user(self, email: str, username: str, password: str, **other_fields) -> 'User':
         """
-        Create a new :class:`User` without moderation privileges.
+        Create a new :py:class:`User` without moderation privileges.
 
         :param email: New user's email.
         :type email: str
@@ -102,7 +104,7 @@ class UserManager(BaseUserManager):
         :param other_fields: Values for non-required user fields.
 
         :return: The newly created user.
-        :rtype: :class:`User`
+        :rtype: :py:class:`User`
         """
 
         return self._create_user(email=email,
@@ -114,7 +116,7 @@ class UserManager(BaseUserManager):
 
     def create_superuser(self, email: str, username: str, password: str, **other_fields) -> 'User':
         """
-        Create a new :class:`User` with all moderation privileges.
+        Create a new :py:class:`User` with all moderation privileges.
 
         :param email: New user's email.
         :type email: str
@@ -125,7 +127,7 @@ class UserManager(BaseUserManager):
         :param other_fields: Values for non-required user fields.
 
         :return: The newly created superuser.
-        :rtype: :class:`User`
+        :rtype: :py:class:`User`
         """
 
         return self._create_user(email=email,
@@ -138,21 +140,21 @@ class UserManager(BaseUserManager):
 
 class CourseManager(models.Manager):
     """
-    This class manages the creation and deletion of :class:`Course` objects. It calls on :mod:`course.manager` methods
-    to create and delete course databases along with corresponding course objects in the 'default' database.
+    This class manages the creation and deletion of :py:class:`Course` objects. It calls on
+    :py:mod:`course.manager` methods to create and delete course databases along with corresponding
+    course objects in the 'default' database.
     """
+
     def create_course(self, name: str, short_name: str = "") -> None:
         """
-        Create a new :class:`Course` with given name and short name. If short name is not provided, it is automatically
-        generated. A new database for the course is also created.
+        Create a new :py:class:`Course` with given name and short name. If short name is not
+        provided,
+        it is automatically generated. A new database for the course is also created.
 
         :param name: Name of the new course.
         :type name: str
         :param short_name: Short name of the new course.
         :type short_name: str
-
-        :return: The newly created course.
-        :rtype: Course
         """
         if short_name:
             short_name = short_name.lower()
@@ -173,7 +175,7 @@ class CourseManager(models.Manager):
     @staticmethod
     def delete_course(course: 'Course') -> None:
         """
-        Delete given :class:`Course` and its database.
+        Delete given :py:class:`Course` and its database.
 
         :param course: The course to delete.
         :type course: Course
@@ -184,7 +186,7 @@ class CourseManager(models.Manager):
     @staticmethod
     def _generate_short_name(name: str) -> str:
         """
-        Generate a unique short name for a :class:`Course` based on its name.
+        Generate a unique short name for a :py:class:`Course` based on its name.
 
         :param name: Name of the course.
         :type name: str
@@ -214,33 +216,36 @@ class CourseManager(models.Manager):
 
 class Course(models.Model):
     """
-    This class represents a course in the default database and contains a field pointing to the course's database.
-    It allows for assigning users to course groups.
+    This class represents a course in the default database. The short name of the course can be
+    used to access the course's database with :py:class:`course.routing.InCourse`. The methods of
+    this class deal with managing course database objects, as well as the users assigned to the
+    course and their roles within it.
     """
 
     #: Name of the course.
     name = models.CharField(
-        max_length=255
+        verbose_name=_("course name"),
+        max_length=100
     )
     #: Short name of the course.
+    # Used to access the course's database with :py:class:`course.routing.InCourse`.
     short_name = models.CharField(
-        max_length=31,
-        unique=True
-    )
-    #: Name of the course's database. :py:class:`course.routing.InCourse` :py:mod:`course.models`
-    db_name = models.CharField(
-        max_length=127,
+        verbose_name=_("course short name"),
+        max_length=20,
         unique=True
     )
 
-    #: Indicates which class is used to manage Course objects.
+    #: Manager class for the Course model.
     objects = CourseManager()
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
-        Returns the name of this course's database.
+        Returns the string representation of the Course object.
+
+        :return: Short name and name of the course.
+        :rtype: str
         """
-        return f"{self.db_name}"
+        return f"{self.short_name}.{self.name}"
 
     def add_user(self, user: 'User', group: Group):
         if not group:
@@ -255,21 +260,28 @@ class Course(models.Model):
         # TODO
 
     def get_data(self) -> dict:
+        """
+        Returns the contents of a Course object's fields as a dictionary. Used to send course data
+        to the frontend.
+
+        :return: Dictionary containing the course's id, name and short name.
+        :rtype: dict
+        """
         return {
             'id': self.id,
             'name': self.name,
             'short_name': self.short_name,
-            'db_name': self.db_name
         }
 
 
 class Settings(models.Model):
     """
-    This model represents user settings. It is used to store user-specific settings in the database.
+    This model represents a user's (:py:class:`User`) settings. It is used to store personal,
+    user-specific data pertaining to the website display options, notification preferences, etc.
     """
     #: User's preferred UI theme.
     theme = models.CharField(
-        _("UI theme"),
+        verbose_name=_("UI theme"),
         max_length=255,
         default='dark'
     )
@@ -277,10 +289,10 @@ class Settings(models.Model):
 
 class User(AbstractBaseUser, PermissionsMixin):
     """
-    This class stores user information. Its methods can be used to check permissions pertaining to the default database
-    models as well as course access and models from course databases.
-    The class extends AbstractBaseUser and PermissionsMixin classes provided in django.contrib.auth to replace the
-    default User model.
+    This class stores user information. Its methods can be used to check permissions pertaining to
+    the default database models as well as course access and models from course databases.
+    The class extends AbstractBaseUser and PermissionsMixin classes provided in django.contrib.auth
+    to replace the default User model.
     """
 
     #: User's email. Can be used to log in.
@@ -295,11 +307,13 @@ class User(AbstractBaseUser, PermissionsMixin):
         max_length=255,
         unique=True
     )
-    #: Indicates whether user has moderation privileges. Required by built-in Django authorisation system.
+    #: Indicates whether user has moderation privileges.
+    # Required by built-in Django authorisation system.
     is_staff = models.BooleanField(
         default=False
     )
-    #: Indicates whether user has all available moderation privileges. Required by built-in Django authorisation system.
+    #: Indicates whether user has all available moderation privileges.
+    # Required by built-in Django authorisation system.
     is_superuser = models.BooleanField(
         default=False
     )
@@ -325,17 +339,27 @@ class User(AbstractBaseUser, PermissionsMixin):
         on_delete=models.CASCADE
     )
 
-    #: Indicates which field should be considered as username. Required when replacing default Django User model.
+    #: Indicates which field should be considered as username.
+    # Required when replacing default Django User model.
     USERNAME_FIELD = 'username'
-    #: Indicates which field should be considered as email. Required when replacing default Django User model.
+
+    #: Indicates which field should be considered as email.
+    # Required when replacing default Django User model.
     EMAIL_FIELD = 'email'
+
     #: Indicates which fields besides the USERNAME_FIELD are required when creating a User object.
     REQUIRED_FIELDS = ['email']
 
-    #: Indicates which class is used to manage User objects.
+    #: Manager class for the User model.
     objects = UserManager()
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """
+        Returns the string representation of the User object.
+
+        :return: User's username.
+        :rtype: str
+        """
         return self.username
 
     @classmethod
@@ -345,24 +369,25 @@ class User(AbstractBaseUser, PermissionsMixin):
 
         :param user_id: The id of the user in question.
         :type user_id: BigInteger
-        :return: True if the user exists.
+
+        :return: `True` if user with given id exists, `False` otherwise.
+        :rtype: bool
         """
 
         return cls.objects.exists(pk=user_id)
 
     def can_access_course(self, course: Course) -> bool:
         """
-        Check whether the user has been assigned to the given course through the UserCourse model.
+        Check whether the user has been assigned to a given course.
 
-        :param course: Course to check user access to.
+        :param course: Course to check user's access to.
         :type course: Course
-        :return: True if user has been assigned to the given course.
+
+        :return: `True` if user has been assigned to the course, `False` otherwise.
+        :rtype: bool
         """
 
-        if UserCourse.objects.filter(
-                user=self,
-                course=course
-        ).exists():
+        if UserCourse.objects.filter(user=self, course=course).exists():
             return True
         return False
 
@@ -372,31 +397,40 @@ class User(AbstractBaseUser, PermissionsMixin):
             permissions: str or PermissionTypes or List[PermissionTypes] = 'all'
     ) -> bool:
         """
-        Check permissions relating to default database models (non-course models).
+        Check whether a user possesses a specified permission/list of permissions for a given
+        'default' database model. The method checks both user-specific permissions and group-level
+        permissions.
 
         :param model: The model to check permissions for.
         :type model: Type[models.Model]
-        :param permissions: Permissions to check for the given model. Permissions can be given as a PermissionTypes
-            object/List of objects or as a string (in the format <app_label>.<permission_codename>) - the default
-            option 'all' checks all permissions related to the model, both standard and custom. The 'all_standard'
-            option checks the 'view', 'change', 'add' and 'delete' permissions for the given model.
-        :type permissions: str or PermissionTypes or List[PermissionTypes] = 'all'
-        :returns: True if user possesses given permissions for the given model.
+        :param permissions: Permissions to check for the given model. Permissions can be given as a
+            PermissionTypes object/List of objects or as a string (in the format
+            <app_label>.<permission_codename>) - the default option 'all' checks all permissions
+            related to the model, both standard and custom. The 'all_standard' option checks the
+            'view', 'change', 'add' and 'delete' permissions for the given model.
+        :type permissions: str or PermissionTypes or List[PermissionTypes]
+
+        :returns: `True` if the user possesses the specified permission/s for the given model,
+            `False` otherwise.
+        :rtype: bool
         """
 
         if permissions == 'all':
-            permissions = [f'{model._meta.app_label}.{p.codename}' for p in Permission.objects.filter(
-                content_type=ContentType.objects.get_for_model(model).id
-            )]
+            permissions = [f'{model._meta.app_label}.{p.codename}' for p in
+                           Permission.objects.filter(
+                               content_type=ContentType.objects.get_for_model(model).id
+                           )]
 
         elif permissions == 'all_standard':
-            permissions = [f'{model._meta.app_label}.{p.label}_{model._meta.model_name}' for p in PermissionTypes]
+            permissions = [f'{model._meta.app_label}.{p.label}_{model._meta.model_name}' for p in
+                           PermissionTypes]
 
         elif isinstance(permissions, PermissionTypes):
             permissions = [f'{model._meta.app_label}.{permissions.label}_{model._meta.model_name}']
 
         elif isinstance(permissions, List):
-            permissions = [f'{model._meta.app_label}.{p.label}_{model._meta.model_name}' for p in permissions]
+            permissions = [f'{model._meta.app_label}.{p.label}_{model._meta.model_name}' for p in
+                           permissions]
 
         else:
             permissions = [permissions]
@@ -413,17 +447,23 @@ class User(AbstractBaseUser, PermissionsMixin):
             permissions: str or PermissionTypes or List[PermissionTypes] = 'all'
     ) -> bool:
         """
-        Check permissions relating to course database models (checks whether the user has been assigned given
-        model permissions within the scope of a particular course).
+        Check whether a user possesses a specified permission/list of permissions for a given
+        model within the scope of a particular course. The method checks only group-level
+        permissions (user-specific permissions cannot be used to assign permissions within the
+        scope of a course).
 
         :param course: The course to check the model permissions within.
-        :type course: Course
+        :type course: :class:`Course`
         :param model: The model to check the permissions for.
         :type model: Type[models.Model]
-        :param permissions: Permissions to check for the given model within the confines of the course. Permissions can
-            be given as a PermissionTypes object/List of objects or 'all' - the default 'all' option checks all
-            permissions related to the model.
-        :returns: True if the user possesses given permissions for the given model within the scope of the course.
+        :param permissions: Permissions to check for the given model within the confines of the
+            course. Permissions can be given as a PermissionTypes object/List of objects or 'all' -
+            the default 'all' option checks all permissions related to the model.
+        :type permissions: str or PermissionTypes or List[PermissionTypes]
+
+        :returns: `True` if the user possesses the specified permission/s for the given model
+            within the scope of the course, `False` otherwise.
+        :rtype: bool
         """
 
         if not self.can_access_course(course):
@@ -447,29 +487,36 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 class GroupCourse(models.Model):
     """
-    This model is used to assign groups to courses.
+    This model is used to assign groups to courses. Groups assigned to a course represent the roles
+    (and the corresponding sets of permissions) users can have within the course.
     """
 
-    #: Assigned group. :py:class:`django.contrib.auth.models.Group` :py:mod:`django.contrib.auth.models.`
+    #: Assigned group. :py:class:`django.contrib.auth.models.Group`
     group = models.ForeignKey(
         Group,
         on_delete=models.CASCADE
     )
-    #: Course the group is assigned to. :py:class:`Course`
+    #: :py:class:`Course` the group is assigned to.
     course = models.ForeignKey(
         Course,
         on_delete=models.CASCADE
     )
 
-    def __str__(self):
-        return f'groupcourse: {self.group.name} for {self.course}'
+    def __str__(self) -> str:
+        """
+        Returns the string representation of the GroupCourse object.
+
+        :return: Name of the group and :py:meth:`Course.__str__` representation of the course.
+        :rtype: str
+        """
+        return f'{self.group.name}.{self.course}'
 
 
 class UserCourse(models.Model):
     """
-    Model used to assign users to courses with a given scope of course-specific permissions. This is achieved by
-    assigning the given user to a GroupCourse object referencing the appropriate course and group with the appropriate
-    permission set.
+    This model is used to assign users to courses with a given scope of course-specific
+    permissions. These permissions are defined by the role the user is assigned to within the
+    course (represented by a :py:class:`GroupCourse` object).
     """
 
     #: Assigned user. :py:class:`User`
@@ -489,4 +536,11 @@ class UserCourse(models.Model):
     )
 
     def __str__(self):
-        return f'usercourse: {self.user} to {self.group_course}'
+        """
+        Returns the string representation of the UserCourse object.
+
+        :return: :py:meth:`User.__str__` representation of the user and the
+            :py:meth:`GroupCourse.__str__` representation of the group course.
+        :rtype: str
+        """
+        return f'.{self.user}.{self.group_course}'
