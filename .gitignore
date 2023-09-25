@@ -522,8 +522,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
@@ -649,3 +647,5 @@ BaCa2/BaCa2/settings_local.py
 Baca2/submits/
 
 BaCa2/BaCa2/db/ext_databases.py
+
+*/secrets.yaml

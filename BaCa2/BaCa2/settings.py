@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/4.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
+import yaml
 from contextvars import ContextVar
 from pathlib import Path
 from BaCa2.db.setup import DEFAULT_DB_SETTINGS
@@ -176,3 +177,11 @@ if (SETTINGS_DIR / "settings_local.py").exists():
 SUPPORTED_EXTENSIONS = ['cpp']
 
 PACKAGES = {}
+
+# import secrets
+SECRETS_DIR = BASE_DIR / "secrets.yaml"
+SECRETS = {}
+if SECRETS_DIR.exists() and SECRETS_DIR.is_file():
+    with open(SECRETS_DIR) as secrets_file:
+        SECRETS = yaml.safe_load(secrets_file)
+
