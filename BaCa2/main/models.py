@@ -1,6 +1,7 @@
-from typing import (List, Type, TypeVar)
+from typing import (List, Type, Union)
 
 from django.db import models
+from django.db.models.query import QuerySet
 from django.contrib.auth.models import (AbstractBaseUser,
                                         PermissionsMixin,
                                         BaseUserManager,
@@ -11,10 +12,13 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
-from BaCa2.choices import (PermissionTypes, DefaultCourseGroups)
+from BaCa2.choices import PermissionTypes
 from course.manager import (create_course as create_course_db, delete_course as delete_course_db)
-
-model_cls = TypeVar("model_cls", bound=Type[models.Model])
+from util.models import (model_cls,
+                         get_all_permissions_for_model,
+                         get_all_models_from_app,
+                         get_model_permission_by_label,
+                         delete_populated_group)
 
 
 class UserManager(BaseUserManager):
@@ -145,73 +149,259 @@ class CourseManager(models.Manager):
     course objects in the 'default' database.
     """
 
-    def create_course(self, name: str, short_name: str = "") -> None:
+    def create_course(self,
+                      name: str,
+                      short_name: str = "",
+                      usos_code: str | None = None,
+                      roles: List[Group] | None = None,
+                      default_role: Group | int | str | None = None) -> 'Course':
         """
-        Create a new :py:class:`Course` with given name and short name. If short name is not
-        provided,
-        it is automatically generated. A new database for the course is also created.
+        Create a new :py:class:`Course` with given name, short name, USOS code and roles.
+        A new database for the course is also created which can be accessed using the course's
+        short name with :py:class:`course.routing.InCourse`.
 
         :param name: Name of the new course.
         :type name: str
-        :param short_name: Short name of the new course.
+        :param short_name: Short name of the new course. If no short name is provided, a unique
+            short name is generated based on the course name or USOS code (if it's provided). The
+            short name cannot contain the '|' character.
         :type short_name: str
+        :param usos_code: Subject code of the course in the USOS system.
+        :param roles: List of groups to assign to the course. These groups represent the roles
+            users can be assigned to within the course. If no roles are provided, a default set of
+            roles is created for the course. In addition, a course will always receive an admin
+            role with all permissions assigned.
+        :type roles: List[Group]
+        :param default_role: The default role assigned to users within the course, if no other role
+            is specified. If no default role is provided, the first role from the list of roles will
+            be used - in case of no roles provided, this role will be 'students'. The default
+            role can be specified as either the group object, its id or its name.
+        :type default_role: Group
+
+        :return: The newly created course.
+        :rtype: Course
         """
         if short_name:
             short_name = short_name.lower()
-            if Course.objects.filter(short_name=short_name).exists():
-                raise ValidationError('A course with this short name already exists')
+            self.validate_short_name(short_name)
         else:
-            short_name = self._generate_short_name(name)
+            short_name = self._generate_short_name(name, usos_code)
+
+        roles = self._create_up_course_roles(short_name, roles, default_role)
 
         create_course_db(short_name)
-        db_name = short_name + '_db'
         course = self.model(
             name=name,
             short_name=short_name,
-            db_name=db_name
+            USOS_code=usos_code,
+            default_role=roles[0],
+            admin_role=roles[-1]
         )
         course.save(using='default')
+
+        for role in roles:
+            course.add_role(role)
+
+        return course
 
     @staticmethod
     def delete_course(course: 'Course') -> None:
         """
-        Delete given :py:class:`Course` and its database.
+        Delete given :py:class:`Course` and its database. In addition, all groups assigned to the
+        course are deleted.
 
         :param course: The course to delete.
         :type course: Course
         """
+        roles = list(course.roles())
         delete_course_db(course.short_name)
         course.delete(using='default')
+        for role in roles:
+            delete_populated_group(role)
 
     @staticmethod
-    def _generate_short_name(name: str) -> str:
+    def validate_short_name(short_name: str) -> None:
         """
-        Generate a unique short name for a :py:class:`Course` based on its name.
+        Validate a given short name. A short name is valid if it consists only of alphanumeric
+        characters and underscores. It also has to be unique.
+
+        :param short_name: Short name to validate.
+        :type short_name: str
+
+        :raises ValidationError: If the short name is invalid.
+        """
+        if any(not (c.isalnum() or c == '_') for c in short_name):
+            raise ValidationError('Short name can only contain alphanumeric characters and \
+                                    underscores')
+        if Course.objects.filter(short_name=short_name).exists():
+            raise ValidationError('A course with this short name already exists')
+
+    @staticmethod
+    def _generate_short_name(name: str, usos_code: str | None = None) -> str:
+        """
+        Generate a unique short name for a :py:class:`Course` based on its name or its USOS code.
 
         :param name: Name of the course.
         :type name: str
+        :param usos_code: Subject code of the course in the USOS system.
+        :type usos_code: str
 
         :return: Short name for the course.
         :rtype: str
         """
-        name_list = name.split()
-        short_name = ""
-        for word in name_list:
-            short_name += word[0]
+        if usos_code:
+            for i in range(len(usos_code)):
+                if not usos_code[i].isalnum():
+                    usos_code = usos_code[:i] + '_' + usos_code[i + 1:]
+            short_name = usos_code
+        else:
+            short_name = ""
+            for word in name.split():
+                short_name += word[0]
 
         now = timezone.now()
-        short_name += str(now.year)
+        short_name += f'_{str(now.year)}'
+        short_name = short_name.lower()
 
         if Course.objects.filter(short_name=short_name).exists():
-            short_name += str(now.month)
-        if Course.objects.filter(short_name=short_name).exists():
-            short_name += str(now.day)
-        if Course.objects.filter(short_name=short_name).exists():
-            short_name += str(now.hour)
+            short_name += f'_{len(Course.objects.filter(short_name__startswith=short_name)) + 1}'
         if Course.objects.filter(short_name=short_name).exists():
             raise ValidationError('Could not generate a unique short name for the course')
 
-        return short_name.lower()
+        return short_name
+
+    @staticmethod
+    def _create_up_course_roles(short_name: str,
+                                roles: List[Group] | None = None,
+                                default_role: Group | int | str | None = None, ) -> List[Group]:
+        """
+        Create and validate a set of roles for a course based on roles provided - or if no roles
+        are provided - on a default set of roles. The resulting list of roles has the default role
+        for the course as its first element and the admin role as its last.
+
+        :param short_name: Short name of the course. Used to create role names.
+        :type short_name: str
+        :param roles: List of groups to assign to the course. These groups represent the roles
+            users can be assigned to within the course. If no roles are provided, a default set of
+            roles is created for the course. In addition, a course will always receive an admin
+            role with all permissions assigned.
+        :type roles: List[Group]
+        :param default_role: The default role assigned to users within the course, if no other role
+            is specified. If no default role is provided, the first role from the list of roles will
+            be used - in case of no roles provided, this role will be 'students'. The default
+            role can be specified as either the group object, its id or its verbose name.
+        :type default_role: Group
+
+        :return: List of roles for the course. The default role for the course is the first element
+            of the list and the admin role is the last.
+        :rtype: List[Group]
+        """
+        if default_role and not roles:
+            raise Course.CourseRoleError("Default role provided without any course roles")
+
+        if not roles:
+            roles = CourseManager._create_default_course_roles(short_name)
+        else:
+            roles = CourseManager._create_default_course_roles(short_name) + roles
+        roles.append(CourseManager._create_course_admin_role(short_name))
+
+        for role in roles:
+            if role.name.split('|')[0] != short_name:
+                raise Course.CourseRoleError("Role name does not match course short name")
+            if role.groupcourse_set.exists():
+                raise Course.CourseRoleError("Role already assigned to a different \
+                                                    course")
+
+        if isinstance(default_role, int):
+            default_role = Group.objects.get(id=default_role)
+            if default_role not in roles:
+                raise Course.CourseRoleError("Default role with given id not in course \
+                                                    roles.")
+        elif isinstance(default_role, str):
+            default_role = [g for g in roles if Course.get_role_verbose_name(g) == default_role]
+            if not default_role:
+                raise Course.CourseRoleError("Default role with given name not in course \
+                                                    roles.")
+            default_role = default_role[0]
+        elif default_role:
+            if default_role not in roles:
+                raise Course.CourseRoleError("Default role not in course roles.")
+
+        if default_role:
+            roles.insert(0, roles.pop(roles.index(default_role)))
+
+        return roles
+
+    @staticmethod
+    def _create_default_course_roles(short_name: str) -> List[Group]:
+        """
+        Create a default set of roles for a course. Used when no roles are provided during course
+        creation. Default roles consist of 'students' and 'staff' groups with the following
+        permissions: 'students' and 'staff' - 'view' permission for all course models, 'add'
+        permission for the 'Submit' model; 'staff' - 'add', 'change' and 'delete' permissions for
+        the 'Round', 'Task', 'TestSet' and 'Test' models.
+
+        :param short_name: Short name of the course. Used to create role names.
+        :type short_name: str
+
+        :return: List of default course roles.
+        :rtype: List[Group]
+        """
+        course_models = get_all_models_from_app('course')
+        students = Group.objects.create(
+            name=_(Course.create_role_name('students', short_name))
+        )
+        staff = Group.objects.create(
+            name=_(Course.create_role_name('staff', short_name))
+        )
+        roles = [students, staff]
+
+        for model in course_models.values():
+            for role in roles:
+                role.permissions.add(
+                    get_model_permission_by_label(model, PermissionTypes.VIEW.label).id
+                )
+
+        for role in roles:
+            role.permissions.add(
+                get_model_permission_by_label(course_models['Submit'], PermissionTypes.ADD.label).id
+            )
+
+        for model in [course_models[i] for i in ['Round', 'Task', 'TestSet', 'Test']]:
+            staff.permissions.add(
+                get_model_permission_by_label(model, PermissionTypes.ADD.label).id
+            )
+            staff.permissions.add(
+                get_model_permission_by_label(model, PermissionTypes.EDIT.label).id
+            )
+            staff.permissions.add(
+                get_model_permission_by_label(model, PermissionTypes.DEL.label).id
+            )
+
+        return roles
+
+    @staticmethod
+    def _create_course_admin_role(short_name: str) -> Group:
+        """
+        Create an 'admin' role for a course. The role has all permissions related to all course
+        models assigned to it.
+
+        :param short_name: Short name of the course. Used to create the role name.
+        :type short_name: str
+
+        :return: The 'admin' role.
+        :rtype: Group
+        """
+        course_models = get_all_models_from_app('course')
+        admin_role = Group.objects.create(
+            name=_(Course.create_role_name('admin', short_name))
+        )
+
+        for model in course_models.values():
+            for perm_id in [perm.id for perm in get_all_permissions_for_model(model)]:
+                admin_role.permissions.add(perm_id)
+
+        return admin_role
 
 
 class Course(models.Model):
@@ -222,17 +412,61 @@ class Course(models.Model):
     course and their roles within it.
     """
 
+    class CourseMemberError(Exception):
+        """
+        Exception raised when an error occurs related to course members.
+        """
+        pass
+
+    class CourseRoleError(Exception):
+        """
+        Exception raised when an error occurs related to course roles.
+        """
+        pass
+
     #: Name of the course.
     name = models.CharField(
         verbose_name=_("course name"),
-        max_length=100
+        max_length=100,
+        blank=False
     )
     #: Short name of the course.
     # Used to access the course's database with :py:class:`course.routing.InCourse`.
     short_name = models.CharField(
         verbose_name=_("course short name"),
         max_length=20,
-        unique=True
+        unique=True,
+        blank=False
+    )
+    #: Subject code of the course in the USOS system.
+    # Used for automatic assignment of USOS registered users to the course
+    USOS_code = models.CharField(
+        verbose_name=_("Subject code"),
+        max_length=20,
+        unique=True,
+        blank=True,
+        null=True
+    )
+    #: The default role assigned to users within the course, if no other role is specified.
+    default_role = models.ForeignKey(
+        verbose_name=_("default role"),
+        to=Group,
+        on_delete=models.PROTECT,
+        limit_choices_to={'groupcourse__course': None},
+        null=False,
+        blank=False,
+        related_name='+'
+    )
+    #: The admin role for the course. The role has all permissions related to all course models.
+    # This group is automatically created during course creation.
+    admin_role = models.ForeignKey(
+        verbose_name=_("admin role"),
+        to=Group,
+        on_delete=models.PROTECT,
+        limit_choices_to={'groupcourse__course': None},
+        null=False,
+        blank=False,
+        related_name='+'
     )
 
     #: Manager class for the Course model.
@@ -247,17 +481,219 @@ class Course(models.Model):
         """
         return f"{self.short_name}.{self.name}"
 
-    def add_user(self, user: 'User', group: Group):
-        if not group:
-            group = Group.objects.get(
-                groupcourse__course=self,
-                name=DefaultCourseGroups.VIEWER
-            )
+    def user_is_member(self, user: 'User') -> bool:
+        """
+        Check whether a given user is a member of the course.
 
-        if not group:
-            raise ValidationError('No default viewer group exists for this course')
+        :param user: The user to check.
+        :type user: User
 
-        # TODO
+        :return: `True` if the user is a member of the course, `False` otherwise.
+        :rtype: bool
+        """
+        return Group.objects.filter(user=user, groupcourse__course=self).exists()
+
+    def roles(self) -> Union[QuerySet, List[Group]]:
+        """
+        Returns a QuerySet of groups assigned to the course. These groups represent the roles
+        users can be assigned to within the course.
+
+        :return: QuerySet of groups assigned to the course.
+        :rtype: QuerySet[Group]
+        """
+        return Group.objects.filter(groupcourse__course=self)
+
+    def get_role(self, verbose_name: str) -> Group:
+        """
+        Returns the role with given verbose name assigned to the course.
+
+        :param verbose_name: Verbose name of the role to return.
+        :type verbose_name: str
+
+        :return: The role with given name assigned to the course.
+        :rtype: Group
+        """
+        role_name = Course.create_role_name(verbose_name, self.short_name)
+        return Group.objects.get(groupcourse__course=self, name=role_name)
+
+    def role_exists(self, verbose_name: str) -> bool:
+        """
+        Check whether a role with given verbose name exists within the course.
+
+        :param verbose_name: Verbose name of the role to check.
+        :type verbose_name: str
+
+        :return: `True` if the role exists, `False` otherwise.
+        :rtype: bool
+        """
+        role_name = Course.create_role_name(verbose_name, self.short_name)
+        return Group.objects.filter(groupcourse__course=self, name=role_name).exists()
+
+    @staticmethod
+    def get_role_verbose_name(role: Group | str):
+        """
+        Returns the verbose name of a given role or extracts it from the role's name.
+
+        :param role: The role to return the verbose name for or the role's name.
+        :type role: Group | str
+
+        :return: The verbose name of the role.
+        :rtype: str
+        """
+        if isinstance(role, Group):
+            role = role.name
+        return role.split('|')[1]
+
+    @staticmethod
+    def create_role_name(verbose_name: str, short_name: str) -> str:
+        """
+        Create a unique role name based on a given verbose name and course short name. Role names
+        have the following format: `short_name` + '|' + `verbose_name`. This is done to ensure that
+        role names are unique across all courses while many courses can have roles with the same
+        verbose name.
+
+        :param verbose_name: Verbose name of the role.
+        :type verbose_name: str
+        :param short_name: Short name of the course.
+        :type short_name: str
+
+        :return: Unique role name.
+        :rtype: str
+        """
+        return f"{short_name}|{verbose_name}"
+
+    def get_role_permissions(self, role_verbose_name: str) -> Union[QuerySet, List[Permission]]:
+        """
+        Returns the permissions assigned to the role with given verbose name within the course.
+
+        :param role_verbose_name: Verbose name of the role to return permissions for.
+        :type role_verbose_name: str
+
+        :return: QuerySet of permissions assigned to the role.
+        :rtype: QuerySet[Permission]
+        """
+        return self.get_role(role_verbose_name).permissions.all()
+
+    def get_users(self, role: Group | str | None = None) -> Union[QuerySet, List['User']]:
+        """
+        Returns the users assigned to the course. If a role is specified, only users assigned to
+        the given role are returned.
+
+        :param role: The role to return users for. If no role is specified, all users assigned to
+            the course are returned. The role can be specified as either the group object or its
+            name.
+        :type role: Group | str
+
+        :return: QuerySet of users assigned to the course with given role. If no role specified,
+            the QuerySet contains all users assigned to the course.
+        :rtype: QuerySet[User]
+        """
+        users = User.objects.filter(groups__groupcourse__course=self)
+
+        if not role:
+            return users
+        if isinstance(role, str):
+            role = self.get_role(role)
+
+        return users.filter(groups=role)
+
+    def get_users_with_permission(self, permission: Permission) -> Union[QuerySet, List['User']]:
+        """
+        Returns all users assigned to the course who belong to a role with given permission.
+
+        :param permission: The permission to check for.
+        :type permission: Permission
+
+        :return: QuerySet of users assigned to the course with given permission.
+        :rtype: QuerySet[User]
+        """
+        roles = Group.objects.filter(groupcourse__course=self, permissions=permission)
+        return User.objects.filter(groups__in=roles)
+
+    def add_user(self, user: 'User', role: Group | str | None = None) -> None:
+        """
+        Assign given user to the course with given role. If no role is specified, the user is
+        assigned to the course with the default role.
+
+        :param user: The user to be assigned.
+        :type user: User
+        :param role: The role to assign the user to. If no role is specified, the user is assigned
+            to the course with the default role. The role can be specified as either the group
+            object or its name.
+        :type role: Group | str
+        """
+        if not role:
+            role = self.default_role
+        elif isinstance(role, str):
+            role = self.get_role(role)
+
+        role.user_set.add(user)
+
+    def _validate_new_role(self, role: Group):
+        """
+        Check whether a given role can be assigned to the course. Raises an exception if the role
+        cannot be assigned.
+
+        :param role: The role to be validated.
+        :type role: Group
+
+        :raises Course.CourseRoleError: If the role name does not match the course short name or
+            the role is already assigned to a different course.
+        """
+        if role.name.split('|')[0] != self.short_name:
+            raise Course.CourseRoleError("Role name does not match course short name")
+        if GroupCourse.objects.filter(group=role, course=self).exists():
+            raise Course.CourseRoleError("Group already assigned to a different course")
+
+    def add_role(self, role: Group) -> None:
+        """
+        Add a new role to the course if it passes validation.
+
+        :param role: The role to add.
+        :type role: Group
+        """
+        self._validate_new_role(role)
+        GroupCourse.objects.create(group=role, course=self)
+
+    def remove_role(self, role: Group) -> None:
+        """
+        Remove a role from the course and delete it. Cannot be used to remove the default role, the
+        admin role or a role with users assigned to it.
+
+        :param role: The role to remove.
+        :type role: Group
+
+        :raises Course.CourseRoleError: If the role is the default role, the admin role or has
+            users assigned to it.
+        """
+        if role == self.default_role:
+            raise Course.CourseRoleError("Default role cannot be removed from the course")
+        if role == self.admin_role:
+            raise Course.CourseRoleError("Admin role cannot be removed from the course")
+        if role.user_set.exists():
+            raise Course.CourseRoleError("Cannot remove a role with users assigned to it")
+
+        delete_populated_group(role)
+
+    def change_user_role(self, user: 'User', new_role: Group | str) -> None:
+        """
+        Change the role of a given user within the course.
+
+        :param user: The user whose role is to be changed.
+        :type user: User
+        :param new_role: The role to assign to the user. The role can be specified as either the
+            group object or its name.
+        :type new_role: Group | str
+        """
+        if not self.user_is_member(user):
+            raise Course.CourseMemberError("Change of role was attempted for a user who is not a \
+                                           member of the course")
+
+        if isinstance(new_role, str):
+            new_role = self.get_role(new_role)
+
+        Group.objects.get(groupcourse__course=self, user=user).delete()
+        new_role.user_set.add(user)
 
     def get_data(self) -> dict:
         """
@@ -271,6 +707,7 @@ class Course(models.Model):
             'id': self.id,
             'name': self.name,
             'short_name': self.short_name,
+            'USOS_code': self.USOS_code,
         }
 
 
@@ -386,8 +823,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         :return: `True` if user has been assigned to the course, `False` otherwise.
         :rtype: bool
         """
-
-        if UserCourse.objects.filter(user=self, course=course).exists():
+        if Group.objects.filter(user=self, groupcourse__course=course).exists():
             return True
         return False
 
@@ -479,7 +915,7 @@ class User(AbstractBaseUser, PermissionsMixin):
             if not Group.objects.filter(
                     permissions__codename=f'{permission.label}_{model._meta.model_name}',
                     groupcourse__course=course,
-                    groupcourse__usercourse__user=self
+                    user=self
             ).exists():
                 return False
         return True
@@ -494,7 +930,8 @@ class GroupCourse(models.Model):
     #: Assigned group. :py:class:`django.contrib.auth.models.Group`
     group = models.ForeignKey(
         Group,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        limit_choices_to={'groupcourse': None}
     )
     #: :py:class:`Course` the group is assigned to.
     course = models.ForeignKey(
@@ -510,37 +947,3 @@ class GroupCourse(models.Model):
         :rtype: str
         """
         return f'{self.group.name}.{self.course}'
-
-
-class UserCourse(models.Model):
-    """
-    This model is used to assign users to courses with a given scope of course-specific
-    permissions. These permissions are defined by the role the user is assigned to within the
-    course (represented by a :py:class:`GroupCourse` object).
-    """
-
-    #: Assigned user. :py:class:`User`
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE
-    )
-    # Course the user is assigned to. :py:class:`Course`
-    course = models.ForeignKey(
-        Course,
-        on_delete=models.CASCADE
-    )
-    # GroupCourse object representing the course group user is assigned to. :py:class:`GroupCourse`
-    group_course = models.ForeignKey(
-        GroupCourse,
-        on_delete=models.CASCADE
-    )
-
-    def __str__(self):
-        """
-        Returns the string representation of the UserCourse object.
-
-        :return: :py:meth:`User.__str__` representation of the user and the
-            :py:meth:`GroupCourse.__str__` representation of the group course.
-        :rtype: str
-        """
-        return f'.{self.user}.{self.group_course}'

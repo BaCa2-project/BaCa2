@@ -124,15 +124,21 @@ class CourseShortName(forms.CharField):
             label='Kod kursu',
             min_length=2,
             max_length=Course._meta.get_field('short_name').max_length,
-            validators=[CourseShortName.validate_uniqueness],
+            validators=[CourseShortName.validate_uniqueness, CourseShortName.validate_syntax],
             required=False,
             **kwargs
         )
 
     @staticmethod
-    def validate_uniqueness(value):
-        if Course.objects.filter(short_name=value).exists():
+    def validate_uniqueness(value: str):
+        if Course.objects.filter(short_name=value.lower()).exists():
             raise forms.ValidationError('Kod kursu jest już zajęty.')
+
+    @staticmethod
+    def validate_syntax(value: str):
+        if any(not (c.isalnum() or c == '_') for c in value):
+            raise forms.ValidationError('Kod kursu może zawierać tylko litery,cyfry i znaki \
+                                        podkreślenia.')
 
 
 class NewCourseForm(BaCa2Form):

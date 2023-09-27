@@ -1,225 +1,83 @@
 from django.test import TestCase
-from django.contrib.auth.models import Group, Permission, ContentType
-from .models import User, Course, GroupCourse, UserCourse
-from course.models import Task
-from BaCa2.choices import PermissionTypes
+from django.contrib.auth.models import Group
+from django.utils import timezone
+
+from main.models import (User, Course)
 
 
-class CoursePermissionsTest(TestCase):
+class CourseTest(TestCase):
+    """
+    Contains tests for the Course model and its manager.
+    """
+
+    test_user1 = None
+    test_user2 = None
 
     @classmethod
     def setUpClass(cls):
         cls.test_user1 = User.objects.create_user(
             'user1@gmail.com',
             'user1',
-            'psswd',
+            'password',
             first_name='first_name',
             last_name='last_name'
         )
         cls.test_user2 = User.objects.create_user(
             'user2@gmail.com',
             'user2',
-            'psswd',
+            'password',
             first_name='first_name',
             last_name='last_name'
-        )
-
-        cls.test_course = Course.objects.create(
-            name='test_course',
-            short_name='t_course'
-        )
-
-        cls.test_group1 = Group.objects.create(
-            name='test_group1'
-        )
-        cls.test_group2 = Group.objects.create(
-            name='test_group2'
         )
 
     @classmethod
     def tearDownClass(cls):
         cls.test_user1.delete()
         cls.test_user2.delete()
-        cls.test_course.delete()
-        cls.test_group1.delete()
-        cls.test_group2.delete()
 
-    def test_access_course(self):
-        test_group_course1 = GroupCourse.objects.create(
-            course=self.test_course,
-            group=self.test_group1
+    def test_course_default_create_delete(self):
+        """
+        Tests the default course creation and deletion, checks if the default course roles are
+        created and deleted.
+        """
+        course = Course.objects.create_course(
+            name="Test Course",
+            short_name="TC_2023"
         )
-        UserCourse.objects.create(
-            course=self.test_course,
-            user=self.test_user1,
-            group_course=test_group_course1
-        )
+        self.assertTrue(Course.objects.filter(name="Test Course").exists())
+        self.assertTrue(course.role_exists("students"))
+        self.assertTrue(course.role_exists("staff"))
+        self.assertTrue(course.role_exists("admin"))
 
-        self.assertTrue(
-            self.test_user1.can_access_course(self.test_course)
-        )
-        self.assertFalse(
-            self.test_user2.can_access_course(self.test_course)
-        )
+        Course.objects.delete_course(course)
 
-    def test_general_permissions(self):
-        self.test_group1.user_set.add(self.test_user1)
-        self.test_group1.user_set.add(self.test_user2)
-        self.test_group2.user_set.add(self.test_user1)
+        self.assertFalse(Course.objects.filter(name="Test Course").exists())
+        self.assertFalse(Group.objects.filter(
+            name=Course.create_role_name("students", "tc_2023")
+        ).exists())
+        self.assertFalse(Group.objects.filter(
+            name=Course.create_role_name("staff", "tc_2023")
+        ).exists())
+        self.assertFalse(Group.objects.filter(
+            name=Course.create_role_name("admin", "tc_2023")
+        ).exists())
 
-        self.test_group1.permissions.add(
-            Permission.objects.get(codename='view_group')
-        )
-        self.test_group1.permissions.add(
-            Permission.objects.get(codename='change_group')
-        )
-        self.test_group2.permissions.add(
-            Permission.objects.get(codename='add_group')
-        )
-        self.test_group2.permissions.add(
-            Permission.objects.get(codename='delete_group')
-        )
+    def test_short_name_generation(self):
+        """
+        Tests the short name generation for courses, checks if short name is properly generated
+        for multiple courses with the same name, and if the short name is properly generated for
+        courses with `USOS_code` set.
+        """
+        course1 = Course.objects.create_course(name="Test Course 1")
+        course2 = Course.objects.create_course(name="Test Course 1")
+        course3 = Course.objects.create_course(name="Test Course 1")
+        course4 = Course.objects.create_course(name="Test Course", usos_code="WMI.II-FIL-OL")
+        year = timezone.now().year
 
-        self.assertTrue(
-            self.test_user1.check_general_permissions(
-                Group,
-                PermissionTypes.VIEW
-            )
-        )
-        self.assertTrue(
-            self.test_user2.check_general_permissions(
-                Group,
-                PermissionTypes.VIEW
-            )
-        )
-        self.assertFalse(
-            self.test_user2.check_general_permissions(
-                Group,
-                PermissionTypes.DEL
-            )
-        )
-        self.assertTrue(
-            self.test_user1.check_general_permissions(
-                Group,
-                [PermissionTypes.VIEW, PermissionTypes.EDIT]
-            )
-        )
-        self.assertFalse(
-            self.test_user2.check_general_permissions(
-                Group,
-                [PermissionTypes.VIEW, PermissionTypes.EDIT, PermissionTypes.ADD]
-            )
-        )
-        self.assertTrue(
-            self.test_user1.check_general_permissions(
-                Group,
-                'all'
-            )
-        )
-        self.assertTrue(
-            self.test_user1.check_general_permissions(
-                Group,
-                'all_standard'
-            )
-        )
-        self.assertFalse(
-            self.test_user2.check_general_permissions(
-                Group,
-                'all'
-            )
-        )
-        self.assertTrue(
-            self.test_user1.check_general_permissions(
-                Group,
-                'auth.view_group'
-            )
-        )
-        self.assertFalse(
-            self.test_user1.check_general_permissions(
-                Group,
-                'auth.custom_permission'
-            )
-        )
+        self.assertEqual(course1.short_name, f'tc1_{year}')
+        self.assertEqual(course2.short_name, f'tc1_{year}_2')
+        self.assertEqual(course3.short_name, f'tc1_{year}_3')
+        self.assertEqual(course4.short_name, f'wmi_ii_fil_ol_{year}')
 
-    def test_course_permissions(self):
-        test_group_course1 = GroupCourse.objects.create(
-            course=self.test_course,
-            group=self.test_group1
-        )
-        test_group_course2 = GroupCourse.objects.create(
-            course=self.test_course,
-            group=self.test_group2
-        )
-
-        UserCourse.objects.create(
-            course=self.test_course,
-            user=self.test_user1,
-            group_course=test_group_course1
-        )
-        UserCourse.objects.create(
-            course=self.test_course,
-            user=self.test_user2,
-            group_course=test_group_course2
-        )
-
-        self.test_group2.permissions.add(
-            Permission.objects.get(codename='view_task')
-        )
-        self.test_group2.permissions.add(
-            Permission.objects.get(codename='change_task')
-        )
-
-        for p in Permission.objects.filter(
-                content_type=ContentType.objects.get_for_model(Task).id
-        ):
-            self.test_group1.permissions.add(p)
-
-        self.assertTrue(
-            self.test_user1.check_course_permissions(
-                self.test_course,
-                Task,
-                PermissionTypes.EDIT
-            )
-        )
-        self.assertTrue(
-            self.test_user2.check_course_permissions(
-                self.test_course,
-                Task,
-                PermissionTypes.VIEW
-            )
-        )
-        self.assertFalse(
-            self.test_user2.check_course_permissions(
-                self.test_course,
-                Task,
-                PermissionTypes.DEL
-            )
-        )
-        self.assertTrue(
-            self.test_user1.check_course_permissions(
-                self.test_course,
-                Task,
-                [PermissionTypes.VIEW, PermissionTypes.ADD]
-            )
-        )
-        self.assertFalse(
-            self.test_user2.check_course_permissions(
-                self.test_course,
-                Task,
-                [PermissionTypes.VIEW, PermissionTypes.ADD]
-            )
-        )
-        self.assertTrue(
-            self.test_user1.check_course_permissions(
-                self.test_course,
-                Task,
-                'all'
-            )
-        )
-        self.assertFalse(
-            self.test_user2.check_course_permissions(
-                self.test_course,
-                Task,
-                'all'
-            )
-        )
+        for course in [course1, course2, course3, course4]:
+            Course.objects.delete_course(course)
