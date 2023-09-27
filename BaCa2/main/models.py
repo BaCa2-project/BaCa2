@@ -154,7 +154,8 @@ class CourseManager(models.Manager):
                       short_name: str = "",
                       usos_code: str | None = None,
                       roles: List[Group] | None = None,
-                      default_role: Group | int | str | None = None) -> 'Course':
+                      default_role: Group | int | str | None = None,
+                      create_basic_roles: bool = False) -> 'Course':
         """
         Create a new :py:class:`Course` with given name, short name, USOS code and roles.
         A new database for the course is also created which can be accessed using the course's
@@ -168,26 +169,32 @@ class CourseManager(models.Manager):
         :type short_name: str
         :param usos_code: Subject code of the course in the USOS system.
         :param roles: List of groups to assign to the course. These groups represent the roles
-            users can be assigned to within the course. If no roles are provided, a default set of
+            users can be assigned to within the course. If no roles are provided, a basic set of
             roles is created for the course. In addition, a course will always receive an admin
             role with all permissions assigned.
         :type roles: List[Group]
         :param default_role: The default role assigned to users within the course, if no other role
             is specified. If no default role is provided, the first role from the list of roles will
-            be used - in case of no roles provided, this role will be 'students'. The default
+            be used - in case of basic roles creation, this role will be 'students'. The default
             role can be specified as either the group object, its id or its name.
         :type default_role: Group
+        :param create_basic_roles: Indicates whether a basic set of roles should be created for the
+            course regardless of whether any roles are provided.
+        :type create_basic_roles: bool
 
         :return: The newly created course.
         :rtype: Course
         """
         if short_name:
             short_name = short_name.lower()
-            self.validate_short_name(short_name)
         else:
             short_name = self._generate_short_name(name, usos_code)
+        self.validate_short_name(short_name)
 
-        roles = self._create_up_course_roles(short_name, roles, default_role)
+        roles = self._create_course_roles(short_name=short_name,
+                                          roles=roles,
+                                          default_role=default_role,
+                                          create_basic_roles=create_basic_roles)
 
         create_course_db(short_name)
         course = self.model(
@@ -271,9 +278,10 @@ class CourseManager(models.Manager):
         return short_name
 
     @staticmethod
-    def _create_up_course_roles(short_name: str,
-                                roles: List[Group] | None = None,
-                                default_role: Group | int | str | None = None, ) -> List[Group]:
+    def _create_course_roles(short_name: str,
+                             roles: List[Group] | None = None,
+                             default_role: Group | int | str | None = None,
+                             create_basic_roles: bool = False) -> List[Group]:
         """
         Create and validate a set of roles for a course based on roles provided - or if no roles
         are provided - on a default set of roles. The resulting list of roles has the default role
@@ -288,9 +296,12 @@ class CourseManager(models.Manager):
         :type roles: List[Group]
         :param default_role: The default role assigned to users within the course, if no other role
             is specified. If no default role is provided, the first role from the list of roles will
-            be used - in case of no roles provided, this role will be 'students'. The default
+            be used - in case of basic roles creation, this role will be 'students'. The default
             role can be specified as either the group object, its id or its verbose name.
         :type default_role: Group
+        :param create_basic_roles: Indicates whether a basic set of roles should be created for the
+            course regardless of whether any roles are provided.
+        :type create_basic_roles: bool
 
         :return: List of roles for the course. The default role for the course is the first element
             of the list and the admin role is the last.
@@ -300,9 +311,9 @@ class CourseManager(models.Manager):
             raise Course.CourseRoleError("Default role provided without any course roles")
 
         if not roles:
-            roles = CourseManager._create_default_course_roles(short_name)
-        else:
-            roles = CourseManager._create_default_course_roles(short_name) + roles
+            roles = CourseManager._create_basic_course_roles(short_name)
+        elif create_basic_roles:
+            roles = CourseManager._create_basic_course_roles(short_name) + roles
         roles.append(CourseManager._create_course_admin_role(short_name))
 
         for role in roles:
@@ -333,13 +344,14 @@ class CourseManager(models.Manager):
         return roles
 
     @staticmethod
-    def _create_default_course_roles(short_name: str) -> List[Group]:
+    def _create_basic_course_roles(short_name: str) -> List[Group]:
         """
-        Create a default set of roles for a course. Used when no roles are provided during course
-        creation. Default roles consist of 'students' and 'staff' groups with the following
-        permissions: 'students' and 'staff' - 'view' permission for all course models, 'add'
-        permission for the 'Submit' model; 'staff' - 'add', 'change' and 'delete' permissions for
-        the 'Round', 'Task', 'TestSet' and 'Test' models.
+        Create a basic set of roles for a course. Used when no roles are provided during course
+        creation. Or when roles are provided, but the option to create basic roles is set.
+        Default roles consist of 'students' and 'staff' groups with the following permissions:
+        'students' and 'staff' - 'view' permission for all course models, 'add' permission for
+        the 'Submit' model; 'staff' - 'add', 'change' and 'delete' permissions for the 'Round',
+        'Task', 'TestSet' and 'Test' models.
 
         :param short_name: Short name of the course. Used to create role names.
         :type short_name: str
