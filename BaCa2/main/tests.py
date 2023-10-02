@@ -139,16 +139,18 @@ class CourseManagerTest(TestCase):
         for multiple courses with the same name, and if the short name is properly generated for
         courses with `USOS_code` set.
         """
-        course1 = Course.objects.create_course(name="Test Course 1")
-        course2 = Course.objects.create_course(name="Test Course 1")
-        course3 = Course.objects.create_course(name="Test Course 1")
-        course4 = Course.objects.create_course(name="Test Course", usos_code="WMI.II-FIL-OL")
+        course1 = Course.objects.create_course(name="Test Course 3")
+        course2 = Course.objects.create_course(name="Test Course 3")
+        course3 = Course.objects.create_course(name="Test Course 3")
+        course4 = Course.objects.create_course(name="Test Course",
+                                               usos_course_code="WMI.II-FIL-OL",
+                                               usos_term_code="23/24Z")
         year = timezone.now().year
 
-        self.assertEqual(course1.short_name, f'tc1_{year}')
-        self.assertEqual(course2.short_name, f'tc1_{year}_2')
-        self.assertEqual(course3.short_name, f'tc1_{year}_3')
-        self.assertEqual(course4.short_name, f'wmi_ii_fil_ol_{year}')
+        self.assertEqual(course1.short_name, f'tc3_{year}')
+        self.assertEqual(course2.short_name, f'tc3_{year}_2')
+        self.assertEqual(course3.short_name, f'tc3_{year}_3')
+        self.assertEqual(course4.short_name, f'wmi_ii_fil_ol_23_24z')
 
         for course in [course1, course2, course3, course4]:
             Course.objects.delete_course(course)

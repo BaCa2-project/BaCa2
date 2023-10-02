@@ -18,7 +18,8 @@ from util.models import (model_cls,
                          get_all_permissions_for_model,
                          get_all_models_from_app,
                          get_model_permission_by_label,
-                         delete_populated_group)
+                         delete_populated_group,
+                         replace_special_symbols)
 
 
 class UserManager(BaseUserManager):
@@ -152,7 +153,8 @@ class CourseManager(models.Manager):
     def create_course(self,
                       name: str,
                       short_name: str = "",
-                      usos_code: str | None = None,
+                      usos_course_code: str | None = None,
+                      usos_term_code: str | None = None,
                       roles: List[Group] | None = None,
                       default_role: Group | int | str | None = None,
                       create_basic_roles: bool = False) -> 'Course':
@@ -167,7 +169,10 @@ class CourseManager(models.Manager):
             short name is generated based on the course name or USOS code (if it's provided). The
             short name cannot contain the '|' character.
         :type short_name: str
-        :param usos_code: Subject code of the course in the USOS system.
+        :param usos_course_code: Subject code of the course in the USOS system.
+        :type usos_course_code: str
+        :param usos_term_code: Term code of the course in the USOS system.
+        :type usos_term_code: str
         :param roles: List of groups to assign to the course. These groups represent the roles
             users can be assigned to within the course. If no roles are provided, a basic set of
             roles is created for the course. In addition, a course will always receive an admin
@@ -185,10 +190,13 @@ class CourseManager(models.Manager):
         :return: The newly created course.
         :rtype: Course
         """
+        if (usos_course_code is not None) ^ (usos_term_code is not None):
+            raise ValidationError('Both USOS course code and USOS term code must be provided or neither')
+
         if short_name:
             short_name = short_name.lower()
         else:
-            short_name = self._generate_short_name(name, usos_code)
+            short_name = self._generate_short_name(name, usos_course_code, usos_term_code)
         self.validate_short_name(short_name)
 
         roles = self._create_course_roles(short_name=short_name,
@@ -200,7 +208,8 @@ class CourseManager(models.Manager):
         course = self.model(
             name=name,
             short_name=short_name,
-            USOS_code=usos_code,
+            USOS_course_code=usos_course_code,
+            USOS_term_code=usos_term_code,
             default_role=roles[0],
             admin_role=roles[-1]
         )
@@ -238,40 +247,44 @@ class CourseManager(models.Manager):
         :raises ValidationError: If the short name is invalid.
         """
         if any(not (c.isalnum() or c == '_') for c in short_name):
-            raise ValidationError('Short name can only contain alphanumeric characters and \
-                                    underscores')
+            raise ValidationError('Short name can only contain alphanumeric characters and'
+                                  'underscores')
         if Course.objects.filter(short_name=short_name).exists():
             raise ValidationError('A course with this short name already exists')
 
     @staticmethod
-    def _generate_short_name(name: str, usos_code: str | None = None) -> str:
+    def _generate_short_name(name: str,
+                             usos_course_code: str | None = None,
+                             usos_term_code: str | None = None) -> str:
         """
         Generate a unique short name for a :py:class:`Course` based on its name or its USOS code.
 
         :param name: Name of the course.
         :type name: str
-        :param usos_code: Subject code of the course in the USOS system.
-        :type usos_code: str
+        :param usos_course_code: Subject code of the course in the USOS system.
+        :type usos_course_code: str
+        :param usos_term_code: Term code of the course in the USOS system.
+        :type usos_term_code: str
 
         :return: Short name for the course.
         :rtype: str
         """
-        if usos_code:
-            for i in range(len(usos_code)):
-                if not usos_code[i].isalnum():
-                    usos_code = usos_code[:i] + '_' + usos_code[i + 1:]
-            short_name = usos_code
+        if usos_course_code and usos_term_code:
+            short_name = f'{replace_special_symbols(usos_course_code, "_")}_'\
+                         f'{replace_special_symbols(usos_term_code, "_")}'
+            short_name = short_name.lower()
         else:
             short_name = ""
             for word in name.split():
                 short_name += word[0]
 
-        now = timezone.now()
-        short_name += f'_{str(now.year)}'
-        short_name = short_name.lower()
+            now = timezone.now()
+            short_name += f'_{str(now.year)}'
+            short_name = short_name.lower()
 
-        if Course.objects.filter(short_name=short_name).exists():
-            short_name += f'_{len(Course.objects.filter(short_name__startswith=short_name)) + 1}'
+            if Course.objects.filter(short_name=short_name).exists():
+                short_name += f'_{len(Course.objects.filter(short_name__startswith=short_name)) + 1}'
+
         if Course.objects.filter(short_name=short_name).exists():
             raise ValidationError('Could not generate a unique short name for the course')
 
@@ -452,10 +465,17 @@ class Course(models.Model):
     )
     #: Subject code of the course in the USOS system.
     # Used for automatic assignment of USOS registered users to the course
-    USOS_code = models.CharField(
+    USOS_course_code = models.CharField(
         verbose_name=_("Subject code"),
         max_length=20,
-        unique=True,
+        blank=True,
+        null=True
+    )
+    #: Term code of the course in the USOS system.
+    # Used for automatic assignment of USOS registered users to the course
+    USOS_term_code = models.CharField(
+        verbose_name=_("Term code"),
+        max_length=20,
         blank=True,
         null=True
     )
