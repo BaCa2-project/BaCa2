@@ -104,7 +104,6 @@ class UserManager(BaseUserManager):
         :return: The newly created user.
         :rtype: :py:class:`User`
         """
-
         return self._create_user(email=email,
                                  password=password,
                                  is_staff=False,
@@ -124,12 +123,23 @@ class UserManager(BaseUserManager):
         :return: The newly created superuser.
         :rtype: :py:class:`User`
         """
-
         return self._create_user(email=email,
                                  password=password,
                                  is_staff=True,
                                  is_superuser=True,
                                  **other_fields)
+
+    @staticmethod
+    def delete_user(user: User) -> None:
+        """
+        Delete given :py:class:`User` object along with its :py:class:`Settings` object.
+
+        :param user: The user to delete.
+        :type user: User
+        """
+        settings = user.user_settings
+        user.delete(using='default')
+        settings.delete(using='default')
 
 
 class CourseManager(models.Manager):
@@ -557,17 +567,31 @@ class Course(models.Model):
         """
         return f"{self.short_name}.{self.name}"
 
-    def user_is_member(self, user: 'User') -> bool:
+    def user_is_member(self, user: User | int) -> bool:
         """
         Check whether a given user is a member of the course.
 
-        :param user: The user to check.
+        :param user: The user to check. The user can be specified as either the user object or its
+            id.
         :type user: User
 
         :return: `True` if the user is a member of the course, `False` otherwise.
         :rtype: bool
         """
+        if isinstance(user, int):
+            user = User.objects.get(id=user)
+
         return Group.objects.filter(user=user, groupcourse__course=self).exists()
+
+    @property
+    def default_role_name(self) -> str:
+        """
+        Returns the verbose name of the course's default role.
+
+        :return: The verbose name of the course's default role.
+        :rtype: str
+        """
+        return self.get_role_verbose_name(self.default_role)
 
     def roles(self) -> Union[QuerySet, List[Group]]:
         """
@@ -592,17 +616,22 @@ class Course(models.Model):
         role_name = Course.create_role_name(verbose_name, self.short_name)
         return Group.objects.get(groupcourse__course=self, name=role_name)
 
-    def role_exists(self, verbose_name: str) -> bool:
+    def role_exists(self, role: str | Group) -> bool:
         """
-        Check whether a role with given verbose name exists within the course.
+        Check whether a role with given verbose name exists within the course or if a given role
+        group is assigned to the course.
 
-        :param verbose_name: Verbose name of the role to check.
-        :type verbose_name: str
+        :param role: Role to check. The role can be specified as either the group object or its
+            verbose name.
+        :type role: str | Group
 
-        :return: `True` if the role exists, `False` otherwise.
+        :return: `True` if the role exists within the course, `False` otherwise.
         :rtype: bool
         """
-        role_name = Course.create_role_name(verbose_name, self.short_name)
+        if isinstance(role, Group):
+            return GroupCourse.objects.filter(course=self, group=role).exists()
+
+        role_name = Course.create_role_name(role, self.short_name)
         return Group.objects.filter(groupcourse__course=self, name=role_name).exists()
 
     @staticmethod
@@ -673,16 +702,21 @@ class Course(models.Model):
 
         return users.filter(groups=role)
 
-    def get_users_with_permission(self, permission: Permission) -> Union[QuerySet, List['User']]:
+    def get_users_with_permission(self, permission: Permission | str
+                                  ) -> Union[QuerySet, List['User']]:
         """
         Returns all users assigned to the course who belong to a role with given permission.
 
-        :param permission: The permission to check for.
-        :type permission: Permission
+        :param permission: The permission to check for. The permission can be specified as either
+            the permission object or its codename.
+        :type permission: Permission | str
 
         :return: QuerySet of users assigned to the course with given permission.
         :rtype: QuerySet[User]
         """
+        if isinstance(permission, str):
+            permission = Permission.objects.get(codename=permission)
+
         roles = Group.objects.filter(groupcourse__course=self, permissions=permission)
         return User.objects.filter(groups__in=roles)
 
@@ -702,12 +736,35 @@ class Course(models.Model):
         if isinstance(user, int):
             user = User.objects.get(id=user)
 
+        if self.user_is_member(user):
+            raise Course.CourseMemberError("User is already a member of the course")
+
         if not role:
             role = self.default_role
         elif isinstance(role, str):
             role = self.get_role(role)
 
         role.user_set.add(user)
+
+    def remove_user(self, user: User | int) -> None:
+        """
+        Remove given user from the course.
+
+        :param user: The user to be removed. The user can be specified as either the user object
+            or its id.
+        :type user: User | int
+
+        :raises Course.CourseMemberError: If the user is not a member of the course.
+        """
+        if isinstance(user, int):
+            user = User.objects.get(id=user)
+
+        if not self.user_is_member(user):
+            raise Course.CourseMemberError("Attempted to remove a user who is not a member of the"
+                                           "course")
+
+        user_role = self.get_users_role(user)
+        user_role.user_set.remove(user)
 
     def add_users(self, users: List[User] | List[int] |
                                Dict[Group, List[User]] | Dict[str, List[int]]) -> None:
@@ -728,6 +785,44 @@ class Course(models.Model):
         else:
             for user in users:
                 self.add_user(user)
+
+    def user_has_role(self, user: User | int, role: Group | str) -> bool:
+        """
+        Check whether given user has given role within the course.
+
+        :param user: The user to check. The user can be specified as either the user object or its
+            id.
+        :type user: User | int
+        :param role: The role to check. The role can be specified as either the group object or its
+            verbose name.
+        :type role: Group | str
+
+        :return: `True` if the user has the role, `False` otherwise.
+        :rtype: bool
+        """
+        if isinstance(role, str):
+            role = self.get_role(role)
+        return role == self.get_users_role(user)
+
+    def get_users_role(self, user: User | int) -> Group | None:
+        """
+        Returns the role of a given user within the course.
+
+        :param user: The user whose role is to be returned. The user can be specified as either
+            the user object or its id.
+        :type user: User | int
+
+        :return: The role of the user within the course. `None` if the user is not a member of the
+            course.
+        :rtype: Group | None
+        """
+        if isinstance(user, int):
+            user = User.objects.get(id=user)
+
+        try:
+            return Group.objects.get(groupcourse__course=self, user=user)
+        except Group.DoesNotExist:
+            return None
 
     def _validate_new_role(self, role: Group):
         """
@@ -755,6 +850,35 @@ class Course(models.Model):
         self._validate_new_role(role)
         GroupCourse.objects.create(group=role, course=self)
 
+    def create_role(self,
+                    verbose_name: str,
+                    permissions: List[Permission] | List[str]) -> Group:
+        """
+        Create a new role for the course with given verbose name and assign given permissions to it.
+
+        :param verbose_name: Verbose name of the role.
+        :type verbose_name: str
+        :param permissions: List of permissions to assign to the role. The permissions can be
+            specified as either the permission objects or their codenames.
+        :type permissions: List[Permission] | List[str]
+
+        :return: The newly created role.
+        :rtype: Group
+
+        :raises Course.CourseRoleError: If a role with given name already exists within the course.
+        """
+        if self.role_exists(verbose_name):
+            raise Course.CourseRoleError("Attempted to create a role with a name that already "
+                                         "exists within the course")
+
+        role = Group.objects.create(name=Course.create_role_name(verbose_name, self.short_name))
+        self.add_role(role)
+        for perm in permissions:
+            if isinstance(perm, str):
+                perm = Permission.objects.get(codename=perm)
+            role.permissions.add(perm)
+        return role
+
     def remove_role(self, role: Group) -> None:
         """
         Remove a role from the course and delete it. Cannot be used to remove the default role, the
@@ -775,24 +899,66 @@ class Course(models.Model):
 
         delete_populated_group(role)
 
-    def change_user_role(self, user: 'User', new_role: Group | str) -> None:
+    def change_role_permissions(self,
+                                role: Group | str,
+                                permissions: List[Permission] | List[str]) -> None:
+        """
+        Replace the permissions assigned to a role with given set of permissions.
+
+        :param role: The role whose permissions are to be changed. The role can be specified as
+            either the group object or its verbose name.
+        :type role: Group | str
+        :param permissions: List of permissions to assign to the role. The permissions can be
+            specified as either the permission objects or their codenames.
+        :type permissions: List[Permission] | List[str]
+
+        :raises Course.CourseRoleError: If the role is the admin role or does not exist within the
+            course.
+        :raises Permission.DoesNotExist: If one or more given codenames do not correspond to any
+            existing permissions.
+        """
+        if not self.role_exists(role):
+            raise Course.CourseRoleError("Attempted to change permissions for a role that does not"
+                                         "exist within the course")
+        if isinstance(role, str):
+            role = self.get_role(role)
+        if self.admin_role == role:
+            raise Course.CourseRoleError("Cannot change permissions for the admin role")
+
+        prev_perms = role.permissions.all()
+
+        try:
+            role.permissions.clear()
+            for perm in permissions:
+                if isinstance(perm, str):
+                    perm = Permission.objects.get(codename=perm)
+                role.permissions.add(perm)
+        except Permission.DoesNotExist as e:
+            role.permissions.set(prev_perms)
+            raise e
+
+    def change_user_role(self, user: User | int, new_role: Group | str) -> None:
         """
         Change the role of a given user within the course.
 
-        :param user: The user whose role is to be changed.
-        :type user: User
+        :param user: The user whose role is to be changed. The user can be specified as either the
+            user object or its id.
+        :type user: User | int
         :param new_role: The role to assign to the user. The role can be specified as either the
             group object or its name.
         :type new_role: Group | str
         """
+        if isinstance(user, int):
+            user = User.objects.get(id=user)
+
         if not self.user_is_member(user):
-            raise Course.CourseMemberError("Change of role was attempted for a user who is not a \
-                                           member of the course")
+            raise Course.CourseMemberError('Change of role was attempted for a user who is not a '
+                                           'member of the course')
 
         if isinstance(new_role, str):
             new_role = self.get_role(new_role)
 
-        Group.objects.get(groupcourse__course=self, user=user).delete()
+        Group.objects.get(groupcourse__course=self, user=user).user_set.remove(user)
         new_role.user_set.add(user)
 
     def get_data(self) -> dict:
@@ -868,7 +1034,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     #: User's settings.
     user_settings = models.OneToOneField(
         Settings,
-        on_delete=models.CASCADE
+        on_delete=models.PROTECT,
+        null=False,
+        blank=False
     )
 
     #: Indicates which field should be considered as username.
@@ -892,7 +1060,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         :return: User's username.
         :rtype: str
         """
-        return self.username
+        return self.email
 
     @classmethod
     def exists(cls, user_id) -> bool:
