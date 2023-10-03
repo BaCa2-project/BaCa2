@@ -48,7 +48,6 @@ class UserManager(BaseUserManager):
     def _create_user(
             self,
             email: str,
-            username: str,
             password: str,
             is_staff: bool,
             is_superuser: bool,
@@ -61,8 +60,6 @@ class UserManager(BaseUserManager):
 
         :param email: New user's email.
         :type email: str
-        :param username: New user's username.
-        :type username: str
         :param password: New user's password.
         :type password: str
         :param is_staff: Indicates whether the new user has moderation privileges.
@@ -77,8 +74,6 @@ class UserManager(BaseUserManager):
 
         if not email:
             raise ValidationError('Email address is required')
-        if not username:
-            raise ValidationError('Username is required')
         if not password:
             raise ValidationError('Password is required')
 
@@ -86,7 +81,6 @@ class UserManager(BaseUserManager):
         _email = self.normalize_email(email)
         user = self.model(
             email=_email,
-            username=username,
             is_staff=is_staff,
             is_superuser=is_superuser,
             date_joined=now,
@@ -97,14 +91,12 @@ class UserManager(BaseUserManager):
         user.save(using='default')
         return user
 
-    def create_user(self, email: str, username: str, password: str, **other_fields) -> 'User':
+    def create_user(self, email: str, password: str, **other_fields) -> 'User':
         """
         Create a new :py:class:`User` without moderation privileges.
 
         :param email: New user's email.
         :type email: str
-        :param username: New user's username.
-        :type username: str
         :param password: New user's password.
         :type password: str
         :param other_fields: Values for non-required user fields.
@@ -114,20 +106,17 @@ class UserManager(BaseUserManager):
         """
 
         return self._create_user(email=email,
-                                 username=username,
                                  password=password,
                                  is_staff=False,
                                  is_superuser=False,
                                  **other_fields)
 
-    def create_superuser(self, email: str, username: str, password: str, **other_fields) -> 'User':
+    def create_superuser(self, email: str, password: str, **other_fields) -> User:
         """
         Create a new :py:class:`User` with all moderation privileges.
 
         :param email: New user's email.
         :type email: str
-        :param username: New user's username.
-        :type username: str
         :param password: New user's password.
         :type password: str
         :param other_fields: Values for non-required user fields.
@@ -137,7 +126,6 @@ class UserManager(BaseUserManager):
         """
 
         return self._create_user(email=email,
-                                 username=username,
                                  password=password,
                                  is_staff=True,
                                  is_superuser=True,
@@ -845,15 +833,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     to replace the default User model.
     """
 
-    #: User's email. Can be used to log in.
+    #: User's email. Used to log in.
     email = models.EmailField(
         _("email address"),
-        max_length=255,
-        unique=True
-    )
-    #: Unique username. Can be used during login instead of email.
-    username = models.CharField(
-        _("username"),
         max_length=255,
         unique=True
     )
@@ -891,14 +873,14 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     #: Indicates which field should be considered as username.
     # Required when replacing default Django User model.
-    USERNAME_FIELD = 'username'
+    USERNAME_FIELD = 'email'
 
     #: Indicates which field should be considered as email.
     # Required when replacing default Django User model.
     EMAIL_FIELD = 'email'
 
     #: Indicates which fields besides the USERNAME_FIELD are required when creating a User object.
-    REQUIRED_FIELDS = ['email']
+    REQUIRED_FIELDS = []
 
     #: Manager class for the User model.
     objects = UserManager()
