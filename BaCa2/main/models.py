@@ -1,4 +1,5 @@
-from typing import (List, Type, Union)
+from __future__ import annotations
+from typing import (List, Type, Union, Dict)
 
 from django.db import models
 from django.db.models.query import QuerySet
@@ -155,9 +156,12 @@ class CourseManager(models.Manager):
                       short_name: str = "",
                       usos_course_code: str | None = None,
                       usos_term_code: str | None = None,
-                      roles: List[Group] | None = None,
+                      roles: List[int] | List[Group] | Dict[str, List[str]] | None = None,
                       default_role: Group | int | str | None = None,
-                      create_basic_roles: bool = False) -> 'Course':
+                      create_basic_roles: bool = False,
+                      course_members: List[int] | List['User'] | Dict[Group, List['User']] |
+                                      Dict[str, List[int]] = None
+                      ) -> 'Course':
         """
         Create a new :py:class:`Course` with given name, short name, USOS code and roles.
         A new database for the course is also created which can be accessed using the course's
@@ -176,8 +180,12 @@ class CourseManager(models.Manager):
         :param roles: List of groups to assign to the course. These groups represent the roles
             users can be assigned to within the course. If no roles are provided, a basic set of
             roles is created for the course. In addition, a course will always receive an admin
-            role with all permissions assigned.
-        :type roles: List[Group]
+            role with all permissions assigned. The roles can be specified as either a List of group
+            objects, a List of group ids or a dictionary of role names and lists of permissions
+            which should be assigned to them. If a dictionary is provided, the roles will be created
+            and permissions with given codenames will be assigned to them. You should only provide
+            codenames for already existing permissions.
+        :type roles: List[Group] | List[int] | Dict[str, List[str]]
         :param default_role: The default role assigned to users within the course, if no other role
             is specified. If no default role is provided, the first role from the list of roles will
             be used - in case of basic roles creation, this role will be 'students'. The default
@@ -186,12 +194,20 @@ class CourseManager(models.Manager):
         :param create_basic_roles: Indicates whether a basic set of roles should be created for the
             course regardless of whether any roles are provided.
         :type create_basic_roles: bool
+        :param course_members: List of users to assign to the course. If no users are provided, no
+            users are assigned to the course. Users can be specified as either a List of user
+            objects, a List of user ids or a dictionary of roles and lists of users which should be
+            assigned to them. If a list of users/user ids is provided all users wille be assigned
+            the default role.
+        :type course_members: List[User] | List[int] | Dict[Group, List[User]] |
+            Dict[str, List[int]]
 
         :return: The newly created course.
         :rtype: Course
         """
         if (usos_course_code is not None) ^ (usos_term_code is not None):
-            raise ValidationError('Both USOS course code and USOS term code must be provided or neither')
+            raise ValidationError('Both USOS course code and USOS term code must be provided or '
+                                  'neither')
 
         if short_name:
             short_name = short_name.lower()
@@ -217,6 +233,9 @@ class CourseManager(models.Manager):
 
         for role in roles:
             course.add_role(role)
+
+        if course_members:
+            course.add_users(course_members)
 
         return course
 
@@ -270,7 +289,7 @@ class CourseManager(models.Manager):
         :rtype: str
         """
         if usos_course_code and usos_term_code:
-            short_name = f'{replace_special_symbols(usos_course_code, "_")}_'\
+            short_name = f'{replace_special_symbols(usos_course_code, "_")}_' \
                          f'{replace_special_symbols(usos_term_code, "_")}'
             short_name = short_name.lower()
         else:
@@ -283,7 +302,8 @@ class CourseManager(models.Manager):
             short_name = short_name.lower()
 
             if Course.objects.filter(short_name=short_name).exists():
-                short_name += f'_{len(Course.objects.filter(short_name__startswith=short_name)) + 1}'
+                short_name += '_' + \
+                              f'{len(Course.objects.filter(short_name__startswith=short_name)) + 1}'
 
         if Course.objects.filter(short_name=short_name).exists():
             raise ValidationError('Could not generate a unique short name for the course')
@@ -292,7 +312,7 @@ class CourseManager(models.Manager):
 
     @staticmethod
     def _create_course_roles(short_name: str,
-                             roles: List[Group] | None = None,
+                             roles: List[int] | List[Group] | Dict[str, List[str]] | None = None,
                              default_role: Group | int | str | None = None,
                              create_basic_roles: bool = False) -> List[Group]:
         """
@@ -303,10 +323,14 @@ class CourseManager(models.Manager):
         :param short_name: Short name of the course. Used to create role names.
         :type short_name: str
         :param roles: List of groups to assign to the course. These groups represent the roles
-            users can be assigned to within the course. If no roles are provided, a default set of
+            users can be assigned to within the course. If no roles are provided, a basic set of
             roles is created for the course. In addition, a course will always receive an admin
-            role with all permissions assigned.
-        :type roles: List[Group]
+            role with all permissions assigned. The roles can be specified as either a List of group
+            objects, a List of group ids or a dictionary of role names and lists of permissions
+            which should be assigned to them. If a dictionary is provided, the roles will be created
+            and permissions with given codenames will be assigned to them. You should only provide
+            codenames for already existing permissions.
+        :type roles: List[Group] | List[int] | Dict[str, List[str]]
         :param default_role: The default role assigned to users within the course, if no other role
             is specified. If no default role is provided, the first role from the list of roles will
             be used - in case of basic roles creation, this role will be 'students'. The default
@@ -322,6 +346,11 @@ class CourseManager(models.Manager):
         """
         if default_role and not roles:
             raise Course.CourseRoleError("Default role provided without any course roles")
+
+        if isinstance(roles, list) and isinstance(roles[0], int):
+            roles = [Group.objects.get(id=role_id) for role_id in roles]
+        elif isinstance(roles, dict):
+            roles = CourseManager._create_roles_with_permissions(roles, short_name)
 
         if not roles:
             roles = CourseManager._create_basic_course_roles(short_name)
@@ -427,6 +456,33 @@ class CourseManager(models.Manager):
                 admin_role.permissions.add(perm_id)
 
         return admin_role
+
+    @staticmethod
+    def _create_roles_with_permissions(roles_perms: Dict[str, List[str]],
+                                       short_name: str) -> List[Group]:
+        """
+        Create a set of roles for a course based on a dictionary of role names and lists of
+        permissions which should be assigned to them.
+
+        :param roles_perms: Dictionary of role names and lists of permissions which should be
+            assigned to them.
+        :type roles_perms: Dict[str, List[str]]
+        :param short_name: Short name of the course. Used to create unique role names.
+        :type short_name: str
+
+        :return: List of roles for the course.
+        :rtype: List[Group]
+        """
+        roles = []
+        for role_name, perms in roles_perms.items():
+            role = Group.objects.create(name=Course.create_role_name(role_name, short_name))
+            roles.append(role)
+
+            for perm in perms:
+                perm = Permission.objects.get(codename=perm)
+                role.permissions.add(perm)
+
+        return roles
 
 
 class Course(models.Model):
@@ -642,24 +698,48 @@ class Course(models.Model):
         roles = Group.objects.filter(groupcourse__course=self, permissions=permission)
         return User.objects.filter(groups__in=roles)
 
-    def add_user(self, user: 'User', role: Group | str | None = None) -> None:
+    def add_user(self, user: User | int, role: Group | str | None = None) -> None:
         """
         Assign given user to the course with given role. If no role is specified, the user is
         assigned to the course with the default role.
 
-        :param user: The user to be assigned.
-        :type user: User
+        :param user: The user to be assigned. The user can be specified as either the user object
+            or its id.
+        :type user: User | int
         :param role: The role to assign the user to. If no role is specified, the user is assigned
             to the course with the default role. The role can be specified as either the group
             object or its verbose name.
         :type role: Group | str
         """
+        if isinstance(user, int):
+            user = User.objects.get(id=user)
+
         if not role:
             role = self.default_role
         elif isinstance(role, str):
             role = self.get_role(role)
 
         role.user_set.add(user)
+
+    def add_users(self, users: List[User] | List[int] |
+                               Dict[Group, List[User]] | Dict[str, List[int]]) -> None:
+        """
+        Assign given users to the course with given roles. If no roles are specified, the users are
+        assigned to the course with the default role.
+
+        :param users: The users to be assigned. The users can be specified as either a list of user
+            objects or a list of user ids. Alternatively, a dictionary of roles and lists of users
+            which should be assigned to them can be provided. If a list of users/user ids is
+            provided all users wille be assigned the default role.
+        :type users: List[User] | List[int] | Dict[Group, List[User]] | Dict[str, List[int]]
+        """
+        if isinstance(users, dict):
+            for role, users in users.items():
+                for user in users:
+                    self.add_user(user, role)
+        else:
+            for user in users:
+                self.add_user(user)
 
     def _validate_new_role(self, role: Group):
         """
@@ -739,7 +819,8 @@ class Course(models.Model):
             'id': self.id,
             'name': self.name,
             'short_name': self.short_name,
-            'USOS_code': self.USOS_code,
+            'USOS_course_code': self.USOS_course_code,
+            'USOS_term_code': self.USOS_term_code
         }
 
 
