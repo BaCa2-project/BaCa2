@@ -54,7 +54,7 @@ def get_model_permission_by_label(model: model_cls, perm_label: str) -> Permissi
 
 def delete_populated_group(group: Group) -> None:
     """
-    Deletes a group along with all its user and permission assignments (does not the users or
+    Deletes a group along with all its user and permission assignments (does not delete the users or
     permissions themselves).
 
     :param group: Group to delete.
@@ -64,6 +64,19 @@ def delete_populated_group(group: Group) -> None:
     group.user_set.clear()
     group.permissions.clear()
     group.delete(using='default')
+
+
+def delete_populated_groups(groups: List[Group]) -> None:
+    """
+    Deletes a list of groups along with all their user and permission assignments (does not
+    delete the users or permissions themselves).
+
+    :param groups: List of groups to delete.
+    :type groups: List[Group]
+    """
+
+    for group in groups:
+        delete_populated_group(group)
 
 
 def replace_special_symbols(string: str, replacement: str = '_') -> str:

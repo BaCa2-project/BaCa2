@@ -1,7 +1,8 @@
 from __future__ import annotations
 from typing import (List, Type, Union, Dict)
 
-from django.db import models
+from django.db import models, transaction
+from django.db.utils import IntegrityError
 from django.db.models.query import QuerySet
 from django.contrib.auth.models import (AbstractBaseUser,
                                         PermissionsMixin,
@@ -20,6 +21,7 @@ from util.models import (model_cls,
                          get_all_models_from_app,
                          get_model_permission_by_label,
                          delete_populated_group,
+                         delete_populated_groups,
                          replace_special_symbols)
 
 
@@ -33,6 +35,7 @@ class UserManager(BaseUserManager):
     """
 
     @staticmethod
+    @transaction.atomic
     def _create_settings() -> 'Settings':
         """
         Create a new user :py:class:`Settings` object.
@@ -45,6 +48,7 @@ class UserManager(BaseUserManager):
         settings.save(using='default')
         return settings
 
+    @transaction.atomic
     def _create_user(
             self,
             email: str,
@@ -91,6 +95,7 @@ class UserManager(BaseUserManager):
         user.save(using='default')
         return user
 
+    @transaction.atomic
     def create_user(self, email: str, password: str, **other_fields) -> 'User':
         """
         Create a new :py:class:`User` without moderation privileges.
@@ -110,6 +115,7 @@ class UserManager(BaseUserManager):
                                  is_superuser=False,
                                  **other_fields)
 
+    @transaction.atomic
     def create_superuser(self, email: str, password: str, **other_fields) -> User:
         """
         Create a new :py:class:`User` with all moderation privileges.
@@ -130,6 +136,7 @@ class UserManager(BaseUserManager):
                                  **other_fields)
 
     @staticmethod
+    @transaction.atomic
     def delete_user(user: User) -> None:
         """
         Delete given :py:class:`User` object along with its :py:class:`Settings` object.
@@ -148,7 +155,7 @@ class CourseManager(models.Manager):
     :py:mod:`course.manager` methods to create and delete course databases along with corresponding
     course objects in the 'default' database.
     """
-
+    @transaction.atomic
     def create_course(self,
                       name: str,
                       short_name: str = "",
@@ -202,6 +209,9 @@ class CourseManager(models.Manager):
 
         :return: The newly created course.
         :rtype: Course
+
+        :raises ValidationError: If either USOS course code or USOS term code is provided without
+            the other.
         """
         if (usos_course_code is not None) ^ (usos_term_code is not None):
             raise ValidationError('Both USOS course code and USOS term code must be provided or '
@@ -238,6 +248,7 @@ class CourseManager(models.Manager):
         return course
 
     @staticmethod
+    @transaction.atomic
     def delete_course(course: 'Course') -> None:
         """
         Delete given :py:class:`Course` and its database. In addition, all groups assigned to the
@@ -249,8 +260,7 @@ class CourseManager(models.Manager):
         roles = list(course.roles())
         delete_course_db(course.short_name)
         course.delete(using='default')
-        for role in roles:
-            delete_populated_group(role)
+        delete_populated_groups(roles)
 
     @staticmethod
     def validate_short_name(short_name: str) -> None:
@@ -261,7 +271,8 @@ class CourseManager(models.Manager):
         :param short_name: Short name to validate.
         :type short_name: str
 
-        :raises ValidationError: If the short name is invalid.
+        :raises ValidationError: If the short name contains non-alphanumeric characters other than
+            underscores or if a course with given short name already exists.
         """
         if any(not (c.isalnum() or c == '_') for c in short_name):
             raise ValidationError('Short name can only contain alphanumeric characters and'
@@ -285,6 +296,8 @@ class CourseManager(models.Manager):
 
         :return: Short name for the course.
         :rtype: str
+
+        :raises ValidationError: If a unique short name could not be generated for the course.
         """
         if usos_course_code and usos_term_code:
             short_name = f'{replace_special_symbols(usos_course_code, "_")}_' \
@@ -309,6 +322,7 @@ class CourseManager(models.Manager):
         return short_name
 
     @staticmethod
+    @transaction.atomic
     def _create_course_roles(short_name: str,
                              roles: List[int] | List[Group] | Dict[str, List[str]] | None = None,
                              default_role: Group | int | str | None = None,
@@ -341,6 +355,12 @@ class CourseManager(models.Manager):
         :return: List of roles for the course. The default role for the course is the first element
             of the list and the admin role is the last.
         :rtype: List[Group]
+
+        :raises Course.CourseRoleError: In following cases: default role provided without any
+            course roles; custom role provided with the same name as a basic role or the admin
+            role; role name does not match course short name; role already assigned to a different
+            course; default role with given id not in course roles; default role with given name
+            not in course roles; default role not in course roles.
         """
         if default_role and not roles:
             raise Course.CourseRoleError("Default role provided without any course roles")
@@ -353,26 +373,34 @@ class CourseManager(models.Manager):
         if not roles:
             roles = CourseManager._create_basic_course_roles(short_name)
         elif create_basic_roles:
-            roles = CourseManager._create_basic_course_roles(short_name) + roles
-        roles.append(CourseManager._create_course_admin_role(short_name))
+            try:
+                basic_roles = CourseManager._create_basic_course_roles(short_name)
+            except IntegrityError:
+                raise Course.CourseRoleError("Attempted to create add a custom role with the "
+                                             "same name as a basic role")
+            roles = basic_roles + roles
+
+        try:
+            roles.append(CourseManager._create_course_admin_role(short_name))
+        except IntegrityError:
+            raise Course.CourseRoleError("Attempted to create add a custom role with the same "
+                                         "name as the admin role")
 
         for role in roles:
             if role.name.split('|')[0] != short_name:
                 raise Course.CourseRoleError("Role name does not match course short name")
             if role.groupcourse_set.exists():
-                raise Course.CourseRoleError("Role already assigned to a different \
-                                                    course")
+                raise Course.CourseRoleError("Role already assigned to a different course")
 
         if isinstance(default_role, int):
             default_role = Group.objects.get(id=default_role)
             if default_role not in roles:
-                raise Course.CourseRoleError("Default role with given id not in course \
-                                                    roles.")
+                raise Course.CourseRoleError("Default role with given id not in course roles.")
         elif isinstance(default_role, str):
             default_role = [g for g in roles if Course.get_role_verbose_name(g) == default_role]
             if not default_role:
-                raise Course.CourseRoleError("Default role with given name not in course \
-                                                    roles.")
+                raise Course.CourseRoleError("Default role with given name not in course "
+                                             "roles.")
             default_role = default_role[0]
         elif default_role:
             if default_role not in roles:
@@ -384,6 +412,7 @@ class CourseManager(models.Manager):
         return roles
 
     @staticmethod
+    @transaction.atomic
     def _create_basic_course_roles(short_name: str) -> List[Group]:
         """
         Create a basic set of roles for a course. Used when no roles are provided during course
@@ -433,6 +462,7 @@ class CourseManager(models.Manager):
         return roles
 
     @staticmethod
+    @transaction.atomic
     def _create_course_admin_role(short_name: str) -> Group:
         """
         Create an 'admin' role for a course. The role has all permissions related to all course
@@ -456,6 +486,7 @@ class CourseManager(models.Manager):
         return admin_role
 
     @staticmethod
+    @transaction.atomic
     def _create_roles_with_permissions(roles_perms: Dict[str, List[str]],
                                        short_name: str) -> List[Group]:
         """
@@ -720,6 +751,22 @@ class Course(models.Model):
         roles = Group.objects.filter(groupcourse__course=self, permissions=permission)
         return User.objects.filter(groups__in=roles)
 
+    def _validate_new_user(self, user: User | int) -> None:
+        """
+        Check whether a given user can be assigned to the course.
+
+        :param user: The user to check. The user can be specified as either the user object or its
+            id.
+        :type user: User | int
+
+        :raises Course.CourseMemberError: If the user is already a member of the course.
+        """
+        if isinstance(user, int):
+            user = User.objects.get(id=user)
+        if self.user_is_member(user):
+            raise Course.CourseMemberError("User is already a member of the course")
+
+    @transaction.atomic
     def add_user(self, user: User | int, role: Group | str | None = None) -> None:
         """
         Assign given user to the course with given role. If no role is specified, the user is
@@ -736,8 +783,7 @@ class Course(models.Model):
         if isinstance(user, int):
             user = User.objects.get(id=user)
 
-        if self.user_is_member(user):
-            raise Course.CourseMemberError("User is already a member of the course")
+        self._validate_new_user(user)
 
         if not role:
             role = self.default_role
@@ -746,6 +792,7 @@ class Course(models.Model):
 
         role.user_set.add(user)
 
+    @transaction.atomic
     def remove_user(self, user: User | int) -> None:
         """
         Remove given user from the course.
@@ -766,6 +813,7 @@ class Course(models.Model):
         user_role = self.get_users_role(user)
         user_role.user_set.remove(user)
 
+    @transaction.atomic
     def add_users(self, users: List[User] | List[int] |
                                Dict[Group, List[User]] | Dict[str, List[int]]) -> None:
         """
@@ -840,6 +888,7 @@ class Course(models.Model):
         if GroupCourse.objects.filter(group=role, course=self).exists():
             raise Course.CourseRoleError("Group already assigned to a different course")
 
+    @transaction.atomic
     def add_role(self, role: Group) -> None:
         """
         Add a new role to the course if it passes validation.
@@ -850,6 +899,7 @@ class Course(models.Model):
         self._validate_new_role(role)
         GroupCourse.objects.create(group=role, course=self)
 
+    @transaction.atomic
     def create_role(self,
                     verbose_name: str,
                     permissions: List[Permission] | List[str]) -> Group:
@@ -879,6 +929,7 @@ class Course(models.Model):
             role.permissions.add(perm)
         return role
 
+    @transaction.atomic
     def remove_role(self, role: Group) -> None:
         """
         Remove a role from the course and delete it. Cannot be used to remove the default role, the
@@ -899,6 +950,7 @@ class Course(models.Model):
 
         delete_populated_group(role)
 
+    @transaction.atomic
     def change_role_permissions(self,
                                 role: Group | str,
                                 permissions: List[Permission] | List[str]) -> None:
@@ -925,18 +977,13 @@ class Course(models.Model):
         if self.admin_role == role:
             raise Course.CourseRoleError("Cannot change permissions for the admin role")
 
-        prev_perms = role.permissions.all()
+        role.permissions.clear()
+        for perm in permissions:
+            if isinstance(perm, str):
+                perm = Permission.objects.get(codename=perm)
+            role.permissions.add(perm)
 
-        try:
-            role.permissions.clear()
-            for perm in permissions:
-                if isinstance(perm, str):
-                    perm = Permission.objects.get(codename=perm)
-                role.permissions.add(perm)
-        except Permission.DoesNotExist as e:
-            role.permissions.set(prev_perms)
-            raise e
-
+    @transaction.atomic
     def change_user_role(self, user: User | int, new_role: Group | str) -> None:
         """
         Change the role of a given user within the course.
