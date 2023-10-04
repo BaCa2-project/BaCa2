@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.test import TestCase
 from django.contrib.auth.models import Group
 from django.utils import timezone
@@ -19,6 +20,7 @@ class CourseTest(TestCase):
     users = None
 
     course1 = None
+    course2 = None
     courses = None
 
     @staticmethod
@@ -55,35 +57,37 @@ class CourseTest(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.user1 = User.objects.create_user(email="user1@mail.com",
-                                             password="user1",
-                                             first_name="Jan",
-                                             last_name="Kowalski")
-        cls.teacher1 = User.objects.create_user(email="teacher1@uj.edu.pl",
-                                                password="teacher1",
-                                                first_name="Arkadiusz",
-                                                last_name="Sokołowski")
-        cls.teacher2 = User.objects.create_user(email="teacher2@uj.edu.pl",
-                                                password="teacher2",
-                                                first_name="Michał",
-                                                last_name="Mnich")
-        cls.teacher3 = User.objects.create_user(email="teacher3@uj.edu.pl",
-                                                password="teacher3",
-                                                first_name="Jarosław",
-                                                last_name="Hryszka")
-        cls.student1 = User.objects.create_user(email="student1@student.uj.edu.pl",
-                                                password="student1",
-                                                first_name="Bartosz",
-                                                last_name="Deptuła")
-        cls.student2 = User.objects.create_user(email="student2@student.uj.edu.pl",
-                                                password="student2",
-                                                first_name="Mateusz",
-                                                last_name="Kadula")
-        cls.users = [cls.user1, cls.teacher1, cls.teacher2, cls.teacher3, cls.student1,
-                     cls.student2]
+        with transaction.atomic():
+            cls.user1 = User.objects.create_user(email="user1@mail.com",
+                                                 password="user1",
+                                                 first_name="Jan",
+                                                 last_name="Kowalski")
+            cls.teacher1 = User.objects.create_user(email="teacher1@uj.edu.pl",
+                                                    password="teacher1",
+                                                    first_name="Arkadiusz",
+                                                    last_name="Sokołowski")
+            cls.teacher2 = User.objects.create_user(email="teacher2@uj.edu.pl",
+                                                    password="teacher2",
+                                                    first_name="Michał",
+                                                    last_name="Mnich")
+            cls.teacher3 = User.objects.create_user(email="teacher3@uj.edu.pl",
+                                                    password="teacher3",
+                                                    first_name="Jarosław",
+                                                    last_name="Hryszka")
+            cls.student1 = User.objects.create_user(email="student1@student.uj.edu.pl",
+                                                    password="student1",
+                                                    first_name="Bartosz",
+                                                    last_name="Deptuła")
+            cls.student2 = User.objects.create_user(email="student2@student.uj.edu.pl",
+                                                    password="student2",
+                                                    first_name="Mateusz",
+                                                    last_name="Kadula")
+            cls.users = [cls.user1, cls.teacher1, cls.teacher2, cls.teacher3, cls.student1,
+                         cls.student2]
 
-        cls.course1 = Course.objects.create_course(name="Course 1")
-        cls.courses = [cls.course1]
+            cls.course1 = Course.objects.create_course(name="Course 1")
+            cls.course2 = Course.objects.create_course(name="Course 2")
+            cls.courses = [cls.course1, cls.course2]
 
     @classmethod
     def tearDownClass(cls):
@@ -92,7 +96,7 @@ class CourseTest(TestCase):
         for course in cls.courses:
             Course.objects.delete_course(course)
 
-    def test_course_default_create_delete(self):
+    def test_course_create_delete_default(self):
         """
         Tests the default course creation and deletion, checks if the default course roles are
         created and deleted.
@@ -156,12 +160,12 @@ class CourseTest(TestCase):
         self.assertTrue(self.course_exists(name1))
         for role in ["role1", "role2", "admin"]:
             self.assertTrue(course1.role_exists(role))
-        self.assertTrue(len(course1.roles()) == 3)
+        self.assertTrue(len(course1.get_roles()) == 3)
 
         self.assertTrue(self.course_exists(name2))
         for role in ["role1", "role2", "admin", "staff", "students"]:
             self.assertTrue(course2.role_exists(role))
-        self.assertTrue(len(course2.roles()) == 5)
+        self.assertTrue(len(course2.get_roles()) == 5)
 
         Course.objects.delete_course(course1)
         Course.objects.delete_course(course2)
@@ -195,7 +199,7 @@ class CourseTest(TestCase):
                                                course_members=course_members)
 
         self.assertTrue(self.course_exists("Java Programming"))
-        self.assertTrue(len(course1.roles()) == 4)
+        self.assertTrue(len(course1.get_roles()) == 4)
         self.assertEqual(course1.default_role_name, "students")
         self.assertEqual(course1.short_name, "wmi_ii_pwj_s_23_24z")
 
@@ -245,7 +249,77 @@ class CourseTest(TestCase):
         for course in [course1, course2, course3, course4]:
             Course.objects.delete_course(course)
 
-    def test_course_add_remove_user(self):
+    def test_add_remove_role(self):
+        """
+        Test whether adding and removing roles from a course works properly. Checks if exceptions
+        are raised when attempting to add already added roles or remove non-existing or protected
+        roles.
+        """
+        self.course1.create_role("role1", ["view_round", "view_task"])
+
+        self.assertTrue(self.course1.role_exists("role1"))
+        self.assertTrue(self.course1.role_has_permission("role1", "view_round"))
+        self.assertTrue(self.course1.role_has_permission("role1", "view_task"))
+        self.assertFalse(self.course1.role_has_permission("role1", "change_round"))
+
+        with self.assertRaises(Course.CourseRoleError):
+            self.course1.create_role("role1", ["view_round", "view_task"])
+
+        self.course1.remove_role("role1")
+
+        self.assertFalse(self.course1.role_exists("role1"))
+
+        with self.assertRaises(Course.CourseRoleError):
+            self.course1.remove_role("admin")
+        with self.assertRaises(Course.CourseRoleError):
+            self.course1.remove_role("role1")
+
+        self.course1.add_user(self.teacher1, "staff")
+
+        with self.assertRaises(Course.CourseRoleError):
+            self.course1.remove_role("staff")
+
+    def test_add_remove_change_role_permissions(self):
+        """
+        Test whether adding and removing permissions from a role works properly. Checks if
+        exceptions are raised when attempting to add already added permissions or remove
+        non-existing permissions, as well as when attempting to edit admin role permissions.
+        """
+        perms1 = ["view_round", "view_task"]
+        perms2 = ["add_submit", "view_submit", "view_result"]
+        perms3 = ["view_result"]
+        perms4 = ["add_round", "change_round"]
+
+        self.course1.create_role("role1", perms1)
+
+        for perm in perms1:
+            self.assertTrue(self.course1.role_has_permission("role1", perm))
+        for perm in perms2:
+            self.assertFalse(self.course1.role_has_permission("role1", perm))
+
+        self.course1.add_role_permissions("role1", perms2)
+
+        for perm in perms1 + perms2:
+            self.assertTrue(self.course1.role_has_permission("role1", perm))
+        with self.assertRaises(Course.CourseRoleError):
+            self.course1.add_role_permissions("role1", perms2)
+
+        self.course1.remove_role_permissions("role1", perms3)
+        self.assertFalse(self.course1.role_has_permission("role1", "view_result"))
+
+        with self.assertRaises(Course.CourseRoleError):
+            self.course1.remove_role_permissions("role1", perms3)
+
+        self.course1.change_role_permissions("role1", perms4)
+
+        for perm in perms1 + perms2:
+            self.assertFalse(self.course1.role_has_permission("role1", perm))
+        for perm in perms4:
+            self.assertTrue(self.course1.role_has_permission("role1", perm))
+
+        self.course1.remove_role("role1")
+
+    def test_add_remove_user(self):
         """
         Test whether adding and removing users from a course works properly. Checks if users are
         assigned with proper roles and if exceptions are raised when attempting to add already
@@ -275,7 +349,75 @@ class CourseTest(TestCase):
         with self.assertRaises(Course.CourseMemberError):
             self.course1.remove_user(self.student1)
 
-    def test_change_role(self):
+    def test_get_users(self):
+        """
+        Test whether the :meth:`Course.get_users` method works properly.
+        """
+        self.course1.add_user(self.teacher1, "staff")
+        self.course1.add_user(self.teacher2, "staff")
+        self.course1.add_user(self.teacher3, "staff")
+        self.course1.add_user(self.student1, "students")
+        self.course1.add_user(self.student2, "students")
+
+        self.assertTrue(len(self.course1.get_users()) == 5)
+        self.assertTrue(len(self.course1.get_users("staff")) == 3)
+        self.assertTrue(len(self.course1.get_users("students")) == 2)
+        self.assertTrue(len(self.course1.get_users("admin")) == 0)
+
+        for user in [self.teacher1, self.teacher2, self.teacher3]:
+            self.assertTrue(user in self.course1.get_users("staff"))
+
+        self.course1.remove_user(self.teacher1)
+        self.course1.remove_user(self.teacher2)
+        self.course1.remove_user(self.teacher3)
+        self.course1.remove_user(self.student1)
+        self.course1.remove_user(self.student2)
+
+    def test_user_has_permission(self):
+        """
+        Test whether the :meth:`Course.user_has_permission` method works properly.
+        """
+        self.course1.create_role("role1", ["view_round", "view_task"])
+        self.course2.create_role("role1", ["add_submit", "view_submit", "view_result"])
+        self.course1.add_user(self.student1, "role1")
+        self.course2.add_user(self.student1, "role1")
+
+        self.assertTrue(self.course1.user_has_permission(self.student1, "view_round"))
+        self.assertFalse(self.course1.user_has_permission(self.student1, "add_submit"))
+        self.assertTrue(self.course2.user_has_permission(self.student1, "add_submit"))
+
+        self.course1.remove_user(self.student1)
+        self.course2.remove_user(self.student1)
+        self.course1.remove_role("role1")
+        self.course2.remove_role("role1")
+
+        with self.assertRaises(Course.CourseMemberError):
+            self.course1.user_has_permission(self.student1, "view_round")
+
+    def test_get_users_with_permission(self):
+        """
+        Test whether the :meth:`Course.get_users_with_permission` method works properly.
+        """
+        self.course1.create_role("role1", ["view_round", "view_task"])
+        self.course2.create_role("role1", ["add_submit", "view_submit", "view_result"])
+
+        self.course1.add_user(self.student1.id, "role1")
+        self.course1.add_user(self.student2.id, "role1")
+        self.course2.add_user(self.student2.id, "role1")
+
+        for user in [self.student1, self.student2]:
+            self.assertTrue(user in self.course1.get_users_with_permission("view_round"))
+        self.assertTrue(len(self.course1.get_users_with_permission("view_round")) == 2)
+        self.assertTrue(len(self.course1.get_users_with_permission("change_task")) == 0)
+        self.assertTrue(self.student2 in self.course2.get_users_with_permission("add_submit"))
+
+        self.course1.remove_user(self.student1.id)
+        self.course1.remove_user(self.student2.id)
+        self.course2.remove_user(self.student2.id)
+        self.course1.remove_role("role1")
+        self.course2.remove_role("role1")
+
+    def test_change_user_role(self):
         """
         Test whether changing user's role in a course works properly. Checks if exceptions are
         raised when attempting to change role of a non-member user.
@@ -290,11 +432,3 @@ class CourseTest(TestCase):
 
         with self.assertRaises(Course.CourseMemberError):
             self.course1.change_user_role(self.teacher1, "staff")
-
-    def test_add_remove_role(self):
-        """
-        Test whether adding and removing roles from a course works properly. Checks if exceptions
-        are raised when attempting to add already added roles or remove non-existing or protected
-        roles.
-        """
-        pass

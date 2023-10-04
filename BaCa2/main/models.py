@@ -257,10 +257,12 @@ class CourseManager(models.Manager):
         :param course: The course to delete.
         :type course: Course
         """
-        roles = list(course.roles())
+        roles = list(course.get_roles())
         delete_course_db(course.short_name)
         course.delete(using='default')
         delete_populated_groups(roles)
+
+    # ---------------------------------- Auxiliary methods ------------------------------------ #
 
     @staticmethod
     def validate_short_name(short_name: str) -> None:
@@ -320,6 +322,8 @@ class CourseManager(models.Manager):
             raise ValidationError('Could not generate a unique short name for the course')
 
         return short_name
+
+    # ---------------------------------- Course roles setup ----------------------------------- #
 
     @staticmethod
     @transaction.atomic
@@ -589,6 +593,8 @@ class Course(models.Model):
     #: Manager class for the Course model.
     objects = CourseManager()
 
+    # ---------------------------------- Course representation --------------------------------- #
+
     def __str__(self) -> str:
         """
         Returns the string representation of the Course object.
@@ -598,21 +604,23 @@ class Course(models.Model):
         """
         return f"{self.short_name}.{self.name}"
 
-    def user_is_member(self, user: User | int) -> bool:
+    def get_data(self) -> dict:
         """
-        Check whether a given user is a member of the course.
+        Returns the contents of a Course object's fields as a dictionary. Used to send course data
+        to the frontend.
 
-        :param user: The user to check. The user can be specified as either the user object or its
-            id.
-        :type user: User
-
-        :return: `True` if the user is a member of the course, `False` otherwise.
-        :rtype: bool
+        :return: Dictionary containing the course's id, name and short name.
+        :rtype: dict
         """
-        if isinstance(user, int):
-            user = User.objects.get(id=user)
+        return {
+            'id': self.id,
+            'name': self.name,
+            'short_name': self.short_name,
+            'USOS_course_code': self.USOS_course_code,
+            'USOS_term_code': self.USOS_term_code
+        }
 
-        return Group.objects.filter(user=user, groupcourse__course=self).exists()
+    # ------------------------------------ Role management ------------------------------------ #
 
     @property
     def default_role_name(self) -> str:
@@ -624,28 +632,21 @@ class Course(models.Model):
         """
         return self.get_role_verbose_name(self.default_role)
 
-    def roles(self) -> Union[QuerySet, List[Group]]:
+    def _validate_new_role(self, role: Group):
         """
-        Returns a QuerySet of groups assigned to the course. These groups represent the roles
-        users can be assigned to within the course.
+        Check whether a given role can be assigned to the course. Raises an exception if the role
+        cannot be assigned.
 
-        :return: QuerySet of groups assigned to the course.
-        :rtype: QuerySet[Group]
+        :param role: The role to be validated.
+        :type role: Group
+
+        :raises Course.CourseRoleError: If the role name does not match the course short name or
+            the role is already assigned to a different course.
         """
-        return Group.objects.filter(groupcourse__course=self)
-
-    def get_role(self, verbose_name: str) -> Group:
-        """
-        Returns the role with given verbose name assigned to the course.
-
-        :param verbose_name: Verbose name of the role to return.
-        :type verbose_name: str
-
-        :return: The role with given name assigned to the course.
-        :rtype: Group
-        """
-        role_name = Course.create_role_name(verbose_name, self.short_name)
-        return Group.objects.get(groupcourse__course=self, name=role_name)
+        if role.name.split('|')[0] != self.short_name:
+            raise Course.CourseRoleError("Role name does not match course short name")
+        if GroupCourse.objects.filter(group=role, course=self).exists():
+            raise Course.CourseRoleError("Group already assigned to a different course")
 
     def role_exists(self, role: str | Group) -> bool:
         """
@@ -664,6 +665,68 @@ class Course(models.Model):
 
         role_name = Course.create_role_name(role, self.short_name)
         return Group.objects.filter(groupcourse__course=self, name=role_name).exists()
+
+    def role_has_permission(self, role: Group | str, permission: Permission | str) -> bool:
+        """
+        Check whether a given role has a given permission.
+
+        :param role: The role to check. The role can be specified as either the group object or its
+            verbose name.
+        :type role: Group | str
+        :param permission: The permission to check for. The permission can be specified as either
+            the permission object or its codename.
+        :type permission: Permission | str
+
+        :return: `True` if the role has the permission, `False` otherwise.
+        :rtype: bool
+        """
+        if isinstance(role, str):
+            role = self.get_role(role)
+        if isinstance(permission, str):
+            permission = Permission.objects.get(codename=permission)
+
+        return role.permissions.filter(id=permission.id).exists()
+
+    def get_role(self, verbose_name: str) -> Group:
+        """
+        Returns the role with given verbose name assigned to the course.
+
+        :param verbose_name: Verbose name of the role to return.
+        :type verbose_name: str
+
+        :return: The role with given name assigned to the course.
+        :rtype: Group
+
+        :raises Course.CourseRoleError: If role with given verbose name does not exist in the
+            course.
+        """
+        if not self.role_exists(verbose_name):
+            raise Course.CourseRoleError(f"Role '{verbose_name}' does not exist in the course")
+
+        role_name = Course.create_role_name(verbose_name, self.short_name)
+        return Group.objects.get(groupcourse__course=self, name=role_name)
+
+    def get_role_permissions(self, role_verbose_name: str) -> Union[QuerySet, List[Permission]]:
+        """
+        Returns the permissions assigned to the role with given verbose name within the course.
+
+        :param role_verbose_name: Verbose name of the role to return permissions for.
+        :type role_verbose_name: str
+
+        :return: QuerySet of permissions assigned to the role.
+        :rtype: QuerySet[Permission]
+        """
+        return self.get_role(role_verbose_name).permissions.all()
+
+    def get_roles(self) -> Union[QuerySet, List[Group]]:
+        """
+        Returns a QuerySet of groups assigned to the course. These groups represent the roles
+        users can be assigned to within the course.
+
+        :return: QuerySet of groups assigned to the course.
+        :rtype: QuerySet[Group]
+        """
+        return Group.objects.filter(groupcourse__course=self)
 
     @staticmethod
     def get_role_verbose_name(role: Group | str):
@@ -697,196 +760,6 @@ class Course(models.Model):
         :rtype: str
         """
         return f"{short_name}|{verbose_name}"
-
-    def get_role_permissions(self, role_verbose_name: str) -> Union[QuerySet, List[Permission]]:
-        """
-        Returns the permissions assigned to the role with given verbose name within the course.
-
-        :param role_verbose_name: Verbose name of the role to return permissions for.
-        :type role_verbose_name: str
-
-        :return: QuerySet of permissions assigned to the role.
-        :rtype: QuerySet[Permission]
-        """
-        return self.get_role(role_verbose_name).permissions.all()
-
-    def get_users(self, role: Group | str | None = None) -> Union[QuerySet, List['User']]:
-        """
-        Returns the users assigned to the course. If a role is specified, only users assigned to
-        the given role are returned.
-
-        :param role: The role to return users for. If no role is specified, all users assigned to
-            the course are returned. The role can be specified as either the group object or its
-            name.
-        :type role: Group | str
-
-        :return: QuerySet of users assigned to the course with given role. If no role specified,
-            the QuerySet contains all users assigned to the course.
-        :rtype: QuerySet[User]
-        """
-        users = User.objects.filter(groups__groupcourse__course=self)
-
-        if not role:
-            return users
-        if isinstance(role, str):
-            role = self.get_role(role)
-
-        return users.filter(groups=role)
-
-    def get_users_with_permission(self, permission: Permission | str
-                                  ) -> Union[QuerySet, List['User']]:
-        """
-        Returns all users assigned to the course who belong to a role with given permission.
-
-        :param permission: The permission to check for. The permission can be specified as either
-            the permission object or its codename.
-        :type permission: Permission | str
-
-        :return: QuerySet of users assigned to the course with given permission.
-        :rtype: QuerySet[User]
-        """
-        if isinstance(permission, str):
-            permission = Permission.objects.get(codename=permission)
-
-        roles = Group.objects.filter(groupcourse__course=self, permissions=permission)
-        return User.objects.filter(groups__in=roles)
-
-    def _validate_new_user(self, user: User | int) -> None:
-        """
-        Check whether a given user can be assigned to the course.
-
-        :param user: The user to check. The user can be specified as either the user object or its
-            id.
-        :type user: User | int
-
-        :raises Course.CourseMemberError: If the user is already a member of the course.
-        """
-        if isinstance(user, int):
-            user = User.objects.get(id=user)
-        if self.user_is_member(user):
-            raise Course.CourseMemberError("User is already a member of the course")
-
-    @transaction.atomic
-    def add_user(self, user: User | int, role: Group | str | None = None) -> None:
-        """
-        Assign given user to the course with given role. If no role is specified, the user is
-        assigned to the course with the default role.
-
-        :param user: The user to be assigned. The user can be specified as either the user object
-            or its id.
-        :type user: User | int
-        :param role: The role to assign the user to. If no role is specified, the user is assigned
-            to the course with the default role. The role can be specified as either the group
-            object or its verbose name.
-        :type role: Group | str
-        """
-        if isinstance(user, int):
-            user = User.objects.get(id=user)
-
-        self._validate_new_user(user)
-
-        if not role:
-            role = self.default_role
-        elif isinstance(role, str):
-            role = self.get_role(role)
-
-        role.user_set.add(user)
-
-    @transaction.atomic
-    def remove_user(self, user: User | int) -> None:
-        """
-        Remove given user from the course.
-
-        :param user: The user to be removed. The user can be specified as either the user object
-            or its id.
-        :type user: User | int
-
-        :raises Course.CourseMemberError: If the user is not a member of the course.
-        """
-        if isinstance(user, int):
-            user = User.objects.get(id=user)
-
-        if not self.user_is_member(user):
-            raise Course.CourseMemberError("Attempted to remove a user who is not a member of the"
-                                           "course")
-
-        user_role = self.get_users_role(user)
-        user_role.user_set.remove(user)
-
-    @transaction.atomic
-    def add_users(self, users: List[User] | List[int] |
-                               Dict[Group, List[User]] | Dict[str, List[int]]) -> None:
-        """
-        Assign given users to the course with given roles. If no roles are specified, the users are
-        assigned to the course with the default role.
-
-        :param users: The users to be assigned. The users can be specified as either a list of user
-            objects or a list of user ids. Alternatively, a dictionary of roles and lists of users
-            which should be assigned to them can be provided. If a list of users/user ids is
-            provided all users wille be assigned the default role.
-        :type users: List[User] | List[int] | Dict[Group, List[User]] | Dict[str, List[int]]
-        """
-        if isinstance(users, dict):
-            for role, users in users.items():
-                for user in users:
-                    self.add_user(user, role)
-        else:
-            for user in users:
-                self.add_user(user)
-
-    def user_has_role(self, user: User | int, role: Group | str) -> bool:
-        """
-        Check whether given user has given role within the course.
-
-        :param user: The user to check. The user can be specified as either the user object or its
-            id.
-        :type user: User | int
-        :param role: The role to check. The role can be specified as either the group object or its
-            verbose name.
-        :type role: Group | str
-
-        :return: `True` if the user has the role, `False` otherwise.
-        :rtype: bool
-        """
-        if isinstance(role, str):
-            role = self.get_role(role)
-        return role == self.get_users_role(user)
-
-    def get_users_role(self, user: User | int) -> Group | None:
-        """
-        Returns the role of a given user within the course.
-
-        :param user: The user whose role is to be returned. The user can be specified as either
-            the user object or its id.
-        :type user: User | int
-
-        :return: The role of the user within the course. `None` if the user is not a member of the
-            course.
-        :rtype: Group | None
-        """
-        if isinstance(user, int):
-            user = User.objects.get(id=user)
-
-        try:
-            return Group.objects.get(groupcourse__course=self, user=user)
-        except Group.DoesNotExist:
-            return None
-
-    def _validate_new_role(self, role: Group):
-        """
-        Check whether a given role can be assigned to the course. Raises an exception if the role
-        cannot be assigned.
-
-        :param role: The role to be validated.
-        :type role: Group
-
-        :raises Course.CourseRoleError: If the role name does not match the course short name or
-            the role is already assigned to a different course.
-        """
-        if role.name.split('|')[0] != self.short_name:
-            raise Course.CourseRoleError("Role name does not match course short name")
-        if GroupCourse.objects.filter(group=role, course=self).exists():
-            raise Course.CourseRoleError("Group already assigned to a different course")
 
     @transaction.atomic
     def add_role(self, role: Group) -> None:
@@ -930,17 +803,24 @@ class Course(models.Model):
         return role
 
     @transaction.atomic
-    def remove_role(self, role: Group) -> None:
+    def remove_role(self, role: Group | str) -> None:
         """
         Remove a role from the course and delete it. Cannot be used to remove the default role, the
         admin role or a role with users assigned to it.
 
-        :param role: The role to remove.
-        :type role: Group
+        :param role: The role to remove. The role can be specified as either the group object or its
+            verbose name.
+        :type role: Group | str
 
-        :raises Course.CourseRoleError: If the role is the default role, the admin role or has
-            users assigned to it.
+        :raises Course.CourseRoleError: If the role is the default role, the admin role, has
+            users assigned to it or does not exist within the course.
         """
+        if not self.role_exists(role):
+            raise Course.CourseRoleError("Attempted to remove a role that does not exist within "
+                                         "the course")
+        if isinstance(role, str):
+            role = self.get_role(role)
+
         if role == self.default_role:
             raise Course.CourseRoleError("Default role cannot be removed from the course")
         if role == self.admin_role:
@@ -984,6 +864,298 @@ class Course(models.Model):
             role.permissions.add(perm)
 
     @transaction.atomic
+    def add_role_permissions(self,
+                             role: Group | str,
+                             permissions: List[Permission] | List[str]) -> None:
+        """
+        Add given permissions to a role.
+
+        :param role: The role to add permissions to. The role can be specified as either the group
+            object or its verbose name.
+        :type role: Group | str
+        :param permissions: List of permissions to add to the role. The permissions can be
+            specified as either the permission objects or their codenames.
+        :type permissions: List[Permission] | List[str]
+
+        :raises Course.CourseRoleError: If the role is the admin role, does not exist within the
+            course or already has one or more of the given permissions assigned to it.
+        """
+        if not self.role_exists(role):
+            raise Course.CourseRoleError("Attempted to add permissions to a role that does not "
+                                         "exist within the course")
+        if isinstance(role, str):
+            role = self.get_role(role)
+        if self.admin_role == role:
+            raise Course.CourseRoleError("Cannot add permissions to the admin role")
+
+        current_perms = role.permissions.all()
+        for perm in permissions:
+            if isinstance(perm, str):
+                perm = Permission.objects.get(codename=perm)
+            if perm not in current_perms:
+                role.permissions.add(perm)
+            else:
+                raise Course.CourseRoleError("Attempted to add permissions that are already "
+                                             "assigned to the role")
+
+    @transaction.atomic
+    def remove_role_permissions(self,
+                                role: Group | str,
+                                permissions: List[Permission] | List[str]) -> None:
+        """
+        Remove given permissions from a role.
+
+        :param role: The role to remove permissions from. The role can be specified as either the
+            group object or its verbose name.
+        :type role: Group | str
+        :param permissions: List of permissions to remove from the role. The permissions can be
+            specified as either the permission objects or their codenames.
+        :type permissions: List[Permission] | List[str]
+
+        :raises Course.CourseRoleError: If the role is the admin role, does not exist within the
+            course or does not have one or more of the given permissions assigned to it.
+        """
+        if not self.role_exists(role):
+            raise Course.CourseRoleError("Attempted to remove permissions from a role that does "
+                                         "not exist within the course")
+        if isinstance(role, str):
+            role = self.get_role(role)
+        if self.admin_role == role:
+            raise Course.CourseRoleError("Cannot remove permissions from the admin role")
+
+        current_perms = role.permissions.all()
+        for perm in permissions:
+            if isinstance(perm, str):
+                perm = Permission.objects.get(codename=perm)
+            if perm in current_perms:
+                role.permissions.remove(perm)
+            else:
+                raise Course.CourseRoleError("Attempted to remove permissions that are not "
+                                             "assigned to the role")
+
+    # ------------------------------------ User management ------------------------------------ #
+
+    def _validate_new_user(self, user: User | int) -> None:
+        """
+        Check whether a given user can be assigned to the course.
+
+        :param user: The user to check. The user can be specified as either the user object or its
+            id.
+        :type user: User | int
+
+        :raises Course.CourseMemberError: If the user is already a member of the course.
+        """
+        if isinstance(user, int):
+            user = User.objects.get(id=user)
+        if self.user_is_member(user):
+            raise Course.CourseMemberError("User is already a member of the course")
+
+    def user_is_member(self, user: User | int) -> bool:
+        """
+        Check whether a given user is a member of the course.
+
+        :param user: The user to check. The user can be specified as either the user object or its
+            id.
+        :type user: User
+
+        :return: `True` if the user is a member of the course, `False` otherwise.
+        :rtype: bool
+        """
+        if isinstance(user, int):
+            user = User.objects.get(id=user)
+
+        return Group.objects.filter(user=user, groupcourse__course=self).exists()
+
+    def user_has_role(self, user: User | int, role: Group | str) -> bool:
+        """
+        Check whether given user has given role within the course.
+
+        :param user: The user to check. The user can be specified as either the user object or its
+            id.
+        :type user: User | int
+        :param role: The role to check. The role can be specified as either the group object or its
+            verbose name.
+        :type role: Group | str
+
+        :return: `True` if the user has the role, `False` otherwise.
+        :rtype: bool
+        """
+        if isinstance(role, str):
+            role = self.get_role(role)
+        return role == self.get_user_role(user)
+
+    def user_has_permission(self, user: User | int, permission: Permission | str) -> bool:
+        """
+        Check whether a user has a given permission within the course.
+
+        :param user: The user to check. The user can be specified as either the user object or its
+            id.
+        :type user: User | int
+        :param permission: The permission to check for. The permission can be specified as either
+            the permission object or its codename.
+
+        :return: `True` if the user has the permission, `False` otherwise.
+        :rtype: bool
+
+        :raises Course.CourseMemberError: If the user is not a member of the course.
+        """
+        if isinstance(user, int):
+            user = User.objects.get(id=user)
+
+        if not self.user_is_member(user):
+            raise Course.CourseMemberError('Permission check was attempted for a user who is not a'
+                                           'member of the course')
+
+        if isinstance(permission, str):
+            permission = Permission.objects.get(codename=permission)
+
+        role = self.get_user_role(user)
+        return role.permissions.filter(id=permission.id).exists()
+
+    def get_users(self, role: Group | str | None = None) -> Union[QuerySet, List['User']]:
+        """
+        Returns the users assigned to the course. If a role is specified, only users assigned to
+        the given role are returned.
+
+        :param role: The role to return users for. If no role is specified, all users assigned to
+            the course are returned. The role can be specified as either the group object or its
+            name.
+        :type role: Group | str
+
+        :return: QuerySet of users assigned to the course with given role. If no role specified,
+            the QuerySet contains all users assigned to the course.
+        :rtype: QuerySet[User]
+        """
+        users = User.objects.filter(groups__groupcourse__course=self)
+
+        if not role:
+            return users
+        if isinstance(role, str):
+            role = self.get_role(role)
+
+        return users.filter(groups=role)
+
+    def get_users_with_permission(self, permission: Permission | str
+                                  ) -> Union[QuerySet, List['User']]:
+        """
+        Returns all users assigned to the course who belong to a role with given permission.
+
+        :param permission: The permission to check for. The permission can be specified as either
+            the permission object or its codename.
+        :type permission: Permission | str
+
+        :return: QuerySet of users assigned to the course with given permission.
+        :rtype: QuerySet[User]
+        """
+        if isinstance(permission, str):
+            permission = Permission.objects.get(codename=permission)
+
+        roles = Group.objects.filter(groupcourse__course=self, permissions=permission)
+        return User.objects.filter(groups__in=roles)
+
+    def get_user_role(self, user: User | int) -> Group | None:
+        """
+        Returns the role of a given user within the course.
+
+        :param user: The user whose role is to be returned. The user can be specified as either
+            the user object or its id.
+        :type user: User | int
+
+        :return: The role of the user within the course. `None` if the user is not a member of the
+            course.
+        :rtype: Group | None
+        """
+        if isinstance(user, int):
+            user = User.objects.get(id=user)
+
+        try:
+            return Group.objects.get(groupcourse__course=self, user=user)
+        except Group.DoesNotExist:
+            return None
+
+    @transaction.atomic
+    def add_user(self, user: User | int, role: Group | str | None = None) -> None:
+        """
+        Assign given user to the course with given role. If no role is specified, the user is
+        assigned to the course with the default role.
+
+        :param user: The user to be assigned. The user can be specified as either the user object
+            or its id.
+        :type user: User | int
+        :param role: The role to assign the user to. If no role is specified, the user is assigned
+            to the course with the default role. The role can be specified as either the group
+            object or its verbose name.
+        :type role: Group | str
+        """
+        if isinstance(user, int):
+            user = User.objects.get(id=user)
+
+        self._validate_new_user(user)
+
+        if not role:
+            role = self.default_role
+        elif isinstance(role, str):
+            role = self.get_role(role)
+
+        role.user_set.add(user)
+
+    @transaction.atomic
+    def add_users(self, users: List[User] | List[int] |
+                               Dict[Group, List[User]] | Dict[str, List[int]]) -> None:
+        """
+        Assign given users to the course with given roles. If no roles are specified, the users are
+        assigned to the course with the default role.
+
+        :param users: The users to be assigned. The users can be specified as either a list of user
+            objects or a list of user ids. Alternatively, a dictionary of roles and lists of users
+            which should be assigned to them can be provided. If a list of users/user ids is
+            provided all users wille be assigned the default role.
+        :type users: List[User] | List[int] | Dict[Group, List[User]] | Dict[str, List[int]]
+        """
+        if isinstance(users, dict):
+            for role, users in users.items():
+                for user in users:
+                    self.add_user(user, role)
+        else:
+            for user in users:
+                self.add_user(user)
+
+    @transaction.atomic
+    def add_users_to_role(self, users: List[User] | List[int], role: Group | str) -> None:
+        """
+        Assign given users to the course with given role.
+
+        :param users: The users to be assigned. The users can be specified as either a list of user
+            objects or a list of user ids.
+        :type users: List[User] | List[int]
+        :param role: The role to assign the users to. The role can be specified as either the group
+            object or its verbose name.
+        :type role: Group | str
+        """
+        self.add_users({role: users})
+
+    @transaction.atomic
+    def remove_user(self, user: User | int) -> None:
+        """
+        Remove given user from the course.
+
+        :param user: The user to be removed. The user can be specified as either the user object
+            or its id.
+        :type user: User | int
+
+        :raises Course.CourseMemberError: If the user is not a member of the course.
+        """
+        if isinstance(user, int):
+            user = User.objects.get(id=user)
+
+        if not self.user_is_member(user):
+            raise Course.CourseMemberError("Attempted to remove a user who is not a member of the"
+                                           "course")
+
+        user_role = self.get_user_role(user)
+        user_role.user_set.remove(user)
+
+    @transaction.atomic
     def change_user_role(self, user: User | int, new_role: Group | str) -> None:
         """
         Change the role of a given user within the course.
@@ -1007,22 +1179,6 @@ class Course(models.Model):
 
         Group.objects.get(groupcourse__course=self, user=user).user_set.remove(user)
         new_role.user_set.add(user)
-
-    def get_data(self) -> dict:
-        """
-        Returns the contents of a Course object's fields as a dictionary. Used to send course data
-        to the frontend.
-
-        :return: Dictionary containing the course's id, name and short name.
-        :rtype: dict
-        """
-        return {
-            'id': self.id,
-            'name': self.name,
-            'short_name': self.short_name,
-            'USOS_course_code': self.USOS_course_code,
-            'USOS_term_code': self.USOS_term_code
-        }
 
 
 class Settings(models.Model):
