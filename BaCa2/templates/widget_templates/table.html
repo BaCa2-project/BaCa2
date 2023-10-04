@@ -1,0 +1,62 @@
+{% load custom_tags %}
+
+<div class="table-wrapper card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="{{ table.table_class }}"
+                   id="{{ table.table_id }}"
+                   style="width:100%">
+                <thead>
+                <tr>
+                    {% for col in table.cols %}
+                        {% if col == 'select' %}
+                            <th>
+                                <div class="form-check">
+                                    <input class="form-check-input master-checkbox"
+                                           type="checkbox" data-state="off"
+                                           onclick="toggle_all(this, '{{ table.table_id }}')">
+                                </div>
+                            </th>
+                        {% else %}
+                            <th>{{ table.header|get_item:col }}</th>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="table-icons-util">
+    <div class="icon-wrapper icon-m d-flex details-icon">
+        {% include 'icons/3-lines.svg' %}
+    </div>
+    <div class="icon-wrapper icon-m d-flex edit-icon">
+        {% include 'icons/pencil.svg' %}
+    </div>
+    <div class="icon-wrapper icon-m d-flex delete-icon">
+        {% include 'icons/trash.svg' %}
+    </div>
+</div>
+
+
+<script type="text/javascript">
+    create_table({
+        tables_dict: tables,
+        table_id: '{{ table.table_id }}',
+        model_name: '{{ table.model_name }}',
+        access_mode: '{{ table.access_mode }}',
+        cols: {{ table.cols|safe }},
+        default_order: '{{ table.default_order }}',
+        default_order_col: parseInt({{ table.default_order_col }}),
+        paging: {{ table.paging|safe }},
+        page_length: parseInt({{ table.page_length }}),
+        length_change: {{ table.length_change|safe }},
+        length_menu: {{ table.length_menu|safe }},
+        non_sortable_indexes: {{ table.non_sortable_indexes|safe }},
+        record_methods: {{ table.record_methods|safe }},
+        refresh: {{ table.refresh|safe }},
+        refresh_interval: parseInt({{ table.refresh_interval }})
+    });
+</script>

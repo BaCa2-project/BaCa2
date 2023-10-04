@@ -1,10 +1,80 @@
+{% load static %}
+
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width initial-scale=1.0">
+        <title>
+            {% block title %}
+            {% endblock %}
+        </title>
 
-</body>
+        <!-- jQuery -->
+        <script src="https://code.jquery.com/jquery-3.7.0.min.js"
+                integrity="sha256-2Pmvv0kuTBOenSvLm6bvfBSSHrUJ+3A7x6P5Ebd07/g="
+                crossorigin="anonymous"></script>
+
+        <!-- DataTables -->
+        <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.js"></script>
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.css"/>
+
+        <!-- Bootstrap theme - customised -->
+        <link rel="stylesheet" href="{% static 'css/baca2_theme.css' %}">
+        <!-- Bootstrap script -->
+        <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"
+                integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm"
+                crossorigin="anonymous"></script>
+
+        <!-- stylesheets -->
+        <link rel="stylesheet" href="{% static 'css/base.css' %}">
+
+        <!-- scripts -->
+        {% if widgets.tables %}
+            <script src="{% static 'js/tables.js' %}"></script>
+            <script>
+                const tables = {};
+            </script>
+        {% endif %}
+
+        <!-- template-specific -->
+        {% block head %}
+        {% endblock %}
+
+    </head>
+
+    <body data-bs-theme="{{ data_bs_theme }}">
+
+        {% if display_navbar %}
+            {% include 'widget_templates/navbar.html' %}
+        {% endif %}
+
+        <div class="h-100 container main-container">
+            {% if display_navbar %}
+                <div class="navbar-padding">
+            {% endif %}
+                {% if display_side_nav %}
+                    <div class="row main-row">
+                    {% include 'widget_templates/side_nav.html' %}
+                {% endif %}
+
+                    {% if display_side_nav %}
+                        <div class="col">
+                    {% endif %}
+
+                        {% block content %}
+                        {% endblock %}
+
+                    {% if display_side_nav %}
+                        </div>
+                    {% endif %}
+
+                {% if display_side_nav %}
+                    </div>
+                {% endif %}
+            {% if display_navbar%}
+                </div>
+            {% endif %}
+        </div>
+    </body>
 </html>

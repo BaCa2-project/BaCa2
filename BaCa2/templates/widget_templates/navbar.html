@@ -1,0 +1,64 @@
+{% load static %}
+
+<nav class="navbar navbar-expand-md fixed-top">
+    <div class="container">
+        <a class="navbar-brand me-4" href="{% url 'main:dashboard' %}">
+            <div class="logo-wrapper logo-horizontal logo-s">
+                {% include 'util/baca2_logo.html' %}
+            </div>
+        </a>
+        <button class="navbar-toggler"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapsible"
+                aria-controls="collapsible"
+                aria-expanded="false"
+                aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="collapsible">
+            <ul class="navbar-nav me-auto links">
+                {% for link in navbar.links %}
+                    <li class="nav-item {% if request.path == link.url %} active {% endif %} me-2">
+                        <a class="nav-link hover-underline" href="{{ link.url }}">{{ link.name }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <div class="d-flex nav-link hover-highlight">
+                        {% include 'util/theme_button.html' %}
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <!-- TODO -->
+                    <a class="nav-link hover-highlight" href="#">
+                        <div class="icon-wrapper icon-m d-flex">
+                            {% include 'icons/bell.svg' %}
+                        </div>
+                    </a>
+                </li>
+                <li class="nav-item dropdown">
+                    <!-- TODO -->
+                    <a class="nav-link dropdown-toggle hover-highlight"
+                       href="#"
+                       id="user-links"
+                       data-bs-toggle="dropdown"
+                       aria-haspopup="true"
+                       aria-expanded="false">
+                        <div class="icon-wrapper icon-m d-flex">
+                            {% include 'icons/user.svg' %}
+                        </div>
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="user-links">
+                        <a class="dropdown-item" href="#">Profil</a>
+                        <a class="dropdown-item" href="#">Ustawienia</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="{% url 'logout' %}">Wyloguj</a>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>

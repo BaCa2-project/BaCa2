@@ -15,6 +15,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+
+from main.views import BaCa2LoginView, BaCa2LogoutView
 
 urlpatterns = [
     # path('polls/', include('polls.urls')),
@@ -22,4 +25,9 @@ urlpatterns = [
 
     # necessary for broker api
     path('broker_api/', include('broker_api.urls'))
+    path('login/', BaCa2LoginView.as_view(), name='login'),
+    path('logout/', BaCa2LogoutView.as_view(), name='logout'),
+    path('main/', include('main.urls')),
 ]
+
+urlpatterns += staticfiles_urlpatterns()

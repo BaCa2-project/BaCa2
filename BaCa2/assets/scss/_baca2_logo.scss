@@ -1,0 +1,62 @@
+@import "baca2_variables";
+
+// color styling
+.logo-wrapper {
+    .logo-stroke {
+        fill: $logo_letters_light_theme;
+    }
+    .logo-large-triangle {
+        fill: $logo_large_triangle;
+    }
+    .logo-medium-triangle {
+        fill: $logo_medium_triangle;
+    }
+    .logo-small-triangle {
+        fill: $logo_small_triangle;
+    }
+}
+[data-bs-theme="dark"] .logo-wrapper {
+    .logo-stroke {
+        fill: $logo_letters_dark_theme;
+    }
+}
+
+// display and size styling
+.logo-wrapper {
+    @each $version in $logo_versions {
+        .logo-#{$version} {
+            display: none;
+        }
+    }
+
+    .logo-#{$default_logo_version} {
+        display: block;
+    }
+
+    @each $version in $logo_versions {
+        &.logo-#{$version} {
+            @each $v in $logo_versions {
+                @if $v != $version {
+                    .logo-#{$v} {
+                        display: none;
+                    }
+                }
+            }
+
+            .logo-#{$version} {
+                display: block;
+            }
+        }
+    }
+
+    @each $size in map-keys($logo_sizes) {
+        &.logo-#{$size} {
+            @each $version in $logo_versions {
+                .logo-#{$version} {
+                    width: auto;
+                    height: map-get(map-get($logo_sizes, $size), $version);
+                }
+            }
+        }
+    }
+}
