@@ -10,7 +10,8 @@ from django.urls import reverse_lazy
 from .models import Course
 from widgets.listing import TableWidget
 from widgets import forms
-from widgets.forms import FormWidget, NewCourseForm, NewCourseFormWidget
+from widgets.forms import FormWidget
+from widgets.forms.course import NewCourseForm, NewCourseFormWidget
 
 
 class BaCa2LoginView(LoginView):

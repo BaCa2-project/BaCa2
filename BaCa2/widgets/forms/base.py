@@ -1,8 +1,5 @@
-from typing import List, Dict, Any
-
 from django import forms
-
-from main.models import Course
+from typing import Any, Dict, List
 
 
 def get_field_validation_status(field_cls: str,
