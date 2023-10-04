@@ -5,6 +5,8 @@ from django.db import models
 from django.db.models.query import QuerySet
 from django.contrib.auth.models import (Permission, ContentType, Group)
 
+from BaCa2.choices import PermissionTypes
+
 model_cls = TypeVar("model_cls", bound=Type[models.Model])
 
 
@@ -50,6 +52,34 @@ def get_model_permission_by_label(model: model_cls, perm_label: str) -> Permissi
     :rtype: Permission
     """
     return Permission.objects.get(codename=f'{perm_label}_{model._meta.model_name}')
+
+
+def get_model_permissions(model: model_cls,
+                          permissions: PermissionTypes | List[PermissionTypes] = 'all'
+                          ) -> List[Permission]:
+    """
+    Returns list of permissions objects for given model. If permissions is set to 'all' (default),
+    all permissions for given model are returned, otherwise only specified permissions are returned.
+
+    :param model: Model to get permissions for.
+    :type model: Type[models.Model]
+    :param permissions: List of permissions to get. If set to 'all' (default), all permissions are
+        returned. Can be set to a list of PermissionTypes or a single PermissionType.
+    :type permissions: PermissionTypes | List[PermissionTypes]
+
+    :return: List of permissions for given model.
+    :rtype: List[Permission]
+    """
+    if permissions == 'all':
+        permissions = [p.codename for p in Permission.objects.filter(
+                           content_type=ContentType.objects.get_for_model(model).id
+                       )]
+    elif isinstance(permissions, PermissionTypes):
+        permissions = [f'{permissions.label}_{model._meta.model_name}']
+    elif isinstance(permissions, List):
+        permissions = [f'{p.label}_{model._meta.model_name}' for p in permissions]
+
+    return Permission.objects.filter(codename__in=permissions)
 
 
 def delete_populated_group(group: Group) -> None:

@@ -1,9 +1,10 @@
 from django.db import transaction
 from django.test import TestCase
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, Permission
 from django.utils import timezone
 
-from main.models import (User, Course)
+from main.models import (User, Course, Settings)
+from BaCa2.choices import PermissionTypes
 
 
 class CourseTest(TestCase):
@@ -432,3 +433,162 @@ class CourseTest(TestCase):
 
         with self.assertRaises(Course.CourseMemberError):
             self.course1.change_user_role(self.teacher1, "staff")
+
+
+class UserTest(TestCase):
+    """
+    Contains tests for the User manager and the User model related to user creation, deletion and
+    user profile management.
+    """
+    user = None
+    group = None
+    course = None
+
+    @classmethod
+    def setUpClass(cls):
+        with transaction.atomic():
+            cls.user = User.objects.create_user(email="user@email.com",
+                                                password="user",
+                                                first_name="name",
+                                                last_name="surname")
+            cls.group = Group.objects.create(name="Test Group")
+            cls.course = Course.objects.create_course(name="Test Course")
+
+    @classmethod
+    def tearDownClass(cls):
+        User.objects.delete_user(cls.user)
+        Course.objects.delete_course(cls.course)
+        cls.group.delete()
+
+    def test_user_create_delete(self):
+        """
+        Tests the user creation and deletion, checks if the user profile is created and deleted
+        properly.
+        """
+        user1 = User.objects.create_user(email="user1@email.com",
+                                         password="user1",
+                                         first_name="name",
+                                         last_name="surname")
+        user1_id = user1.id
+
+        self.assertTrue(User.objects.filter(id=user1_id).exists())
+        self.assertTrue(Settings.objects.filter(user=user1).exists())
+
+        User.objects.delete_user(user1)
+
+        self.assertFalse(User.objects.filter(id=user1_id).exists())
+        self.assertFalse(Settings.objects.filter(user=user1).exists())
+
+    def test_individual_permission(self):
+        """
+        Tests whether :py:class:`User` methods related to individual permissions work properly.
+        """
+        change_course = Permission.objects.get(codename="change_course")
+        self.user.add_permission("view_course")
+        self.group.user_set.add(self.user)
+        self.group.permissions.add(change_course.id)
+
+        self.assertTrue(self.user.has_individual_permission("view_course"))
+        self.assertTrue(self.group.permissions.filter(codename="change_course").exists())
+        self.assertTrue(self.user.in_group(self.group))
+        self.assertFalse(self.user.has_individual_permission(change_course))
+
+        self.user.remove_permission("view_course")
+        self.user.add_permission("change_course")
+
+        self.assertFalse(self.user.has_individual_permission("view_course"))
+        self.assertTrue(self.user.has_individual_permission("change_course"))
+
+        self.group.user_set.remove(self.user)
+
+        self.assertTrue(self.user.has_individual_permission("change_course"))
+
+        self.user.add_permission("view_course")
+        self.user.add_permission("add_course")
+
+        perms = [Permission.objects.get(codename=p) for p in [
+            "view_course", "add_course", "change_course"
+        ]]
+        for perm in perms:
+            self.assertTrue(perm in self.user.get_individual_permissions())
+            self.assertFalse(perm in self.user.get_group_level_permissions())
+
+        self.user.user_permissions.clear()
+        self.group.permissions.clear()
+        self.group.user_set.clear()
+
+    def test_group_permission(self):
+        """
+        Tests whether :py:class:`User` methods related to group-level permissions work properly.
+        """
+        view_course = Permission.objects.get(codename="view_course")
+        change_course = Permission.objects.get(codename="change_course")
+        self.group.user_set.add(self.user)
+        self.group.permissions.add(view_course.id)
+        self.user.add_permission("change_course")
+
+        self.assertTrue(self.user.has_group_permission("view_course"))
+        self.assertFalse(self.user.has_group_permission("change_course"))
+
+        self.group.permissions.add(change_course.id)
+
+        self.assertTrue(self.user.has_group_permission("change_course"))
+
+        self.user.user_permissions.clear()
+
+        perms = [Permission.objects.get(codename=p) for p in ["view_course", "change_course"]]
+        for perm in perms:
+            self.assertTrue(perm in self.user.get_group_level_permissions())
+            self.assertFalse(perm in self.user.get_individual_permissions())
+
+        self.group.permissions.remove(view_course.id)
+        self.user.add_permission(view_course)
+
+        self.assertFalse(self.user.has_group_permission("view_course"))
+
+        self.user.user_permissions.clear()
+        self.group.permissions.clear()
+        self.group.user_set.clear()
+
+    def test_course_permission(self):
+        """
+        Tests whether :py:meth:`User.has_course_permission` works properly.
+        """
+        self.assertFalse(self.user.has_course_permission("view_round", self.course))
+
+        self.course.add_user(self.user, "staff")
+
+        self.assertTrue(self.user.has_course_permission("view_round", self.course))
+        self.assertTrue(self.user.has_course_permission("change_round", self.course))
+
+        self.course.change_user_role(self.user, "students")
+
+        self.assertTrue(self.user.has_course_permission("view_round", self.course))
+        self.assertFalse(self.user.has_course_permission("change_round", self.course))
+
+        self.course.remove_user(self.user)
+
+        self.assertFalse(self.user.has_course_permission("view_round", self.course))
+        self.assertFalse(self.user.has_course_permission("change_round", self.course))
+
+    def test_model_permissions(self):
+        """
+        Tests whether :py:meth:`User.has_model_permissions` works properly.
+        """
+        self.assertFalse(self.user.has_model_permissions(Course))
+        self.assertFalse(self.user.has_model_permissions(Course, PermissionTypes.VIEW))
+
+        self.user.add_permission('view_course')
+        self.group.user_set.add(self.user)
+        delete_course = Permission.objects.get(codename='delete_course')
+        self.group.permissions.add(delete_course.id)
+
+        self.assertFalse(self.user.has_model_permissions(Course))
+        self.assertTrue(self.user.has_model_permissions(Course, PermissionTypes.VIEW))
+        self.assertTrue(self.user.has_model_permissions(Course, PermissionTypes.DEL))
+
+        self.user.add_permission('change_course')
+        self.user.add_permission('add_course')
+
+        self.assertTrue(self.user.has_model_permissions(Course))
+        self.assertFalse(self.user.has_model_permissions(Course, group_level=False))

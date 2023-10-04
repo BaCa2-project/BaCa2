@@ -20,6 +20,7 @@ from util.models import (model_cls,
                          get_all_permissions_for_model,
                          get_all_models_from_app,
                          get_model_permission_by_label,
+                         get_model_permissions,
                          delete_populated_group,
                          delete_populated_groups,
                          replace_special_symbols)
@@ -44,9 +45,7 @@ class UserManager(BaseUserManager):
         :rtype: :py:class:`Settings`
         """
 
-        settings = Settings()
-        settings.save(using='default')
-        return settings
+        return Settings.objects.create()
 
     @transaction.atomic
     def _create_user(
@@ -82,9 +81,9 @@ class UserManager(BaseUserManager):
             raise ValidationError('Password is required')
 
         now = timezone.now()
-        _email = self.normalize_email(email)
+        email = self.normalize_email(email)
         user = self.model(
-            email=_email,
+            email=email,
             is_staff=is_staff,
             is_superuser=is_superuser,
             date_joined=now,
@@ -155,6 +154,7 @@ class CourseManager(models.Manager):
     :py:mod:`course.manager` methods to create and delete course databases along with corresponding
     course objects in the 'default' database.
     """
+
     @transaction.atomic
     def create_course(self,
                       name: str,
@@ -701,7 +701,7 @@ class Course(models.Model):
             course.
         """
         if not self.role_exists(verbose_name):
-            raise Course.CourseRoleError(f"Role '{verbose_name}' does not exist in the course")
+            raise Course.CourseRoleError(f'Role {verbose_name} does not exist in the course')
 
         role_name = Course.create_role_name(verbose_name, self.short_name)
         return Group.objects.get(groupcourse__course=self, name=role_name)
@@ -1202,6 +1202,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     to replace the default User model.
     """
 
+    class UserPermissionError(Exception):
+        """
+        Exception raised when an error occurs related to user permissions.
+        """
+        pass
+
     #: User's email. Used to log in.
     email = models.EmailField(
         _("email address"),
@@ -1279,6 +1285,21 @@ class User(AbstractBaseUser, PermissionsMixin):
 
         return cls.objects.exists(pk=user_id)
 
+    def in_group(self, group: Group | str) -> bool:
+        """
+        Check whether the user belongs to a given group.
+
+        :param group: Group to check user's membership in. Can be specified as either the group
+            object or its name.
+        :type group: Group | str
+
+        :return: `True` if the user belongs to the group, `False` otherwise.
+        :rtype: bool
+        """
+        if isinstance(group, str):
+            group = Group.objects.get(name=group)
+        return self.groups.filter(id=group.id).exists()
+
     def can_access_course(self, course: Course) -> bool:
         """
         Check whether the user has been assigned to a given course.
@@ -1293,98 +1314,280 @@ class User(AbstractBaseUser, PermissionsMixin):
             return True
         return False
 
-    def check_general_permissions(
-            self,
-            model: model_cls,
-            permissions: str or PermissionTypes or List[PermissionTypes] = 'all'
-    ) -> bool:
+    # ---------------------------------- Permission editing ----------------------------------- #
+
+    @transaction.atomic
+    def add_permission(self, permission: Permission | str) -> None:
+        """
+        Add an individual permission to the user.
+
+        :param permission: Permission to add. The permission can be specified as either the
+            permission object or its codename.
+        :type permission: Permission | str
+
+        :raises User.UserPermissionError: If the user already has the permission.
+        """
+        if isinstance(permission, str):
+            permission = Permission.objects.get(codename=permission)
+
+        if self.has_individual_permission(permission):
+            raise User.UserPermissionError(f'Attempted to add permission {permission.codename} '
+                                           f'to {self} who already has it')
+
+        self.user_permissions.add(permission)
+
+    @transaction.atomic
+    def add_permissions(self, permissions: List[Permission] | List[str]) -> None:
+        """
+        Add multiple individual permissions to the user.
+
+        :param permissions: List of permissions to add. The permissions can be specified as either
+            the permission objects or their codenames.
+        :type permissions: List[Permission] | List[str]
+        """
+        for permission in permissions:
+            self.add_permission(permission)
+
+    @transaction.atomic
+    def remove_permission(self, permission: Permission | str) -> None:
+        """
+        Remove an individual permission from the user.
+
+        :param permission: Permission to remove. The permission can be specified as either the
+            permission object or its codename.
+        :type permission: Permission | str
+
+        :raises User.UserPermissionError: If the user does not have the permission.
+        """
+        if isinstance(permission, str):
+            permission = Permission.objects.get(codename=permission)
+
+        if not self.has_individual_permission(permission):
+            raise User.UserPermissionError(f'Attempted to remove permission {permission.codename}'
+                                           f' from {self} who does not have it')
+
+        self.user_permissions.remove(permission)
+
+    @transaction.atomic
+    def remove_permissions(self, permissions: List[Permission] | List[str]) -> None:
+        """
+        Remove multiple individual permissions from the user.
+
+        :param permissions: List of permissions to remove. The permissions can be specified as
+            either the permission objects or their codenames.
+        :type permissions: List[Permission] | List[str]
+        """
+        for permission in permissions:
+            self.remove_permission(permission)
+
+    # ------------------------------------ Permission checks ----------------------------------- #
+
+    def has_individual_permission(self, permission: Permission | str) -> bool:
+        """
+        Check whether the user possesses a given permission on an individual level (does not check
+        group-level permissions).
+
+        :param permission: Permission to check for. The permission can be specified as either the
+            permission object or its codename.
+        :type permission: Permission | str
+
+        :return: `True` if the user has the permission, `False` otherwise.
+        :rtype: bool
+        """
+        if isinstance(permission, str):
+            permission = Permission.objects.get(codename=permission)
+        return self.user_permissions.filter(id=permission.id).exists()
+
+    def has_group_permission(self, permission: Permission | str) -> bool:
+        """
+        Check whether the user possesses a given permission on a group level (does not check
+        individual permissions).
+
+        :param permission: Permission to check for. The permission can be specified as either the
+            permission object or its codename.
+        :type permission: Permission | str
+
+        :return: `True` if the user has the permission, `False` otherwise.
+        :rtype: bool
+        """
+        if isinstance(permission, str):
+            permission = Permission.objects.get(codename=permission)
+        return self.groups.filter(permissions=permission).exists()
+
+    def has_permission(self, permission: Permission | str) -> bool:
+        """
+        Check whether the user possesses a given permission. The method checks both individual and
+        group-level permissions.
+
+        :param permission: Permission to check for. The permission can be specified as either the
+            permission object or its codename.
+        :type permission: Permission | str
+
+        :return: `True` if the user has the permission, `False` otherwise.
+        :rtype: bool
+        """
+        return self.has_individual_permission(permission) or \
+            self.has_group_permission(permission)
+
+    def has_model_permissions(self,
+                              model: model_cls,
+                              permissions: PermissionTypes or List[PermissionTypes] = 'all',
+                              group_level: bool = True,
+                              user_specific: bool = True) -> bool:
         """
         Check whether a user possesses a specified permission/list of permissions for a given
-        'default' database model. The method checks both user-specific permissions and group-level
-        permissions.
+        'default' database model. Depending on the arguments, the method can check user-specific
+        permissions, group-level permissions or both (the default option).
 
         :param model: The model to check permissions for.
         :type model: Type[models.Model]
         :param permissions: Permissions to check for the given model. Permissions can be given as a
-            PermissionTypes object/List of objects or as a string (in the format
-            <app_label>.<permission_codename>) - the default option 'all' checks all permissions
-            related to the model, both standard and custom. The 'all_standard' option checks the
-            'view', 'change', 'add' and 'delete' permissions for the given model.
-        :type permissions: str or PermissionTypes or List[PermissionTypes]
+            PermissionTypes object/List of objects, the default option 'all' checks all permissions
+            related to the model.
+        :type permissions: PermissionTypes or List[PermissionTypes]
+        :param group_level: Indicates whether group-level permissions should be checked.
+        :type group_level: bool
+        :param user_specific: Indicates whether user-specific permissions should be checked.
+        :type user_specific: bool
 
         :returns: `True` if the user possesses the specified permission/s for the given model,
             `False` otherwise.
         :rtype: bool
         """
+        permissions = get_model_permissions(model, permissions)
+        has_perm = {p: False for p in permissions}
 
-        if permissions == 'all':
-            permissions = [f'{model._meta.app_label}.{p.codename}' for p in
-                           Permission.objects.filter(
-                               content_type=ContentType.objects.get_for_model(model).id
-                           )]
+        if group_level:
+            for perm in permissions:
+                if self.has_group_permission(perm):
+                    has_perm[perm] = True
+        if user_specific:
+            for perm in permissions:
+                if self.has_individual_permission(perm):
+                    has_perm[perm] = True
 
-        elif permissions == 'all_standard':
-            permissions = [f'{model._meta.app_label}.{p.label}_{model._meta.model_name}' for p in
-                           PermissionTypes]
+        return all(has_perm.values())
 
-        elif isinstance(permissions, PermissionTypes):
-            permissions = [f'{model._meta.app_label}.{permissions.label}_{model._meta.model_name}']
-
-        elif isinstance(permissions, List):
-            permissions = [f'{model._meta.app_label}.{p.label}_{model._meta.model_name}' for p in
-                           permissions]
-
-        else:
-            permissions = [permissions]
-
-        for p in permissions:
-            if not self.has_perm(p):
-                return False
-        return True
-
-    def check_course_permissions(
-            self,
-            course: Course,
-            model: model_cls,
-            permissions: str or PermissionTypes or List[PermissionTypes] = 'all'
-    ) -> bool:
+    def has_course_permission(self,
+                              permission: Permission | str,
+                              course: Course | str | int) -> bool:
         """
-        Check whether a user possesses a specified permission/list of permissions for a given
-        model within the scope of a particular course. The method checks only group-level
-        permissions (user-specific permissions cannot be used to assign permissions within the
-        scope of a course).
+        Check whether the user possesses a given permission within a given :py:class:`Course`.
 
-        :param course: The course to check the model permissions within.
-        :type course: :class:`Course`
-        :param model: The model to check the permissions for.
-        :type model: Type[models.Model]
-        :param permissions: Permissions to check for the given model within the confines of the
-            course. Permissions can be given as a PermissionTypes object/List of objects or 'all' -
-            the default 'all' option checks all permissions related to the model.
-        :type permissions: str or PermissionTypes or List[PermissionTypes]
+        :param permission: Permission to check for. The permission can be specified as either the
+            permission object or its codename.
+        :type permission: Permission | str
+        :param course: Course to check permission for. The course can be specified as either the
+            Course object, its short name or its id.
+        :type course: Course | str | int
 
-        :returns: `True` if the user possesses the specified permission/s for the given model
-            within the scope of the course, `False` otherwise.
+        :returns: `True` if the user has the permission, `False` otherwise.
         :rtype: bool
         """
+        if isinstance(course, str):
+            course = Course.objects.get(short_name=course)
+        elif isinstance(course, int):
+            course = Course.objects.get(id=course)
 
-        if not self.can_access_course(course):
-            return False
+        if isinstance(permission, str):
+            permission = Permission.objects.get(codename=permission)
 
-        if permissions == 'all':
-            permissions = PermissionTypes
+        role = course.get_user_role(self)
 
-        if isinstance(permissions, PermissionTypes):
-            permissions = [permissions]
+        if role:
+            return role.permissions.filter(id=permission.id).exists()
+        return False
 
-        for permission in permissions:
-            if not Group.objects.filter(
-                    permissions__codename=f'{permission.label}_{model._meta.model_name}',
-                    groupcourse__course=course,
-                    user=self
-            ).exists():
+    def has_course_model_permissions(self,
+                                     model: model_cls,
+                                     course: Course | str | int,
+                                     permissions: PermissionTypes or List[PermissionTypes] = 'all'
+                                     ) -> bool:
+        """
+        Check whether a user possesses a specified permission/list of permissions for a given
+        'course' database model. Does not check user-specific permissions or group-level
+        permissions, checks only course-level permissions based on the user's role within the
+        course.
+
+        :param model: The model to check permissions for.
+        :type model: Type[models.Model]
+        :param course: Course to check permission for. The course can be specified as either the
+            Course object, its short name or its id.
+        :type course: Course | str | int
+        :param permissions: Permissions to check for the given model. Permissions can be given as a
+            PermissionTypes object/List of objects, the default option 'all' checks all permissions
+            related to the model.
+        :type permissions: PermissionTypes or List[PermissionTypes]
+
+        :returns: `True` if the user possesses the specified permission/s for the given model,
+            `False` otherwise.
+        :rtype: bool
+        """
+        if isinstance(course, str):
+            course = Course.objects.get(short_name=course)
+        elif isinstance(course, int):
+            course = Course.objects.get(id=course)
+
+        permissions = get_model_permissions(model, permissions)
+
+        for p in permissions:
+            if not self.has_course_permission(p, course):
                 return False
         return True
+
+    # ---------------------------------- Permission getters ----------------------------------- #
+
+    def get_individual_permissions(self) -> List[Permission]:
+        """
+        Returns a list of all individual permissions possessed by the user.
+
+        :returns: List of all individual permissions possessed by the user.
+        :rtype: List[Permission]
+        """
+        return list(self.user_permissions.all())
+
+    def get_group_level_permissions(self) -> List[Permission]:
+        """
+        Returns a list of all group-level permissions possessed by the user.
+
+        :returns: List of all group-level permissions possessed by the user.
+        :rtype: List[Permission]
+        """
+        groups = self.groups.all()
+        permissions = []
+        for group in groups:
+            permissions.extend(list(group.permissions.all()))
+        return permissions
+
+    def get_permissions(self) -> List[Permission]:
+        """
+        Returns a list of all permissions possessed by the user, both individual and group-level.
+
+        :returns: List of all permissions possessed by the user.
+        :rtype: List[Permission]
+        """
+        return self.get_individual_permissions() + self.get_group_level_permissions()
+
+    def get_all_course_permissions(self, course: Course | str | int) -> List[Permission]:
+        """
+        Returns a list of all permissions possessed by the user within a given course.
+
+        :param course: Course to check permission for. The course can be specified as either the
+            Course object, its short name or its id.
+        :type course: Course | str | int
+
+        :returns: List of all permissions possessed by the user within the given course.
+        :rtype: List[Permission]
+        """
+        if isinstance(course, str):
+            course = Course.objects.get(short_name=course)
+        elif isinstance(course, int):
+            course = Course.objects.get(id=course)
+
+        role = course.get_user_role(self)
+        if role:
+            return list(role.permissions.all())
+        return []
 
 
 class GroupCourse(models.Model):
