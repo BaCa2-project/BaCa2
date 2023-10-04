@@ -1,0 +1,9 @@
+@import "baca2_variables";
+
+.card {
+    @each $size in map-keys($card_sizes) {
+        &.card-#{$size} {
+            width: map-get($card_sizes, $size);
+        }
+    }
+}

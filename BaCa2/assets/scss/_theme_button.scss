@@ -1,0 +1,17 @@
+[data-bs-theme="dark"] .theme-button {
+    #moon svg {
+        display: none;
+    }
+    #sun svg {
+        display: block;
+    }
+}
+
+[data-bs-theme="light"] .theme-button {
+    #moon svg {
+        display: block;
+    }
+    #sun svg {
+        display: none;
+    }
+}

@@ -1,0 +1,11 @@
+gateway: 'https://apps.usos.uj.edu.pl/'
+scopes: [
+    'offline_access',
+    'crstests',
+    'email',
+    'grades',
+    'grades_write',
+    'mailclient',
+    'other_emails',
+    'staff_perspective',
+]

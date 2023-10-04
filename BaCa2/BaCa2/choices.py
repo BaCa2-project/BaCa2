@@ -24,9 +24,3 @@ class PermissionTypes(models.TextChoices):
     DEL = 'DEL', 'delete'
     EDIT = 'EDIT', 'change'
     VIEW = 'VIEW', 'view'
-
-
-class DefaultCourseGroups(models.TextChoices):
-    ADMIN = 'ADMIN', 'admin'
-    MOD = 'MOD', 'moderator'
-    VIEWER = 'VIEWER', 'viewer'

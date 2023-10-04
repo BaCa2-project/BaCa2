@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/4.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
+import yaml
 from contextvars import ContextVar
 from pathlib import Path
 from typing import Dict
@@ -52,11 +53,15 @@ INSTALLED_APPS = [
     'django_extensions',  # https://github.com/django-extensions/django-extensions
     'dbbackup',  # https://github.com/jazzband/django-dbbackup
 
+    'widget_tweaks',  # https://github.com/jazzband/django-widget-tweaks
+
     'main',  # local app
 
     'course',  # local app
 
     'package',  # local app
+
+    'util',  # local app
 ]
 
 MIDDLEWARE = [
@@ -74,7 +79,7 @@ ROOT_URLCONF = 'BaCa2.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [Path.joinpath(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -149,7 +154,15 @@ SITE_ID = 1  # allauth required
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+
+LOGIN_URL = '/login/'
+
+LOGIN_REDIRECT_URL = '/main/dashboard'
+
+STATICFILES_DIRS = (
+    Path.joinpath(BASE_DIR, 'assets'),
+)
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
@@ -184,3 +197,11 @@ SUBMITS_DIR = BASE_DIR / 'submits'
 # PASSWORDS HAVE TO DIFFERENT IN ORDER TO BE EFFECTIVE
 BACA_PASSWORD = 'tmp-baca-password'
 BROKER_PASSWORD = 'tmp-broker-password'
+
+# import secrets
+SECRETS_DIR = BASE_DIR / "secrets.yaml"
+SECRETS = {}
+if SECRETS_DIR.exists() and SECRETS_DIR.is_file():
+    with open(SECRETS_DIR) as secrets_file:
+        SECRETS = yaml.safe_load(secrets_file)
+

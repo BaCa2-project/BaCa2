@@ -1,0 +1,15 @@
+{% load static %}
+
+<div class="col-4 side-nav">
+    <ul class="side-nav-content">
+        {% for link in side_nav.links reversed %}
+            <li class="side-nav-button {% if link == side_nav.links.0 %} active {% endif %}">
+                <a class="side-nav-link" href="#" data-id="{{ link.data_id }}">
+                    {{ link.name }}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+<script src="{% static 'js/side_nav.js' %}"></script>
