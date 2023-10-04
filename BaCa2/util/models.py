@@ -5,6 +5,8 @@ from django.db import models
 from django.db.models.query import QuerySet
 from django.contrib.auth.models import (Permission, ContentType, Group)
 
+from BaCa2.choices import PermissionTypes
+
 model_cls = TypeVar("model_cls", bound=Type[models.Model])
 
 
@@ -52,9 +54,37 @@ def get_model_permission_by_label(model: model_cls, perm_label: str) -> Permissi
     return Permission.objects.get(codename=f'{perm_label}_{model._meta.model_name}')
 
 
+def get_model_permissions(model: model_cls,
+                          permissions: PermissionTypes | List[PermissionTypes] = 'all'
+                          ) -> List[Permission]:
+    """
+    Returns list of permissions objects for given model. If permissions is set to 'all' (default),
+    all permissions for given model are returned, otherwise only specified permissions are returned.
+
+    :param model: Model to get permissions for.
+    :type model: Type[models.Model]
+    :param permissions: List of permissions to get. If set to 'all' (default), all permissions are
+        returned. Can be set to a list of PermissionTypes or a single PermissionType.
+    :type permissions: PermissionTypes | List[PermissionTypes]
+
+    :return: List of permissions for given model.
+    :rtype: List[Permission]
+    """
+    if permissions == 'all':
+        permissions = [p.codename for p in Permission.objects.filter(
+                           content_type=ContentType.objects.get_for_model(model).id
+                       )]
+    elif isinstance(permissions, PermissionTypes):
+        permissions = [f'{permissions.label}_{model._meta.model_name}']
+    elif isinstance(permissions, List):
+        permissions = [f'{p.label}_{model._meta.model_name}' for p in permissions]
+
+    return Permission.objects.filter(codename__in=permissions)
+
+
 def delete_populated_group(group: Group) -> None:
     """
-    Deletes a group along with all its user and permission assignments (does not the users or
+    Deletes a group along with all its user and permission assignments (does not delete the users or
     permissions themselves).
 
     :param group: Group to delete.
@@ -64,3 +94,34 @@ def delete_populated_group(group: Group) -> None:
     group.user_set.clear()
     group.permissions.clear()
     group.delete(using='default')
+
+
+def delete_populated_groups(groups: List[Group]) -> None:
+    """
+    Deletes a list of groups along with all their user and permission assignments (does not
+    delete the users or permissions themselves).
+
+    :param groups: List of groups to delete.
+    :type groups: List[Group]
+    """
+
+    for group in groups:
+        delete_populated_group(group)
+
+
+def replace_special_symbols(string: str, replacement: str = '_') -> str:
+    """
+    Replaces all special symbols in a string with a given replacement.
+
+    :param string: String to replace special symbols in.
+    :type string: str
+    :param replacement: Replacement for special symbols.
+    :type replacement: str
+
+    :return: String with special symbols replaced.
+    :rtype: str
+    """
+    for i in range(len(string)):
+        if not string[i].isalnum():
+            string = string[:i] + f'{replacement}' + string[i + 1:]
+    return string
