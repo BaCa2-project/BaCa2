@@ -15,8 +15,9 @@
                 <div class="card card-m">
                     <div class="card-body p-4">
                         <h2 class="h2 text-center mb-4">Zaloguj się</h2>
-
-                        {% include "widget_templates/form_default.html" %}
+                        {% with widgets.FormWidget.login_form as form_widget %}
+                            {% include "widget_templates/form_default.html" %}
+                        {% endwith %}
                     </div>
                     <div class="separator">lub</div>
                     <div class="card-body p-4">

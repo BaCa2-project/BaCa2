@@ -9,12 +9,12 @@
     </div>
     <div class="tab-wrapper" id="courses-tab">
         <div class="side-nav-tab">
-            {% with table=widgets.tables.courses_table %}
+            {% with widgets.TableWidget.courses_table as table %}
                 {% include "widget_templates/table.html" %}
             {% endwith %}
             <div class="col-8 mt-3">
-                {% with form_widget=new_course_form_widget %}
-                        {% include "widget_templates/form_default.html" %}
+                {% with widgets.FormWidget.new_course_form_widget as form_widget %}
+                    {% include "widget_templates/form_default.html" %}
                 {% endwith %}
             </div>
         </div>

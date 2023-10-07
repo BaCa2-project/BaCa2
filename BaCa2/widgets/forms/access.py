@@ -1,29 +1,10 @@
 from django import forms
+from django.utils.translation import gettext_lazy as _
 
-from main.models import User
-from . import *
-
-
-class UsernameField(forms.CharField):
-    def __init__(self, **kwargs):
-        super().__init__(
-            label='Nazwa użytkownika',
-            # min_length=User._meta.get_field('username').min_length,
-            max_length=User._meta.get_field('username').max_length,
-            required=kwargs.get('required', True),
-            validators=[UsernameField.validate_uniqueness],
-            **kwargs
-        )
-
-    @staticmethod
-    def validate_uniqueness(value):
-        if User.objects.filter(username=value).exists():
-            raise forms.ValidationError('Nazwa użytkownika jest już zajęta.')
+from base import BaCa2Form
 
 
 class BaCa2RegisterForm(BaCa2Form):
-    username = UsernameField()
-
     email = forms.EmailField(
         label='Adres e-mail',
         required=True
@@ -48,8 +29,6 @@ class BaCa2RegisterForm(BaCa2Form):
 
 
 class BaCa2RegisterWithUSOSForm(BaCa2Form):
-    username = UsernameField()
-
     password = forms.CharField(
         label='Hasło',
         min_length=8,

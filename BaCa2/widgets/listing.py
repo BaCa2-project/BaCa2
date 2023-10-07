@@ -1,12 +1,13 @@
 from typing import List, Dict, TypeVar, Type
 from django.db import models
-
 import json
+
+from widgets.base import Widget
 
 T = TypeVar('T', bound=models.Model)
 
 
-class TableWidget:
+class TableWidget(Widget):
     ACCESS_MODES = ['user', 'admin']
     RECORD_METHODS = ['details', 'edit', 'delete', 'select']
 
@@ -14,6 +15,7 @@ class TableWidget:
         pass
 
     def __init__(self,
+                 name: str,
                  model_cls: Type[T],
                  access_mode: str = 'user',
                  table_id: str = '',
@@ -35,6 +37,7 @@ class TableWidget:
                  delete: bool = False,
                  select: bool = False,
                  non_sortable: List[str] or 'all' = None) -> None:
+        super().__init__(name)
         self.model_cls = model_cls
         self.model_name = model_cls.__name__.lower()
         self.paging = paging
@@ -42,7 +45,9 @@ class TableWidget:
         self.length_change = length_change
         self.refresh = refresh
         self.refresh_interval = refresh_interval
-        self.record_methods = {method: {'on': 'false', 'col_index': -1} for method in TableWidget.RECORD_METHODS}
+        self.record_methods = {
+            method: {'on': 'false', 'col_index': -1} for method in TableWidget.RECORD_METHODS
+        }
 
         if default_order_asc:
             self.default_order = 'asc'
