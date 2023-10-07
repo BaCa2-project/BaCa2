@@ -39,6 +39,7 @@ class NewCourseFormWidget(FormWidget):
             form = NewCourseForm()
 
         super().__init__(
+            name='new_course_form_widget',
             form=form,
             button_text='Dodaj kurs',
             toggleable_fields=['short_name'],

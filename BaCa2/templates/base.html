@@ -46,30 +46,35 @@
     <body data-bs-theme="{{ data_bs_theme }}">
 
         {% if display_navbar %}
-            {% include 'widget_templates/navbar.html' %}
+            {% with widgets.NavBar.navbar as navbar_widget %}
+                {% include 'widget_templates/navbar.html' %}
+            {% endwith %}
         {% endif %}
 
         <div class="h-100 container main-container">
             {% if display_navbar %}
                 <div class="navbar-padding">
             {% endif %}
-                {% if display_side_nav %}
+                {% if display_sidenav %}
                     <div class="row main-row">
-                    {% include 'widget_templates/side_nav.html' %}
+                    {% with widgets.SideNav.sidenav as sidenav_widget %}
+                        {% include 'widget_templates/sidenav.html' %}
+                    {% endwith %}
                 {% endif %}
 
-                    {% if display_side_nav %}
+                    {% if display_sidenav %}
                         <div class="col">
                     {% endif %}
 
                         {% block content %}
                         {% endblock %}
 
-                    {% if display_side_nav %}
+                    {% if display_sidenav %}
+                        </div>
                         </div>
                     {% endif %}
 
-                {% if display_side_nav %}
+                {% if display_sidenav %}
                     </div>
                 {% endif %}
             {% if display_navbar%}

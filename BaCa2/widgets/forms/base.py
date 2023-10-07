@@ -2,6 +2,7 @@ from django import forms
 from typing import Any, Dict, List
 
 from main.models import Course
+from widgets.base import Widget
 
 
 def get_field_validation_status(field_cls: str,
@@ -39,8 +40,9 @@ def get_field_validation_status(field_cls: str,
         return {'status': 'ok'}
 
 
-class FormWidget:
+class FormWidget(Widget):
     def __init__(self,
+                 name: str,
                  form: forms.Form,
                  button_text: str = 'Submit',
                  display_non_field_validation: bool = True,
@@ -49,6 +51,7 @@ class FormWidget:
                  toggleable_fields: List[str] = None,
                  toggleable_fields_params: Dict[str, Dict[str, str]] = None,
                  live_validation: bool = True,) -> None:
+        super().__init__(name)
         self.form = form
         self.form_cls = form.__class__.__name__
         self.button_text = button_text
