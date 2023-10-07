@@ -24,7 +24,7 @@ urlpatterns = [
     path('baca/', admin.site.urls),
 
     # necessary for broker api
-    path('broker_api/', include('broker_api.urls'))
+    path('broker_api/', include('broker_api.urls')),
     path('login/', BaCa2LoginView.as_view(), name='login'),
     path('logout/', BaCa2LogoutView.as_view(), name='logout'),
     path('main/', include('main.urls')),
