@@ -214,7 +214,8 @@ class BaCa2LoginView(BaCa2ContextMixin, LoginView):
             name='login_form',
             form=self.get_form(),
             button_text='Zaloguj',
-            display_field_errors=False
+            display_field_errors=False,
+            live_validation=False,
         ))
 
         return context

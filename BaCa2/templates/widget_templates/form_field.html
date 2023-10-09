@@ -64,7 +64,7 @@
     {% endif %}
 </div>
 
-{% if form_widget.live_validation %}
+{% if form_widget.live_validation and field.field.widget.input_type != "password" %}
     <script>
         $(document).ready( function () {
             $('#{{ field.name }}').on('input', function () {
