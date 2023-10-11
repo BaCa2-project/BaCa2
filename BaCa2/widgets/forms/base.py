@@ -1,5 +1,7 @@
-from django import forms
 from typing import Any, Dict, List
+
+from django import forms
+from django.utils.translation import gettext_lazy as _
 
 from main.models import Course
 from widgets.base import Widget
@@ -8,7 +10,23 @@ from widgets.base import Widget
 def get_field_validation_status(field_cls: str,
                                 value: Any,
                                 required: bool = False,
-                                min_length: int or bool = False) -> Dict[str, str or List[str]]:
+                                min_length: int | bool = False) -> Dict[str, str or List[str]]:
+    """
+    Runs validators for a given field class and value and returns a dictionary containing the status of the validation
+    and a list of error messages if the validation failed.
+
+    :param field_cls: Field class to be used for validation.
+    :type field_cls: str
+    :param value: Value to be validated.
+    :type value: Any
+    :param required: Whether the field is required.
+    :type required: bool
+    :param min_length: Minimum length of the value, set to `False` if not defined.
+    :type min_length: int | bool
+
+    :return: Dictionary containing the status of the validation and a list of error messages if the validation failed.
+    :rtype: Dict[str, str or List[str]]
+    """
     try:
         field = eval(field_cls)()
     except NameError:
@@ -22,15 +40,15 @@ def get_field_validation_status(field_cls: str,
 
             if required and not value:
                 return {'status': 'error',
-                        'messages': ['To pole jest wymagane.']}
+                        'messages': [_('This field is required.')]}
 
             if required and min_length and len(value) < min_length:
                 return {'status': 'error',
-                        'messages': [f'Wymagane jest minimum {min_length} znaków.']}
+                        'messages': [_(f'Minimum length is {min_length} characters.')]}
 
             elif min_length and len(value) < min_length:
                 return {'status': 'error',
-                        'messages': [f'Wymagane jest minimum {min_length} znaków.']}
+                        'messages': [_(f'Minimum length is {min_length} characters.')]}
 
             return {'status': 'ok'}
         except forms.ValidationError as e:
@@ -44,7 +62,7 @@ class FormWidget(Widget):
     def __init__(self,
                  name: str,
                  form: forms.Form,
-                 button_text: str = 'Submit',
+                 button_text: str = _('Submit'),
                  display_non_field_validation: bool = True,
                  display_field_errors: bool = True,
                  floating_labels: bool = True,
@@ -73,9 +91,9 @@ class FormWidget(Widget):
                 toggleable_fields_params[field] = {}
         for params in toggleable_fields_params.values():
             if 'button_text_on' not in params.keys():
-                params['button_text_on'] = 'Przydziel Automatycznie'
+                params['button_text_on'] = _('Generate Automatically')
             if 'button_text_off' not in params.keys():
-                params['button_text_off'] = 'Przydziel Ręcznie'
+                params['button_text_off'] = _('Enter Manually')
 
         self.field_classes = {
             field_name: self.form.fields[field_name].__class__.__name__ for field_name in self.form.fields.keys()
@@ -111,8 +129,11 @@ class FormWidget(Widget):
 
 
 class BaCa2Form(forms.Form):
+    """
+    Base form for all forms in the BaCa2 system. Contains shared, hidden fields
+    """
     form_name = forms.CharField(
-        label='Nazwa formularza',
+        label=_('Form name'),
         max_length=100,
         widget=forms.HiddenInput(),
         required=True,
@@ -123,8 +144,8 @@ class BaCa2Form(forms.Form):
 class CourseShortName(forms.CharField):
     def __init__(self, **kwargs):
         super().__init__(
-            label='Kod kursu',
-            min_length=2,
+            label=_('Course code'),
+            min_length=3,
             max_length=Course._meta.get_field('short_name').max_length,
             validators=[CourseShortName.validate_uniqueness, CourseShortName.validate_syntax],
             required=False,

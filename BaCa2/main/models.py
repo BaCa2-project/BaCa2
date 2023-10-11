@@ -210,14 +210,16 @@ class CourseManager(models.Manager):
         :return: The newly created course.
         :rtype: Course
 
-        :raises ValidationError: If either USOS course code or USOS term code is provided without
-            the other.
+        :raises ValidationError: If the short name is too short. If either USOS course code or USOS term code is
+            provided without the other.
         """
         if (usos_course_code is not None) ^ (usos_term_code is not None):
             raise ValidationError('Both USOS course code and USOS term code must be provided or '
                                   'neither')
 
         if short_name:
+            if len(short_name) < 3:
+                raise ValidationError('Short name must be at least 3 characters long')
             short_name = short_name.lower()
         else:
             short_name = self._generate_short_name(name, usos_course_code, usos_term_code)

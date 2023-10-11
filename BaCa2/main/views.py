@@ -42,10 +42,7 @@ class BaCa2ContextMixin:
     # Default theme for users who are not logged in.
     DEFAULT_THEME = 'dark'
 
-    def get_context_data(self,
-                         sidenav_included: bool = False,
-                         sidenav_widget: SideNav = None,
-                         **kwargs) -> Dict[str, Any]:
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
         """
         Returns a dictionary containing all the data required by the template to render the view.
         Calls on the `get_context_data` method of the other following ancestor (should there be
@@ -53,12 +50,6 @@ class BaCa2ContextMixin:
         class an ancestor view whose context gathering is also necessary, it is enough to call on
         the `get_context_data` once through the super() method).
 
-        :param sidenav_included: Whether the view contains a side navigation widget.
-        :type sidenav_included: bool
-        :param sidenav_widget: Side navigation widget to be added to the context dictionary if the
-        view
-            contains one.
-        :type sidenav_widget: SideNav
         :param kwargs: Keyword arguments passed to the `get_context_data` method of the other
             following ancestor in the MRO chain (should there be one).
         :type kwargs: dict
@@ -66,14 +57,8 @@ class BaCa2ContextMixin:
         :return: A dictionary containing data required by the template to render the view.
         :rtype: Dict[str, Any]
 
-        :raises Exception: If no request object is found or if the side navigation widget is
-            required but not provided.
+        :raises Exception: If no request object is found.
         """
-
-        if sidenav_included and not sidenav_widget:
-            raise BaCa2ContextMixin.WidgetException('Side navigation widget not provided despite '
-                                                    'being required.')
-
         super_context = getattr(super(), 'get_context_data', None)
         if super_context and callable(super_context):
             context = super_context(**kwargs)
@@ -95,10 +80,6 @@ class BaCa2ContextMixin:
         else:
             raise Exception('No request object found. Remember that BaCa2ContextMixin should only '
                             'be used as a view mixin.')
-
-        if sidenav_included:
-            context['display_sidenav'] = True
-            self.add_widget(context, sidenav_widget)
 
         return context
 
@@ -129,6 +110,9 @@ class BaCa2ContextMixin:
                 widget_type in BaCa2ContextMixin.UNIQUE_WIDGETS):
             raise BaCa2ContextMixin.WidgetException(f'Widget of type {widget_type} already '
                                                     f'exists in the context dictionary.')
+
+        if widget_type == SideNav:
+            context['display_sidenav'] = True
 
         context['widgets'][widget_type.__name__][widget.name] = widget.get_context()
 
@@ -249,14 +233,24 @@ class BaCa2LoggedInView(LoginRequiredMixin, BaCa2ContextMixin, TemplateView):
 
 
 class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
+    """
+    Admin view for BaCa2 used to manage users, courses and packages. Can only be accessed by superusers.
+    """
     template_name = 'admin.html'
 
-    def test_func(self):
+    def test_func(self) -> bool:
+        """
+        Test function for UserPassesTestMixin. Checks if the user is a superuser.
+
+        :return: `True` if the user is a superuser, `False` otherwise.
+        :rtype: bool
+        """
         return self.request.user.is_superuser
 
     def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         sidenav = SideNav('users', 'courses', 'packages')
-        context = super().get_context_data(sidenav_included=True, sidenav_widget=sidenav, **kwargs)
+        self.add_widget(context, sidenav)
 
         if not self.has_widget(context, FormWidget, 'new_course_form'):
             self.add_widget(context, NewCourseFormWidget())

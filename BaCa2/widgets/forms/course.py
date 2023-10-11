@@ -8,7 +8,7 @@ class CourseShortName(forms.CharField):
     def __init__(self, **kwargs):
         super().__init__(
             label='Kod kursu',
-            min_length=2,
+            min_length=3,
             max_length=Course._meta.get_field('short_name').max_length,
             validators=[CourseShortName.validate_uniqueness],
             **kwargs
