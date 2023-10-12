@@ -1,0 +1,17 @@
+{% extends 'widget_templates/forms/base.html' %}
+
+{% block form_fields %}
+    {% for hidden_field in form_widget.form.hidden_fields %}
+        {% if not hidden_field.field.widget.attrs.class == 'table-select-field' %}
+            {{ hidden_field.errors }}
+            {{ hidden_field }}
+        {% endif %}
+    {% endfor %}
+    {% for field in form_widget.form %}
+        {% if field.field.widget.attrs.class == 'table-select-field' %}
+            {% include 'widget_templates/forms/table_select_field.html' %}
+        {% elif not field.is_hidden %}
+            {% include 'widget_templates/forms/field.html' %}
+        {% endif %}
+    {% endfor %}
+{% endblock %}

@@ -2,7 +2,9 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from main.models import Course
-from base import (BaCa2Form, FormWidget)
+from widgets.forms.base import (BaCa2Form, TableSelectField, FormWidget)
+from widgets.listing import TableWidget
+from main.models import User
 
 
 class CourseShortName(forms.CharField):
@@ -52,7 +54,10 @@ class NewCourseForm(BaCa2Form):
     """
     Form for creating new :py:class:`main.Course` objects.
     """
-
+    table_select = TableSelectField(TableWidget(
+        name='new_course_table_widget',
+        model_cls=User,
+    ))
     #: New course's name.
     name = forms.CharField(
         label=_('Course name'),

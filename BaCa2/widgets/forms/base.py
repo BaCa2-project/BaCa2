@@ -4,6 +4,7 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from widgets.base import Widget
+from widgets.listing import TableWidget
 
 
 def get_field_validation_status(field_cls: str,
@@ -60,7 +61,7 @@ def get_field_validation_status(field_cls: str,
 class FormWidget(Widget):
     """
     Base widget for forms. Responsible for generating the context dictionary necessary for rendering the form. The
-    default template used for rendering the form is `BaCa2/templates/widget_templates/form_default.html`. FormWidget
+    default template used for rendering the form is `BaCa2/templates/widget_templates/forms/default.html`. FormWidget
     __init__ method arguments control the rendered form's behaviour and appearance.
     """
 
@@ -73,7 +74,7 @@ class FormWidget(Widget):
                  floating_labels: bool = True,
                  toggleable_fields: List[str] = None,
                  toggleable_fields_params: Dict[str, Dict[str, str]] = None,
-                 live_validation: bool = True,) -> None:
+                 live_validation: bool = True, ) -> None:
         """
         :param name: Name of the widget. Should be unique within the scope of one view.
         :type name: str
@@ -175,3 +176,36 @@ class BaCa2Form(forms.Form):
         required=True,
         initial='form'
     )
+
+
+class TableSelectField(forms.CharField):
+    """
+    Form field used to store the IDs of the selected rows in a table widget. The field is hidden and in its place
+    the stored table widget is rendered. The field is updated live when records are selected or deselected in the
+    table widget.
+    """
+
+    class TableSelectFieldException(Exception):
+        """
+        Exception raised when an error occurs in the TableSelectField class.
+        """
+        pass
+
+    def __init__(self, table_widget: TableWidget, **kwargs) -> None:
+        """
+        :param table_widget: Table widget to use for record selection.
+        :type table_widget: TableWidget
+
+        :raises TableSelectFieldException: If the table widget does not have record selection enabled.
+        """
+        if not table_widget.has_record_method('select'):
+            raise TableSelectField.TableSelectFieldException('Table widget used in TableSelectField does not have '
+                                                             'record selection enabled.')
+
+        super().__init__(
+            label=_('Selected rows IDs'),
+            widget=forms.HiddenInput(attrs={'class': 'table-select-field', 'data-table-target': table_widget.table_id}),
+            initial='',
+            **kwargs
+        )
+        self.table_widget = table_widget
