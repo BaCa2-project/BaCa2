@@ -133,6 +133,18 @@ class TableWidget(Widget):
 
         self.record_methods[name]['on'] = 'true'
 
+    def has_record_method(self, method: str) -> bool:
+        """
+        Check if the table has a record method enabled.
+
+        :param method: Name of the method to check.
+        :type method: str
+
+        :return: `True` if the method is enabled, `False` otherwise.
+        :rtype: bool
+        """
+        return self.record_methods[method]['on'] == 'true'
+
     def get_context(self) -> dict:
         context = {
             'table_id': self.table_id,

@@ -1,0 +1,7 @@
+<div class="table-field-block mb-3">
+    {{ field }}
+    {% with field.field.table_widget as table_widget %}
+        {% include 'widget_templates/table.html' %}
+    {% endwith %}
+    {% include 'widget_templates/forms/field_errors.html' %}
+</div>
