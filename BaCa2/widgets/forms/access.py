@@ -5,6 +5,7 @@ from base import BaCa2Form
 
 
 class BaCa2RegisterForm(BaCa2Form):
+    # TODO: rewrite
     email = forms.EmailField(
         label='Adres e-mail',
         required=True
@@ -29,6 +30,7 @@ class BaCa2RegisterForm(BaCa2Form):
 
 
 class BaCa2RegisterWithUSOSForm(BaCa2Form):
+    # TODO: rewrite
     password = forms.CharField(
         label='Hasło',
         min_length=8,
