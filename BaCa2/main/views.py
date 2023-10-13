@@ -9,6 +9,7 @@ from django.http import (JsonResponse, HttpResponseRedirect)
 from django.http.request import HttpRequest
 from django.urls import reverse_lazy
 
+from util.models import model_cls
 from main.models import Course
 from widgets import forms
 from widgets.base import Widget
@@ -16,6 +17,140 @@ from widgets.listing import TableWidget
 from widgets.forms import FormWidget
 from widgets.navigation import (NavBar, SideNav)
 from widgets.forms.course import (NewCourseForm, NewCourseFormWidget)
+from BaCa2.choices import PermissionTypes
+
+
+class BaCa2ModelView(LoginRequiredMixin, View, ABC):
+    """
+    Base class for all views used to manage models of given class from front-end. Provides methods
+    for retrieving model data and interfacing with model managers to create, update and delete
+    model instances. Implements simple logic for checking user permissions corresponding to the
+    actions before executing them. If an inheriting class extends or changes the list of supported
+    actions, it has to provide for each of them two corresponding methods, one for checking user
+    permissions and one for executing the action unless it overrides the :py:meth:`post` method.
+
+    The permission checking method has to have the following signature:
+    `test_<action>_permission(self, request) -> bool`
+    The action execution method has to have the following signature:
+    `<action>(self, request) -> JsonResponse`
+    """
+
+    #: Model class which the view manages.
+    MODEL: model_cls = None
+    #: Actions supported by the view.
+    SUPPORTED_ACTIONS = ['create', 'update', 'delete']
+
+    def post(self, request) -> JsonResponse:
+        """
+        Handles POST requests. Checks if the action specified within the request is supported and
+        if the user has permission to perform it. If so, calls the corresponding method. If not,
+        returns a JSON response with an error message.
+
+        :return: JSON response with the result of the action in the form of status and message
+        strings.
+        :rtype: JsonResponse
+
+        :raises NotImplementedError: If the action is supported but the corresponding permission
+            test method and/or action method is not implemented.
+        """
+        if request.POST.get('action', None) not in self.SUPPORTED_ACTIONS:
+            return JsonResponse({'status': 'error', 'message': 'Invalid action.'})
+
+        permission_test_method = getattr(self, f'test_{request.POST.get("action")}_permission',
+                                         None)
+
+        if not permission_test_method or not callable(permission_test_method):
+            raise NotImplementedError(
+                f'Permission test method for {request.POST.get("action")} not implemented.')
+        if not permission_test_method(request):
+            return JsonResponse({'status': 'error', 'message': 'Permission denied.'})
+
+        action_method = getattr(self, request.POST.get('action'), None)(request)
+
+        if not action_method or not callable(action_method):
+            raise NotImplementedError(
+                f'Action method for {request.POST.get("action")} not implemented.')
+
+        return action_method(request)
+
+    @classmethod
+    @abstractmethod
+    def create(cls, request) -> JsonResponse:
+        """
+        Communicates with the model manager to create a new model instance using the data provided
+        in the request. Must be implemented by inheriting classes.
+
+        :return: JSON response with the result of the action in the form of status and message
+        strings.
+        :rtype: JsonResponse
+        """
+        ...
+
+    @classmethod
+    @abstractmethod
+    def update(cls, request) -> JsonResponse:
+        """
+        Communicates with the model manager to update an existing model instance using the data
+        provided in the request. Must be implemented by inheriting classes.
+
+        :return: JSON response with the result of the action in the form of status and message
+        strings.
+        :rtype: JsonResponse
+        """
+        ...
+
+    @classmethod
+    @abstractmethod
+    def delete(cls, request) -> JsonResponse:
+        """
+        Communicates with the model manager to delete an existing model instance using the data
+        provided in the request. Must be implemented by inheriting classes.
+
+        :return: JSON response with the result of the action in the form of status and message
+        strings.
+        :rtype: JsonResponse
+        """
+        ...
+
+    @classmethod
+    def test_create_permission(cls, request) -> bool:
+        """
+        Checks if the user has permission to create a new model instance.
+
+        :return: `True` if the user has permission, `False` otherwise.
+        :rtype: bool
+        """
+        return request.user.has_model_permissions(cls.MODEL, PermissionTypes.ADD)
+
+    @classmethod
+    def test_update_permission(cls, request) -> bool:
+        """
+        Checks if the user has permission to update an existing model instance.
+
+        :return: `True` if the user has permission, `False` otherwise.
+        :rtype: bool
+        """
+        return request.user.has_model_permissions(cls.MODEL, PermissionTypes.EDIT)
+
+    @classmethod
+    def test_delete_permission(cls, request) -> bool:
+        """
+        Checks if the user has permission to delete an existing model instance.
+
+        :return: `True` if the user has permission, `False` otherwise.
+        :rtype: bool
+        """
+        return request.user.has_model_permissions(cls.MODEL, PermissionTypes.DEL)
+
+    # TODO: Implement get method for retrieving model data and handling request for specific
+    #   record/records with dynamic url parameters.
+
+
+class BaCa2CourseModelView(BaCa2ModelView, ABC):
+    """
+    Base class for views used to manage course-scope models from front-end.
+    """
+    # TODO: Implement permission tests
 
 
 class BaCa2ContextMixin:
@@ -234,7 +369,8 @@ class BaCa2LoggedInView(LoginRequiredMixin, BaCa2ContextMixin, TemplateView):
 
 class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
     """
-    Admin view for BaCa2 used to manage users, courses and packages. Can only be accessed by superusers.
+    Admin view for BaCa2 used to manage users, courses and packages. Can only be accessed by
+    superusers.
     """
     template_name = 'admin.html'
 
@@ -351,7 +487,7 @@ class FieldValidationView(LoginRequiredMixin, View):
             raise FieldValidationView.FieldClassException('No field class name provided.')
 
         return JsonResponse(
-            forms.get_field_validation_status(
+            forms.base.get_field_validation_status(
                 field_cls=field_cls_name,
                 value=request.GET.get('value', ''),
                 required=request.GET.get('required', False),
