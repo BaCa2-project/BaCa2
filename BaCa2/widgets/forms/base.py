@@ -12,8 +12,8 @@ def get_field_validation_status(field_cls: str,
                                 required: bool = False,
                                 min_length: int | bool = False) -> Dict[str, str or List[str]]:
     """
-    Runs validators for a given field class and value and returns a dictionary containing the status of the validation
-    and a list of error messages if the validation failed.
+    Runs validators for a given field class and value and returns a dictionary containing the status
+    of the validation and a list of error messages if the validation failed.
 
     :param field_cls: Field class to be used for validation.
     :type field_cls: str
@@ -24,7 +24,8 @@ def get_field_validation_status(field_cls: str,
     :param min_length: Minimum length of the value, set to `False` if not defined.
     :type min_length: int | bool
 
-    :return: Dictionary containing the status of the validation and a list of error messages if the validation failed.
+    :return: Dictionary containing the status of the validation and a list of error messages if the
+        validation failed.
     :rtype: Dict[str, str or List[str]]
     """
     try:
@@ -60,9 +61,10 @@ def get_field_validation_status(field_cls: str,
 
 class FormWidget(Widget):
     """
-    Base widget for forms. Responsible for generating the context dictionary necessary for rendering the form. The
-    default template used for rendering the form is `BaCa2/templates/widget_templates/forms/default.html`. FormWidget
-    __init__ method arguments control the rendered form's behaviour and appearance.
+    Base widget for forms. Responsible for generating the context dictionary necessary for rendering
+    the form. The default template used for rendering the form is:
+    `BaCa2/templates/widget_templates/forms/default.html`.
+    FormWidget __init__ method arguments control the rendered form's behaviour and appearance.
     """
 
     def __init__(self,
@@ -84,24 +86,27 @@ class FormWidget(Widget):
         :type button_text: str
         :param display_non_field_validation: Whether to display non-field validation errors.
         :type display_non_field_validation: bool
-        :param display_field_errors: Whether to display field specific errors. If `True`, field specific errors will be
-            displayed below their corresponding fields.
+        :param display_field_errors: Whether to display field specific errors. If `True`, field
+            specific errors will be displayed below their corresponding fields.
         :type display_field_errors: bool
         :param floating_labels: Whether to use floating labels for the form fields.
         :type floating_labels: bool
-        :param toggleable_fields: List of names of fields that should be toggleable. This list should only contain
-            fields that are not required.
+        :param toggleable_fields: List of names of fields that should be toggleable. This list
+            should only contain fields that are not required.
         :type toggleable_fields: List[str]
-        :param toggleable_fields_params: Dictionary containing parameters for toggleable fields. The keys of the
-            dictionary should be the names of the toggleable fields. The values should be dictionaries containing the
-            parameters for the toggleable field. The following parameters are supported:
-            `button_text_on` - text to be displayed on the toggle button when the field is in the "on" state,
-            `button_text_off` - text to be displayed on the toggle button when the field is in the "off" state.
-            If the parameters are not specified, the default values for the supported parameters will be used.
+        :param toggleable_fields_params: Dictionary containing parameters for toggleable fields.
+            The keys of the dictionary should be the names of the toggleable fields. The values
+            should be dictionaries containing the parameters for the toggleable field. The
+            following parameters are supported: `button_text_on` - text to be displayed on the
+            toggle button when the field is in the "on" state, `button_text_off` - text to be
+            displayed on the toggle button when the field is in the "off" state. If the
+            parameters are not specified, the default values for the supported parameters will be
+            used.
         :type toggleable_fields_params: Dict[str, Dict[str, str]]
-        :param live_validation: Whether to perform live validation of the form fields. If `True`, the form will be
-            validated on every change of the form fields. Validation results will be displayed below the corresponding
-            fields or in form of a green checkmark if the field is valid.
+        :param live_validation: Whether to perform live validation of the form fields. If `True`,
+            the form will be validated on every change of the form fields. Validation results will
+            be displayed below the corresponding fields or in form of a green checkmark if the
+            field is valid.
         :type live_validation: bool
         """
         super().__init__(name)
@@ -131,11 +136,13 @@ class FormWidget(Widget):
                 params['button_text_off'] = _('Enter Manually')
 
         self.field_classes = {
-            field_name: self.form.fields[field_name].__class__.__name__ for field_name in self.form.fields.keys()
+            field_name: self.form.fields[field_name].__class__.__name__
+            for field_name in self.form.fields.keys()
         }
 
         self.field_required = {
-            field_name: self.form.fields[field_name].required for field_name in self.form.fields.keys()
+            field_name: self.form.fields[field_name].required
+            for field_name in self.form.fields.keys()
         }
 
         self.field_min_length = {}
@@ -168,7 +175,8 @@ class BaCa2Form(forms.Form):
     Base form for all forms in the BaCa2 system. Contains shared, hidden fields
     """
 
-    #: Form name used to identify the form for views which may receive post data from more than one form.
+    #: Form name used to identify the form for views which may receive post data from more than one
+    # form.
     form_name = forms.CharField(
         label=_('Form name'),
         max_length=100,
@@ -180,9 +188,9 @@ class BaCa2Form(forms.Form):
 
 class TableSelectField(forms.CharField):
     """
-    Form field used to store the IDs of the selected rows in a table widget. The field is hidden and in its place
-    the stored table widget is rendered. The field is updated live when records are selected or deselected in the
-    table widget.
+    Form field used to store the IDs of the selected rows in a table widget. The field is hidden
+    and in its place the stored table widget is rendered. The field is updated live when records
+    are selected or deselected in the table widget.
     """
 
     class TableSelectFieldException(Exception):
@@ -196,15 +204,18 @@ class TableSelectField(forms.CharField):
         :param table_widget: Table widget to use for record selection.
         :type table_widget: TableWidget
 
-        :raises TableSelectFieldException: If the table widget does not have record selection enabled.
+        :raises TableSelectFieldException: If the table widget does not have record selection
+        enabled.
         """
         if not table_widget.has_record_method('select'):
-            raise TableSelectField.TableSelectFieldException('Table widget used in TableSelectField does not have '
-                                                             'record selection enabled.')
+            raise TableSelectField.TableSelectFieldException(
+                'Table widget used in TableSelectField does not have '
+                'record selection enabled.')
 
         super().__init__(
             label=_('Selected rows IDs'),
-            widget=forms.HiddenInput(attrs={'class': 'table-select-field', 'data-table-target': table_widget.table_id}),
+            widget=forms.HiddenInput(
+                attrs={'class': 'table-select-field', 'data-table-target': table_widget.table_id}),
             initial='',
             **kwargs
         )

@@ -9,8 +9,8 @@ from main.models import User
 
 class CourseShortName(forms.CharField):
     """
-    Custom form field for :py:class:`main.Course` short name. Its validators check if the course code is unique and if
-    it contains only alphanumeric characters and underscores.
+    Custom form field for :py:class:`main.Course` short name. Its validators check if the course
+    code is unique and if it contains only alphanumeric characters and underscores.
     """
 
     def __init__(self, **kwargs) -> None:
@@ -44,10 +44,12 @@ class CourseShortName(forms.CharField):
         :param value: Course short name.
         :type value: str
 
-        :raises: ValidationError if the course short name contains characters other than alphanumeric characters and.
+        :raises: ValidationError if the course short name contains characters other than
+            alphanumeric characters and.
         """
         if any(not (c.isalnum() or c == '_') for c in value):
-            raise forms.ValidationError(_('Course code can only contain alphanumeric characters and underscores.'))
+            raise forms.ValidationError(_('Course code can only contain alphanumeric characters and'
+                                          'underscores.'))
 
 
 class NewCourseForm(BaCa2Form):
@@ -92,3 +94,17 @@ class NewCourseFormWidget(FormWidget):
             toggleable_fields=['short_name'],
             **kwargs
         )
+
+
+class CourseForm(BaCa2Form):
+    """
+    Base form for all forms used to edit existing :py:class:`main.Course` objects.
+    """
+
+    #: ID of the course to be edited. Used to identify the course from which scope the request
+    # originates.
+    course_id = forms.IntegerField(
+        label=_('Course ID'),
+        widget=forms.HiddenInput(),
+        required=True
+    )

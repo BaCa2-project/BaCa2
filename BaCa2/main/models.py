@@ -210,8 +210,8 @@ class CourseManager(models.Manager):
         :return: The newly created course.
         :rtype: Course
 
-        :raises ValidationError: If the short name is too short. If either USOS course code or USOS term code is
-            provided without the other.
+        :raises ValidationError: If the short name is too short. If either USOS course code or USOS
+            term code is provided without the other.
         """
         if (usos_course_code is not None) ^ (usos_term_code is not None):
             raise ValidationError('Both USOS course code and USOS term code must be provided or '
@@ -1424,15 +1424,17 @@ class User(AbstractBaseUser, PermissionsMixin):
             permission object or its codename.
         :type permission: Permission | str
 
-        :return: `True` if the user has the permission, `False` otherwise.
+        :return: `True` if the user has the permission or is a superuser, `False` otherwise.
         :rtype: bool
         """
+        if self.is_superuser:
+            return True
         return self.has_individual_permission(permission) or \
             self.has_group_permission(permission)
 
     def has_model_permissions(self,
                               model: model_cls,
-                              permissions: PermissionTypes or List[PermissionTypes] = 'all',
+                              permissions: PermissionTypes | List[PermissionTypes] = 'all',
                               group_level: bool = True,
                               user_specific: bool = True) -> bool:
         """
@@ -1451,10 +1453,13 @@ class User(AbstractBaseUser, PermissionsMixin):
         :param user_specific: Indicates whether user-specific permissions should be checked.
         :type user_specific: bool
 
-        :returns: `True` if the user possesses the specified permission/s for the given model,
-            `False` otherwise.
+        :returns: `True` if the user possesses the specified permission/s for the given model or is
+            a superuser, `False` otherwise.
         :rtype: bool
         """
+        if self.is_superuser:
+            return True
+
         permissions = get_model_permissions(model, permissions)
         has_perm = {p: False for p in permissions}
 
@@ -1482,9 +1487,12 @@ class User(AbstractBaseUser, PermissionsMixin):
             Course object, its short name or its id.
         :type course: Course | str | int
 
-        :returns: `True` if the user has the permission, `False` otherwise.
+        :returns: `True` if the user has the permission or is superuser, `False` otherwise.
         :rtype: bool
         """
+        if self.is_superuser:
+            return True
+
         if isinstance(course, str):
             course = Course.objects.get(short_name=course)
         elif isinstance(course, int):
@@ -1520,10 +1528,13 @@ class User(AbstractBaseUser, PermissionsMixin):
             related to the model.
         :type permissions: PermissionTypes or List[PermissionTypes]
 
-        :returns: `True` if the user possesses the specified permission/s for the given model,
-            `False` otherwise.
+        :returns: `True` if the user possesses the specified permission/s for the given model or
+            is a superuser, `False` otherwise.
         :rtype: bool
         """
+        if self.is_superuser:
+            return True
+
         if isinstance(course, str):
             course = Course.objects.get(short_name=course)
         elif isinstance(course, int):
