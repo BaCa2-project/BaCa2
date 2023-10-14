@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import (Dict, Any, Type)
+from typing import (Dict, Any, Type, List)
 
 from django.views.generic.base import (TemplateView, RedirectView, View)
 from django.contrib.auth.mixins import (LoginRequiredMixin, UserPassesTestMixin)
@@ -30,17 +30,64 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
     permissions and one for executing the action unless it overrides the :py:meth:`post` method.
 
     The permission checking method has to have the following signature:
-    `test_<action>_permission(self, request) -> bool`
+    `test_<action>_permission(self, request, **kwargs) -> bool`
     The action execution method has to have the following signature:
-    `<action>(self, request) -> JsonResponse`
+    `<action>(self, request, **kwargs) -> JsonResponse`
     """
+
+    class ModelViewException(Exception):
+        """
+        Exception raised when model view-related error occurs.
+        """
+        pass
 
     #: Model class which the view manages.
     MODEL: model_cls = None
     #: Actions supported by the view.
     SUPPORTED_ACTIONS = ['create', 'update', 'delete']
 
-    def post(self, request) -> JsonResponse:
+    # ------------------------------------ Response methods ------------------------------------ #
+
+    def get(self, request, **kwargs) -> JsonResponse:
+        """
+        Retrieves data of the instance(s) of the model class managed by the view if the requesting
+        user has permission to access it. If the request kwargs contain a 'target' key, the method
+        will return data of the instance of the model class with the id specified in the 'target'.
+        The data is gathered using the :py:meth:`get_data` method of the model class.
+
+        :return: JSON response with the result of the action in the form of status and message
+        strings (and data dictionary if the request is valid).
+        :rtype: JsonResponse
+
+        :raises ModelViewException: If the model class managed by the view does not implement the
+            method needed to gather data.
+        """
+        if not self.test_view_permission(request, **kwargs):
+            return JsonResponse({'status': 'error', 'message': 'Permission denied.'})
+
+        if kwargs.get('target', None):
+            get_data_method = getattr(self.MODEL, 'get_data')
+
+            if not get_data_method or not callable(get_data_method):
+                raise BaCa2ModelView.ModelViewException(
+                    f'Model class managed by the {self.__class__.__name__} view does not '
+                    f'implement the `get_data` method needed to perform this action.')
+
+            try:
+                target = self.MODEL.objects.get(id=kwargs['target'])
+            except self.MODEL.DoesNotExist:
+                return JsonResponse({'status': 'error', 'message': 'Target not found.'})
+            return JsonResponse({'status': 'ok',
+                                 'message': f'successfully retrieved data for a model instance '
+                                            f'with id = {kwargs["target"]}',
+                                 'data': [target.get_data()]})
+        else:
+            return JsonResponse({'status': 'ok',
+                                 'message': f'successfully retrieved data for all model instances',
+                                 'data': [instance.get_data() for instance in
+                                          self.MODEL.objects.all()]})
+
+    def post(self, request, **kwargs) -> JsonResponse:
         """
         Handles POST requests. Checks if the action specified within the request is supported and
         if the user has permission to perform it. If so, calls the corresponding method. If not,
@@ -62,10 +109,10 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         if not permission_test_method or not callable(permission_test_method):
             raise NotImplementedError(
                 f'Permission test method for {request.POST.get("action")} not implemented.')
-        if not permission_test_method(request):
+        if not permission_test_method(request, **kwargs):
             return JsonResponse({'status': 'error', 'message': 'Permission denied.'})
 
-        action_method = getattr(self, request.POST.get('action'), None)(request)
+        action_method = getattr(self, request.POST.get('action'), None)(request, **kwargs)
 
         if not action_method or not callable(action_method):
             raise NotImplementedError(
@@ -75,7 +122,7 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
 
     @classmethod
     @abstractmethod
-    def create(cls, request) -> JsonResponse:
+    def create(cls, request, **kwargs) -> JsonResponse:
         """
         Communicates with the model manager to create a new model instance using the data provided
         in the request. Must be implemented by inheriting classes.
@@ -84,11 +131,10 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         strings.
         :rtype: JsonResponse
         """
-        ...
 
     @classmethod
     @abstractmethod
-    def update(cls, request) -> JsonResponse:
+    def update(cls, request, **kwargs) -> JsonResponse:
         """
         Communicates with the model manager to update an existing model instance using the data
         provided in the request. Must be implemented by inheriting classes.
@@ -97,11 +143,10 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         strings.
         :rtype: JsonResponse
         """
-        ...
 
     @classmethod
     @abstractmethod
-    def delete(cls, request) -> JsonResponse:
+    def delete(cls, request, **kwargs) -> JsonResponse:
         """
         Communicates with the model manager to delete an existing model instance using the data
         provided in the request. Must be implemented by inheriting classes.
@@ -110,10 +155,11 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         strings.
         :rtype: JsonResponse
         """
-        ...
+
+    # ------------------------------------ Permission checks ----------------------------------- #
 
     @classmethod
-    def test_create_permission(cls, request) -> bool:
+    def test_create_permission(cls, request, **kwargs) -> bool:
         """
         Checks if the user has permission to create a new model instance.
 
@@ -123,7 +169,7 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         return request.user.has_model_permissions(cls.MODEL, PermissionTypes.ADD)
 
     @classmethod
-    def test_update_permission(cls, request) -> bool:
+    def test_update_permission(cls, request, **kwargs) -> bool:
         """
         Checks if the user has permission to update an existing model instance.
 
@@ -133,7 +179,7 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         return request.user.has_model_permissions(cls.MODEL, PermissionTypes.EDIT)
 
     @classmethod
-    def test_delete_permission(cls, request) -> bool:
+    def test_delete_permission(cls, request, **kwargs) -> bool:
         """
         Checks if the user has permission to delete an existing model instance.
 
@@ -142,8 +188,33 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         """
         return request.user.has_model_permissions(cls.MODEL, PermissionTypes.DEL)
 
-    # TODO: Implement get method for retrieving model data and handling request for specific
-    #   record/records with dynamic url parameters.
+    @classmethod
+    def test_view_permission(cls, request, **kwargs) -> bool:
+        """
+        Checks if the user has permission to view data of the model class managed by the view.
+
+        :return: `True` if the user has permission, `False` otherwise.
+        :rtype: bool
+        """
+        return request.user.has_model_permissions(cls.MODEL, PermissionTypes.VIEW)
+
+    # ----------------------------------- Auxiliary methods ------------------------------------ #
+
+    @staticmethod
+    def get_target_list(request) -> List[int] | None:
+        """
+        Get a list of ids of targeted model instances from a POST request if it is specified.
+
+        :return: List of ids of targeted model instances or `None` if it was not provided in the
+            request
+        :rtype: List[int] | None
+        """
+        targets: str = request.POST.get('targets', None)
+
+        if not targets:
+            return None
+
+        return [int(target_id) for target_id in targets.split(',')]
 
 
 class BaCa2CourseModelView(BaCa2ModelView, ABC):
