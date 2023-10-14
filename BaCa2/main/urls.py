@@ -10,6 +10,9 @@ from .views import (DashboardView,
 app_name = 'main'
 
 urlpatterns = [
+    # Model management views
+
+
     path('admin', AdminView.as_view(), name='admin'),
     path('dashboard', DashboardView.as_view(), name='dashboard'),
     path('courses', CoursesView.as_view(), name='courses'),

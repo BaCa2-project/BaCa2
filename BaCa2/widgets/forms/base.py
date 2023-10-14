@@ -210,12 +210,14 @@ class TableSelectField(forms.CharField):
         if not table_widget.has_record_method('select'):
             raise TableSelectField.TableSelectFieldException(
                 'Table widget used in TableSelectField does not have '
-                'record selection enabled.')
+                'record selection enabled.'
+            )
 
         super().__init__(
             label=_('Selected rows IDs'),
             widget=forms.HiddenInput(
-                attrs={'class': 'table-select-field', 'data-table-target': table_widget.table_id}),
+                attrs={'class': 'table-select-field', 'data-table-target': table_widget.table_id}
+            ),
             initial='',
             **kwargs
         )

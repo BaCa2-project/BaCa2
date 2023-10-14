@@ -622,7 +622,7 @@ class Course(models.Model):
             'USOS_term_code': self.USOS_term_code
         }
 
-    # ------------------------------------ Role management ------------------------------------ #
+    # ------------------------------------ Role management ------------------------------------- #
 
     @property
     def default_role_name(self) -> str:
