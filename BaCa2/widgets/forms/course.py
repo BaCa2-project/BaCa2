@@ -1,5 +1,6 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
+from django.urls import reverse_lazy
 
 from main.models import Course
 from widgets.forms.base import (BaCa2Form, TableSelectField, FormWidget)
@@ -56,10 +57,6 @@ class NewCourseForm(BaCa2Form):
     """
     Form for creating new :py:class:`main.Course` objects.
     """
-    table_select = TableSelectField(TableWidget(
-        name='new_course_table_widget',
-        model_cls=User,
-    ))
     #: New course's name.
     name = forms.CharField(
         label=_('Course name'),
@@ -69,9 +66,29 @@ class NewCourseForm(BaCa2Form):
     )
     #: New course's short name.
     short_name = CourseShortName()
+    #: Subject code of the course in the USOS system.
+    USOS_course_code = forms.CharField(
+        label=_('USOS course code'),
+        max_length=Course._meta.get_field('USOS_course_code').max_length,
+        required=False
+    )
+    #: Term code of the course in the USOS system.
+    USOS_term_code = forms.CharField(
+        label=_('USOS term code'),
+        max_length=Course._meta.get_field('USOS_term_code').max_length,
+        required=False
+    )
+    course_members = TableSelectField(TableWidget(
+        name='new_course_table_widget',
+        model_cls=User,
+        select=True,
+        cols=['id', 'first_name', 'last_name', 'email'],
+    ), required=False)
 
     def __init__(self, **kwargs) -> None:
-        super().__init__(initial={'form_name': 'new_course_form'}, **kwargs)
+        super().__init__(initial={'form_name': 'create_course_form',
+                                  'action': 'create'},
+                         **kwargs)
 
 
 class NewCourseFormWidget(FormWidget):
@@ -88,10 +105,11 @@ class NewCourseFormWidget(FormWidget):
             form = NewCourseForm()
 
         super().__init__(
-            name='new_course_form_widget',
+            name='create_course_form_widget',
             form=form,
+            post_url=reverse_lazy('main:course-model-view'),
             button_text=_('Add course'),
-            toggleable_fields=['short_name'],
+            toggleable_fields=['short_name', 'USOS_course_code', 'USOS_term_code'],
             **kwargs
         )
 

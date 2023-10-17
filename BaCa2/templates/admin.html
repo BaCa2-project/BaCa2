@@ -13,7 +13,7 @@
                 {% include "widget_templates/table.html" %}
             {% endwith %}
             <div class="col-8 mt-3">
-                {% with widgets.FormWidget.new_course_form_widget as form_widget %}
+                {% with widgets.FormWidget.create_course_form_widget as form_widget %}
                     {% include "widget_templates/forms/default.html" %}
                 {% endwith %}
             </div>

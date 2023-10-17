@@ -8,9 +8,10 @@ from django.contrib.auth import logout
 from django.http import (JsonResponse, HttpResponseRedirect)
 from django.http.request import HttpRequest
 from django.urls import reverse_lazy
+from django.utils.translation import gettext_lazy as _
 
 from util.models import model_cls
-from main.models import Course
+from main.models import (Course, User)
 from widgets import forms
 from widgets.base import Widget
 from widgets.listing import TableWidget
@@ -18,6 +19,7 @@ from widgets.forms import FormWidget
 from widgets.navigation import (NavBar, SideNav)
 from widgets.forms.course import (NewCourseForm, NewCourseFormWidget)
 from BaCa2.choices import PermissionTypes
+from widgets.forms.base import TableSelectField
 
 
 class BaCa2ModelView(LoginRequiredMixin, View, ABC):
@@ -112,13 +114,13 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         if not permission_test_method(request, **kwargs):
             return JsonResponse({'status': 'error', 'message': 'Permission denied.'})
 
-        action_method = getattr(self, request.POST.get('action'), None)(request, **kwargs)
+        action_method = getattr(self, request.POST.get('action'), None)
 
         if not action_method or not callable(action_method):
             raise NotImplementedError(
                 f'Action method for {request.POST.get("action")} not implemented.')
 
-        return action_method(request)
+        return action_method(request, **kwargs)
 
     @classmethod
     @abstractmethod
@@ -155,6 +157,11 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         strings.
         :rtype: JsonResponse
         """
+
+    @staticmethod
+    def invalid_form_response(request, message: str = _('invalid form')) -> JsonResponse:
+        # TODO
+        return JsonResponse({'status': 'error', 'message': message})
 
     # ------------------------------------ Permission checks ----------------------------------- #
 
@@ -198,23 +205,42 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         """
         return request.user.has_model_permissions(cls.MODEL, PermissionTypes.VIEW)
 
-    # ----------------------------------- Auxiliary methods ------------------------------------ #
 
-    @staticmethod
-    def get_target_list(request) -> List[int] | None:
-        """
-        Get a list of ids of targeted model instances from a POST request if it is specified.
+class CourseModelView(BaCa2ModelView):
+    MODEL = Course
 
-        :return: List of ids of targeted model instances or `None` if it was not provided in the
-            request
-        :rtype: List[int] | None
-        """
-        targets: str = request.POST.get('targets', None)
+    @classmethod
+    def create(cls, request, **kwargs) -> JsonResponse:
+        form = NewCourseForm(data=request.POST)
 
-        if not targets:
-            return None
+        if not form.is_valid():
+            return BaCa2ModelView.invalid_form_response(request)
 
-        return [int(target_id) for target_id in targets.split(',')]
+        Course.objects.create_course(
+            name=form.cleaned_data['name'],
+            short_name=form.cleaned_data.get('short_name', None),
+            usos_course_code=form.cleaned_data.get('USOS_course_code', None),
+            usos_term_code=form.cleaned_data.get('USOS_term_code', None),
+        )
+
+    def update(cls, request, **kwargs) -> JsonResponse:
+        pass
+
+    def delete(cls, request, **kwargs) -> JsonResponse:
+        pass
+
+
+class UserModelView(BaCa2ModelView):
+    MODEL = User
+
+    def create(cls, request, **kwargs) -> JsonResponse:
+        pass
+
+    def update(cls, request, **kwargs) -> JsonResponse:
+        pass
+
+    def delete(cls, request, **kwargs) -> JsonResponse:
+        pass
 
 
 class BaCa2CourseModelView(BaCa2ModelView, ABC):
@@ -459,7 +485,7 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
         sidenav = SideNav('users', 'courses', 'packages')
         self.add_widget(context, sidenav)
 
-        if not self.has_widget(context, FormWidget, 'new_course_form'):
+        if not self.has_widget(context, FormWidget, 'create_course_form_widget'):
             self.add_widget(context, NewCourseFormWidget())
 
         self.add_widget(context, TableWidget(
@@ -481,7 +507,7 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
         return context
 
     def post(self, request, *args, **kwargs):
-        if request.POST.get('form_name', None) == 'new_course_form':
+        if request.POST.get('form_name', None) == 'create_course_form':
             form = NewCourseForm(data=request.POST)
 
             if form.is_valid():
