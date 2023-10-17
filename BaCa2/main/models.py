@@ -1264,14 +1264,36 @@ class User(AbstractBaseUser, PermissionsMixin):
     #: Manager class for the User model.
     objects = UserManager()
 
+    # ----------------------------------- User representation ---------------------------------- #
+
     def __str__(self) -> str:
         """
         Returns the string representation of the User object.
 
-        :return: User's username.
+        :return: User's email.
         :rtype: str
         """
         return self.email
+
+    def get_data(self) -> dict:
+        """
+        Returns the contents of a User object's fields as a dictionary. Used to send user data
+        to the frontend.
+
+        :return: Dictionary containing the user's data
+        :rtype: dict
+        """
+        return {
+            'id': self.id,
+            'email': self.email,
+            'first_name': self.first_name,
+            'last_name': self.last_name,
+            'is_staff': self.is_staff,
+            'is_superuser': self.is_superuser,
+            'date_joined': self.date_joined,
+        }
+
+    # ------------------------------------ Auxiliary Checks ------------------------------------ #
 
     @classmethod
     def exists(cls, user_id) -> bool:

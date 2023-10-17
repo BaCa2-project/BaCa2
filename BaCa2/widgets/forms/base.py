@@ -28,6 +28,8 @@ def get_field_validation_status(field_cls: str,
         validation failed.
     :rtype: Dict[str, str or List[str]]
     """
+    from widgets.forms.course import CourseShortName
+
     try:
         field = eval(field_cls)()
     except NameError:
@@ -67,9 +69,18 @@ class FormWidget(Widget):
     FormWidget __init__ method arguments control the rendered form's behaviour and appearance.
     """
 
+    class FormWidgetException(Exception):
+        """
+        Exception raised when an error related to incongruence in the parameters of the FormWidget
+        class occurs.
+        """
+        pass
+
     def __init__(self,
                  name: str,
                  form: forms.Form,
+                 post_url: str = None,
+                 ajax_post: bool = False,
                  button_text: str = _('Submit'),
                  display_non_field_validation: bool = True,
                  display_field_errors: bool = True,
@@ -82,6 +93,13 @@ class FormWidget(Widget):
         :type name: str
         :param form: django form object to base the widget on. Should inherit from BaCa2Form.
         :type form: forms.Form
+        :param post_url: URL to which the form should be submitted. If not provided, the form will
+            be submitted to the same URL as the one used to render the form.
+        :type post_url: str
+        :param ajax_post: Whether the form should be submitted using AJAX. If `True`, the form will
+            be submitted using AJAX and the page will not be reloaded. If `False`, the form will be
+            submitted using a standard POST request and the page will be reloaded.
+        :type ajax_post: bool
         :param button_text: Text to be displayed on the submit button.
         :type button_text: str
         :param display_non_field_validation: Whether to display non-field validation errors.
@@ -108,15 +126,27 @@ class FormWidget(Widget):
             be displayed below the corresponding fields or in form of a green checkmark if the
             field is valid.
         :type live_validation: bool
+
+        :raises FormWidgetException: If the AJAX post is enabled without specifying the post URL.
         """
         super().__init__(name)
         self.form = form
         self.form_cls = form.__class__.__name__
+        self.ajax_post = ajax_post
         self.button_text = button_text
         self.display_non_field_validation = display_non_field_validation
         self.display_field_errors = display_field_errors
         self.floating_labels = floating_labels
         self.live_validation = live_validation
+
+        if ajax_post and not post_url:
+            raise FormWidget.FormWidgetException(
+                'Cannot use AJAX post without specifying the post URL.'
+            )
+
+        if not post_url:
+            post_url = ''
+        self.post_url = post_url
 
         if not toggleable_fields:
             toggleable_fields = []
@@ -153,9 +183,11 @@ class FormWidget(Widget):
                 self.field_min_length[field_name] = False
 
     def get_context(self) -> dict:
-        context = {
+        return super().get_context() | {
             'form': self.form,
             'form_cls': self.form_cls,
+            'post_url': self.post_url,
+            'ajax_post': self.ajax_post,
             'button_text': self.button_text,
             'display_non_field_errors': self.display_non_field_validation,
             'display_field_errors': self.display_field_errors,
@@ -167,7 +199,6 @@ class FormWidget(Widget):
             'field_min_length': self.field_min_length,
             'live_validation': self.live_validation,
         }
-        return context
 
 
 class BaCa2Form(forms.Form):
@@ -183,6 +214,13 @@ class BaCa2Form(forms.Form):
         widget=forms.HiddenInput(),
         required=True,
         initial='form'
+    )
+    #: Informs the view receiving the post data about the action which should be performed using it.
+    action = forms.CharField(
+        label=_('Action'),
+        max_length=100,
+        widget=forms.HiddenInput(),
+        initial=''
     )
 
 
@@ -221,4 +259,25 @@ class TableSelectField(forms.CharField):
             initial='',
             **kwargs
         )
-        self.table_widget = table_widget
+        self.table_widget = table_widget.get_context()
+
+    @staticmethod
+    def get_target_list(form: forms.Form, field_name: str) -> List[int] | None:
+        """
+        Get a list of ids of targeted model instances from a table select field of a form.
+
+        :param form: Form containing the table select field.
+        :type form: forms.Form
+        :param field_name: Name of the table select field.
+        :type field_name: str
+
+        :return: List of ids of targeted model instances or `None` if it was not provided in the
+            request
+        :rtype: List[int] | None
+        """
+        targets: str = form.cleaned_data.get(field_name, None)
+
+        if not targets:
+            return None
+
+        return [int(target_id) for target_id in targets.split(',')]
