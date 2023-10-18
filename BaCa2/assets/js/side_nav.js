@@ -13,7 +13,19 @@ $(document).ready(function () {
         activated_tab.addClass('active');
     });
 
-    const active_link = $(document.body).find('.side-nav-content').find('.active').find('.side-nav-link')
-    const active_tab = $(document.body).find('#' + active_link.data('id'))
-    active_tab.addClass('active')
+    $('.side-nav-button').hover(function () {
+        const sub_tabs_wrapper = $(this).find('.sub-tabs-wrapper');
+        if (sub_tabs_wrapper.length) {
+            sub_tabs_wrapper.addClass('expanded');
+        }
+    }, function () {
+        const sub_tabs_wrapper = $(this).find('.sub-tabs-wrapper');
+        if (sub_tabs_wrapper.length) {
+            sub_tabs_wrapper.removeClass('expanded');
+        }
+    });
+
+    const active_link = $(document.body).find('.side-nav-content').find('.active').find('.side-nav-link');
+    const active_tab = $(document.body).find('#' + active_link.data('id'));
+    active_tab.addClass('active');
 });

@@ -372,6 +372,32 @@ html, body {
   padding: 1rem;
 }
 
+.sub-tabs-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.5s ease-out;
+}
+.sub-tabs-wrapper .sub-tabs-content {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  overflow: hidden;
+}
+.sub-tabs-wrapper .sub-tabs-content .sub-tab-button {
+  margin: 0;
+  padding: 0;
+  display: inline-block;
+  width: 100%;
+}
+.sub-tabs-wrapper .sub-tabs-content .sub-tab-button .sub-tab-link {
+  text-decoration: none;
+  display: block;
+  padding: 1rem;
+}
+.sub-tabs-wrapper.expanded {
+  grid-template-rows: 1fr;
+}
+
 .tab-wrapper {
   display: grid;
   grid-template-rows: 0fr;
