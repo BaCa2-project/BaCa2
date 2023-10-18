@@ -482,7 +482,8 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        sidenav = SideNav('users', 'courses', 'packages')
+        sidenav = SideNav('users', 'courses', 'packages',
+                          courses=['new-course', 'courses-table'])
         self.add_widget(context, sidenav)
 
         if not self.has_widget(context, FormWidget, 'create_course_form_widget'):

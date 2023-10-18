@@ -38,6 +38,37 @@
     }
 }
 
+.sub-tabs-wrapper {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.5s ease-out;
+
+    .sub-tabs-content {
+        padding: 0;
+        margin: 0;
+        list-style: none;
+
+        .sub-tab-button {
+            margin: 0;
+            padding: 0;
+            display: inline-block;
+            width: 100%;
+
+            .sub-tab-link {
+                text-decoration: none;
+                display: block;
+                padding: 1rem;
+            }
+        }
+
+        overflow: hidden;
+    }
+
+    &.expanded {
+        grid-template-rows: 1fr;
+    }
+}
+
 .tab-wrapper {
     display: grid;
     grid-template-rows: 0fr;
@@ -54,8 +85,6 @@
 
 @each $theme, $map in $side_nav_theme_variables {
     [data-bs-theme="#{$theme}"] .side-nav {
-        //background-color: safe_get($map, $side_nav_default_variables, bg);
-
         .side-nav-button {
             background-size: 400% 100%;
             background-image: linear-gradient(

@@ -7,6 +7,19 @@
                 <a class="side-nav-link" href="#" data-id="{{ tab.data_id }}">
                     {{ tab.name }}
                 </a>
+                {% if tab.sub_tabs %}
+                    <div class="sub-tabs-wrapper">
+                        <ul class="sub-tabs-content">
+                            {% for sub_tab in tab.sub_tabs %}
+                                <li class="sub-tab-button">
+                                    <a class="sub-tab-link" href="#" data-id="{{ sub_tab.data_id }}">
+                                        {{ sub_tab.name }}
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
             </li>
         {% endfor %}
     </ul>
