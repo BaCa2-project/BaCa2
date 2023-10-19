@@ -14,14 +14,12 @@ $(document).ready(function () {
     });
 
     $('.side-nav-button').hover(function () {
-        const sub_tabs_wrapper = $(this).find('.sub-tabs-wrapper');
-        if (sub_tabs_wrapper.length) {
-            sub_tabs_wrapper.addClass('expanded');
+        if ($(this).find('.sub-tabs-wrapper').length) {
+            $(this).addClass('expanded');
         }
     }, function () {
-        const sub_tabs_wrapper = $(this).find('.sub-tabs-wrapper');
-        if (sub_tabs_wrapper.length) {
-            sub_tabs_wrapper.removeClass('expanded');
+        if ($(this).find('.sub-tabs-wrapper').length) {
+            $(this).removeClass('expanded');
         }
     });
 
