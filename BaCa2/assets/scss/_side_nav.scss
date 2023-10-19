@@ -34,38 +34,41 @@
                 display: block;
                 padding: 1rem;
             }
-        }
-    }
-}
 
-.sub-tabs-wrapper {
-    display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows 0.5s ease-out;
+            .sub-tabs-wrapper {
+                display: grid;
+                grid-template-rows: 0fr;
+                transition: grid-template-rows 0.5s ease-out;
 
-    .sub-tabs-content {
-        padding: 0;
-        margin: 0;
-        list-style: none;
+                .sub-tabs-content {
+                    padding: 0;
+                    margin: 0;
+                    list-style: none;
 
-        .sub-tab-button {
-            margin: 0;
-            padding: 0;
-            display: inline-block;
-            width: 100%;
+                    .sub-tab-button {
+                        margin: 0;
+                        padding: 0;
+                        display: inline-block;
+                        width: 100%;
+                        box-sizing: border-box;
 
-            .sub-tab-link {
-                text-decoration: none;
-                display: block;
-                padding: 1rem;
+                        .sub-tab-link {
+                            text-decoration: none;
+                            display: block;
+                            padding: 1rem;
+                        }
+                    }
+
+                    overflow: hidden;
+                }
+            }
+
+            &:hover, &.active {
+                .sub-tabs-wrapper {
+                    grid-template-rows: 1fr;
+                }
             }
         }
-
-        overflow: hidden;
-    }
-
-    &.expanded {
-        grid-template-rows: 1fr;
     }
 }
 
@@ -101,6 +104,34 @@
             transition: border-bottom-color ease 0.5s,
                         border-top-color ease 0.5s,
                         background-position 1s;
+
+            .sub-tabs-wrapper {
+                .sub-tab-button {
+                    background-size: 400% 100%;
+                    background-image: linear-gradient(
+                        to right,
+                        safe_get($map, $side_nav_default_variables, bg_sub_tab) 0%,
+                        safe_get($map, $side_nav_default_variables, bg_sub_tab) 25%,
+                        safe_get($map, $side_nav_default_variables, hover_bg_sub_tab) 25%,
+                        safe_get($map, $side_nav_default_variables, hover_bg_sub_tab) 50%,
+                        safe_get($map, $side_nav_default_variables, active_bg_sub_tab) 50%,
+                        safe_get($map, $side_nav_default_variables, active_bg_sub_tab) 100%
+                    );
+                    transition: background-position 1s;
+
+                    &:first-child {
+                        border-top: safe_get($map, $side_nav_default_variables, border_color) 1px solid;
+                    }
+
+                    &:hover {
+                        background-position: calc(100% / 3) 0;
+                    }
+
+                    &.active {
+                        background-position: 100% 0;
+                    }
+                }
+            }
 
             &:first-child {
                 border-bottom: none;
