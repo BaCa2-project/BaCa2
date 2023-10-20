@@ -2,21 +2,28 @@
 {% load static %}
 
 {% block content %}
-    <div class ="tab-wrapper" id="users-tab">
+    <div class ="tab-wrapper" id="new-user-tab">
         <div class="side-nav-tab">
-            Users
+            Users 1
         </div>
     </div>
-    <div class="tab-wrapper" id="courses-tab">
+    <div class ="tab-wrapper" id="users-table-tab">
+        <div class="side-nav-tab">
+            Users 2
+        </div>
+    </div>
+    <div class="tab-wrapper" id="courses-table-tab">
         <div class="side-nav-tab">
             {% with widgets.TableWidget.courses_table as table_widget %}
                 {% include "widget_templates/table.html" %}
             {% endwith %}
-            <div class="col-8 mt-3">
-                {% with widgets.FormWidget.create_course_form_widget as form_widget %}
-                    {% include "widget_templates/forms/default.html" %}
-                {% endwith %}
-            </div>
+        </div>
+    </div>
+    <div class="tab-wrapper" id="new-course-tab">
+        <div class="side-nav-tab">
+            {% with widgets.FormWidget.create_course_form_widget as form_widget %}
+                {% include "widget_templates/forms/default.html" %}
+            {% endwith %}
         </div>
     </div>
     <div class="tab-wrapper" id="packages-tab">

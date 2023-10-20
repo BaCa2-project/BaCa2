@@ -1,9 +1,16 @@
 {% load static %}
-
-<div class="col-4 side-nav">
-    <ul class="side-nav-content">
+<div class="col-4 side-nav
+    {% if sidenav_widget.collapsed %}
+        collapsed
+    {% else %}
+        expanded
+    {% endif %}">
+    <ul class="side-nav-content mb-3">
         {% for tab in sidenav_widget.tabs reversed %}
-            <li class="side-nav-button {% if tab == sidenav_widget.tabs.0 %} active {% endif %}">
+            <li class="side-nav-button tab-button
+            {% if tab.sub_tabs %}
+                sub-tabs
+            {% endif %}">
                 <a class="side-nav-link" href="#" data-id="{{ tab.data_id }}">
                     {{ tab.name }}
                 </a>
@@ -11,8 +18,9 @@
                     <div class="sub-tabs-wrapper">
                         <ul class="sub-tabs-content">
                             {% for sub_tab in tab.sub_tabs %}
-                                <li class="sub-tab-button">
-                                    <a class="sub-tab-link" href="#" data-id="{{ sub_tab.data_id }}">
+                                <li class="side-nav-button sub-tab-button">
+                                    <a class="side-nav-link" href="#"
+                                       data-id="{{ sub_tab.data_id }}">
                                         {{ sub_tab.name }}
                                     </a>
                                 </li>
@@ -23,6 +31,24 @@
             </li>
         {% endfor %}
     </ul>
+    {% with sidenav_widget.toggle_button as button %}
+        {% if button.on %}
+            <div class="col-lg-3 col-md-6 col-s-12">
+                <button class="btn btn-baca2_beige w-100"
+                        onclick="toggleSidenavButton(
+                            this,
+                            '{{ button.text_collapsed }}',
+                            '{{ button.text_expanded }}'
+                        )">
+                    {% if button.state %}
+                        {{ button.text_collapsed }}
+                    {% else %}
+                        {{ button.text_expanded }}
+                    {% endif %}
+                </button>
+            </div>
+        {% endif %}
+    {% endwith %}
 </div>
 
 <script src="{% static 'js/side_nav.js' %}"></script>
