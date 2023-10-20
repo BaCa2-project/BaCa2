@@ -14,7 +14,7 @@
         display: flex;
         flex-direction: column-reverse;
 
-        .side-nav-button {
+        .tab-button {
             margin: 0;
             padding: 0;
             display: inline-block;
@@ -27,6 +27,10 @@
 
             &:first-child {
                 border-radius: 0 0 6px 6px;
+
+                .sub-tab-button:last-child {
+                    border-radius: 0 0 6px 6px;
+                }
             }
 
             .side-nav-link {
@@ -36,10 +40,6 @@
             }
 
             .sub-tabs-wrapper {
-                display: grid;
-                grid-template-rows: 0fr;
-                transition: grid-template-rows 0.5s ease-out;
-
                 .sub-tabs-content {
                     padding: 0;
                     margin: 0;
@@ -52,22 +52,36 @@
                         width: 100%;
                         box-sizing: border-box;
 
-                        .sub-tab-link {
-                            text-decoration: none;
-                            display: block;
-                            padding: 1rem;
+                        .side-nav-link {
+                            padding: 0.7rem 1rem 0.7rem 2rem;
                         }
                     }
 
                     overflow: hidden;
                 }
             }
+        }
+    }
+}
 
-            &:hover, &.active {
-                .sub-tabs-wrapper {
-                    grid-template-rows: 1fr;
-                }
+.side-nav {
+    .tab-button {
+        .sub-tabs-wrapper {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.5s ease-out;
+        }
+
+        &.expanded, &:hover {
+            .sub-tabs-wrapper {
+                grid-template-rows: 1fr;
             }
+        }
+    }
+
+    &.expanded {
+        .sub-tabs-wrapper {
+            grid-template-rows: 1fr;
         }
     }
 }
@@ -88,7 +102,7 @@
 
 @each $theme, $map in $side_nav_theme_variables {
     [data-bs-theme="#{$theme}"] .side-nav {
-        .side-nav-button {
+        .tab-button {
             background-size: 400% 100%;
             background-image: linear-gradient(
                 to right,
@@ -112,24 +126,27 @@
                         to right,
                         safe_get($map, $side_nav_default_variables, bg_sub_tab) 0%,
                         safe_get($map, $side_nav_default_variables, bg_sub_tab) 25%,
-                        safe_get($map, $side_nav_default_variables, hover_bg_sub_tab) 25%,
-                        safe_get($map, $side_nav_default_variables, hover_bg_sub_tab) 50%,
-                        safe_get($map, $side_nav_default_variables, active_bg_sub_tab) 50%,
-                        safe_get($map, $side_nav_default_variables, active_bg_sub_tab) 100%
+                        safe_get($map, $side_nav_default_variables, expanded_bg_sub_tab) 25%,
+                        safe_get($map, $side_nav_default_variables, expanded_bg_sub_tab) 50%,
+                        safe_get($map, $side_nav_default_variables, hover_active_bg_sub_tab) 50%,
+                        safe_get($map, $side_nav_default_variables, hover_active_bg_sub_tab) 100%
                     );
                     transition: background-position 1s;
 
                     &:first-child {
-                        border-top: safe_get($map, $side_nav_default_variables, border_color) 1px solid;
+                        border-top: safe_get($map, $side_nav_default_variables, border_color)
+                        1px solid;
                     }
 
-                    &:hover {
-                        background-position: calc(100% / 3) 0;
-                    }
-
-                    &.active {
+                    &:hover, &.active {
                         background-position: 100% 0;
                     }
+                }
+            }
+
+            &.expanded, &:hover {
+                .sub-tab-button {
+                    background-position: calc(100% / 3) 0;
                 }
             }
 
@@ -144,10 +161,18 @@
 
             &:hover {
                 background-position: calc(100% / 3) 0;
-                border-bottom-color: safe_get($map, $side_nav_default_variables, hover_border_color);
+                border-bottom-color: safe_get(
+                    $map,
+                    $side_nav_default_variables,
+                    hover_border_color
+                );
 
-                &:not(:last-child) + .side-nav-button {
-                    border-bottom-color: safe_get($map, $side_nav_default_variables, hover_border_color);
+                &:not(:last-child) + .tab-button {
+                    border-bottom-color: safe_get(
+                        $map,
+                        $side_nav_default_variables,
+                        hover_border_color
+                    );
                 }
 
                 .side-nav-link {
@@ -157,10 +182,25 @@
 
             &.active {
                 background-position: 100% 0;
-                border-bottom-color: safe_get($map, $side_nav_default_variables, hover_border_color);
+            }
 
-                &:not(:last-child) + .side-nav-button {
-                    border-bottom-color: safe_get($map, $side_nav_default_variables, hover_border_color);
+            &.expanded {
+                background-position: calc(100% / 3) 0;
+            }
+
+            &.active, &.expanded {
+                border-bottom-color: safe_get(
+                    $map,
+                    $side_nav_default_variables,
+                    hover_border_color
+                );
+
+                &:not(:last-child) + .tab-button {
+                    border-bottom-color: safe_get(
+                        $map,
+                        $side_nav_default_variables,
+                        hover_border_color
+                    );
                 }
 
                 .side-nav-link {
