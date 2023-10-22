@@ -1,7 +1,8 @@
 from __future__ import annotations
+
 from typing import (List, Type, Union, Dict)
 
-from django.db import models, transaction
+from django.db import (models, transaction)
 from django.db.utils import IntegrityError
 from django.db.models.query import QuerySet
 from django.contrib.auth.models import (AbstractBaseUser,
