@@ -92,10 +92,20 @@
     transition: grid-template-rows 0.5s ease-out;
 
     &.active {
+        .side-nav-tab {
+            overflow: visible;
+            animation: 1.5s delay-overflow-visible;
+        }
         grid-template-rows: 1fr;
     }
 
     .side-nav-tab {
+        overflow: hidden;
+    }
+}
+
+@keyframes delay-overflow-visible {
+    from {
         overflow: hidden;
     }
 }

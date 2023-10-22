@@ -411,10 +411,19 @@ html, body {
 .tab-wrapper.active {
   grid-template-rows: 1fr;
 }
+.tab-wrapper.active .side-nav-tab {
+  overflow: visible;
+  animation: 1.5s delay-overflow-visible;
+}
 .tab-wrapper .side-nav-tab {
   overflow: hidden;
 }
 
+@keyframes delay-overflow-visible {
+  from {
+    overflow: hidden;
+  }
+}
 [data-bs-theme=light] .side-nav .tab-button {
   background-size: 400% 100%;
   background-image: linear-gradient(to right, #f8f9fa 0%, #f8f9fa 25%, #fff 25%, #fff 50%, #D3CABD 50%, #D3CABD 100%);
