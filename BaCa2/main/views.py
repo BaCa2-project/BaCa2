@@ -1,12 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import (Dict, Any, Type, List)
+from typing import (Dict, Any, Type)
 
 from django.views.generic.base import (TemplateView, RedirectView, View)
 from django.contrib.auth.mixins import (LoginRequiredMixin, UserPassesTestMixin)
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout
 from django.http import (JsonResponse, HttpResponseRedirect)
-from django.http.request import HttpRequest
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 
@@ -15,11 +14,10 @@ from main.models import (Course, User)
 from widgets import forms
 from widgets.base import Widget
 from widgets.listing import TableWidget
-from widgets.forms import FormWidget
+from widgets.forms import (FormWidget, get_field_validation_status)
 from widgets.navigation import (NavBar, SideNav)
-from widgets.forms.course import (NewCourseForm, NewCourseFormWidget)
+from widgets.forms.course import (CreateCourseForm, CreateCourseFormWidget)
 from BaCa2.choices import PermissionTypes
-from widgets.forms.base import TableSelectField
 
 
 class BaCa2ModelView(LoginRequiredMixin, View, ABC):
@@ -211,17 +209,7 @@ class CourseModelView(BaCa2ModelView):
 
     @classmethod
     def create(cls, request, **kwargs) -> JsonResponse:
-        form = NewCourseForm(data=request.POST)
-
-        if not form.is_valid():
-            return BaCa2ModelView.invalid_form_response(request)
-
-        Course.objects.create_course(
-            name=form.cleaned_data['name'],
-            short_name=form.cleaned_data.get('short_name', None),
-            usos_course_code=form.cleaned_data.get('USOS_course_code', None),
-            usos_term_code=form.cleaned_data.get('USOS_term_code', None),
-        )
+        pass
 
     def update(cls, request, **kwargs) -> JsonResponse:
         pass
@@ -331,7 +319,7 @@ class BaCa2ContextMixin:
         :raises WidgetException: If the widget type is not recognized or if it is unique and
             already exists in the context dictionary.
         """
-        if isinstance(widget, NewCourseFormWidget):
+        if isinstance(widget, CreateCourseFormWidget):
             x = 10
         widget_type = BaCa2ContextMixin.get_type(type(widget))
 
@@ -490,7 +478,7 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
         self.add_widget(context, sidenav)
 
         if not self.has_widget(context, FormWidget, 'create_course_form_widget'):
-            self.add_widget(context, NewCourseFormWidget())
+            self.add_widget(context, CreateCourseFormWidget())
 
         self.add_widget(context, TableWidget(
             name='courses_table',
@@ -512,7 +500,7 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
 
     def post(self, request, *args, **kwargs):
         if request.POST.get('form_name', None) == 'create_course_form':
-            form = NewCourseForm(data=request.POST)
+            form = CreateCourseForm(data=request.POST)
 
             if form.is_valid():
                 Course.objects.create_course(
@@ -521,7 +509,7 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
                 )
                 return JsonResponse({'status': 'ok'})
             else:
-                kwargs['new_course_form_widget'] = NewCourseFormWidget(form=form).get_context()
+                kwargs['new_course_form_widget'] = CreateCourseFormWidget(form=form).get_context()
                 return self.get(request, *args, **kwargs)
         else:
             return JsonResponse(
@@ -588,7 +576,7 @@ class FieldValidationView(LoginRequiredMixin, View):
             raise FieldValidationView.FieldClassException('No field class name provided.')
 
         return JsonResponse(
-            forms.base.get_field_validation_status(
+            get_field_validation_status(
                 field_cls=field_cls_name,
                 value=request.GET.get('value', ''),
                 required=request.GET.get('required', False),
