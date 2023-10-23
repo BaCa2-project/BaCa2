@@ -140,8 +140,11 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 AUTHENTICATION_BACKENDS = [
+    # Custom authentication backend
+    'BaCa2.auth_backend.BaCa2AuthBackend'
+
     # Needed to login by username in Django admin, regardless of `allauth`
-    'django.contrib.auth.backends.ModelBackend',
+    # 'django.contrib.auth.backends.ModelBackend',
 
     # `allauth` specific authentication methods, such as login by e-mail
     # 'allauth.account.auth_backends.AuthenticationBackend',

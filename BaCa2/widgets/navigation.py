@@ -25,8 +25,8 @@ class NavBar(Widget):
             {'name': 'Zadania', 'url': '#'},  # TODO: add url
         ]
 
-        if request.user.is_staff:
-            self.links.append({'name': _('Packages'), 'url': '#'})  # TODO: add url
+        # TODO: add permission check
+        self.links.append({'name': _('Packages'), 'url': '#'})  # TODO: add url
 
         if request.user.is_superuser:
             self.links.append({'name': _('Admin'), 'url': reverse_lazy('main:admin')})

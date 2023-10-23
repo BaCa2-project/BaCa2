@@ -8,7 +8,7 @@ from allauth.socialaccount.models import (SocialAccount,
 
 
 class UserAdmin(admin.ModelAdmin):
-    list_display = ['email', 'is_staff', 'is_superuser', 'is_active', 'date_joined', 'last_login']
+    list_display = ['email', 'is_superuser', 'is_active', 'date_joined', 'last_login']
 
 
 admin.site.register(User, UserAdmin)
