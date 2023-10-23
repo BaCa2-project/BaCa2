@@ -2,18 +2,18 @@ from __future__ import annotations
 
 from typing import (List, Type, Union, Dict)
 
-from django.db import (models, transaction)
-from django.db.utils import IntegrityError
-from django.db.models.query import QuerySet
 from django.contrib.auth.models import (AbstractBaseUser,
                                         PermissionsMixin,
                                         BaseUserManager,
                                         Group,
                                         Permission,
                                         ContentType)
-from django.utils.translation import gettext_lazy as _
-from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.db import (models, transaction)
+from django.db.models.query import QuerySet
+from django.db.utils import IntegrityError
+from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from BaCa2.choices import (PermissionTypes, ModelActions as ModelActionsBase)
 from course.manager import (create_course as create_course_db, delete_course as delete_course_db)
@@ -25,6 +25,7 @@ from util.models import (model_cls,
                          delete_populated_group,
                          delete_populated_groups,
                          replace_special_symbols)
+from util.models_registry import ModelsRegistry
 
 
 class UserManager(BaseUserManager):
@@ -1228,7 +1229,7 @@ class Settings(models.Model):
     )
 
 
-class User(AbstractBaseUser, PermissionsMixin):
+class User(AbstractBaseUser):
     """
     This class stores user information. Its methods can be used to check permissions pertaining to
     the default database models as well as course access and models from course databases.
@@ -1242,45 +1243,74 @@ class User(AbstractBaseUser, PermissionsMixin):
         """
         pass
 
+    # ---------------------------------- Personal information ---------------------------------- #
+
     #: User's email. Used to log in.
     email = models.EmailField(
-        _("email address"),
+        verbose_name=_("email address"),
         max_length=255,
         unique=True
     )
-    #: Indicates whether user has moderation privileges.
-    # Required by built-in Django authorisation system.
-    is_staff = models.BooleanField(
-        default=False
-    )
-    #: Indicates whether user has all available moderation privileges.
-    # Required by built-in Django authorisation system.
-    is_superuser = models.BooleanField(
-        default=False
-    )
     #: User's first name.
     first_name = models.CharField(
-        _("first name"),
+        verbose_name=_("first name"),
         max_length=255,
         blank=True
     )
     #: User's last name.
     last_name = models.CharField(
-        _("last name"),
+        verbose_name=_("last name"),
         max_length=255,
         blank=True
     )
     #: Date of account creation.
     date_joined = models.DateField(
+        verbose_name=_("date joined"),
         auto_now_add=True
     )
     #: User's settings.
     user_settings = models.OneToOneField(
-        Settings,
+        verbose_name=_("user settings"),
+        to=Settings,
         on_delete=models.PROTECT,
         null=False,
         blank=False
     )
+
+    # ---------------------------------- Authentication data ----------------------------------- #
+
+    #: Indicates whether user has all available moderation privileges.
+    is_superuser = models.BooleanField(
+        _("superuser status"),
+        default=False,
+        help_text=_(
+            "Designates that this user has all permissions without explicitly assigning them."
+        ),
+    )
+    #: Groups the user belongs to. Groups are used to grant permissions to multiple users at once
+    # and to assign course access and roles to users.
+    groups = models.ManyToManyField(
+        Group,
+        verbose_name=_("groups"),
+        blank=True,
+        help_text=_(
+            "The groups this user belongs to. A user will get all permissions granted to each of "
+            "their groups."
+        ),
+        related_name="user_set",
+        related_query_name="user",
+    )
+    # Permissions specifically granted to the user.
+    user_permissions = models.ManyToManyField(
+        Permission,
+        verbose_name=_("user permissions"),
+        blank=True,
+        help_text=_("Specific permissions for this user."),
+        related_name="user_set",
+        related_query_name="user",
+    )
+
+    # ------------------------------------ Django settings ------------------------------------- #
 
     #: Indicates which field should be considered as username.
     # Required when replacing default Django User model.
@@ -1320,7 +1350,6 @@ class User(AbstractBaseUser, PermissionsMixin):
             'email': self.email,
             'first_name': self.first_name,
             'last_name': self.last_name,
-            'is_staff': self.is_staff,
             'is_superuser': self.is_superuser,
             'date_joined': self.date_joined,
         }
@@ -1340,20 +1369,18 @@ class User(AbstractBaseUser, PermissionsMixin):
 
         return cls.objects.exists(pk=user_id)
 
-    def in_group(self, group: Group | str) -> bool:
+    def in_group(self, group: Group | str | id) -> bool:
         """
         Check whether the user belongs to a given group.
 
         :param group: Group to check user's membership in. Can be specified as either the group
-            object or its name.
-        :type group: Group | str
+            object, its name or its id.
+        :type group: Group | str | id
 
         :return: `True` if the user belongs to the group, `False` otherwise.
         :rtype: bool
         """
-        if isinstance(group, str):
-            group = Group.objects.get(name=group)
-        return self.groups.filter(id=group.id).exists()
+        return self.groups.filter(id=ModelsRegistry.get_group(group).id).exists()
 
     def can_access_course(self, course: Course) -> bool:
         """
