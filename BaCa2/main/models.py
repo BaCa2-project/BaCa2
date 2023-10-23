@@ -15,7 +15,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
-from BaCa2.choices import PermissionTypes
+from BaCa2.choices import (PermissionTypes, ModelActions as ModelActionsBase)
 from course.manager import (create_course as create_course_db, delete_course as delete_course_db)
 from util.models import (model_cls,
                          get_all_permissions_for_model,
@@ -595,6 +595,37 @@ class Course(models.Model):
 
     #: Manager class for the Course model.
     objects = CourseManager()
+
+    class Meta:
+        permissions = [
+            # Member related permissions
+            ('view_course_member', _('Can view course members')),
+            ('add_course_member', _('Can add course members')),
+            ('delete_course_member', _('Can delete course members')),
+            ('change_course_member_role', _('Can change course member\'s role')),
+
+            # Role related permissions
+            ('view_course_role', _('Can view course role')),
+            ('edit_course_role', _('Can edit course role')),
+            ('add_course_role', _('Can add course role')),
+            ('delete_course_role', _('Can delete course role')),
+        ]
+
+    class ModelActions(ModelActionsBase):
+        ADD = 'add', 'add_course'
+        DEL = 'delete', 'delete_course'
+        EDIT = 'edit', 'change_course'
+        VIEW = 'view', 'view_course'
+
+        VIEW_MEMBER = 'view_member', 'view_course_member'
+        ADD_MEMBER = 'add_member', 'add_course_member'
+        DEL_MEMBER = 'delete_member', 'delete_course_member'
+        CHANGE_MEMBER_ROLE = 'change_member_role', 'change_course_member_role'
+
+        VIEW_ROLE = 'view_role', 'view_course_role'
+        EDIT_ROLE = 'edit_role', 'edit_course_role'
+        ADD_ROLE = 'add_role', 'add_course_role'
+        DEL_ROLE = 'delete_role', 'delete_course_role'
 
     # ---------------------------------- Course representation --------------------------------- #
 

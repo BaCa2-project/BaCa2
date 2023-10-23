@@ -43,10 +43,6 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
 
     #: Model class which the view manages.
     MODEL: model_cls = None
-    #: Actions supported by the view.
-    SUPPORTED_ACTIONS = ['create', 'update', 'delete']
-
-    # ------------------------------------ Response methods ------------------------------------ #
 
     def get(self, request, **kwargs) -> JsonResponse:
         """
@@ -65,14 +61,14 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         if not self.test_view_permission(request, **kwargs):
             return JsonResponse({'status': 'error', 'message': 'Permission denied.'})
 
+        get_data_method = getattr(self.MODEL, 'get_data')
+
+        if not get_data_method or not callable(get_data_method):
+            raise BaCa2ModelView.ModelViewException(
+                f'Model class managed by the {self.__class__.__name__} view does not '
+                f'implement the `get_data` method needed to perform this action.')
+
         if kwargs.get('target', None):
-            get_data_method = getattr(self.MODEL, 'get_data')
-
-            if not get_data_method or not callable(get_data_method):
-                raise BaCa2ModelView.ModelViewException(
-                    f'Model class managed by the {self.__class__.__name__} view does not '
-                    f'implement the `get_data` method needed to perform this action.')
-
             try:
                 target = self.MODEL.objects.get(id=kwargs['target'])
             except self.MODEL.DoesNotExist:
@@ -88,18 +84,6 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
                                           self.MODEL.objects.all()]})
 
     def post(self, request, **kwargs) -> JsonResponse:
-        """
-        Handles POST requests. Checks if the action specified within the request is supported and
-        if the user has permission to perform it. If so, calls the corresponding method. If not,
-        returns a JSON response with an error message.
-
-        :return: JSON response with the result of the action in the form of status and message
-        strings.
-        :rtype: JsonResponse
-
-        :raises NotImplementedError: If the action is supported but the corresponding permission
-            test method and/or action method is not implemented.
-        """
         if request.POST.get('action', None) not in self.SUPPORTED_ACTIONS:
             return JsonResponse({'status': 'error', 'message': 'Invalid action.'})
 
@@ -121,79 +105,6 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         return action_method(request, **kwargs)
 
     @classmethod
-    @abstractmethod
-    def create(cls, request, **kwargs) -> JsonResponse:
-        """
-        Communicates with the model manager to create a new model instance using the data provided
-        in the request. Must be implemented by inheriting classes.
-
-        :return: JSON response with the result of the action in the form of status and message
-        strings.
-        :rtype: JsonResponse
-        """
-
-    @classmethod
-    @abstractmethod
-    def update(cls, request, **kwargs) -> JsonResponse:
-        """
-        Communicates with the model manager to update an existing model instance using the data
-        provided in the request. Must be implemented by inheriting classes.
-
-        :return: JSON response with the result of the action in the form of status and message
-        strings.
-        :rtype: JsonResponse
-        """
-
-    @classmethod
-    @abstractmethod
-    def delete(cls, request, **kwargs) -> JsonResponse:
-        """
-        Communicates with the model manager to delete an existing model instance using the data
-        provided in the request. Must be implemented by inheriting classes.
-
-        :return: JSON response with the result of the action in the form of status and message
-        strings.
-        :rtype: JsonResponse
-        """
-
-    @staticmethod
-    def invalid_form_response(request, message: str = _('invalid form')) -> JsonResponse:
-        # TODO
-        return JsonResponse({'status': 'error', 'message': message})
-
-    # ------------------------------------ Permission checks ----------------------------------- #
-
-    @classmethod
-    def test_create_permission(cls, request, **kwargs) -> bool:
-        """
-        Checks if the user has permission to create a new model instance.
-
-        :return: `True` if the user has permission, `False` otherwise.
-        :rtype: bool
-        """
-        return request.user.has_model_permissions(cls.MODEL, PermissionTypes.ADD)
-
-    @classmethod
-    def test_update_permission(cls, request, **kwargs) -> bool:
-        """
-        Checks if the user has permission to update an existing model instance.
-
-        :return: `True` if the user has permission, `False` otherwise.
-        :rtype: bool
-        """
-        return request.user.has_model_permissions(cls.MODEL, PermissionTypes.EDIT)
-
-    @classmethod
-    def test_delete_permission(cls, request, **kwargs) -> bool:
-        """
-        Checks if the user has permission to delete an existing model instance.
-
-        :return: `True` if the user has permission, `False` otherwise.
-        :rtype: bool
-        """
-        return request.user.has_model_permissions(cls.MODEL, PermissionTypes.DEL)
-
-    @classmethod
     def test_view_permission(cls, request, **kwargs) -> bool:
         """
         Checks if the user has permission to view data of the model class managed by the view.
@@ -207,35 +118,9 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
 class CourseModelView(BaCa2ModelView):
     MODEL = Course
 
-    @classmethod
-    def create(cls, request, **kwargs) -> JsonResponse:
-        pass
-
-    def update(cls, request, **kwargs) -> JsonResponse:
-        pass
-
-    def delete(cls, request, **kwargs) -> JsonResponse:
-        pass
-
 
 class UserModelView(BaCa2ModelView):
     MODEL = User
-
-    def create(cls, request, **kwargs) -> JsonResponse:
-        pass
-
-    def update(cls, request, **kwargs) -> JsonResponse:
-        pass
-
-    def delete(cls, request, **kwargs) -> JsonResponse:
-        pass
-
-
-class BaCa2CourseModelView(BaCa2ModelView, ABC):
-    """
-    Base class for views used to manage course-scope models from front-end.
-    """
-    # TODO: Implement permission tests
 
 
 class BaCa2ContextMixin:

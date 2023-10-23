@@ -1,4 +1,3 @@
-from abc import ABC
 from typing import Dict, List
 
 from django import forms
@@ -6,6 +5,7 @@ from django.utils.translation import gettext_lazy as _
 
 from widgets.base import Widget
 from util.models import model_cls
+from BaCa2.choices import ModelActions
 
 
 class FormWidget(Widget):
@@ -179,8 +179,62 @@ class BaCa2ModelForm(BaCa2Form):
 
     #: Model class which instances are affected by the form.
     MODEL: model_cls = None
-    ACTION: str = ''
+    #: Action which should be performed using the form data.
+    ACTION: ModelActions = None
 
-    def __init__(self, action):
+    def __init__(self, **kwargs):
+        super().__init__(initial={'form_name': f'{self.ACTION.label}_form',
+                                  'action': self.ACTION.name}, **kwargs)
+
+    @classmethod
+    def handle_post_request(cls, request):
+        """
+        Handles the POST request received by the view this form's data was posted to.
+
+        :param request: Request object.
+        :type request: HttpRequest
+        """
+        if not cls.is_permissible(request):
+            return cls.handle_impermissible_request(request)
+
+        if cls(data=request.POST).is_valid():
+            return cls.handle_valid_request(request)
+        return cls.handle_invalid_request(request)
+
+    @classmethod
+    def handle_valid_request(cls, request):
+        """
+        Handles the POST request received by the view this form's data was posted to if the request
+        is permissible and the form data is valid.
+        """
         pass
-        # TODO
+
+    @classmethod
+    def handle_invalid_request(cls, request):
+        """
+        Handles the POST request received by the view this form's data was posted to if the request
+        is permissible but the form data is invalid.
+        """
+        pass
+
+    @classmethod
+    def handle_impermissible_request(cls, request):
+        """
+        Handles the POST request received by the view this form's data was posted to if the request
+        is impermissible.
+        """
+        pass
+
+    @classmethod
+    def is_permissible(cls, request) -> bool:
+        """
+        Checks whether the user has the permission to perform the action specified by the form.
+
+        :param request: Request object.
+        :type request: HttpRequest
+
+        :return: `True` if the user has the permission to perform the action specified by the form,
+            `False` otherwise.
+        :rtype: bool
+        """
+        return request.user.has_permission(cls.ACTION.label)

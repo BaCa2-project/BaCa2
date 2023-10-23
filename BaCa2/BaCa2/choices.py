@@ -24,3 +24,7 @@ class PermissionTypes(models.TextChoices):
     DEL = 'DEL', 'delete'
     EDIT = 'EDIT', 'change'
     VIEW = 'VIEW', 'view'
+
+
+class ModelActions(models.TextChoices):
+    pass
