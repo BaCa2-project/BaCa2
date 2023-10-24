@@ -26,5 +26,5 @@ class PermissionTypes(models.TextChoices):
     VIEW = 'VIEW', 'view'
 
 
-class ModelActions(models.TextChoices):
+class ModelAction(models.TextChoices):
     pass

@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 
 from widgets.base import Widget
 from util.models import model_cls
-from BaCa2.choices import ModelActions
+from BaCa2.choices import ModelAction
 
 
 class FormWidget(Widget):
@@ -180,7 +180,7 @@ class BaCa2ModelForm(BaCa2Form):
     #: Model class which instances are affected by the form.
     MODEL: model_cls = None
     #: Action which should be performed using the form data.
-    ACTION: ModelActions = None
+    ACTION: ModelAction = None
 
     def __init__(self, **kwargs):
         super().__init__(initial={'form_name': f'{self.ACTION.label}_form',

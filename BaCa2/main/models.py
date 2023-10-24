@@ -15,7 +15,7 @@ from django.db.utils import IntegrityError
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from BaCa2.choices import (PermissionTypes, ModelActions as ModelActionsBase)
+from BaCa2.choices import (PermissionTypes, ModelAction)
 from course.manager import (create_course as create_course_db, delete_course as delete_course_db)
 from util.models import (model_cls,
                          get_all_permissions_for_model,
@@ -612,7 +612,7 @@ class Course(models.Model):
             ('delete_course_role', _('Can delete course role')),
         ]
 
-    class ModelActions(ModelActionsBase):
+    class Action(ModelAction):
         ADD = 'add', 'add_course'
         DEL = 'delete', 'delete_course'
         EDIT = 'edit', 'change_course'
@@ -1357,11 +1357,12 @@ class User(AbstractBaseUser):
     # ------------------------------------ Auxiliary Checks ------------------------------------ #
 
     @classmethod
-    def exists(cls, user_id) -> bool:
+    def exists(cls, user_id: int) -> bool:
         """
         Check whether a user with given id exists.
 
         :param user_id: The id of the user in question.
+        :type user_id: int
 
         :return: `True` if user with given id exists, `False` otherwise.
         :rtype: bool
@@ -1380,130 +1381,134 @@ class User(AbstractBaseUser):
         :return: `True` if the user belongs to the group, `False` otherwise.
         :rtype: bool
         """
-        return self.groups.filter(id=ModelsRegistry.get_group(group).id).exists()
+        return self.groups.filter(id=ModelsRegistry.get_group_id(group)).exists()
 
-    def can_access_course(self, course: Course) -> bool:
+    def can_access_course(self, course: Course | str | int) -> bool:
         """
         Check whether the user has been assigned to a given course.
 
-        :param course: Course to check user's access to.
-        :type course: Course
+        :param course: Course to check user's access to. Can be specified as either the course
+            object, its short name or its id.
+        :type course: Course | str | int
 
         :return: `True` if user has been assigned to the course, `False` otherwise.
         :rtype: bool
         """
-        if Group.objects.filter(user=self, groupcourse__course=course).exists():
+        if Group.objects.filter(
+                user=self,
+                groupcourse__course=ModelsRegistry.get_course(course)
+        ).exists():
             return True
         return False
 
     # ---------------------------------- Permission editing ----------------------------------- #
 
     @transaction.atomic
-    def add_permission(self, permission: Permission | str) -> None:
+    def add_permission(self, permission: Permission | str | int) -> None:
         """
         Add an individual permission to the user.
 
         :param permission: Permission to add. The permission can be specified as either the
-            permission object or its codename.
-        :type permission: Permission | str
+            permission object, its codename or its id.
+        :type permission: Permission | str | int
 
         :raises User.UserPermissionError: If the user already has the permission.
         """
-        if isinstance(permission, str):
-            permission = Permission.objects.get(codename=permission)
+        permission = ModelsRegistry.get_permission(permission)
 
         if self.has_individual_permission(permission):
             raise User.UserPermissionError(f'Attempted to add permission {permission.codename} '
-                                           f'to {self} who already has it')
+                                           f'to user {self} who already has it')
 
         self.user_permissions.add(permission)
 
     @transaction.atomic
-    def add_permissions(self, permissions: List[Permission] | List[str]) -> None:
+    def add_permissions(self, permissions: List[Permission] | List[str] | List[int]) -> None:
         """
         Add multiple individual permissions to the user.
 
         :param permissions: List of permissions to add. The permissions can be specified as either
-            the permission objects or their codenames.
-        :type permissions: List[Permission] | List[str]
+            the permission objects, their codenames or their ids.
+        :type permissions: List[Permission] | List[str] | List[int]
         """
+        permissions = ModelsRegistry.get_permissions(permissions)
+
         for permission in permissions:
             self.add_permission(permission)
 
     @transaction.atomic
-    def remove_permission(self, permission: Permission | str) -> None:
+    def remove_permission(self, permission: Permission | str | int) -> None:
         """
         Remove an individual permission from the user.
 
         :param permission: Permission to remove. The permission can be specified as either the
-            permission object or its codename.
-        :type permission: Permission | str
+            permission object, its codename or its id.
+        :type permission: Permission | str | int
 
         :raises User.UserPermissionError: If the user does not have the permission.
         """
-        if isinstance(permission, str):
-            permission = Permission.objects.get(codename=permission)
+        permission = ModelsRegistry.get_permission(permission)
 
         if not self.has_individual_permission(permission):
-            raise User.UserPermissionError(f'Attempted to remove permission {permission.codename}'
-                                           f' from {self} who does not have it')
+            raise User.UserPermissionError(f'Attempted to remove permission {permission.codename} '
+                                           f'from user {self} who does not have it')
 
         self.user_permissions.remove(permission)
 
     @transaction.atomic
-    def remove_permissions(self, permissions: List[Permission] | List[str]) -> None:
+    def remove_permissions(self, permissions: List[Permission] | List[str] | List[int]) -> None:
         """
         Remove multiple individual permissions from the user.
 
         :param permissions: List of permissions to remove. The permissions can be specified as
-            either the permission objects or their codenames.
-        :type permissions: List[Permission] | List[str]
+            either the permission objects, their codenames or their ids.
+        :type permissions: List[Permission] | List[str] | List[int]
         """
+        permissions = ModelsRegistry.get_permissions(permissions)
+
         for permission in permissions:
             self.remove_permission(permission)
 
     # ------------------------------------ Permission checks ----------------------------------- #
 
-    def has_individual_permission(self, permission: Permission | str) -> bool:
+    def has_individual_permission(self, permission: Permission | str | int) -> bool:
         """
         Check whether the user possesses a given permission on an individual level (does not check
-        group-level permissions).
+        group-level permissions or superuser status).
 
         :param permission: Permission to check for. The permission can be specified as either the
-            permission object or its codename.
-        :type permission: Permission | str
+            permission object, its codename or its id.
+        :type permission: Permission | str | int
 
         :return: `True` if the user has the permission, `False` otherwise.
         :rtype: bool
         """
-        if isinstance(permission, str):
-            permission = Permission.objects.get(codename=permission)
-        return self.user_permissions.filter(id=permission.id).exists()
+        return self.user_permissions.filter(
+            id=ModelsRegistry.get_permission_id(permission)
+        ).exists()
 
-    def has_group_permission(self, permission: Permission | str) -> bool:
+    def has_group_permission(self, permission: Permission | str | int) -> bool:
         """
         Check whether the user possesses a given permission on a group level (does not check
-        individual permissions).
+        individual permissions or superuser status).
 
         :param permission: Permission to check for. The permission can be specified as either the
-            permission object or its codename.
-        :type permission: Permission | str
+            permission object, its codename or its id.
+        :type permission: Permission | str | int
 
         :return: `True` if the user has the permission, `False` otherwise.
         :rtype: bool
         """
-        if isinstance(permission, str):
-            permission = Permission.objects.get(codename=permission)
-        return self.groups.filter(permissions=permission).exists()
+        return self.groups.filter(permissions=ModelsRegistry.get_permission(permission)).exists()
 
-    def has_permission(self, permission: Permission | str) -> bool:
+    def has_permission(self, permission: Permission | str | int) -> bool:
         """
         Check whether the user possesses a given permission. The method checks both individual and
-        group-level permissions.
+        group-level permissions as well as superuser status.
 
         :param permission: Permission to check for. The permission can be specified as either the
-            permission object or its codename.
-        :type permission: Permission | str
+            permission object, its codename or its id.
+        :type permission: Permission | str | int
 
         :return: `True` if the user has the permission or is a superuser, `False` otherwise.
         :rtype: bool
@@ -1512,6 +1517,10 @@ class User(AbstractBaseUser):
             return True
         return self.has_individual_permission(permission) or \
             self.has_group_permission(permission)
+
+    def has_action_permission(self):
+        pass
+        # TODO
 
     def has_model_permissions(self,
                               model: model_cls,
