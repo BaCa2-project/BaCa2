@@ -4,7 +4,7 @@ from django.contrib.auth.models import Group, Permission
 from django.utils import timezone
 
 from main.models import (User, Course, Settings)
-from BaCa2.choices import PermissionTypes
+from BaCa2.choices import BasicPermissionTypes
 
 
 class CourseTest(TestCase):
@@ -575,20 +575,20 @@ class UserTest(TestCase):
         """
         Tests whether :py:meth:`User.has_model_permissions` works properly.
         """
-        self.assertFalse(self.user.has_model_permissions(Course))
-        self.assertFalse(self.user.has_model_permissions(Course, PermissionTypes.VIEW))
+        self.assertFalse(self.user.has_basic_model_permissions(Course))
+        self.assertFalse(self.user.has_basic_model_permissions(Course, BasicPermissionTypes.VIEW))
 
         self.user.add_permission('view_course')
         self.group.user_set.add(self.user)
         delete_course = Permission.objects.get(codename='delete_course')
         self.group.permissions.add(delete_course.id)
 
-        self.assertFalse(self.user.has_model_permissions(Course))
-        self.assertTrue(self.user.has_model_permissions(Course, PermissionTypes.VIEW))
-        self.assertTrue(self.user.has_model_permissions(Course, PermissionTypes.DEL))
+        self.assertFalse(self.user.has_basic_model_permissions(Course))
+        self.assertTrue(self.user.has_basic_model_permissions(Course, BasicPermissionTypes.VIEW))
+        self.assertTrue(self.user.has_basic_model_permissions(Course, BasicPermissionTypes.DEL))
 
         self.user.add_permission('change_course')
         self.user.add_permission('add_course')
 
-        self.assertTrue(self.user.has_model_permissions(Course))
-        self.assertFalse(self.user.has_model_permissions(Course, group_level=False))
+        self.assertTrue(self.user.has_basic_model_permissions(Course))
+        self.assertFalse(self.user.has_basic_model_permissions(Course, group_level=False))

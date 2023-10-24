@@ -19,7 +19,7 @@ class ResultStatus(models.TextChoices):
     INT = 'INT', _('Internal error')
 
 
-class PermissionTypes(models.TextChoices):
+class BasicPermissionTypes(models.TextChoices):
     ADD = 'ADD', 'add'
     DEL = 'DEL', 'delete'
     EDIT = 'EDIT', 'change'
