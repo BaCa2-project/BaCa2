@@ -15,7 +15,7 @@ from django.db.utils import IntegrityError
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from BaCa2.choices import (PermissionTypes, ModelAction)
+from BaCa2.choices import (BasicPermissionTypes, ModelAction)
 from course.manager import (create_course as create_course_db, delete_course as delete_course_db)
 from util.models import (model_cls,
                          get_all_permissions_for_model,
@@ -448,23 +448,24 @@ class CourseManager(models.Manager):
         for model in course_models.values():
             for role in roles:
                 role.permissions.add(
-                    get_model_permission_by_label(model, PermissionTypes.VIEW.label).id
+                    get_model_permission_by_label(model, BasicPermissionTypes.VIEW.label).id
                 )
 
         for role in roles:
             role.permissions.add(
-                get_model_permission_by_label(course_models['Submit'], PermissionTypes.ADD.label).id
+                get_model_permission_by_label(course_models['Submit'],
+                                              BasicPermissionTypes.ADD.label).id
             )
 
         for model in [course_models[i] for i in ['Round', 'Task', 'TestSet', 'Test']]:
             staff.permissions.add(
-                get_model_permission_by_label(model, PermissionTypes.ADD.label).id
+                get_model_permission_by_label(model, BasicPermissionTypes.ADD.label).id
             )
             staff.permissions.add(
-                get_model_permission_by_label(model, PermissionTypes.EDIT.label).id
+                get_model_permission_by_label(model, BasicPermissionTypes.EDIT.label).id
             )
             staff.permissions.add(
-                get_model_permission_by_label(model, PermissionTypes.DEL.label).id
+                get_model_permission_by_label(model, BasicPermissionTypes.DEL.label).id
             )
 
         return roles
@@ -1518,37 +1519,76 @@ class User(AbstractBaseUser):
         return self.has_individual_permission(permission) or \
             self.has_group_permission(permission)
 
-    def has_action_permission(self):
-        pass
-        # TODO
-
-    def has_model_permissions(self,
-                              model: model_cls,
-                              permissions: PermissionTypes | List[PermissionTypes] = 'all',
-                              group_level: bool = True,
-                              user_specific: bool = True) -> bool:
+    def has_action_permission(self, action: ModelAction,
+                              individual: bool = True,
+                              group_level: bool = True) -> bool:
         """
-        Check whether a user possesses a specified permission/list of permissions for a given
-        'default' database model. Depending on the arguments, the method can check user-specific
-        permissions, group-level permissions or both (the default option).
+        Check whether the user has the permission to perform a given action on model with defined
+        model actions. Depending on the arguments, the method can check individual permissions,
+        group-level permissions or both (the default option, in this case will also check superuser
+        status).
+
+        :param action: Action to check for.
+        :type action: ModelAction
+        :param individual: Whether to check individual permissions.
+        :type individual: bool
+        :param group_level: Whether to check group-level permissions.
+        :type group_level: bool
+
+        :return: `True` if the user has the permission, `False` otherwise. If both individual and
+            group-level checks are enabled, the method will also return `True` if the user is a
+            superuser.
+        :rtype: bool
+
+        :raises ValueError: If both individual and group-level checks are disabled.
+        """
+        if individual and group_level:
+            return self.has_permission(action.label)
+        elif individual:
+            return self.has_individual_permission(action.label)
+        elif group_level:
+            return self.has_group_permission(action.label)
+        raise ValueError('At least one of the arguments individual/group_level must be True')
+
+    def has_basic_model_permissions(self,
+                                    model: model_cls,
+                                    permissions: BasicPermissionTypes | List[BasicPermissionTypes]
+                                    = 'all',
+                                    group_level: bool = True,
+                                    user_specific: bool = True) -> bool:
+        """
+        Check whether a user possesses a specified basic permission/list of basic permissions for a
+        given 'default' database model. Depending on the arguments, the method can check
+        user-specific permissions, group-level permissions or both (the default option, in this case
+        will also check superuser status).
+
+        The default option 'all' checks all basic permissions related to the model. Basic
+        permissions are the permissions automatically created by Django for each model (add, change,
+        delete, view).
 
         :param model: The model to check permissions for.
         :type model: Type[models.Model]
         :param permissions: Permissions to check for the given model. Permissions can be given as a
-            PermissionTypes object/List of objects, the default option 'all' checks all permissions
-            related to the model.
-        :type permissions: PermissionTypes or List[PermissionTypes]
+            BasicPermissionTypes object/List of objects, the default option 'all' checks all basic
+            permissions related to the model.
+        :type permissions: BasicPermissionTypes or List[BasicPermissionTypes]
         :param group_level: Indicates whether group-level permissions should be checked.
         :type group_level: bool
         :param user_specific: Indicates whether user-specific permissions should be checked.
         :type user_specific: bool
 
-        :returns: `True` if the user possesses the specified permission/s for the given model or is
-            a superuser, `False` otherwise.
+        :returns: `True` if the user possesses the specified permission/s for the given model,
+            `False` otherwise. If both individual and group-level checks are enabled, the method
+            will also return `True` if the user is a superuser.
         :rtype: bool
+
+        :raises ValueError: If both group_level and user_specific are False.
         """
-        if self.is_superuser:
+        if group_level and user_specific and self.is_superuser:
             return True
+
+        if not group_level and not user_specific:
+            raise ValueError('At least one of the arguments group_level/user_specific must be True')
 
         permissions = get_model_permissions(model, permissions)
         has_perm = {p: False for p in permissions}
@@ -1565,14 +1605,15 @@ class User(AbstractBaseUser):
         return all(has_perm.values())
 
     def has_course_permission(self,
-                              permission: Permission | str,
+                              permission: Permission | str | int,
                               course: Course | str | int) -> bool:
         """
-        Check whether the user possesses a given permission within a given :py:class:`Course`.
+        Check whether the user possesses a given permission within a given :py:class:`Course`. Also
+        checks superuser status.
 
         :param permission: Permission to check for. The permission can be specified as either the
-            permission object or its codename.
-        :type permission: Permission | str
+            permission object, its codename or its id.
+        :type permission: Permission | str | int
         :param course: Course to check permission for. The course can be specified as either the
             Course object, its short name or its id.
         :type course: Course | str | int
@@ -1583,24 +1624,22 @@ class User(AbstractBaseUser):
         if self.is_superuser:
             return True
 
-        if isinstance(course, str):
-            course = Course.objects.get(short_name=course)
-        elif isinstance(course, int):
-            course = Course.objects.get(id=course)
-
-        if isinstance(permission, str):
-            permission = Permission.objects.get(codename=permission)
-
-        role = course.get_user_role(self)
+        role = ModelsRegistry.get_course(course).get_user_role(self)
 
         if role:
-            return role.permissions.filter(id=permission.id).exists()
+            return role.permissions.filter(id=ModelsRegistry.get_permission_id(permission)).exists()
         return False
+
+    def has_course_action_permission(self, action: ModelAction, course: Course | str | int) -> bool:
+        """
+
+        """
 
     def has_course_model_permissions(self,
                                      model: model_cls,
                                      course: Course | str | int,
-                                     permissions: PermissionTypes or List[PermissionTypes] = 'all'
+                                     permissions: BasicPermissionTypes or List[BasicPermissionTypes]
+                                     = 'all'
                                      ) -> bool:
         """
         Check whether a user possesses a specified permission/list of permissions for a given
@@ -1616,7 +1655,7 @@ class User(AbstractBaseUser):
         :param permissions: Permissions to check for the given model. Permissions can be given as a
             PermissionTypes object/List of objects, the default option 'all' checks all permissions
             related to the model.
-        :type permissions: PermissionTypes or List[PermissionTypes]
+        :type permissions: BasicPermissionTypes or List[PermissionTypes]
 
         :returns: `True` if the user possesses the specified permission/s for the given model or
             is a superuser, `False` otherwise.
