@@ -1809,12 +1809,61 @@ class Role(models.Model):
         super().delete()
 
 
+class RolePresetManager(models.Manager):
+    """
+    Manager class for the RolePreset model. Governs the creation of presets as well as their
+    deletion.
+    """
+
+    @transaction.atomic
+    def create_role_preset(self,
+                           name: str,
+                           permissions: List[Permission] | List[str] | List[int] = None,
+                           public: bool = True,
+                           creator: str | int | User = None) -> RolePreset:
+        """
+        Create a new role preset with given name, permissions, public status and creator.
+
+        :param name: Name of the preset.
+        :type name: str
+        :param permissions: Permissions which should be assigned to the preset. The permissions can
+            be specified as either the permission objects, their codenames or their ids. If no
+            permissions are specified, the preset will be created without any permissions.
+        :type permissions: List[Permission] | List[str] | List[int]
+        :param public: Indicates whether the preset is public. Public presets can be used by all
+            users, private presets can only be used by their creator or other users given access.
+        :type public: bool
+        :param creator: User who created the preset. If no creator is specified, the preset will
+            be created without a creator.
+        :type creator: str | int | User
+
+        :return: The newly created preset.
+        :rtype: RolePreset
+
+        :raises ValidationError: If the name is too short.
+        """
+        if len(name) < 4:
+            raise ValidationError('Preset name must be at least 4 characters long')
+
+        preset = self.model(
+            name=name,
+            public=public,
+            creator=ModelsRegistry.get_user(creator)
+        )
+        preset.save()
+        preset.add_permissions(permissions)
+        return preset
+
+
 class RolePreset(models.Model):
     """
     This model represents a preset from which a role can be created. Presets contain on creation
     a defined set of permissions and can be used to quickly setup often recurring course roles such
     as student, tutor, etc.
     """
+
+    #: Manager class for the RolePreset model.
+    objects = RolePresetManager()
 
     #: Name of the preset. Will be used as the name of the role created from the preset.
     name = models.CharField(
@@ -1827,7 +1876,8 @@ class RolePreset(models.Model):
     permissions = models.ManyToManyField(
         to=Permission,
         verbose_name=_("preset permissions"),
-        blank=True
+        blank=True,
+        null=True
     )
     #: Whether the preset is public. Public presets can be used by all users, private presets can
     # only be used by their creator or other users given access.
@@ -1838,6 +1888,15 @@ class RolePreset(models.Model):
                     "users, private presets can only be used by their creator or other users given "
                     "access.")
     )
+    #: User who created the preset.
+    creator = models.ForeignKey(
+        to=User,
+        on_delete=models.CASCADE,
+        verbose_name=_("preset creator"),
+        related_name='created_role_presets',
+        blank=True,
+        null=True
+    )
 
     def __str__(self) -> str:
         """
@@ -1847,6 +1906,68 @@ class RolePreset(models.Model):
         :rtype: str
         """
         return self.name
+
+    def get_data(self) -> dict:
+        """
+        Returns the contents of a RolePreset object's fields as a dictionary. Used to send preset
+        data to the frontend.
+
+        :return: Dictionary containing the role preset's data
+        :rtype: dict
+        """
+        return {
+            'id': self.id,
+            'name': self.name,
+            'permissions': [perm.codename for perm in self.permissions.all()],
+            'public': self.public,
+            'creator': self.creator.email if self.creator else None,
+        }
+
+    def has_permission(self, permission: Permission | str | int) -> bool:
+        """
+        Check whether the preset has a given permission.
+
+        :param permission: Permission to check for. The permission can be specified as either the
+            permission object, its codename or its id.
+        :type permission: Permission | str | int
+
+        :return: `True` if the preset has the permission, `False` otherwise.
+        :rtype: bool
+        """
+        return self.permissions.filter(id=ModelsRegistry.get_permission_id(permission)).exists()
+
+    @transaction.atomic
+    def add_permission(self, permission: Permission | str | int) -> None:
+        """
+        Add a permission to the preset.
+
+        :param permission: Permission to add. The permission can be specified as either the
+            permission object, its codename or its id.
+        :type permission: Permission | str | int
+
+        :raises ValidationError: If the preset already has the permission.
+        """
+        permission = ModelsRegistry.get_permission(permission)
+
+        if self.has_permission(permission):
+            raise ValidationError(f'Attempted to add permission {permission.codename} to preset '
+                                  f'{self} which already has it')
+
+        self.permissions.add(permission)
+
+    @transaction.atomic
+    def add_permissions(self, permissions: List[Permission] | List[str] | List[int]) -> None:
+        """
+        Add multiple permissions to the preset.
+
+        :param permissions: List of permissions to add. The permissions can be specified as either
+            a list of permission objects, their codenames or their ids.
+        :type permissions: List[Permission] | List[str] | List[int]
+        """
+        permissions = ModelsRegistry.get_permissions(permissions)
+
+        for permission in permissions:
+            self.add_permission(permission)
 
 
 class RolePresetUser(models.Model):
