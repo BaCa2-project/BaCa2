@@ -4,7 +4,7 @@ from django.contrib.auth.models import Group, Permission
 from django.utils import timezone
 
 from main.models import (User, Course, Settings)
-from BaCa2.choices import BasicPermissionTypes
+from BaCa2.choices import BasicPermissionType
 
 
 class CourseTest(TestCase):
@@ -275,7 +275,7 @@ class CourseTest(TestCase):
         with self.assertRaises(Course.CourseRoleError):
             self.course1.remove_role("role1")
 
-        self.course1.add_user(self.teacher1, "staff")
+        self.course1.add_member(self.teacher1, "staff")
 
         with self.assertRaises(Course.CourseRoleError):
             self.course1.remove_role("staff")
@@ -326,8 +326,8 @@ class CourseTest(TestCase):
         assigned with proper roles and if exceptions are raised when attempting to add already
         added users or remove non-member users from a course.
         """
-        self.course1.add_user(self.teacher1, "staff")
-        self.course1.add_user(self.student1, "students")
+        self.course1.add_member(self.teacher1, "staff")
+        self.course1.add_member(self.student1, "students")
 
         self.assertTrue(self.course1.user_is_member(self.teacher1))
         self.assertTrue(self.course1.user_is_member(self.student1))
@@ -335,9 +335,9 @@ class CourseTest(TestCase):
         self.assertTrue(self.course1.user_has_role(self.student1, "students"))
 
         with self.assertRaises(Course.CourseMemberError):
-            self.course1.add_user(self.teacher1, "staff")
+            self.course1.add_member(self.teacher1, "staff")
         with self.assertRaises(Course.CourseMemberError):
-            self.course1.add_user(self.student1, "students")
+            self.course1.add_member(self.student1, "students")
 
         self.course1.remove_user(self.teacher1)
         self.course1.remove_user(self.student1)
@@ -354,11 +354,11 @@ class CourseTest(TestCase):
         """
         Test whether the :meth:`Course.get_users` method works properly.
         """
-        self.course1.add_user(self.teacher1, "staff")
-        self.course1.add_user(self.teacher2, "staff")
-        self.course1.add_user(self.teacher3, "staff")
-        self.course1.add_user(self.student1, "students")
-        self.course1.add_user(self.student2, "students")
+        self.course1.add_member(self.teacher1, "staff")
+        self.course1.add_member(self.teacher2, "staff")
+        self.course1.add_member(self.teacher3, "staff")
+        self.course1.add_member(self.student1, "students")
+        self.course1.add_member(self.student2, "students")
 
         self.assertTrue(len(self.course1.get_users()) == 5)
         self.assertTrue(len(self.course1.get_users("staff")) == 3)
@@ -380,8 +380,8 @@ class CourseTest(TestCase):
         """
         self.course1.create_role("role1", ["view_round", "view_task"])
         self.course2.create_role("role1", ["add_submit", "view_submit", "view_result"])
-        self.course1.add_user(self.student1, "role1")
-        self.course2.add_user(self.student1, "role1")
+        self.course1.add_member(self.student1, "role1")
+        self.course2.add_member(self.student1, "role1")
 
         self.assertTrue(self.course1.user_has_permission(self.student1, "view_round"))
         self.assertFalse(self.course1.user_has_permission(self.student1, "add_submit"))
@@ -402,9 +402,9 @@ class CourseTest(TestCase):
         self.course1.create_role("role1", ["view_round", "view_task"])
         self.course2.create_role("role1", ["add_submit", "view_submit", "view_result"])
 
-        self.course1.add_user(self.student1.id, "role1")
-        self.course1.add_user(self.student2.id, "role1")
-        self.course2.add_user(self.student2.id, "role1")
+        self.course1.add_member(self.student1.id, "role1")
+        self.course1.add_member(self.student2.id, "role1")
+        self.course2.add_member(self.student2.id, "role1")
 
         for user in [self.student1, self.student2]:
             self.assertTrue(user in self.course1.get_users_with_permission("view_round"))
@@ -423,7 +423,7 @@ class CourseTest(TestCase):
         Test whether changing user's role in a course works properly. Checks if exceptions are
         raised when attempting to change role of a non-member user.
         """
-        self.course1.add_user(self.teacher1, "staff")
+        self.course1.add_member(self.teacher1, "staff")
         self.course1.change_user_role(self.teacher1, "admin")
 
         self.assertTrue(self.course1.user_has_role(self.teacher1, "admin"))
@@ -511,7 +511,7 @@ class UserTest(TestCase):
         ]]
         for perm in perms:
             self.assertTrue(perm in self.user.get_individual_permissions())
-            self.assertFalse(perm in self.user.get_group_level_permissions())
+            self.assertFalse(perm in self.user.get_group_permissions())
 
         self.user.user_permissions.clear()
         self.group.permissions.clear()
@@ -538,7 +538,7 @@ class UserTest(TestCase):
 
         perms = [Permission.objects.get(codename=p) for p in ["view_course", "change_course"]]
         for perm in perms:
-            self.assertTrue(perm in self.user.get_group_level_permissions())
+            self.assertTrue(perm in self.user.get_group_permissions())
             self.assertFalse(perm in self.user.get_individual_permissions())
 
         self.group.permissions.remove(view_course.id)
@@ -556,7 +556,7 @@ class UserTest(TestCase):
         """
         self.assertFalse(self.user.has_course_permission("view_round", self.course))
 
-        self.course.add_user(self.user, "staff")
+        self.course.add_member(self.user, "staff")
 
         self.assertTrue(self.user.has_course_permission("view_round", self.course))
         self.assertTrue(self.user.has_course_permission("change_round", self.course))
@@ -576,7 +576,7 @@ class UserTest(TestCase):
         Tests whether :py:meth:`User.has_model_permissions` works properly.
         """
         self.assertFalse(self.user.has_basic_model_permissions(Course))
-        self.assertFalse(self.user.has_basic_model_permissions(Course, BasicPermissionTypes.VIEW))
+        self.assertFalse(self.user.has_basic_model_permissions(Course, BasicPermissionType.VIEW))
 
         self.user.add_permission('view_course')
         self.group.user_set.add(self.user)
@@ -584,8 +584,8 @@ class UserTest(TestCase):
         self.group.permissions.add(delete_course.id)
 
         self.assertFalse(self.user.has_basic_model_permissions(Course))
-        self.assertTrue(self.user.has_basic_model_permissions(Course, BasicPermissionTypes.VIEW))
-        self.assertTrue(self.user.has_basic_model_permissions(Course, BasicPermissionTypes.DEL))
+        self.assertTrue(self.user.has_basic_model_permissions(Course, BasicPermissionType.VIEW))
+        self.assertTrue(self.user.has_basic_model_permissions(Course, BasicPermissionType.DEL))
 
         self.user.add_permission('change_course')
         self.user.add_permission('add_course')

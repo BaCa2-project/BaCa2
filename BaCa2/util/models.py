@@ -5,7 +5,7 @@ from django.db import models
 from django.db.models.query import QuerySet
 from django.contrib.auth.models import (Permission, ContentType, Group)
 
-from BaCa2.choices import BasicPermissionTypes
+from BaCa2.choices import BasicPermissionType
 
 model_cls = TypeVar("model_cls", bound=Type[models.Model])
 
@@ -55,7 +55,7 @@ def get_model_permission_by_label(model: model_cls, perm_label: str) -> Permissi
 
 
 def get_model_permissions(model: model_cls,
-                          permissions: BasicPermissionTypes | List[BasicPermissionTypes] = 'all'
+                          permissions: BasicPermissionType | List[BasicPermissionType] = 'all'
                           ) -> QuerySet[Permission]:
     """
     Returns QuerySet of basic permissions objects for given model. If permissions is set to 'all'
@@ -69,14 +69,14 @@ def get_model_permissions(model: model_cls,
     :type model: Type[models.Model]
     :param permissions: List of permissions to get. If set to 'all' (default), all basic permissions
         are returned. Can be set to a list of BasicPermissionTypes or a single BasicPermissionType.
-    :type permissions: BasicPermissionTypes | List[BasicPermissionTypes]
+    :type permissions: BasicPermissionType | List[BasicPermissionType]
 
     :return: QuerySet of basic permissions for given model.
     :rtype: QuerySet[Permission]
     """
     if permissions == 'all':
-        permissions = [p for p in BasicPermissionTypes]
-    elif isinstance(permissions, BasicPermissionTypes):
+        permissions = [p for p in BasicPermissionType]
+    elif isinstance(permissions, BasicPermissionType):
         permissions = [f'{permissions.label}_{model._meta.model_name}']
     elif isinstance(permissions, List):
         permissions = [f'{p.label}_{model._meta.model_name}' for p in permissions]

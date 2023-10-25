@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import (TYPE_CHECKING, List, Union)
+from typing import (TYPE_CHECKING, List)
 
 from django.db.models import QuerySet
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import (Group, Permission)
-    from main.models import (User, Course)
+    from main.models import (User, Course, Role, RolePreset)
 
 
 class ModelsRegistry:
@@ -279,3 +279,84 @@ class ModelsRegistry:
         if isinstance(courses[0], int):
             return Course.objects.filter(id__in=courses)
         return courses
+
+    @staticmethod
+    def get_role(role: str | int | Role, course: str | int | Course = None) -> Role:
+        """
+        Returns a Role model instance from the database using its id or name and course as
+        a reference. It can also be used to return the same instance if it is passed as the
+        parameter (for ease of use in case of methods which accept both model instances and their
+        identifiers).
+
+        :param role: Role name, id or model instance.
+        :type role: str | int | Role
+        :param course: Course short name, id or model instance.
+        :type course: str | int | Course
+
+        :return: Role model instance.
+        :rtype: Role
+
+        :raises ValueError: If the role name is passed as a parameter but its course is not.
+        """
+        from main.models import Role
+
+        if isinstance(role, str):
+            if not course:
+                raise ValueError('If the role name is passed as a parameter, its course name must '
+                                 'be passed as well. A role name is only unique within a course.')
+            return Role.objects.get(name=role, course=ModelsRegistry.get_course(course))
+
+        if isinstance(role, int):
+            return Role.objects.get(id=role)
+        return role
+
+    @staticmethod
+    def get_roles(roles: List[str] | List[int] | List[Role],
+                  course: str | int | Course = None) -> QuerySet[Role] | List[Role]:
+        """
+        Returns a QuerySet of roles using a list of their ids or names and course as a reference.
+        It can also be used to return a list of Role model instances if it is passed as the
+        parameter (for ease of use in case of methods which accept both model instances and their
+        identifiers).
+
+        :param roles: List of Role names, ids or model instances.
+        :type roles: List[str] | List[Role] | List[int]
+        :param course: Course short name, id or model instance.
+        :type course: str | int | Course
+
+        :return: QuerySet of Role model instances or list of Role model instances.
+        :rtype: QuerySet[Role] | List[Role]
+
+        :raises ValueError: If the role names are passed as a parameter but their course is not.
+        """
+        from main.models import Role
+
+        if isinstance(roles[0], str):
+            if not course:
+                raise ValueError('If the role names are passed as a parameter, their course name '
+                                 'must be passed as well. A role name is only unique within a '
+                                 'course.')
+            return Role.objects.filter(name__in=roles, course=ModelsRegistry.get_course(course))
+
+        if isinstance(roles[0], int):
+            return Role.objects.filter(id__in=roles)
+        return roles
+
+    @staticmethod
+    def get_role_preset(preset: int | RolePreset) -> RolePreset:
+        """
+        Returns a RolePreset model instance from the database using its id as a reference. It can
+        also be used to return the same instance if it is passed as the parameter (for ease of use
+        in case of methods which accept both model instances and their identifiers).
+
+        :param preset: RolePreset id or model instance.
+        :type preset: int | RolePreset
+
+        :return: RolePreset model instance.
+        :rtype: RolePreset
+        """
+        from main.models import RolePreset
+
+        if isinstance(preset, int):
+            return RolePreset.objects.get(id=preset)
+        return preset
