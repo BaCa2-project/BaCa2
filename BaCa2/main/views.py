@@ -17,7 +17,7 @@ from widgets.listing import TableWidget
 from widgets.forms import (FormWidget, get_field_validation_status)
 from widgets.navigation import (NavBar, SideNav)
 from widgets.forms.course import (CreateCourseForm, CreateCourseFormWidget)
-from BaCa2.choices import BasicPermissionTypes
+from BaCa2.choices import BasicPermissionType
 
 
 class BaCa2ModelView(LoginRequiredMixin, View, ABC):
@@ -112,7 +112,7 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         :return: `True` if the user has permission, `False` otherwise.
         :rtype: bool
         """
-        return request.user.has_basic_model_permissions(cls.MODEL, BasicPermissionTypes.VIEW)
+        return request.user.has_basic_model_permissions(cls.MODEL, BasicPermissionType.VIEW)
 
 
 class CourseModelView(BaCa2ModelView):
