@@ -361,7 +361,7 @@ class Course(models.Model):
     default_role = models.ForeignKey(
         verbose_name=_("default role"),
         to='Role',
-        on_delete=models.PROTECT,
+        on_delete=models.RESTRICT,
         null=False,
         blank=False,
         related_name='+'
@@ -371,7 +371,7 @@ class Course(models.Model):
     admin_role = models.ForeignKey(
         verbose_name=_("admin role"),
         to='Role',
-        on_delete=models.PROTECT,
+        on_delete=models.RESTRICT,
         null=False,
         blank=False,
         related_name='+'
@@ -1719,6 +1719,7 @@ class Role(models.Model):
             raise ValidationError(f'Attempted to assign role {self} to course {course} while it '
                                   f'is already assigned to course {self.course}')
         self.course = course
+        self.save()
 
     def user_is_member(self, user: str | int | User) -> bool:
         """
@@ -1854,6 +1855,18 @@ class RolePresetManager(models.Manager):
         preset.add_permissions(permissions)
         return preset
 
+    @transaction.atomic
+    def delete_role_preset(self, preset: RolePreset | int) -> None:
+        """
+        Delete a role preset.
+
+        :param preset: Preset to delete. The preset can be specified as either the preset object or
+            its id.
+        :type preset: RolePreset | int
+        """
+        preset = ModelsRegistry.get_role_preset(preset)
+        preset.delete()
+
 
 class RolePreset(models.Model):
     """
@@ -1876,8 +1889,7 @@ class RolePreset(models.Model):
     permissions = models.ManyToManyField(
         to=Permission,
         verbose_name=_("preset permissions"),
-        blank=True,
-        null=True
+        blank=True
     )
     #: Whether the preset is public. Public presets can be used by all users, private presets can
     # only be used by their creator or other users given access.
@@ -1968,6 +1980,14 @@ class RolePreset(models.Model):
 
         for permission in permissions:
             self.add_permission(permission)
+
+    @transaction.atomic
+    def delete(self) -> None:
+        """
+        Delete the preset.
+        """
+        self.permissions.clear()
+        super().delete()
 
 
 class RolePresetUser(models.Model):
