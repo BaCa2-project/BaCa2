@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import (List, Type)
+from typing import (List, Type, Any)
 
 from django.contrib.auth.models import (AbstractBaseUser,
                                         PermissionsMixin,
@@ -119,16 +119,14 @@ class UserManager(BaseUserManager):
 
     @staticmethod
     @transaction.atomic
-    def delete_user(user: User) -> None:
+    def delete_user(user: str | int | User) -> None:
         """
         Delete given :py:class:`User` object along with its :py:class:`Settings` object.
 
-        :param user: The user to delete.
-        :type user: User
+        :param user: The user to delete. Can be specified by its id, email or the user object.
+        :type user: str | int | :py:class:`User`
         """
-        settings = user.user_settings
-        user.delete(using='default')
-        settings.delete(using='default')
+        ModelsRegistry.get_user(user).delete()
 
 
 class CourseManager(models.Manager):
@@ -178,6 +176,9 @@ class CourseManager(models.Manager):
             raise ValidationError('Both USOS course code and USOS term code must be provided or '
                                   'neither')
 
+        if usos_course_code is not None and usos_term_code is not None:
+            self._validate_usos_code(usos_course_code, usos_term_code)
+
         if len(name) < 5:
             raise ValidationError('Course name must be at least 5 characters long')
 
@@ -187,7 +188,7 @@ class CourseManager(models.Manager):
             short_name = short_name.lower()
         else:
             short_name = self._generate_short_name(name, usos_course_code, usos_term_code)
-        self.validate_short_name(short_name)
+        self._validate_short_name(short_name)
 
         if not role_presets:
             role_presets = []
@@ -234,13 +235,12 @@ class CourseManager(models.Manager):
         :type course: Course | str | int
         """
         course = ModelsRegistry.get_course(course)
-        delete_course_db(course.short_name)
         course.delete()
 
     # ----------------------------------- Auxiliary methods ------------------------------------ #
 
     @staticmethod
-    def validate_short_name(short_name: str) -> None:
+    def _validate_short_name(short_name: str) -> None:
         """
         Validate a given short name. A short name is valid if it consists only of alphanumeric
         characters and underscores. It also has to be unique.
@@ -298,6 +298,26 @@ class CourseManager(models.Manager):
 
         return short_name
 
+    @staticmethod
+    def _validate_usos_code(usos_course_code: str, usos_term_code: str) -> None:
+        """
+        Validate USOS course and term codes. The codes are valid only if their combination is unique
+        across all courses.
+
+        :param usos_course_code: Course code of the course in the USOS system.
+        :type usos_course_code: str
+        :param usos_term_code: Term code of the course in the USOS system.
+        :type usos_term_code: str
+
+        :raises ValidationError: If the USOS codes are invalid.
+        """
+        if Course.objects.filter(USOS_course_code=usos_course_code,
+                                 USOS_term_code=usos_term_code).exists():
+            course = Course.objects.get(USOS_course_code=usos_course_code,
+                                        USOS_term_code=usos_term_code)
+            raise ValidationError(f'Attempted to create a course with the same USOS course and term'
+                                  f'codes as the {course} course')
+
 
 class Course(models.Model):
     """
@@ -334,7 +354,7 @@ class Course(models.Model):
     # Used to access the course's database with :py:class:`course.routing.InCourse`.
     short_name = models.CharField(
         verbose_name=_("course short name"),
-        max_length=20,
+        max_length=40,
         unique=True,
         blank=False
     )
@@ -435,7 +455,7 @@ class Course(models.Model):
         :return: Short name and name of the course.
         :rtype: str
         """
-        return f"{self.short_name}.{self.name}"
+        return f"{self.short_name}__{self.name}"
 
     def get_data(self) -> dict:
         """
@@ -914,7 +934,9 @@ class Course(models.Model):
         """
         if isinstance(role, str):
             return self.course_roles.filter(name=role).exists()
-        return ModelsRegistry.get_role(role).course == self
+        elif isinstance(role, int):
+            return self.course_roles.filter(id=role).exists()
+        return role.course == self
 
     def role_has_permission(self,
                             role: Role | str | int,
@@ -980,6 +1002,15 @@ class Course(models.Model):
         if self.user_is_member(user):
             raise Course.CourseMemberError("User is already a member of the course")
 
+    # --------------------------------------- Deletion ----------------------------------------- #
+
+    def delete(self, using: Any = None, keep_parents: bool = False) -> None:
+        """
+        Delete the course, all its roles and its database.
+        """
+        delete_course_db(self.short_name)
+        super().delete(using, keep_parents)
+
 
 class Settings(models.Model):
     """
@@ -1037,7 +1068,7 @@ class User(AbstractBaseUser):
     user_settings = models.OneToOneField(
         verbose_name=_("user settings"),
         to=Settings,
-        on_delete=models.PROTECT,
+        on_delete=models.RESTRICT,
         null=False,
         blank=False
     )
@@ -1483,6 +1514,16 @@ class User(AbstractBaseUser):
         :rtype: List[Permission]
         """
         return ModelsRegistry.get_course(course).user_role(self).permissions.all()
+
+    # --------------------------------------- Deletion ----------------------------------------- #
+
+    def delete(self, using=None, keep_parents=False):
+        """
+        Delete the user and their settings.
+        """
+        settings = self.user_settings
+        super().delete(using, keep_parents)
+        settings.delete()
 
 
 class RoleManager(models.Manager):
