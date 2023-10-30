@@ -117,6 +117,13 @@ class CourseTest(TestCase):
             for model in [model for model in cls.models if model.id is not None]:
                 model.delete()
 
+    @classmethod
+    def reset_roles(cls) -> None:
+        cls.role_1.course = None
+        cls.role_1.save()
+        cls.role_2.course = None
+        cls.role_2.save()
+
     def test_simple_course_creation_deletion(self) -> None:
         """
         Tests the creation and deletion of a course without any members or custom/preset roles.
@@ -314,6 +321,8 @@ class CourseTest(TestCase):
         are raised when attempting to add roles already existing in the course, roles with duplicate
         names, or roles assigned to other courses.
         """
+        self.reset_roles()
+
         role_preset_3 = RolePreset.objects.create_role_preset(
             name='role_preset_3',
             permissions=[Course.CourseAction.VIEW_MEMBER.label,
@@ -363,6 +372,8 @@ class CourseTest(TestCase):
         appropriate exceptions are raised when attempting to remove the admin or default role,
         a role not assigned to the course or a role with users assigned to it.
         """
+        self.reset_roles()
+
         self.course_1.add_role(self.role_1)
         self.course_1.add_role(self.role_2)
         self.course_1.add_member(self.user_1, self.role_2)
@@ -396,6 +407,134 @@ class CourseTest(TestCase):
 
         self.assertFalse(self.course_1.role_exists(role_2_id))
         self.assertFalse(Role.objects.filter(id=role_2_id).exists())
+
+    def test_course_add_role_permissions(self) -> None:
+        """
+        Tests the addition of permissions to roles. Checks if permissions are correctly added and
+        if appropriate exceptions are raised when attempting to add permissions to roles which are
+        not assigned to the course or when attempting to add permissions already assigned to the
+        given role.
+        """
+        self.reset_roles()
+
+        permissions = [Course.CourseAction.ADD_MEMBER.label,
+                       Course.CourseAction.EDIT_ROLE.label,
+                       Course.CourseAction.DEL_ROLE.label]
+
+        self.course_1.add_role(self.role_1)
+        self.course_1.add_role_permissions(self.role_1.id, permissions)
+
+        for perm in permissions:
+            self.assertTrue(self.course_1.role_has_permission(self.role_1.name, perm))
+
+        with self.assertRaises(Course.CourseRoleError):
+            self.course_1.add_role_permissions(self.role_2.id, [Course.CourseAction.DEL_ROLE.label])
+
+        with self.assertRaises(Role.RolePermissionError):
+            self.course_1.add_role_permissions(self.role_1, [Course.CourseAction.EDIT_ROLE.label])
+
+    def test_course_remove_role_permissions(self) -> None:
+        """
+        Tests removal of permission from a role. Checks if permissions are correctly removed and if
+        appropriate exceptions are raised when attempting to remove permissions from roles which
+        are not assigned to the course, from roles which do not have the given permissions or from
+        admin roles.
+        """
+        self.reset_roles()
+
+        permissions = [Course.CourseAction.ADD_MEMBER.label,
+                       Course.CourseAction.EDIT_ROLE.label]
+
+        self.course_2.add_role(self.role_2)
+
+        self.assertTrue(self.course_2.role_has_permission(
+            'role_preset_2',
+            Course.CourseAction.ADD_MEMBER.label
+        ))
+
+        for perm in permissions:
+            self.assertTrue(self.course_2.role_has_permission(self.role_2.id, perm))
+
+        self.course_2.remove_role_permissions(
+            'role_preset_2',
+            [Course.CourseAction.ADD_MEMBER.label]
+        )
+        self.course_2.remove_role_permissions(
+            self.role_2,
+            permissions
+        )
+
+        self.assertFalse(self.course_2.role_has_permission(
+            'role_preset_2',
+            Course.CourseAction.ADD_MEMBER.label
+        ))
+
+        for perm in permissions:
+            self.assertFalse(self.course_2.role_has_permission(self.role_2, perm))
+
+        with self.assertRaises(Course.CourseRoleError):
+            self.course_2.remove_role_permissions(self.role_1, [Course.BasicAction.VIEW.label])
+
+        with self.assertRaises(Role.RolePermissionError):
+            self.course_2.remove_role_permissions(self.role_2, permissions)
+
+        with self.assertRaises(Course.CourseRoleError):
+            self.course_2.remove_role_permissions(self.course_2.admin_role.name, permissions)
+
+    def test_course_change_role_permissions(self) -> None:
+        """
+        Tests changing permissions of a role. Checks if permissions are correctly changed and if
+        appropriate exceptions are raised when attempting to change permissions of roles which are
+        not assigned to the course or admin roles.
+        """
+        self.reset_roles()
+
+        role_1_permissions = [Course.CourseAction.VIEW_ROLE.label,
+                              Course.CourseAction.VIEW_MEMBER.label,
+                              Course.BasicAction.VIEW.label]
+
+        role_1_new_permissions = [Course.CourseAction.ADD_MEMBER.label,
+                                  Course.CourseAction.EDIT_ROLE.label,
+                                  Course.BasicAction.VIEW.label]
+
+        self.course_1.add_role(self.role_1)
+
+        for perm in role_1_permissions:
+            self.assertTrue(self.course_1.role_has_permission(self.role_1, perm))
+
+        for perm in list(set(role_1_new_permissions) - set(role_1_permissions)):
+            self.assertFalse(self.course_1.role_has_permission(self.role_1, perm))
+
+        self.course_1.change_role_permissions(self.role_1.name, role_1_new_permissions)
+
+        for perm in role_1_new_permissions:
+            self.assertTrue(self.course_1.role_has_permission(self.role_1.id, perm))
+
+        for perm in list(set(role_1_permissions) - set(role_1_new_permissions)):
+            self.assertFalse(self.course_1.role_has_permission(self.role_1, perm))
+
+        with self.assertRaises(Course.CourseRoleError):
+            self.course_1.change_role_permissions(self.role_2, role_1_permissions)
+
+        with self.assertRaises(Course.CourseRoleError):
+            self.course_1.change_role_permissions(self.course_1.admin_role.id, role_1_permissions)
+
+    def test_course_add_member(self) -> None:
+        """
+        Tests addition of members to a course. Checks if members are correctly added and if
+        appropriate exceptions are raised when attempting to add members which are already
+        assigned to the course, when attempting to add members with roles which are not assigned
+        to the course or when attempting to add members to admin roles.
+        """
+        self.reset_roles()
+
+        self.course_1.add_role(self.role_1)
+        self.course_1.add_role(self.role_2)
+
+        self.assertFalse(self.course_1.user_is_member(self.user_1.id))
+        self.assertFalse(self.course_1.user_is_member(self.user_2.email))
+
+
 
 
 class UserTest(TestCase):
