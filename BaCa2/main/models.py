@@ -668,10 +668,13 @@ class Course(models.Model):
         if not self.role_exists(role):
             raise Course.CourseRoleError("Attempted to remove permissions from a role that does "
                                          "not exist within the course")
+
+        role = ModelsRegistry.get_role(role, self)
+
         if role == self.admin_role:
             raise Course.CourseRoleError("Cannot remove permissions from the admin role")
 
-        ModelsRegistry.get_role(role, self).remove_permissions(permissions)
+        role.remove_permissions(permissions)
 
     # ------------------------------------- Member getters ------------------------------------- #
 
