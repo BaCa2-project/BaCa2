@@ -791,7 +791,10 @@ class Course(models.Model):
         """
         if not self.user_is_member(user):
             raise Course.CourseMemberError("Attempted to remove a user who is not a member of the"
-                                           "course")
+                                           "course.")
+        if self.user_is_admin(user):
+            raise Course.CourseMemberError("Attempted to remove a user from the admin role using "
+                                           "the remove_member method. Use remove_admin instead.")
 
         self.user_role(user).remove_member(user)
 
@@ -816,6 +819,13 @@ class Course(models.Model):
             its id or its email.
         :type user: User | str | int
         """
+        if not self.user_is_member(user):
+            raise Course.CourseMemberError("Attempted to remove from the admin role a user who is "
+                                           "not a member of the course.")
+        if not self.user_is_admin(user):
+            raise Course.CourseMemberError("Attempted to remove a user from the admin role who is "
+                                           "not an admin in the course.")
+
         self.admin_role.remove_member(user)
 
     @transaction.atomic
@@ -970,6 +980,35 @@ class Course(models.Model):
         :rtype: bool
         """
         return ModelsRegistry.get_user(user).roles.filter(course=self).exists()
+
+    def user_is_admin(self, user: str | int | User) -> bool:
+        """
+        Check whether a given user is assigned to the admin role within the course.
+
+        :param user: The user to check. The user can be specified as either the user object, its id
+            or its email.
+
+        :return: `True` if the user is assigned to the admin role, `False` otherwise.
+        :rtype: bool
+        """
+        return self.user_has_role(user, self.admin_role)
+
+    def user_has_role(self, user: str | int | User, role: Role | str | int) -> bool:
+        """
+        Check whether a given user has a given role within the course.
+
+        :param user: The user to check. The user can be specified as either the user object, its id
+            or its email.
+        :type user: User | str | int
+        :param role: The role to check. The role can be specified as either the role object, its id
+            or its name.
+        :type role: Role | str | int
+
+        :return: `True` if the user has the role, `False` otherwise.
+        :rtype: bool
+        """
+        return self.user_is_member(user) and \
+            self.user_role(user) == ModelsRegistry.get_role(role, self)
 
     # --------------------------------------- Validators --------------------------------------- #
 
