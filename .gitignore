@@ -642,6 +642,8 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+# BaCa2 specyfic -------------------------------------------------------------------------------
+
 BaCa2/BaCa2/settings_local.py
 
 Baca2/submits/
@@ -651,3 +653,5 @@ BaCa2/BaCa2/db/ext_databases.py
 !/BaCa2/secrets.yaml
 
 */secrets.yaml
+
+*/migrations/

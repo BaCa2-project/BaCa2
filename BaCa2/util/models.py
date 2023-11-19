@@ -5,7 +5,7 @@ from django.db import models
 from django.db.models.query import QuerySet
 from django.contrib.auth.models import (Permission, ContentType, Group)
 
-from BaCa2.choices import PermissionTypes
+from BaCa2.choices import BasicPermissionType
 
 model_cls = TypeVar("model_cls", bound=Type[models.Model])
 
@@ -55,26 +55,28 @@ def get_model_permission_by_label(model: model_cls, perm_label: str) -> Permissi
 
 
 def get_model_permissions(model: model_cls,
-                          permissions: PermissionTypes | List[PermissionTypes] = 'all'
-                          ) -> List[Permission]:
+                          permissions: BasicPermissionType | List[BasicPermissionType] = 'all'
+                          ) -> QuerySet[Permission]:
     """
-    Returns list of permissions objects for given model. If permissions is set to 'all' (default),
-    all permissions for given model are returned, otherwise only specified permissions are returned.
+    Returns QuerySet of basic permissions objects for given model. If permissions is set to 'all'
+    (default), all basic permissions for given model are returned, otherwise only specified
+    permissions are returned.
+
+    Basic permissions are the permissions automatically created by Django for each model (add,
+    change, view, delete).
 
     :param model: Model to get permissions for.
     :type model: Type[models.Model]
-    :param permissions: List of permissions to get. If set to 'all' (default), all permissions are
-        returned. Can be set to a list of PermissionTypes or a single PermissionType.
-    :type permissions: PermissionTypes | List[PermissionTypes]
+    :param permissions: List of permissions to get. If set to 'all' (default), all basic permissions
+        are returned. Can be set to a list of BasicPermissionTypes or a single BasicPermissionType.
+    :type permissions: BasicPermissionType | List[BasicPermissionType]
 
-    :return: List of permissions for given model.
-    :rtype: List[Permission]
+    :return: QuerySet of basic permissions for given model.
+    :rtype: QuerySet[Permission]
     """
     if permissions == 'all':
-        permissions = [p.codename for p in Permission.objects.filter(
-                           content_type=ContentType.objects.get_for_model(model).id
-                       )]
-    elif isinstance(permissions, PermissionTypes):
+        permissions = [p for p in BasicPermissionType]
+    elif isinstance(permissions, BasicPermissionType):
         permissions = [f'{permissions.label}_{model._meta.model_name}']
     elif isinstance(permissions, List):
         permissions = [f'{p.label}_{model._meta.model_name}' for p in permissions]

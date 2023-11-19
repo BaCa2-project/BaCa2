@@ -1,62 +1,12 @@
-from typing import Any, Dict, List
+from typing import Dict, List
+from abc import ABC, abstractmethod
 
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from widgets.base import Widget
-from widgets.listing import TableWidget
-
-
-def get_field_validation_status(field_cls: str,
-                                value: Any,
-                                required: bool = False,
-                                min_length: int | bool = False) -> Dict[str, str or List[str]]:
-    """
-    Runs validators for a given field class and value and returns a dictionary containing the status
-    of the validation and a list of error messages if the validation failed.
-
-    :param field_cls: Field class to be used for validation.
-    :type field_cls: str
-    :param value: Value to be validated.
-    :type value: Any
-    :param required: Whether the field is required.
-    :type required: bool
-    :param min_length: Minimum length of the value, set to `False` if not defined.
-    :type min_length: int | bool
-
-    :return: Dictionary containing the status of the validation and a list of error messages if the
-        validation failed.
-    :rtype: Dict[str, str or List[str]]
-    """
-    try:
-        field = eval(field_cls)()
-    except NameError:
-        field = (eval(f'forms.{field_cls}'))()
-
-    min_length = int(min_length) if min_length else False
-
-    if hasattr(field, 'run_validators') and callable(field.run_validators):
-        try:
-            field.run_validators(value)
-
-            if required and not value:
-                return {'status': 'error',
-                        'messages': [_('This field is required.')]}
-
-            if required and min_length and len(value) < min_length:
-                return {'status': 'error',
-                        'messages': [_(f'Minimum length is {min_length} characters.')]}
-
-            elif min_length and len(value) < min_length:
-                return {'status': 'error',
-                        'messages': [_(f'Minimum length is {min_length} characters.')]}
-
-            return {'status': 'ok'}
-        except forms.ValidationError as e:
-            return {'status': 'error',
-                    'messages': e.messages}
-    else:
-        return {'status': 'ok'}
+from util.models import model_cls
+from BaCa2.choices import ModelAction
 
 
 class FormWidget(Widget):
@@ -67,9 +17,18 @@ class FormWidget(Widget):
     FormWidget __init__ method arguments control the rendered form's behaviour and appearance.
     """
 
+    class FormWidgetException(Exception):
+        """
+        Exception raised when an error related to incongruence in the parameters of the FormWidget
+        class occurs.
+        """
+        pass
+
     def __init__(self,
                  name: str,
                  form: forms.Form,
+                 post_url: str = None,
+                 ajax_post: bool = False,
                  button_text: str = _('Submit'),
                  display_non_field_validation: bool = True,
                  display_field_errors: bool = True,
@@ -82,6 +41,13 @@ class FormWidget(Widget):
         :type name: str
         :param form: django form object to base the widget on. Should inherit from BaCa2Form.
         :type form: forms.Form
+        :param post_url: URL to which the form should be submitted. If not provided, the form will
+            be submitted to the same URL as the one used to render the form.
+        :type post_url: str
+        :param ajax_post: Whether the form should be submitted using AJAX. If `True`, the form will
+            be submitted using AJAX and the page will not be reloaded. If `False`, the form will be
+            submitted using a standard POST request and the page will be reloaded.
+        :type ajax_post: bool
         :param button_text: Text to be displayed on the submit button.
         :type button_text: str
         :param display_non_field_validation: Whether to display non-field validation errors.
@@ -108,15 +74,27 @@ class FormWidget(Widget):
             be displayed below the corresponding fields or in form of a green checkmark if the
             field is valid.
         :type live_validation: bool
+
+        :raises FormWidgetException: If the AJAX post is enabled without specifying the post URL.
         """
         super().__init__(name)
         self.form = form
         self.form_cls = form.__class__.__name__
+        self.ajax_post = ajax_post
         self.button_text = button_text
         self.display_non_field_validation = display_non_field_validation
         self.display_field_errors = display_field_errors
         self.floating_labels = floating_labels
         self.live_validation = live_validation
+
+        if ajax_post and not post_url:
+            raise FormWidget.FormWidgetException(
+                'Cannot use AJAX post without specifying the post URL.'
+            )
+
+        if not post_url:
+            post_url = ''
+        self.post_url = post_url
 
         if not toggleable_fields:
             toggleable_fields = []
@@ -153,9 +131,11 @@ class FormWidget(Widget):
                 self.field_min_length[field_name] = False
 
     def get_context(self) -> dict:
-        context = {
+        return super().get_context() | {
             'form': self.form,
             'form_cls': self.form_cls,
+            'post_url': self.post_url,
+            'ajax_post': self.ajax_post,
             'button_text': self.button_text,
             'display_non_field_errors': self.display_non_field_validation,
             'display_field_errors': self.display_field_errors,
@@ -167,7 +147,6 @@ class FormWidget(Widget):
             'field_min_length': self.field_min_length,
             'live_validation': self.live_validation,
         }
-        return context
 
 
 class BaCa2Form(forms.Form):
@@ -184,39 +163,82 @@ class BaCa2Form(forms.Form):
         required=True,
         initial='form'
     )
+    #: Informs the view receiving the post data about the action which should be performed using it.
+    action = forms.CharField(
+        label=_('Action'),
+        max_length=100,
+        widget=forms.HiddenInput(),
+        initial='',
+    )
 
 
-class TableSelectField(forms.CharField):
+class BaCa2ModelForm(BaCa2Form):
     """
-    Form field used to store the IDs of the selected rows in a table widget. The field is hidden
-    and in its place the stored table widget is rendered. The field is updated live when records
-    are selected or deselected in the table widget.
+    Base form for all forms in the BaCa2 system which are used to create, delete or modify
+    django model objects.
     """
 
-    class TableSelectFieldException(Exception):
+    #: Model class which instances are affected by the form.
+    MODEL: model_cls = None
+    #: Action which should be performed using the form data.
+    ACTION: ModelAction = None
+
+    def __init__(self, **kwargs):
+        super().__init__(initial={'form_name': f'{self.ACTION.label}_form',
+                                  'action': self.ACTION.name}, **kwargs)
+
+    @classmethod
+    def handle_post_request(cls, request):
         """
-        Exception raised when an error occurs in the TableSelectField class.
+        Handles the POST request received by the view this form's data was posted to.
+
+        :param request: Request object.
+        :type request: HttpRequest
+        """
+        if not cls.is_permissible(request):
+            return cls.handle_impermissible_request(request)
+
+        if cls(data=request.POST).is_valid():
+            return cls.handle_valid_request(request)
+        return cls.handle_invalid_request(request)
+
+    @classmethod
+    @abstractmethod
+    def handle_valid_request(cls, request):
+        """
+        Handles the POST request received by the view this form's data was posted to if the request
+        is permissible and the form data is valid.
         """
         pass
 
-    def __init__(self, table_widget: TableWidget, **kwargs) -> None:
+    @classmethod
+    @abstractmethod
+    def handle_invalid_request(cls, request):
         """
-        :param table_widget: Table widget to use for record selection.
-        :type table_widget: TableWidget
-
-        :raises TableSelectFieldException: If the table widget does not have record selection
-        enabled.
+        Handles the POST request received by the view this form's data was posted to if the request
+        is permissible but the form data is invalid.
         """
-        if not table_widget.has_record_method('select'):
-            raise TableSelectField.TableSelectFieldException(
-                'Table widget used in TableSelectField does not have '
-                'record selection enabled.')
+        pass
 
-        super().__init__(
-            label=_('Selected rows IDs'),
-            widget=forms.HiddenInput(
-                attrs={'class': 'table-select-field', 'data-table-target': table_widget.table_id}),
-            initial='',
-            **kwargs
-        )
-        self.table_widget = table_widget
+    @classmethod
+    @abstractmethod
+    def handle_impermissible_request(cls, request):
+        """
+        Handles the POST request received by the view this form's data was posted to if the request
+        is impermissible.
+        """
+        pass
+
+    @classmethod
+    def is_permissible(cls, request) -> bool:
+        """
+        Checks whether the user has the permission to perform the action specified by the form.
+
+        :param request: Request object.
+        :type request: HttpRequest
+
+        :return: `True` if the user has the permission to perform the action specified by the form,
+            `False` otherwise.
+        :rtype: bool
+        """
+        return request.user.has_permission(cls.ACTION.label)

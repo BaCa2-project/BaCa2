@@ -6,16 +6,113 @@ from django.contrib.auth.mixins import (LoginRequiredMixin, UserPassesTestMixin)
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout
 from django.http import (JsonResponse, HttpResponseRedirect)
-from django.http.request import HttpRequest
 from django.urls import reverse_lazy
+from django.utils.translation import gettext_lazy as _
 
-from main.models import Course
+from util.models import model_cls
+from main.models import (Course, User)
 from widgets import forms
 from widgets.base import Widget
 from widgets.listing import TableWidget
 from widgets.forms import FormWidget
+from widgets.forms.fields import get_field_validation_status
 from widgets.navigation import (NavBar, SideNav)
-from widgets.forms.course import (NewCourseForm, NewCourseFormWidget)
+from widgets.forms.course import (CreateCourseForm, CreateCourseFormWidget)
+from BaCa2.choices import BasicPermissionType
+
+
+class BaCa2ModelView(LoginRequiredMixin, View, ABC):
+    """
+    Base class for all views used to manage models of given class from front-end. Provides methods
+    for retrieving model data and interfacing with model managers to create, update and delete
+    model instances. Implements simple logic for checking user permissions corresponding to the
+    actions before executing them. If an inheriting class extends or changes the list of supported
+    actions, it has to provide for each of them two corresponding methods, one for checking user
+    permissions and one for executing the action unless it overrides the :py:meth:`post` method.
+
+    The permission checking method has to have the following signature:
+    `test_<action>_permission(self, request, **kwargs) -> bool`
+    The action execution method has to have the following signature:
+    `<action>(self, request, **kwargs) -> JsonResponse`
+    """
+
+    class ModelViewException(Exception):
+        """
+        Exception raised when model view-related error occurs.
+        """
+        pass
+
+    #: Model class which the view manages.
+    MODEL: model_cls = None
+
+    def get(self, request, **kwargs) -> JsonResponse:
+        """
+        Retrieves data of the instance(s) of the model class managed by the view if the requesting
+        user has permission to access it. If the request kwargs contain a 'target' key, the method
+        will return data of the instance of the model class with the id specified in the 'target'.
+        The data is gathered using the :py:meth:`get_data` method of the model class.
+
+        :return: JSON response with the result of the action in the form of status and message
+            strings (and data dictionary if the request is valid).
+        :rtype: JsonResponse
+
+        :raises ModelViewException: If the model class managed by the view does not implement the
+            method needed to gather data.
+        """
+        if not self.test_view_permission(request, **kwargs):
+            return JsonResponse({'status': 'error', 'message': 'Permission denied.'})
+
+        get_data_method = getattr(self.MODEL, 'get_data')
+
+        if not get_data_method or not callable(get_data_method):
+            raise BaCa2ModelView.ModelViewException(
+                f'Model class managed by the {self.__class__.__name__} view does not '
+                f'implement the `get_data` method needed to perform this action.')
+
+        if kwargs.get('target', None):
+            try:
+                target = self.MODEL.objects.get(id=kwargs['target'])
+            except self.MODEL.DoesNotExist:
+                return JsonResponse({'status': 'error', 'message': 'Target not found.'})
+            return JsonResponse({'status': 'ok',
+                                 'message': f'successfully retrieved data for a model instance '
+                                            f'with id = {kwargs["target"]}',
+                                 'data': [target.get_data()]})
+        else:
+            return JsonResponse({'status': 'ok',
+                                 'message': f'successfully retrieved data for all model instances',
+                                 'data': [instance.get_data() for instance in
+                                          self.MODEL.objects.all()]})
+
+    @abstractmethod
+    def post(self, request, **kwargs) -> JsonResponse:
+        """
+        Receives a post request from a model form and calls on its handle_post_request method to
+        validate and process the request.
+
+        :return: JSON response with the result of the action in the form of status and message
+            string
+        :rtype: JsonResponse
+        """
+        raise NotImplementedError('This method has to be implemented by inheriting classes.')
+
+    @classmethod
+    def test_view_permission(cls, request, **kwargs) -> bool:
+        """
+        Checks if the user has permission to view data of the model class managed by the view.
+
+        :return: `True` if the user has permission, `False` otherwise.
+        :rtype: bool
+        """
+        return request.user.has_basic_model_permissions(cls.MODEL, BasicPermissionType.VIEW)
+
+
+class CourseModelView(BaCa2ModelView):
+    MODEL = Course
+
+
+class UserModelView(BaCa2ModelView):
+    MODEL = User
 
 
 class BaCa2ContextMixin:
@@ -99,7 +196,7 @@ class BaCa2ContextMixin:
         :raises WidgetException: If the widget type is not recognized or if it is unique and
             already exists in the context dictionary.
         """
-        if isinstance(widget, NewCourseFormWidget):
+        if isinstance(widget, CreateCourseFormWidget):
             x = 10
         widget_type = BaCa2ContextMixin.get_type(type(widget))
 
@@ -234,7 +331,8 @@ class BaCa2LoggedInView(LoginRequiredMixin, BaCa2ContextMixin, TemplateView):
 
 class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
     """
-    Admin view for BaCa2 used to manage users, courses and packages. Can only be accessed by superusers.
+    Admin view for BaCa2 used to manage users, courses and packages. Can only be accessed by
+    superusers.
     """
     template_name = 'admin.html'
 
@@ -249,11 +347,15 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        sidenav = SideNav('users', 'courses', 'packages')
+        sidenav = SideNav(True, True,
+                          'Users', 'Courses', 'Packages',
+                          Courses=['New Course', 'Courses Table'],
+                          Users=['New User', 'Users Table'],
+                          Packages=['New Package', 'Packages Table'])
         self.add_widget(context, sidenav)
 
-        if not self.has_widget(context, FormWidget, 'new_course_form'):
-            self.add_widget(context, NewCourseFormWidget())
+        if not self.has_widget(context, FormWidget, 'create_course_form_widget'):
+            self.add_widget(context, CreateCourseFormWidget())
 
         self.add_widget(context, TableWidget(
             name='courses_table',
@@ -274,8 +376,8 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
         return context
 
     def post(self, request, *args, **kwargs):
-        if request.POST.get('form_name', None) == 'new_course_form':
-            form = NewCourseForm(data=request.POST)
+        if request.POST.get('form_name', None) == 'create_course_form':
+            form = CreateCourseForm(data=request.POST)
 
             if form.is_valid():
                 Course.objects.create_course(
@@ -284,7 +386,7 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
                 )
                 return JsonResponse({'status': 'ok'})
             else:
-                kwargs['new_course_form_widget'] = NewCourseFormWidget(form=form).get_context()
+                kwargs['new_course_form_widget'] = CreateCourseFormWidget(form=form).get_context()
                 return self.get(request, *args, **kwargs)
         else:
             return JsonResponse(
@@ -351,7 +453,7 @@ class FieldValidationView(LoginRequiredMixin, View):
             raise FieldValidationView.FieldClassException('No field class name provided.')
 
         return JsonResponse(
-            forms.get_field_validation_status(
+            get_field_validation_status(
                 field_cls=field_cls_name,
                 value=request.GET.get('value', ''),
                 required=request.GET.get('required', False),

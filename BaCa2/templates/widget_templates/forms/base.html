@@ -1,7 +1,8 @@
 {% load static %}
 <script src="{% static 'js/forms.js' %}"></script>
 
-<form method="post">
+<form method="post" id="{{ form_widget.name }}"
+      {% if form_widget.post_url %} action="{{ form_widget.post_url }}" {% endif %}>
     {% csrf_token %}
 
     {% if form_widget.display_non_field_errors %}
@@ -23,3 +24,19 @@
         </button>
     </div>
 </form>
+
+{% if form_widget.ajax_post %}
+    <script>
+        $(document).on('submit', '#{{ form_widget.name }}', function (e) {
+            e.preventDefault();
+            $.ajax({
+                type: 'POST',
+                url: '{{ form_widget.post_url }}',
+                data: $(this).serialize(),
+                success: function (data) {
+                    console.log('success');
+                }
+            });
+        });
+    </script>
+{% endif %}
