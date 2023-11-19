@@ -1,4 +1,5 @@
 from typing import Dict, List
+from abc import ABC, abstractmethod
 
 from django import forms
 from django.utils.translation import gettext_lazy as _
@@ -171,7 +172,7 @@ class BaCa2Form(forms.Form):
     )
 
 
-class BaCa2ModelForm(BaCa2Form):
+class BaCa2ModelForm(BaCa2Form, ABC):
     """
     Base form for all forms in the BaCa2 system which are used to create, delete or modify
     django model objects.
@@ -202,6 +203,7 @@ class BaCa2ModelForm(BaCa2Form):
         return cls.handle_invalid_request(request)
 
     @classmethod
+    @abstractmethod
     def handle_valid_request(cls, request):
         """
         Handles the POST request received by the view this form's data was posted to if the request
@@ -210,6 +212,7 @@ class BaCa2ModelForm(BaCa2Form):
         pass
 
     @classmethod
+    @abstractmethod
     def handle_invalid_request(cls, request):
         """
         Handles the POST request received by the view this form's data was posted to if the request
@@ -218,6 +221,7 @@ class BaCa2ModelForm(BaCa2Form):
         pass
 
     @classmethod
+    @abstractmethod
     def handle_impermissible_request(cls, request):
         """
         Handles the POST request received by the view this form's data was posted to if the request
