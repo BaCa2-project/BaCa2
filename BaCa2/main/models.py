@@ -949,7 +949,8 @@ class Course(models.Model):
             return self.course_roles.filter(name=role).exists()
         elif isinstance(role, int):
             return self.course_roles.filter(id=role).exists()
-        return role.course == self
+        else:
+            return self.course_roles.filter(id=role.id).exists()
 
     def role_has_permission(self,
                             role: Role | str | int,

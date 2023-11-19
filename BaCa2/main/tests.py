@@ -631,6 +631,53 @@ class CourseTest(TestCase):
             self.assertFalse(course_a.user_is_member(user))
             self.assertFalse(course_a.user_is_admin(user))
 
+    def test_change_member_role(self) -> None:
+        """
+        Tests changing the role of a member. Checks if the role is correctly changed and if
+        appropriate exceptions are raised when attempting to change the role of members which are
+        not assigned to the course, when attempting to change the role of members to roles which
+        are not assigned to the course, when attempting to change the role of members to the admin
+        role or when attempting to change the role of an admin.
+        """
+        self.reset_roles()
+
+        course_a = Course.objects.create_course(name='course_1')
+        self.models.append(course_a)
+        course_a.add_role(self.role_1)
+        course_a.add_role(self.role_2)
+        course_a.add_members([self.user_1.id, self.user_2.id, self.user_3.id], self.role_1)
+
+        for user in [self.user_1, self.user_2, self.user_3]:
+            self.assertTrue(course_a.user_is_member(user))
+            self.assertTrue(course_a.user_has_role(user, self.role_1))
+            self.assertFalse(course_a.user_is_admin(user))
+
+        course_a.change_member_role(self.user_1, self.role_2)
+        course_a.change_members_role([self.user_2.id, self.user_3.id], self.role_2)
+
+        for user in [self.user_1, self.user_2, self.user_3]:
+            self.assertTrue(course_a.user_is_member(user))
+            self.assertTrue(course_a.user_has_role(user, self.role_2))
+            self.assertFalse(course_a.user_is_admin(user))
+
+        course_a.remove_member(self.user_1)
+
+        with self.assertRaises(Course.CourseMemberError):
+            course_a.change_member_role(self.user_1, self.role_1)
+
+        course_a.remove_role(self.role_1)
+
+        with self.assertRaises(Course.CourseRoleError):
+            course_a.change_member_role(self.user_2, self.role_1)
+
+        with self.assertRaises(Course.CourseRoleError):
+            course_a.change_member_role(self.user_2, self.course_1.admin_role)
+
+        course_a.add_admin(self.user_1)
+
+        with self.assertRaises(Course.CourseRoleError):
+            course_a.change_member_role(self.user_1, self.role_2)
+
 
 class UserTest(TestCase):
     pass
