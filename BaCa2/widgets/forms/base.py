@@ -172,7 +172,7 @@ class BaCa2Form(forms.Form):
     )
 
 
-class BaCa2ModelForm(BaCa2Form, ABC):
+class BaCa2ModelForm(BaCa2Form):
     """
     Base form for all forms in the BaCa2 system which are used to create, delete or modify
     django model objects.

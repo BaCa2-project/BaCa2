@@ -4,7 +4,7 @@ from django.urls import reverse_lazy
 
 from main.models import Course
 from widgets.forms.base import (BaCa2Form, FormWidget)
-from widgets.forms.fields import CourseShortName
+from widgets.forms.fields.course import CourseShortName
 
 
 class CreateCourseForm(BaCa2Form):
