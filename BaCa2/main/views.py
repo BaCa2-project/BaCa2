@@ -14,7 +14,8 @@ from main.models import (Course, User)
 from widgets import forms
 from widgets.base import Widget
 from widgets.listing import TableWidget
-from widgets.forms import (FormWidget, get_field_validation_status)
+from widgets.forms import FormWidget
+from widgets.forms.fields import get_field_validation_status
 from widgets.navigation import (NavBar, SideNav)
 from widgets.forms.course import (CreateCourseForm, CreateCourseFormWidget)
 from BaCa2.choices import BasicPermissionType
@@ -52,7 +53,7 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         The data is gathered using the :py:meth:`get_data` method of the model class.
 
         :return: JSON response with the result of the action in the form of status and message
-        strings (and data dictionary if the request is valid).
+            strings (and data dictionary if the request is valid).
         :rtype: JsonResponse
 
         :raises ModelViewException: If the model class managed by the view does not implement the
@@ -83,26 +84,17 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
                                  'data': [instance.get_data() for instance in
                                           self.MODEL.objects.all()]})
 
+    @abstractmethod
     def post(self, request, **kwargs) -> JsonResponse:
-        if request.POST.get('action', None) not in self.SUPPORTED_ACTIONS:
-            return JsonResponse({'status': 'error', 'message': 'Invalid action.'})
+        """
+        Receives a post request from a model form and calls on its handle_post_request method to
+        validate and process the request.
 
-        permission_test_method = getattr(self, f'test_{request.POST.get("action")}_permission',
-                                         None)
-
-        if not permission_test_method or not callable(permission_test_method):
-            raise NotImplementedError(
-                f'Permission test method for {request.POST.get("action")} not implemented.')
-        if not permission_test_method(request, **kwargs):
-            return JsonResponse({'status': 'error', 'message': 'Permission denied.'})
-
-        action_method = getattr(self, request.POST.get('action'), None)
-
-        if not action_method or not callable(action_method):
-            raise NotImplementedError(
-                f'Action method for {request.POST.get("action")} not implemented.')
-
-        return action_method(request, **kwargs)
+        :return: JSON response with the result of the action in the form of status and message
+            string
+        :rtype: JsonResponse
+        """
+        raise NotImplementedError('This method has to be implemented by inheriting classes.')
 
     @classmethod
     def test_view_permission(cls, request, **kwargs) -> bool:
