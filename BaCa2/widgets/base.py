@@ -17,7 +17,6 @@ class Widget(ABC):
         """
         self.name = name
 
-    @abstractmethod
     def get_context(self) -> Dict[str, Any]:
         """
         Returns a dictionary containing all the data needed by the template to render the widget.
@@ -26,4 +25,4 @@ class Widget(ABC):
         :return: A dictionary containing all the data needed to render the widget.
         :rtype: Dict[str, Any]
         """
-        pass
+        return {'name': self.name}

@@ -1,5 +1,8 @@
 from django.urls import path
-from .views import (DashboardView,
+from .views import (CourseModelView,
+                    UserModelView,
+
+                    DashboardView,
                     CoursesView,
                     JsonView,
                     AdminView,
@@ -10,6 +13,10 @@ from .views import (DashboardView,
 app_name = 'main'
 
 urlpatterns = [
+    # Model management views
+    path('models/course', CourseModelView.as_view(), name='course-model-view'),
+    path('models/user', UserModelView.as_view(), name='user-model-view'),
+
     path('admin', AdminView.as_view(), name='admin'),
     path('dashboard', DashboardView.as_view(), name='dashboard'),
     path('courses', CoursesView.as_view(), name='courses'),

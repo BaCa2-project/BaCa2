@@ -18,7 +18,7 @@ function create_table(
     } = {}
 ) {
     const table_params = {};
-    table_params['ajax'] = `/main/json/${model_name}-${access_mode}`;
+    table_params['ajax'] = `/main/models/${model_name}`;
     table_params['order'] = [[default_order_col, default_order]];
 
     const cols_data = [];

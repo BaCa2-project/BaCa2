@@ -146,7 +146,7 @@ class TableWidget(Widget):
         return self.record_methods[method]['on'] == 'true'
 
     def get_context(self) -> dict:
-        context = {
+        return super().get_context() | {
             'table_id': self.table_id,
             'model_cls': self.model_cls,
             'access_mode': self.access_mode,
@@ -166,5 +166,3 @@ class TableWidget(Widget):
             'default_order': self.default_order,
             'record_methods': self.record_methods
         }
-
-        return context
