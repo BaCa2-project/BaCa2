@@ -2,6 +2,10 @@ html, body {
   height: 100%;
 }
 
+#main-container {
+  display: none;
+}
+
 .toggleable button {
   width: 35%;
   font-size: 0.85rem;
@@ -28,6 +32,9 @@ html, body {
   fill: #ffffff;
 }
 
+.logo-wrapper .baca2-logo {
+  transition: height 0.8s ease;
+}
 .logo-wrapper .logo-horizontal {
   display: none;
 }
@@ -67,17 +74,29 @@ html, body {
 .logo-wrapper.logo-icon .logo-icon {
   display: block;
 }
-.logo-wrapper.logo-s .logo-horizontal {
+.logo-wrapper.logo-xs .logo-horizontal {
   width: auto;
   height: 1.5rem;
 }
-.logo-wrapper.logo-s .logo-square {
+.logo-wrapper.logo-xs .logo-square {
   width: auto;
   height: 2rem;
 }
-.logo-wrapper.logo-s .logo-icon {
+.logo-wrapper.logo-xs .logo-icon {
   width: auto;
   height: 1.5rem;
+}
+.logo-wrapper.logo-s .logo-horizontal {
+  width: auto;
+  height: 3rem;
+}
+.logo-wrapper.logo-s .logo-square {
+  width: auto;
+  height: 4rem;
+}
+.logo-wrapper.logo-s .logo-icon {
+  width: auto;
+  height: 2rem;
 }
 .logo-wrapper.logo-m .logo-horizontal {
   width: auto;
