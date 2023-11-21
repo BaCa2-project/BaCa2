@@ -23,6 +23,7 @@ function initLoginPage() {
     }
     else {
         loginBtn.hide();
+        shrinkLogo($(".logo-wrapper"), false);
         transformLoginFormBtn(loginFormBtn, loginBtn.text(), loginBtn.attr("class"), loginForm);
 
         if (!sessionStorage.getItem("loginFormAlert"))
