@@ -2,6 +2,10 @@ html, body {
     height: 100%;
 }
 
+#main-container {
+    display: none;
+}
+
 @import "forms";
 @import "baca2_logo";
 @import "navbar";
