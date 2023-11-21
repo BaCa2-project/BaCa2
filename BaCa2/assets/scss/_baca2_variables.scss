@@ -32,10 +32,15 @@ $theme-colors: map-merge($baca2-theme-colors, $theme-colors);
 // logo variables
 $logo_versions: horizontal, square, icon;
 $logo_sizes: (
-    s: (
+    xs: (
         horizontal: 1.5rem,
         square: 2rem,
         icon: 1.5rem
+    ),
+    s: (
+        horizontal: 3rem,
+        square: 4rem,
+        icon: 2rem
     ),
     m: (
         horizontal: 4rem,
