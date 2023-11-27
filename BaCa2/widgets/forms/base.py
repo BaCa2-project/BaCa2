@@ -33,7 +33,7 @@ class FormWidget(Widget):
                  display_non_field_validation: bool = True,
                  display_field_errors: bool = True,
                  floating_labels: bool = True,
-                 toggleable_fields: List[str] = None,
+                 toggleable_fields: List[str | List[str]] = None,
                  toggleable_fields_params: Dict[str, Dict[str, str]] = None,
                  live_validation: bool = True, ) -> None:
         """
@@ -97,7 +97,14 @@ class FormWidget(Widget):
         self.post_url = post_url
 
         if not toggleable_fields:
+            toggleable_groups = {}
             toggleable_fields = []
+        else:
+            toggleable_groups = {field: (lambda field: [x for x in sublist if x != field])(field)
+                                 for sublist in toggleable_fields
+                                 for field in (sublist if isinstance(sublist, list) else [sublist])}
+            toggleable_fields = [field for sublist in toggleable_fields
+                                 for field in (sublist if isinstance(sublist, list) else [sublist])]
         self.toggleable_fields = toggleable_fields
 
         if not toggleable_fields_params:

@@ -605,4 +605,8 @@ html, body {
   width: fit-content;
 }
 
+.btn-outline-secondary:hover {
+  background-color: rgba(211, 202, 189, 0.3);
+}
+
 /*# sourceMappingURL=base.css.map */
