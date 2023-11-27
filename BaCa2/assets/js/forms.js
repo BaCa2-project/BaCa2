@@ -6,9 +6,8 @@ $(document).ready(function() {
     });
 });
 
-function toggleField(field_name, button_text_off, button_text_on) {
-    console.log(field_name);
-    const field = document.getElementById(field_name);
+function toggleField(fieldName, buttonTextOff, buttonTextOn) {
+    const field = document.getElementById(fieldName);
     const toggleable = field.closest('.toggleable');
     const button = $(toggleable).find('button');
     field.value = '';
@@ -17,7 +16,7 @@ function toggleField(field_name, button_text_off, button_text_on) {
         toggleable.classList.remove('toggleable-off');
         toggleable.classList.add('toggleable-on');
         $(field).attr('disabled', false);
-        button.text(button_text_on);
+        button.text(buttonTextOn);
     } else {
         if (field.classList.contains('is-invalid')) {
             field.classList.remove('is-invalid');
@@ -30,19 +29,29 @@ function toggleField(field_name, button_text_off, button_text_on) {
         toggleable.classList.remove('toggleable-on');
         toggleable.classList.add('toggleable-off');
         $(field).attr('disabled', true);
-        button.text(button_text_off);
+        button.text(buttonTextOff);
     }
 }
 
-function update_validation_status(field, field_cls, required, min_length, url) {
+function toggleFields(toggleableGroup, toggleableParams) {
+    for (let i = 0; i < toggleableGroup.length; i++) {
+        toggleField(
+            toggleableGroup[i],
+            toggleableParams[toggleableGroup[i]]['button_text_off'],
+            toggleableParams[toggleableGroup[i]]['button_text_on']
+        )
+    }
+}
+
+function update_validation_status(field, fieldCls, required, minLength, url) {
     const value = $(field).val();
     $.ajax({
         url: url,
         data: {
-            'field_cls': field_cls,
+            'field_cls': fieldCls,
             'value': value,
             'required': required,
-            'min_length': min_length,
+            'min_length': minLength,
         },
         dataType: 'json',
         success: function (data) {
@@ -57,7 +66,9 @@ function update_validation_status(field, field_cls, required, min_length, url) {
                 const input_block = $(field).closest('.input-block');
                 $(input_block).find('.invalid-feedback').remove();
                 for (let i = 0; i < data.messages.length; i++) {
-                    $(input_block).append("<div class='invalid-feedback'>" + data.messages[i] + "</div>");
+                    $(input_block).append(
+                        "<div class='invalid-feedback'>" + data.messages[i] + "</div>"
+                    );
                 }
             }
         }

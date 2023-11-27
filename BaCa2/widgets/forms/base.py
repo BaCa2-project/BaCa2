@@ -58,8 +58,10 @@ class FormWidget(Widget):
         :param floating_labels: Whether to use floating labels for the form fields.
         :type floating_labels: bool
         :param toggleable_fields: List of names of fields that should be toggleable. This list
-            should only contain fields that are not required.
-        :type toggleable_fields: List[str]
+            should only contain fields that are not required. If an item of the list is itself a
+            list, the fields in that sublist will be considered a toggleable group. If one of them
+            is toggled it will also toggle the other fields in the group.
+        :type toggleable_fields: List[str | List[str]]
         :param toggleable_fields_params: Dictionary containing parameters for toggleable fields.
             The keys of the dictionary should be the names of the toggleable fields. The values
             should be dictionaries containing the parameters for the toggleable field. The
@@ -100,11 +102,13 @@ class FormWidget(Widget):
             toggleable_groups = {}
             toggleable_fields = []
         else:
-            toggleable_groups = {field: (lambda field: [x for x in sublist if x != field])(field)
+            toggleable_groups = {field: (lambda field: [x for x in sublist] if
+                                 isinstance(sublist, list) else [sublist])(field)
                                  for sublist in toggleable_fields
                                  for field in (sublist if isinstance(sublist, list) else [sublist])}
             toggleable_fields = [field for sublist in toggleable_fields
                                  for field in (sublist if isinstance(sublist, list) else [sublist])]
+        self.toggleable_groups = toggleable_groups
         self.toggleable_fields = toggleable_fields
 
         if not toggleable_fields_params:
@@ -116,9 +120,9 @@ class FormWidget(Widget):
                 toggleable_fields_params[field] = {}
         for params in toggleable_fields_params.values():
             if 'button_text_on' not in params.keys():
-                params['button_text_on'] = _('Generate Automatically')
+                params['button_text_on'] = _('Generate automatically')
             if 'button_text_off' not in params.keys():
-                params['button_text_off'] = _('Enter Manually')
+                params['button_text_off'] = _('Enter manually')
 
         self.field_classes = {
             field_name: self.form.fields[field_name].__class__.__name__
@@ -149,6 +153,7 @@ class FormWidget(Widget):
             'floating_labels': self.floating_labels,
             'toggleable_fields': self.toggleable_fields,
             'toggleable_fields_params': self.toggleable_fields_params,
+            'toggleable_groups': self.toggleable_groups,
             'field_classes': self.field_classes,
             'field_required': self.field_required,
             'field_min_length': self.field_min_length,
