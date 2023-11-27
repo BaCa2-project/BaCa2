@@ -40,9 +40,10 @@
             {% with button_params=form_widget.toggleable_fields_params|get_item:field.name %}
                 <button class="btn btn-outline-secondary"
                         type="button"
-                        onclick="toggleField('{{ field.name }}',
-                                '{{ button_params|get_item:'button_text_off' }}',
-                                '{{ button_params|get_item:'button_text_on' }}')">
+                        onclick="toggleFields(
+                                {{ form_widget.toggleable_groups|get_item:field.name|safe }},
+                                {{ form_widget.toggleable_fields_params|safe }}
+                                )">
                     {% if field.value %}
                         {{ button_params|get_item:'button_text_on'}}
                     {% else %}

@@ -62,7 +62,11 @@ class CreateCourseFormWidget(FormWidget):
             post_url=reverse_lazy('main:course-model-view'),
             ajax_post=True,
             button_text=_('Add course'),
-            toggleable_fields=['short_name', 'USOS_course_code', 'USOS_term_code'],
+            toggleable_fields=['short_name', ['USOS_course_code', 'USOS_term_code']],
+            toggleable_fields_params={'USOS_term_code': {'button_text_off': _('Enter code'),
+                                                         'button_text_on': _('Proceed without')},
+                                      'USOS_course_code': {'button_text_off': _('Enter code'),
+                                                           'button_text_on': _('Proceed without')}},
             **kwargs
         )
 
