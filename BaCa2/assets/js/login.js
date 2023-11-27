@@ -16,7 +16,7 @@ function initLoginPage() {
         loginBtn.hide();
         loginFormBtn.css("transition", "all 0.8s ease");
         loginFormBtn.click(() => {
-            $("#login_form").slideDown("slow");
+            $("#login_form").slideDown("slow", () => loginForm.find("#username").focus());
             transformLoginFormBtn(loginFormBtn, loginBtn.text(), loginBtn.attr("class"), loginForm);
             shrinkLogo($(".logo-wrapper"));
         });

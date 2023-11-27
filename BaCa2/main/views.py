@@ -110,6 +110,9 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
 class CourseModelView(BaCa2ModelView):
     MODEL = Course
 
+    def post(self, request, **kwargs) -> JsonResponse:
+        pass
+
 
 class UserModelView(BaCa2ModelView):
     MODEL = User
