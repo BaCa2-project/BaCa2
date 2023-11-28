@@ -3,6 +3,8 @@ function initCommon() {
         sessionStorage.removeItem("loginFormRefresh");
         sessionStorage.removeItem("loginFormAlert");
     }
+    buttonsSetup();
+    formsSetup();
 }
 
 function showPage() {

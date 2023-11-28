@@ -33,14 +33,31 @@ function toggleField(fieldName, buttonTextOff, buttonTextOn) {
     }
 }
 
-function toggleFields(toggleableGroup, toggleableParams) {
-    for (let i = 0; i < toggleableGroup.length; i++) {
-        toggleField(
-            toggleableGroup[i],
-            toggleableParams[toggleableGroup[i]]['button_text_off'],
-            toggleableParams[toggleableGroup[i]]['button_text_on']
-        )
-    }
+function formsSetup() {
+    groupToggleBtnSetup();
+}
+
+function groupToggleBtnSetup() {
+    const buttons = $('.group-toggle-btn');
+
+    buttons.on('click', function(e) {
+        e.preventDefault();
+        toggleTextSwitchBtn($(this));
+        updateToggleableGroup($(this));
+    });
+
+    buttons.each(function () {
+        updateToggleableGroup($(this));
+    });
+}
+
+function updateToggleableGroup(btn) {
+    const fields = btn.closest('.form-element-group').find('input');
+
+    if (btn.hasClass('switch-on'))
+        fields.attr('disabled', false);
+    else
+        fields.attr('disabled', true);
 }
 
 function update_validation_status(field, fieldCls, required, minLength, url) {
