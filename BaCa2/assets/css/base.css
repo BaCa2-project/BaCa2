@@ -15,6 +15,10 @@ html, body {
   display: block;
 }
 
+form .card-body {
+  padding-bottom: 0;
+}
+
 .logo-wrapper .logo-stroke {
   fill: #000000;
 }
@@ -607,6 +611,7 @@ html, body {
 
 .btn-outline-secondary:hover {
   background-color: rgba(211, 202, 189, 0.3);
+  color: white;
 }
 
 /*# sourceMappingURL=base.css.map */

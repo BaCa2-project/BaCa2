@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from typing import Dict, List
-from abc import ABC, abstractmethod
+from enum import Enum
+from abc import abstractmethod
 
 from django import forms
 from django.utils.translation import gettext_lazy as _
@@ -33,8 +36,9 @@ class FormWidget(Widget):
                  display_non_field_validation: bool = True,
                  display_field_errors: bool = True,
                  floating_labels: bool = True,
-                 toggleable_fields: List[str | List[str]] = None,
-                 toggleable_fields_params: Dict[str, Dict[str, str]] = None,
+                 element_groups: FormElementGroup | List[FormElementGroup] = None,
+                 toggleable_fields: List[str] = None,
+                 toggleable_params: Dict[str, Dict[str, str]] = None,
                  live_validation: bool = True, ) -> None:
         """
         :param name: Name of the widget. Should be unique within the scope of one view.
@@ -62,7 +66,7 @@ class FormWidget(Widget):
             list, the fields in that sublist will be considered a toggleable group. If one of them
             is toggled it will also toggle the other fields in the group.
         :type toggleable_fields: List[str | List[str]]
-        :param toggleable_fields_params: Dictionary containing parameters for toggleable fields.
+        :param toggleable_params: Dictionary containing parameters for toggleable fields.
             The keys of the dictionary should be the names of the toggleable fields. The values
             should be dictionaries containing the parameters for the toggleable field. The
             following parameters are supported: `button_text_on` - text to be displayed on the
@@ -70,7 +74,7 @@ class FormWidget(Widget):
             displayed on the toggle button when the field is in the "off" state. If the
             parameters are not specified, the default values for the supported parameters will be
             used.
-        :type toggleable_fields_params: Dict[str, Dict[str, str]]
+        :type toggleable_params: Dict[str, Dict[str, str]]
         :param live_validation: Whether to perform live validation of the form fields. If `True`,
             the form will be validated on every change of the form fields. Validation results will
             be displayed below the corresponding fields or in form of a green checkmark if the
@@ -89,6 +93,29 @@ class FormWidget(Widget):
         self.floating_labels = floating_labels
         self.live_validation = live_validation
 
+        if not element_groups:
+            element_groups = []
+        if not isinstance(element_groups, list):
+            element_groups = [element_groups]
+        elements = []
+        included_fields = {field.name: False for field in form}
+
+        for field in form:
+            if included_fields[field.name]:
+                continue
+
+            for group in element_groups:
+                if group.field_in_group(field.name):
+                    elements.append(group)
+                    included_fields.update({field_name: True for field_name in group.fields()})
+                    break
+
+            if not included_fields[field.name]:
+                elements.append(field.name)
+                included_fields[field.name] = True
+
+        self.elements = FormElementGroup(elements, 'form_elements')
+
         if ajax_post and not post_url:
             raise FormWidget.FormWidgetException(
                 'Cannot use AJAX post without specifying the post URL.'
@@ -99,26 +126,17 @@ class FormWidget(Widget):
         self.post_url = post_url
 
         if not toggleable_fields:
-            toggleable_groups = {}
             toggleable_fields = []
-        else:
-            toggleable_groups = {field: (lambda field: [x for x in sublist] if
-                                 isinstance(sublist, list) else [sublist])(field)
-                                 for sublist in toggleable_fields
-                                 for field in (sublist if isinstance(sublist, list) else [sublist])}
-            toggleable_fields = [field for sublist in toggleable_fields
-                                 for field in (sublist if isinstance(sublist, list) else [sublist])]
-        self.toggleable_groups = toggleable_groups
         self.toggleable_fields = toggleable_fields
 
-        if not toggleable_fields_params:
-            toggleable_fields_params = {}
-        self.toggleable_fields_params = toggleable_fields_params
+        if not toggleable_params:
+            toggleable_params = {}
+        self.toggleable_params = toggleable_params
 
         for field in toggleable_fields:
-            if field not in toggleable_fields_params.keys():
-                toggleable_fields_params[field] = {}
-        for params in toggleable_fields_params.values():
+            if field not in toggleable_params.keys():
+                toggleable_params[field] = {}
+        for params in toggleable_params.values():
             if 'button_text_on' not in params.keys():
                 params['button_text_on'] = _('Generate automatically')
             if 'button_text_off' not in params.keys():
@@ -147,17 +165,73 @@ class FormWidget(Widget):
             'form_cls': self.form_cls,
             'post_url': self.post_url,
             'ajax_post': self.ajax_post,
+            'elements': self.elements,
             'button_text': self.button_text,
             'display_non_field_errors': self.display_non_field_validation,
             'display_field_errors': self.display_field_errors,
             'floating_labels': self.floating_labels,
             'toggleable_fields': self.toggleable_fields,
-            'toggleable_fields_params': self.toggleable_fields_params,
-            'toggleable_groups': self.toggleable_groups,
+            'toggleable_params': self.toggleable_params,
             'field_classes': self.field_classes,
             'field_required': self.field_required,
             'field_min_length': self.field_min_length,
             'live_validation': self.live_validation,
+        }
+
+
+class FormElementGroup(Widget):
+    class FormElementsLayout(Enum):
+        HORIZONTAL = 'horizontal'
+        VERTICAL = 'vertical'
+
+    def __init__(self,
+                 elements: List[str | FormElementGroup],
+                 name: str,
+                 layout: FormElementsLayout = FormElementsLayout.VERTICAL,
+                 toggleable: bool = False,
+                 toggleable_params: Dict[str, str] = None,
+                 frame: bool = False) -> None:
+        super().__init__(name)
+        self.elements = elements
+        self.toggleable = toggleable
+        self.layout = layout.value
+        self.frame = frame
+
+        if not toggleable_params:
+            toggleable_params = {}
+        self.toggleable_params = toggleable_params
+
+        if toggleable:
+            if 'button_text_on' not in toggleable_params.keys():
+                toggleable_params['button_text_on'] = _('Generate automatically')
+            if 'button_text_off' not in toggleable_params.keys():
+                toggleable_params['button_text_off'] = _('Enter manually')
+
+    def field_in_group(self, field_name: str) -> bool:
+        if field_name in self.elements:
+            return True
+        for element in self.elements:
+            if isinstance(element, FormElementGroup):
+                if element.field_in_group(field_name):
+                    return True
+        return False
+
+    def fields(self) -> List[str]:
+        fields = []
+        for element in self.elements:
+            if isinstance(element, FormElementGroup):
+                fields.extend(element.fields())
+            else:
+                fields.append(element)
+        return fields
+
+    def get_context(self) -> dict:
+        return super().get_context() | {
+            'elements': self.elements,
+            'layout': self.layout,
+            'toggleable': self.toggleable,
+            'toggleable_params': self.toggleable_params,
+            'frame': self.frame
         }
 
 

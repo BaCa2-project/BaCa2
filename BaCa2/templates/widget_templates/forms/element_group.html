@@ -1,0 +1,50 @@
+{% load custom_tags %}
+
+<div class="form-element-group">
+    {% if element_group.frame %}
+    <div class="card mb-3">
+        <div class="card-body">
+    {% endif %}
+    {% if element_group.toggleable %}
+        <div class="group-toggle-button mb-2">
+            <button class="btn btn-sm btn-outline-secondary
+                           text-switch-btn switch-off
+                           group-toggle-btn"
+                    data-text-on="{{ element_group.toggleable_params.button_text_on }}"
+                    data-text-off="{{ element_group.toggleable_params.button_text_off }}">
+            </button>
+        </div>
+    {% endif %}
+        {% if element_group.layout == 'horizontal' %}
+            <div class="row">
+        {% endif %}
+            {% for element in element_group.elements %}
+                {% if element_group.layout == 'horizontal' %}
+                    <div class="col">
+                {% endif %}
+                {% if element|is_instance_of:"widgets.forms.base.FormElementGroup" %}
+                    {% with element as element_group %}
+                        {% include "widget_templates/forms/element_group.html" %}
+                    {% endwith %}
+                {% else %}
+                    {% with form_widget.form|get_form_field:element as field %}
+                        {% if field.field.widget.attrs.class == 'table-select-field' %}
+                            {% include 'widget_templates/forms/table_select_field.html' %}
+                        {% elif not field.is_hidden %}
+                            {% include 'widget_templates/forms/field.html' %}
+                        {% endif %}
+                    {% endwith %}
+                {% endif %}
+                {% if element_group.layout == 'horizontal' %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+    {% if element_group.layout == 'horizontal' %}
+        </div>
+    {% endif %}
+    {% if element_group.frame %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+

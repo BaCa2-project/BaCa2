@@ -7,11 +7,7 @@
             {{ hidden_field }}
         {% endif %}
     {% endfor %}
-    {% for field in form_widget.form %}
-        {% if field.field.widget.attrs.class == 'table-select-field' %}
-            {% include 'widget_templates/forms/table_select_field.html' %}
-        {% elif not field.is_hidden %}
-            {% include 'widget_templates/forms/field.html' %}
-        {% endif %}
-    {% endfor %}
+    {% with form_widget.elements as element_group %}
+        {% include 'widget_templates/forms/element_group.html' %}
+    {% endwith %}
 {% endblock %}
