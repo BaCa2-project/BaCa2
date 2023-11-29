@@ -1,62 +1,70 @@
-$(document).ready(function() {
-    $('.toggleable-off').each(function() {
-        const toggleable = $(this);
-        const input = toggleable.find('input');
-        input.attr('disabled', true);
-    });
-});
-
-function toggleField(fieldName, buttonTextOff, buttonTextOn) {
-    const field = document.getElementById(fieldName);
-    const toggleable = field.closest('.toggleable');
-    const button = $(toggleable).find('button');
-    field.value = '';
-
-    if (toggleable.classList.contains('toggleable-off')) {
-        toggleable.classList.remove('toggleable-off');
-        toggleable.classList.add('toggleable-on');
+function toggleField(field, on) {
+    if (on)
         $(field).attr('disabled', false);
-        button.text(buttonTextOn);
-    } else {
-        if (field.classList.contains('is-invalid')) {
-            field.classList.remove('is-invalid');
-            const errors = $(field.closest('.input-block')).find('.invalid-feedback');
-            errors.remove();
-        } else if (field.classList.contains('is-valid')) {
-            field.classList.remove('is-valid');
+    else {
+        field.val('');
+        if (field.hasClass('is-invalid')) {
+            field.closest('.input-block').find('.invalid-feedback').remove();
+            field.removeClass('is-invalid');
         }
-        toggleable.classList.remove('toggleable-on');
-        toggleable.classList.add('toggleable-off');
+        field.removeClass('is-valid')
         $(field).attr('disabled', true);
-        button.text(buttonTextOff);
     }
+}
+
+function toggleFieldGroup(formElementGroup, on) {
+    formElementGroup.find('input').each(function () {
+        toggleField($(this), on)
+    });
 }
 
 function formsSetup() {
     groupToggleBtnSetup();
+    toggleableFieldSetup();
+}
+
+function toggleableFieldSetup() {
+    const buttons = $('.field-toggle-btn');
+
+    buttons.on('click', function(e) {
+        let on = false;
+        e.preventDefault();
+        toggleTextSwitchBtn($(this));
+
+        if ($(this).hasClass('switch-on'))
+            on = true;
+
+        toggleField($(this).closest('.input-group').find('input'), on);
+    });
+
+    buttons.each(function () {
+        let on = false;
+        if ($(this).hasClass('switch-on'))
+            on = true;
+        toggleField($(this).closest('.input-group').find('input'), on);
+    });
 }
 
 function groupToggleBtnSetup() {
     const buttons = $('.group-toggle-btn');
 
     buttons.on('click', function(e) {
+        let on = false;
         e.preventDefault();
         toggleTextSwitchBtn($(this));
-        updateToggleableGroup($(this));
+
+        if ($(this).hasClass('switch-on'))
+            on = true;
+
+        toggleFieldGroup($(this).closest('.form-element-group'), on)
     });
 
     buttons.each(function () {
-        updateToggleableGroup($(this));
+        let on  = false;
+        if ($(this).hasClass('switch-on'))
+            on = true;
+        toggleFieldGroup($(this).closest('.form-element-group'), on)
     });
-}
-
-function updateToggleableGroup(btn) {
-    const fields = btn.closest('.form-element-group').find('input');
-
-    if (btn.hasClass('switch-on'))
-        fields.attr('disabled', false);
-    else
-        fields.attr('disabled', true);
 }
 
 function update_validation_status(field, fieldCls, required, minLength, url) {
