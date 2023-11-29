@@ -27,6 +27,13 @@ def get_field_validation_status(field_cls: str,
         validation failed.
     :rtype: Dict[str, str or List[str]]
     """
+    if value is None:
+        value = ''
+    if required is None:
+        required = False
+    if min_length is None:
+        min_length = False
+
     try:
         field = eval(field_cls)()
     except NameError:
