@@ -7,11 +7,10 @@ from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout
 from django.http import (JsonResponse, HttpResponseRedirect)
 from django.urls import reverse_lazy
-from django.utils.translation import gettext_lazy as _
 
 from util.models import model_cls
+from util.views import normalize_string_to_python
 from main.models import (Course, User)
-from widgets import forms
 from widgets.base import Widget
 from widgets.listing import TableWidget
 from widgets.forms import FormWidget
@@ -458,9 +457,10 @@ class FieldValidationView(LoginRequiredMixin, View):
         return JsonResponse(
             get_field_validation_status(
                 field_cls=field_cls_name,
-                value=request.GET.get('value', ''),
-                required=request.GET.get('required', False),
-                min_length=request.GET.get('min_length', False))
+                value=normalize_string_to_python(request.GET.get('value')),
+                required=normalize_string_to_python(request.GET.get('required')),
+                min_length=normalize_string_to_python(request.GET.get('min_length'))
+            )
         )
 
 
