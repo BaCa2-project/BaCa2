@@ -19,11 +19,24 @@
     {% endblock %}
 
     <div class="form-footer">
-        <button type="submit" class="btn btn-primary w-100">
+        <button class="submit-btn btn btn-primary w-100"
+                {% if form_widget.confirmation_popup %}
+                    type="button"
+                    data-bs-target="#{{ form_widget.confirmation_popup.name }}"
+                    data-bs-toggle="modal"
+                {% else %}
+                    type="submit"
+                {% endif %}>
             {{ form_widget.button_text }}
         </button>
     </div>
 </form>
+
+{% with form_widget.confirmation_popup as confirmation_popup %}
+    {% if confirmation_popup %}
+        {% include 'widget_templates/forms/confirmation_popup.html' %}
+    {% endif %}
+{% endwith %}
 
 {% if form_widget.ajax_post %}
     <script>

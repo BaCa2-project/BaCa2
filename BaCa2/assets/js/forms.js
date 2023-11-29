@@ -67,6 +67,17 @@ function groupToggleBtnSetup() {
     });
 }
 
+function submitBtnSetup() {
+    const buttons = $('.submit-btn').filter(function ()  {
+        return $(this).data('bs-toggle') === 'modal'
+    });
+
+    buttons.on('click', function(e) {
+        e.preventDefault();
+        $(this).closest('form').submit();
+    });
+}
+
 function update_validation_status(field, fieldCls, required, minLength, url) {
     const value = $(field).val();
     $.ajax({

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import (Dict, List, Any)
 from enum import Enum
 from abc import abstractmethod
 
@@ -39,7 +39,8 @@ class FormWidget(Widget):
                  element_groups: FormElementGroup | List[FormElementGroup] = None,
                  toggleable_fields: List[str] = None,
                  toggleable_params: Dict[str, Dict[str, str]] = None,
-                 live_validation: bool = True, ) -> None:
+                 live_validation: bool = True,
+                 confirmation_popup: FormConfirmationPopup = None) -> None:
         """
         :param name: Name of the widget. Should be unique within the scope of one view.
         :type name: str
@@ -92,6 +93,10 @@ class FormWidget(Widget):
         self.display_field_errors = display_field_errors
         self.floating_labels = floating_labels
         self.live_validation = live_validation
+        self.confirmation_popup = confirmation_popup
+
+        if confirmation_popup:
+            self.confirmation_popup.name = f'{self.name}_confirmation_popup'
 
         if not element_groups:
             element_groups = []
@@ -176,6 +181,7 @@ class FormWidget(Widget):
             'field_required': self.field_required,
             'field_min_length': self.field_min_length,
             'live_validation': self.live_validation,
+            'confirmation_popup': self.confirmation_popup
         }
 
 
@@ -225,13 +231,42 @@ class FormElementGroup(Widget):
                 fields.append(element)
         return fields
 
-    def get_context(self) -> dict:
+    def get_context(self) -> Dict[str, Any]:
         return super().get_context() | {
             'elements': self.elements,
             'layout': self.layout,
             'toggleable': self.toggleable,
             'toggleable_params': self.toggleable_params,
             'frame': self.frame
+        }
+
+
+class FormConfirmationPopup(Widget):
+    def __init__(self,
+                 title: str,
+                 description: str,
+                 confirm_button_text: str = _('Confirm'),
+                 input_summary: bool = False,
+                 input_summary_fields: List[str] = None) -> None:
+        if input_summary and not input_summary_fields:
+            raise FormWidget.FormWidgetException(
+                "Cannot use input summary without specifying input summary fields."
+            )
+
+        super().__init__('')
+        self.title = title
+        self.description = description
+        self.confirm_button_text = confirm_button_text
+        self.input_summary = input_summary
+        self.input_summary_fields = input_summary_fields
+
+    def get_context(self) -> Dict[str, Any]:
+        return super().get_context() | {
+            'title': self.title,
+            'description': self.description,
+            'input_summary': self.input_summary,
+            'input_summary_fields': self.input_summary_fields,
+            'confirm_button_text': self.confirm_button_text
         }
 
 

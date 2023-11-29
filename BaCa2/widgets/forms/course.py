@@ -3,7 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from django.urls import reverse_lazy
 
 from main.models import Course
-from widgets.forms.base import (BaCa2Form, FormWidget, FormElementGroup)
+from widgets.forms.base import (BaCa2Form, FormWidget, FormElementGroup, FormConfirmationPopup)
 from widgets.forms.fields.course import CourseShortName
 
 
@@ -71,6 +71,15 @@ class CreateCourseFormWidget(FormWidget):
                                    'button_text_on': _('Create without USOS data')},
                 frame=True,
                 layout=FormElementGroup.FormElementsLayout.HORIZONTAL
+            ),
+            confirmation_popup=FormConfirmationPopup(
+                title=_('Confirm course creation'),
+                description=_(
+                    'Are you sure you want to create a new course with the following data?'
+                ),
+                confirm_button_text=_('Create course'),
+                input_summary=True,
+                input_summary_fields=['name', 'short_name', 'USOS_course_code', 'USOS_term_code'],
             ),
             **kwargs
         )
