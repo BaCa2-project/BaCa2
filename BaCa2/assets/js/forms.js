@@ -21,7 +21,6 @@ function toggleField(fieldName, buttonTextOff, buttonTextOn) {
         if (field.classList.contains('is-invalid')) {
             field.classList.remove('is-invalid');
             const errors = $(field.closest('.input-block')).find('.invalid-feedback');
-            console.log(errors);
             errors.remove();
         } else if (field.classList.contains('is-valid')) {
             field.classList.remove('is-valid');
