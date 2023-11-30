@@ -19,7 +19,10 @@
     {% endblock %}
 
     <div class="form-footer">
-        <button class="submit-btn btn btn-primary w-100"
+        <button class="submit-btn btn btn-primary w-100
+                {% if form_widget.confirmation_popup %}
+                    submit-confirmation-btn
+                {% endif %}"
                 {% if form_widget.confirmation_popup %}
                     type="button"
                     data-bs-target="#{{ form_widget.confirmation_popup.name }}"

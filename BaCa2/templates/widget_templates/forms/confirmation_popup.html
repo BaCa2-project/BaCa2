@@ -1,11 +1,49 @@
-<div class="modal fade" id="{{ confirmation_popup.name }}" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
+<div class="modal fade form-confirmation-popup"
+     id="{{ confirmation_popup.name }}"
+     data-bs-backfrop="static"
+     data-bs-keyboard="false"
+     tabindex="-1"
+     role="dialog">
+    <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title">{{ confirmation_popup.title }}</h4>
+                <h5 class="modal-title">{{ confirmation_popup.title }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p class="text-center">{{ confirmation_popup.description }}</p>
+                <p>{{ confirmation_popup.description }}</p>
+                {% if confirmation_popup.input_summary %}
+                    {% for field in confirmation_popup.input_summary_fields %}
+                        <div class="input-summary row mb-2">
+                            <div class="col-6">
+                                <strong class="input-summary-label"
+                                        data-input-target="{{ field }}">
+                                </strong>
+                            </div>
+                            <div class="col-6 text-muted">
+                                <div class="input-summary-value"
+                                     data-input-target="{{ field }}">
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <div class="row w-100">
+                    <div class="col-6 submit-btn-wrapper">
+                        <button class="btn submit-btn btn-primary w-100"
+                                data-form-target="{{ form_widget.name }}">
+                            {{ confirmation_popup.confirm_button_text }}
+                        </button>
+                    </div>
+                    <div class="col-6 cancel-btn-wrapper">
+                        <button class="btn btn-outline-secondary w-100"
+                                data-bs-dismiss="modal">
+                            {{ confirmation_popup.cancel_button_text }}
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

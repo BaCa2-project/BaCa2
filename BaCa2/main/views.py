@@ -110,7 +110,7 @@ class CourseModelView(BaCa2ModelView):
     MODEL = Course
 
     def post(self, request, **kwargs) -> JsonResponse:
-        pass
+        return JsonResponse({'status': 'ok'})
 
 
 class UserModelView(BaCa2ModelView):
