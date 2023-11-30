@@ -19,6 +19,20 @@ form .card-body {
   padding-bottom: 0;
 }
 
+.form-confirmation-popup .modal-header, .form-confirmation-popup .modal-body, .form-confirmation-popup .modal-footer {
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+.form-confirmation-popup .modal-footer .row {
+  margin: 0;
+}
+.form-confirmation-popup .modal-footer .submit-btn-wrapper {
+  padding-left: 0;
+}
+.form-confirmation-popup .modal-footer .cancel-btn-wrapper {
+  padding-right: 0;
+}
+
 .logo-wrapper .logo-stroke {
   fill: #000000;
 }

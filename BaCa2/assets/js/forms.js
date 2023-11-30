@@ -21,6 +21,7 @@ function toggleFieldGroup(formElementGroup, on) {
 function formsSetup() {
     groupToggleBtnSetup();
     toggleableFieldSetup();
+    confirmationPopupSetup();
 }
 
 function toggleableFieldSetup() {
@@ -67,14 +68,26 @@ function groupToggleBtnSetup() {
     });
 }
 
-function submitBtnSetup() {
-    const buttons = $('.submit-btn').filter(function ()  {
-        return $(this).data('bs-toggle') === 'modal'
+function confirmationPopupSetup() {
+    $('.submit-btn').filter(function () {
+        return $(this).data('bs-toggle') === 'modal';
+    }).filter(function () {
+        return $($(this).data('bs-target')).find('.input-summary').length > 0;
+    }).on('click', function (e) {
+        e.preventDefault();
+        const popup = $($(this).data('bs-target'));
+        popup.find('.input-summary-label').text(function () {
+            return $('#' + $(this).data('input-target')).closest('.input-group').find('label').text() + ':';
+        });
+        popup.find('.input-summary-value').text(function () {
+            const value = $('#' + $(this).data('input-target')).val();
+            return value.length > 0 ? value : '-';
+        });
     });
 
-    buttons.on('click', function(e) {
-        e.preventDefault();
-        $(this).closest('form').submit();
+    $('.form-confirmation-popup .submit-btn').on('click', function () {
+        $(this).closest('.form-confirmation-popup').modal('hide');
+        $('#' + $(this).data('form-target')).submit();
     });
 }
 

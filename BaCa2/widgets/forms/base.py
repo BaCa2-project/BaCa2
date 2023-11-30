@@ -246,6 +246,7 @@ class FormConfirmationPopup(Widget):
                  title: str,
                  description: str,
                  confirm_button_text: str = _('Confirm'),
+                 cancel_button_text: str = _('Cancel'),
                  input_summary: bool = False,
                  input_summary_fields: List[str] = None) -> None:
         if input_summary and not input_summary_fields:
@@ -257,6 +258,7 @@ class FormConfirmationPopup(Widget):
         self.title = title
         self.description = description
         self.confirm_button_text = confirm_button_text
+        self.cancel_button_text = cancel_button_text
         self.input_summary = input_summary
         self.input_summary_fields = input_summary_fields
 
@@ -266,7 +268,8 @@ class FormConfirmationPopup(Widget):
             'description': self.description,
             'input_summary': self.input_summary,
             'input_summary_fields': self.input_summary_fields,
-            'confirm_button_text': self.confirm_button_text
+            'confirm_button_text': self.confirm_button_text,
+            'cancel_button_text': self.cancel_button_text
         }
 
 
