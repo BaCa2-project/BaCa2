@@ -1,69 +1,77 @@
 @import "baca2_variables";
 @import "functions";
 
+// ---------------------------------------- display ------------------------------------------- //
+
 .side-nav {
-    border-radius: 6px;
     height: 100%;
-    padding: 0;
 
     .side-nav-content {
         list-style: none;
-        padding: 0;
-        margin: 0;
-
         display: flex;
         flex-direction: column-reverse;
+    }
+
+    .tab-button {
+        display: inline-block;
+        width: 100%;
+        box-sizing: border-box;
+
+        .side-nav-link {
+            text-decoration: none;
+            display: block;
+        }
+
+        .sub-tabs-content {
+            list-style: none;
+            overflow: hidden;
+
+            .sub-tab-button {
+                display: inline-block;
+                width: 100%;
+                box-sizing: border-box;
+            }
+        }
+    }
+}
+
+// ------------------------------------ padding & margin -------------------------------------- //
+
+.side-nav {
+    padding: 0;
+
+    .side-nav-content {
+        padding: 0;
+        margin: 0;
 
         .tab-button {
             margin: 0;
             padding: 0;
-            display: inline-block;
-            width: 100%;
-            box-sizing: border-box;
-
-            &:last-child {
-                border-radius: 6px 6px 0 0;
-            }
-
-            &:first-child {
-                border-radius: 0 0 6px 6px;
-
-                .sub-tab-button:last-child {
-                    border-radius: 0 0 6px 6px;
-                }
-            }
 
             .side-nav-link {
-                text-decoration: none;
-                display: block;
                 padding: 1rem;
             }
 
-            .sub-tabs-wrapper {
-                .sub-tabs-content {
-                    padding: 0;
+            .sub-tabs-content {
+                padding: 0;
+                margin: 0;
+
+                .sub-tab-button {
                     margin: 0;
-                    list-style: none;
+                    padding: 0;
 
-                    .sub-tab-button {
-                        margin: 0;
-                        padding: 0;
-                        display: inline-block;
-                        width: 100%;
-                        box-sizing: border-box;
-
-                        .side-nav-link {
-                            padding: 0.7rem 1rem 0.7rem 2rem;
-                        }
+                    .side-nav-link {
+                        padding: 0.7rem 1rem 0.7rem 2rem;
                     }
-
-                    overflow: hidden;
                 }
             }
         }
     }
 }
 
+// ----------------------------------------- dropdown ----------------------------------------- //
+
+// side-nav dropdown
 .side-nav {
     .tab-button {
         .sub-tabs-wrapper {
@@ -86,6 +94,7 @@
     }
 }
 
+// page content dropdown
 .tab-wrapper {
     display: grid;
     grid-template-rows: 0fr;
@@ -110,79 +119,107 @@
     }
 }
 
+// ------------------------------------------ shape ------------------------------------------- //
+
+.side-nav {
+    border-radius: $side_nav_corner_radius;
+    height: 100%;
+
+    .tab-button {
+        &:last-child {
+            border-radius: $side_nav_corner_radius $side_nav_corner_radius 0 0;
+        }
+
+        &:first-child {
+            border-radius: 0 0 $side_nav_corner_radius $side_nav_corner_radius;
+
+            .sub-tab-button:last-child {
+                border-radius: 0 0 $side_nav_corner_radius $side_nav_corner_radius;
+            }
+        }
+    }
+}
+
+// ---------------------------------------- borders ------------------------------------------- //
+
 @each $theme, $map in $side_nav_theme_variables {
-    [data-bs-theme="#{$theme}"] .side-nav {
-        .tab-button {
-            border-bottom: safe_get($map, $side_nav_default_variables, border_color) 1px solid;
+    [data-bs-theme="#{$theme}"] .side-nav .tab-button {
+        // Tab - default border
+        border-bottom: safe_get($map, $side_nav_default_variables, border_color)
+        $side_nav_border_line_width solid;
+        transition: border-bottom-color ease 0.5s,
+                    border-top-color ease 0.5s;
 
-            transition: border-bottom-color ease 0.5s,
-                        border-top-color ease 0.5s,
-                        background-position 1s;
+        &:first-child {
+            border-bottom: none;
+        }
 
-            .sub-tabs-wrapper {
-                .sub-tab-button {
-                    transition: background-position 1s;
+        // Tab - hover border
+        &:hover {
+            border-bottom-color: safe_get(
+                $map,
+                $side_nav_default_variables,
+                border_color_hover
+            );
 
-                    &:first-child {
-                        border-top: safe_get($map, $side_nav_default_variables, border_color)
-                        1px solid;
-                    }
-                }
+            &:not(:last-child) + .tab-button {
+                border-bottom-color: safe_get(
+                    $map,
+                    $side_nav_default_variables,
+                    border_color_hover
+                );
             }
+        }
 
-            &:first-child {
-                border-bottom: none;
+        // Tab - active border
+        &.active, &.expanded {
+            border-bottom-color: safe_get(
+                $map,
+                $side_nav_default_variables,
+                border_color_active
+            );
+
+            &:not(:last-child) + .tab-button {
+                border-bottom-color: safe_get(
+                    $map,
+                    $side_nav_default_variables,
+                    border_color_active
+                );
             }
+        }
 
+        // Sub tab - border
+        .sub-tab-button:first-child {
+            border-top: safe_get($map, $side_nav_default_variables, border_color)
+            1px solid;
+        }
+    }
+}
+
+// --------------------------------------- link color ----------------------------------------- //
+
+@each $theme, $map in $side_nav_theme_variables {
+    [data-bs-theme="#{$theme}"] .side-nav .tab-button {
+        // Tab - default link color
+        .side-nav-link {
+            color: safe_get($map, $side_nav_default_variables, link_color);
+            transition: color ease 0.3s;
+        }
+
+        // Tab - hover link color
+        &:hover .side-nav-link {
+            color: safe_get($map, $side_nav_default_variables, link_color_hover);
+        }
+
+        // Tab - active link color
+        &.active, &.expanded {
             .side-nav-link {
-                color: safe_get($map, $side_nav_default_variables, link_color);
-                transition: color ease 0.8s;
+                color: safe_get($map, $side_nav_default_variables, link_color_active);
             }
 
-            &:hover {
-                border-bottom-color: safe_get(
-                    $map,
-                    $side_nav_default_variables,
-                    hover_border_color
-                );
-
-                &:not(:last-child) + .tab-button {
-                    border-bottom-color: safe_get(
-                        $map,
-                        $side_nav_default_variables,
-                        hover_border_color
-                    );
-                }
-
-                .side-nav-link {
-                    color: safe_get($map, $side_nav_default_variables, hover_link_color);
-                }
-            }
-
-            &.active, &.expanded {
-                border-bottom-color: safe_get(
-                    $map,
-                    $side_nav_default_variables,
-                    hover_border_color
-                );
-
-                &:not(:last-child) + .tab-button {
-                    border-bottom-color: safe_get(
-                        $map,
-                        $side_nav_default_variables,
-                        hover_border_color
-                    );
-                }
-
-                .side-nav-link {
-                    color: safe_get($map, $side_nav_default_variables, active_link_color);
-                }
-
-                &:hover {
-                    .side-nav-link {
-                        color: safe_get($map, $side_nav_default_variables, hover_link_color);
-                    }
-                }
+            // Tab - active/expanded hover link color
+            &:hover .side-nav-link {
+                color: safe_get($map, $side_nav_default_variables, link_color_active_hover);
             }
         }
     }
@@ -193,34 +230,56 @@
 @each $theme, $map in $side_nav_theme_variables {
     [data-bs-theme="#{$theme}"] .side-nav .tab-button {
         // Tab - default bg color
-        background-color: safe_get($map, $side_nav_default_variables, bg);
-        transition: background-color ease 0.3s;
+        background-color: safe_get($map, $side_nav_default_variables, tab_bg_color);
+        transition: background-color ease 0.4s;
 
         // Tab - hover bg color
         &:hover {
-            background-color: safe_get($map, $side_nav_default_variables, hover_bg)
+            background-color: safe_get($map, $side_nav_default_variables, tab_bg_color_hover)
         }
 
         // Tab - expanded bg color
         &.expanded {
-            background-color: safe_get($map, $side_nav_default_variables, hover_bg);
+            background-color: safe_get($map, $side_nav_default_variables, tab_bg_color_expanded);
         }
 
         // Tab - active bg color
         &.active {
-            background-color: safe_get($map, $side_nav_default_variables, active_bg);
+            background-color: safe_get($map, $side_nav_default_variables, tab_bg_color_active);
         }
 
-        // Tab - active/expanded hover bg color
-        &.active, &.expanded {
-            &:hover {
-                background-color: safe_get($map, $side_nav_default_variables, hover_bg);
+        // Tab - active hover bg color
+        &.active:hover {
+            background-color: safe_get(
+                            $map,
+                            $side_nav_default_variables,
+                            tab_bg_color_active_hover
+            );
+        }
+
+        // Tab - expanded hover bg color
+        &.expanded:hover {
+            background-color: safe_get(
+                            $map,
+                            $side_nav_default_variables,
+                            tab_bg_color_expanded_hover
+            );
+        }
+
+        // Sub tab - expanded bg color
+        &.expanded, &:hover {
+            .sub-tab-button {
+                background-color: safe_get(
+                                $map,
+                                $side_nav_default_variables,
+                                sub_tab_bg_color_expanded
+                );
             }
         }
 
         // Sub tab - default bg color
         .sub-tab-button {
-            background-color: safe_get($map, $side_nav_default_variables, bg_sub_tab);
+            background-color: safe_get($map, $side_nav_default_variables, sub_tab_bg_color);
             transition: background-color ease 0.3s;
 
             // Sub tab - hover bg color
@@ -228,7 +287,7 @@
                 background-color: safe_get(
                                 $map,
                                 $side_nav_default_variables,
-                                hover_active_bg_sub_tab
+                                sub_tab_bg_color_hover
                 );
             }
 
@@ -237,15 +296,8 @@
                 background-color: safe_get(
                                 $map,
                                 $side_nav_default_variables,
-                                hover_active_bg_sub_tab
+                                sub_tab_bg_color_active
                 );
-            }
-        }
-
-        // Sub tab - expanded bg color
-        &.expanded, &:hover {
-            .sub-tab-button {
-                background-color: safe_get($map, $side_nav_default_variables, expanded_bg_sub_tab);
             }
         }
     }
