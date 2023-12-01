@@ -33,6 +33,14 @@ form .card-body {
   padding-right: 0;
 }
 
+.submit-btn {
+  transition: background-color 0.3s ease-out, transform 0.3s ease-out;
+}
+.submit-btn.submit-enabled {
+  background-color: #fe5882;
+  transform: scale(1.01, 1.05);
+}
+
 .logo-wrapper .logo-stroke {
   fill: #000000;
 }

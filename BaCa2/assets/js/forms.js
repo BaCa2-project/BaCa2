@@ -65,7 +65,18 @@ function submitButtonRefresh(form) {
     }).length > 0)
         form.find('.submit-btn').attr('disabled', true);
     else
-        form.find('.submit-btn').attr('disabled', false);
+        enableSubmitButton(form.find('.submit-btn'));
+}
+
+function enableSubmitButton(submitButton) {
+    if (submitButton.is(':disabled')) {
+        submitButton.attr('disabled', false);
+        submitButton.addClass('submit-enabled');
+
+        setTimeout(function () {
+            submitButton.removeClass('submit-enabled');
+        }, 300);
+    }
 }
 
 function toggleableFieldButtonInit(button) {
