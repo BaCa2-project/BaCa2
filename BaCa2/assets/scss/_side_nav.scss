@@ -113,16 +113,6 @@
 @each $theme, $map in $side_nav_theme_variables {
     [data-bs-theme="#{$theme}"] .side-nav {
         .tab-button {
-            background-size: 400% 100%;
-            background-image: linear-gradient(
-                to right,
-                safe_get($map, $side_nav_default_variables, bg) 0%,
-                safe_get($map, $side_nav_default_variables, bg) 25%,
-                safe_get($map, $side_nav_default_variables, hover_bg) 25%,
-                safe_get($map, $side_nav_default_variables, hover_bg) 50%,
-                safe_get($map, $side_nav_default_variables, active_bg) 50%,
-                safe_get($map, $side_nav_default_variables, active_bg) 100%
-            );
             border-bottom: safe_get($map, $side_nav_default_variables, border_color) 1px solid;
 
             transition: border-bottom-color ease 0.5s,
@@ -131,32 +121,12 @@
 
             .sub-tabs-wrapper {
                 .sub-tab-button {
-                    background-size: 400% 100%;
-                    background-image: linear-gradient(
-                        to right,
-                        safe_get($map, $side_nav_default_variables, bg_sub_tab) 0%,
-                        safe_get($map, $side_nav_default_variables, bg_sub_tab) 25%,
-                        safe_get($map, $side_nav_default_variables, expanded_bg_sub_tab) 25%,
-                        safe_get($map, $side_nav_default_variables, expanded_bg_sub_tab) 50%,
-                        safe_get($map, $side_nav_default_variables, hover_active_bg_sub_tab) 50%,
-                        safe_get($map, $side_nav_default_variables, hover_active_bg_sub_tab) 100%
-                    );
                     transition: background-position 1s;
 
                     &:first-child {
                         border-top: safe_get($map, $side_nav_default_variables, border_color)
                         1px solid;
                     }
-
-                    &:hover, &.active {
-                        background-position: 100% 0;
-                    }
-                }
-            }
-
-            &.expanded, &:hover {
-                .sub-tab-button {
-                    background-position: calc(100% / 3) 0;
                 }
             }
 
@@ -170,7 +140,6 @@
             }
 
             &:hover {
-                background-position: calc(100% / 3) 0;
                 border-bottom-color: safe_get(
                     $map,
                     $side_nav_default_variables,
@@ -188,14 +157,6 @@
                 .side-nav-link {
                     color: safe_get($map, $side_nav_default_variables, hover_link_color);
                 }
-            }
-
-            &.active {
-                background-position: 100% 0;
-            }
-
-            &.expanded {
-                background-position: calc(100% / 3) 0;
             }
 
             &.active, &.expanded {
@@ -218,12 +179,73 @@
                 }
 
                 &:hover {
-                    background-position: calc(100% / 3) 0;
-
                     .side-nav-link {
                         color: safe_get($map, $side_nav_default_variables, hover_link_color);
                     }
                 }
+            }
+        }
+    }
+}
+
+// ---------------------------------------- bg color ------------------------------------------ //
+
+@each $theme, $map in $side_nav_theme_variables {
+    [data-bs-theme="#{$theme}"] .side-nav .tab-button {
+        // Tab - default bg color
+        background-color: safe_get($map, $side_nav_default_variables, bg);
+        transition: background-color ease 0.3s;
+
+        // Tab - hover bg color
+        &:hover {
+            background-color: safe_get($map, $side_nav_default_variables, hover_bg)
+        }
+
+        // Tab - expanded bg color
+        &.expanded {
+            background-color: safe_get($map, $side_nav_default_variables, hover_bg);
+        }
+
+        // Tab - active bg color
+        &.active {
+            background-color: safe_get($map, $side_nav_default_variables, active_bg);
+        }
+
+        // Tab - active/expanded hover bg color
+        &.active, &.expanded {
+            &:hover {
+                background-color: safe_get($map, $side_nav_default_variables, hover_bg);
+            }
+        }
+
+        // Sub tab - default bg color
+        .sub-tab-button {
+            background-color: safe_get($map, $side_nav_default_variables, bg_sub_tab);
+            transition: background-color ease 0.3s;
+
+            // Sub tab - hover bg color
+            &:hover {
+                background-color: safe_get(
+                                $map,
+                                $side_nav_default_variables,
+                                hover_active_bg_sub_tab
+                );
+            }
+
+            // Sub tab - active bg color
+            &.active {
+                background-color: safe_get(
+                                $map,
+                                $side_nav_default_variables,
+                                hover_active_bg_sub_tab
+                );
+            }
+        }
+
+        // Sub tab - expanded bg color
+        &.expanded, &:hover {
+            .sub-tab-button {
+                background-color: safe_get($map, $side_nav_default_variables, expanded_bg_sub_tab);
             }
         }
     }
