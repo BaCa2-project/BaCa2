@@ -19,7 +19,7 @@ function toggleFieldGroup(formElementGroup, on) {
 }
 
 function formsSetup() {
-    groupToggleBtnSetup();
+    toggleableGroupSetup();
     toggleableFieldSetup();
     confirmationPopupSetup();
 }
@@ -28,14 +28,18 @@ function toggleableFieldSetup() {
     const buttons = $('.field-toggle-btn');
 
     buttons.on('click', function(e) {
-        let on = false;
         e.preventDefault();
         toggleTextSwitchBtn($(this));
+        let on = false;
+        const input = $(this).closest('.input-group').find('input')
 
         if ($(this).hasClass('switch-on'))
             on = true;
 
-        toggleField($(this).closest('.input-group').find('input'), on);
+        toggleField(input, on);
+
+        if (on)
+            input.focus();
     });
 
     buttons.each(function () {
@@ -46,18 +50,22 @@ function toggleableFieldSetup() {
     });
 }
 
-function groupToggleBtnSetup() {
+function toggleableGroupSetup() {
     const buttons = $('.group-toggle-btn');
 
     buttons.on('click', function(e) {
-        let on = false;
         e.preventDefault();
         toggleTextSwitchBtn($(this));
+        let on = false;
+        const group = $(this).closest('.form-element-group');
 
         if ($(this).hasClass('switch-on'))
             on = true;
 
-        toggleFieldGroup($(this).closest('.form-element-group'), on)
+        toggleFieldGroup(group, on)
+
+        if (on)
+            group.find('input:first').focus()
     });
 
     buttons.each(function () {
@@ -76,9 +84,12 @@ function confirmationPopupSetup() {
     }).on('click', function (e) {
         e.preventDefault();
         const popup = $($(this).data('bs-target'));
+
         popup.find('.input-summary-label').text(function () {
-            return $('#' + $(this).data('input-target')).closest('.input-group').find('label').text() + ':';
+            return $('#' + $(this).data('input-target')).closest('.input-group')
+                .find('label').text() + ':';
         });
+
         popup.find('.input-summary-value').text(function () {
             const value = $('#' + $(this).data('input-target')).val();
             return value.length > 0 ? value : '-';
