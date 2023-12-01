@@ -10,6 +10,9 @@
                 {% else %}
                     toggleable-off
                 {% endif %}
+            {% endif %}
+            {% if form_widget.live_validation %}
+                live-validation
             {% endif %}">
         {% if form_widget.floating_labels %}
             <div class="form-floating">
