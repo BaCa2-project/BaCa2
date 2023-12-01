@@ -22,6 +22,22 @@ function formsSetup() {
     toggleableGroupSetup();
     toggleableFieldSetup();
     confirmationPopupSetup();
+    liveValidationSetup();
+}
+
+function liveValidationSetup() {
+    $('form').each(function () {
+        submitButtonRefresh($(this));
+    });
+}
+
+function submitButtonRefresh(form) {
+    if (form.find('.live-validation').filter(function () {
+        return ($(this)).find('input:not(:disabled):not(.is-valid)').length > 0;
+    }).length > 0)
+        form.find('.submit-btn').attr('disabled', true);
+    else
+        form.find('.submit-btn').attr('disabled', false);
 }
 
 function toggleableFieldSetup() {
@@ -40,6 +56,8 @@ function toggleableFieldSetup() {
 
         if (on)
             input.focus();
+
+        submitButtonRefresh($(this).closest('form'));
     });
 
     buttons.each(function () {
@@ -66,6 +84,8 @@ function toggleableGroupSetup() {
 
         if (on)
             group.find('input:first').focus()
+
+        submitButtonRefresh($(this).closest('form'));
     });
 
     buttons.each(function () {
@@ -117,18 +137,25 @@ function update_validation_status(field, fieldCls, required, minLength, url) {
             if (data.status === 'ok') {
                 $(field).removeClass('is-invalid');
                 $(field).addClass('is-valid');
+
                 const input_block = $(field).closest('.input-block');
                 $(input_block).find('.invalid-feedback').remove();
+
+                submitButtonRefresh($(field).closest('form'));
             } else {
                 $(field).removeClass('is-valid');
                 $(field).addClass('is-invalid');
+
                 const input_block = $(field).closest('.input-block');
                 $(input_block).find('.invalid-feedback').remove();
+
                 for (let i = 0; i < data.messages.length; i++) {
                     $(input_block).append(
                         "<div class='invalid-feedback'>" + data.messages[i] + "</div>"
                     );
                 }
+
+                $(field).closest('form').find('.submit-btn').attr('disabled', true);
             }
         }
     });
