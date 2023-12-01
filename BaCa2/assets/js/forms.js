@@ -22,12 +22,40 @@ function formsSetup() {
     toggleableGroupSetup();
     toggleableFieldSetup();
     confirmationPopupSetup();
+    refreshButtonSetup()
     liveValidationSetup();
 }
 
 function liveValidationSetup() {
     $('form').each(function () {
         submitButtonRefresh($(this));
+    });
+}
+
+function refreshButtonSetup() {
+    $('form').each(function () {
+        const form = $(this)
+        form.find('.form-refresh-button').on('click', function () {
+           form[0].reset();
+           clearValidation(form);
+           resetToggleables(form);
+           submitButtonRefresh(form);
+       });
+    });
+}
+
+function clearValidation(form) {
+    form.find('input').removeClass('is-valid').removeClass('is-invalid');
+    form.find('.invalid-feedback').remove();
+}
+
+function resetToggleables(form) {
+    form.find('.field-toggle-btn').each(function () {
+        toggleableFieldButtonInit($(this));
+    });
+
+    form.find('.group-toggle-btn').each(function () {
+        toggleableGroupButtonInit($(this));
     });
 }
 
@@ -40,8 +68,19 @@ function submitButtonRefresh(form) {
         form.find('.submit-btn').attr('disabled', false);
 }
 
+function toggleableFieldButtonInit(button) {
+    let on = button.data('initial-state') !== 'off';
+    if (button.hasClass('switch-on') && !on)
+        toggleTextSwitchBtn(button)
+    toggleField(button.closest('.input-group').find('input'), on);
+}
+
 function toggleableFieldSetup() {
     const buttons = $('.field-toggle-btn');
+
+    buttons.each(function () {
+        toggleableFieldButtonInit($(this));
+    });
 
     buttons.on('click', function(e) {
         e.preventDefault();
@@ -59,17 +98,21 @@ function toggleableFieldSetup() {
 
         submitButtonRefresh($(this).closest('form'));
     });
+}
 
-    buttons.each(function () {
-        let on = false;
-        if ($(this).hasClass('switch-on'))
-            on = true;
-        toggleField($(this).closest('.input-group').find('input'), on);
-    });
+function toggleableGroupButtonInit(button) {
+    let on  = button.data('initial-state') !== 'off';
+    if (button.hasClass('switch-on') && !on)
+        toggleTextSwitchBtn(button)
+    toggleFieldGroup(button.closest('.form-element-group'), on)
 }
 
 function toggleableGroupSetup() {
     const buttons = $('.group-toggle-btn');
+
+    buttons.each(function () {
+        toggleableGroupButtonInit($(this))
+    });
 
     buttons.on('click', function(e) {
         e.preventDefault();
@@ -86,13 +129,6 @@ function toggleableGroupSetup() {
             group.find('input:first').focus()
 
         submitButtonRefresh($(this).closest('form'));
-    });
-
-    buttons.each(function () {
-        let on  = false;
-        if ($(this).hasClass('switch-on'))
-            on = true;
-        toggleFieldGroup($(this).closest('.form-element-group'), on)
     });
 }
 

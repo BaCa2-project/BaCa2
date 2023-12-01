@@ -19,19 +19,30 @@
     {% endblock %}
 
     <div class="form-footer">
-        <button class="submit-btn btn btn-primary w-100
-                {% if form_widget.confirmation_popup %}
-                    submit-confirmation-btn
-                {% endif %}"
-                {% if form_widget.confirmation_popup %}
-                    type="button"
-                    data-bs-target="#{{ form_widget.confirmation_popup.name }}"
-                    data-bs-toggle="modal"
-                {% else %}
-                    type="submit"
-                {% endif %}>
-            {{ form_widget.button_text }}
-        </button>
+        <div class="row">
+            <div class="col-10">
+                <button class="submit-btn btn btn-primary w-100
+                        {% if form_widget.confirmation_popup %}
+                            submit-confirmation-btn
+                        {% endif %}"
+                        {% if form_widget.confirmation_popup %}
+                            type="button"
+                            data-bs-target="#{{ form_widget.confirmation_popup.name }}"
+                            data-bs-toggle="modal"
+                        {% else %}
+                            type="submit"
+                        {% endif %}>
+                    {{ form_widget.button_text }}
+                </button>
+            </div>
+            <div class="col d-flex">
+                <div class="icon-wrapper icon-m w-100">
+                    <button class="btn btn-primary form-refresh-button w-100" type="button">
+                        {% include 'icons/refresh.svg' %}
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </form>
 

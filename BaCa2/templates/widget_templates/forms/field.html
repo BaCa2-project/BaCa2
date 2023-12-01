@@ -45,7 +45,8 @@
                                text-switch-btn switch-off
                                field-toggle-btn"
                         data-text-on="{{ button_params|get_item:'button_text_on'}}"
-                        data-text-off="{{ button_params|get_item:'button_text_off'}}">
+                        data-text-off="{{ button_params|get_item:'button_text_off'}}"
+                        data-initial-state="off">
                 </button>
             {% endwith %}
         {% endif %}
