@@ -31,6 +31,7 @@ class BrokerSubmit(models.Model):
 
     status = models.IntegerField(StatusEnum, default=StatusEnum.NEW)
     update_date = models.DateTimeField(default=timezone.now)
+    retires = models.IntegerField(default=0)
 
     @property
     def broker_id(self):
@@ -39,7 +40,7 @@ class BrokerSubmit(models.Model):
     def hash_password(self, password: str) -> str:
         return brcom.make_hash(password, self.broker_id)
 
-    def _send_submit(self, url: str, password: str) -> (brcom.BacaToBroker, int):
+    def send_submit(self, url: str, password: str) -> (brcom.BacaToBroker, int):
         message = brcom.BacaToBroker(
             pass_hash=self.hash_password(password),
             submit_id=self.broker_id,
@@ -64,7 +65,7 @@ class BrokerSubmit(models.Model):
             package_instance=package_instance
         )
         new_submit.save()
-        _, code = cls._send_submit(new_submit, BROKER_URL, BROKER_PASSWORD)
+        _, code = cls.send_submit(new_submit, BROKER_URL, BROKER_PASSWORD)
         if code != 200:
             raise ConnectionError(f'Cannot sent message to broker (error code: {code})')
         new_submit.update_status(cls.StatusEnum.AWAITING_RESPONSE)
