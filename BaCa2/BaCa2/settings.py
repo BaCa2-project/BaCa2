@@ -201,6 +201,16 @@ SUBMITS_DIR = BASE_DIR / 'submits'
 BACA_PASSWORD = 'tmp-baca-password'
 BROKER_PASSWORD = 'tmp-broker-password'
 
+# Broker retry policy
+BROKER_RETRY = {
+    # In seconds
+    'retry timeout': 60.0,
+    'max retries': 3,
+
+    # In minutes
+    'retry check interval': 60.0
+}
+
 # import secrets
 SECRETS_DIR = BASE_DIR / "secrets.yaml"
 SECRETS = {}

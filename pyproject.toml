@@ -18,6 +18,7 @@ baca2-package-manager = "0.2.10"
 urllib3 = "1.26.16"
 django-widget-tweaks = "^1.4.12"
 usosapi = { path = "lib/usosapi-python" }
+apscheduler = "^3.10.4"
 
 
 [build-system]
