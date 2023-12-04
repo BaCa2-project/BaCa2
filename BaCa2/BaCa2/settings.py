@@ -35,10 +35,22 @@ DEBUG = os.getenv('DEBUG')
 
 ALLOWED_HOSTS = [
     '0.0.0.0',
+    '0.0.0.0',
     '127.0.0.1',
     'localhost',
     os.getenv('HOST_IP'),
     os.getenv('HOST_NAME')
+]
+
+# mark signal redirected via proxy as https
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://baca2.ii.uj.edu.pl',
+    'https://127.0.0.1'
 ]
 
 # APPLICATIONS -----------------------------------------------------------------------
