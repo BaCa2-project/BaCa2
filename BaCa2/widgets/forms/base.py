@@ -5,6 +5,7 @@ from enum import Enum
 from abc import abstractmethod
 
 from django import forms
+from django.http import JsonResponse
 from django.utils.translation import gettext_lazy as _
 
 from widgets.base import Widget
@@ -310,6 +311,23 @@ class BaCa2ModelForm(BaCa2Form):
     #: Action which should be performed using the form data.
     ACTION: ModelAction = None
 
+    class Status(Enum):
+        """
+        Enum used to indicate the possible outcomes of a post request sent via a model form.
+        A JSON response returned by the handle_post_request method of a model will always contain
+        a status field with one of the values from this enum.
+        """
+        #: Indicates that the request was successful.
+        SUCCESS = 'success'
+        #: Indicates that the request was unsuccessful due to invalid form data.
+        INVALID = 'invalid'
+        #: Indicates that the request was unsuccessful due to the user not having the permission to
+        # perform the action specified by the form.
+        IMPERMISSIBLE = 'impermissible'
+        #: Indicates that the request was unsuccessful due to an error not related to form
+        # validation or the user's permissions.
+        ERROR = 'error'
+
     def __init__(self, **kwargs):
         super().__init__(initial={'form_name': f'{self.ACTION.label}_form',
                                   'action': self.ACTION.name}, **kwargs)
@@ -323,15 +341,25 @@ class BaCa2ModelForm(BaCa2Form):
         :type request: HttpRequest
         """
         if not cls.is_permissible(request):
-            return cls.handle_impermissible_request(request)
+            return JsonResponse(
+                {'status': cls.Status.IMPERMISSIBLE.value} |
+                cls.handle_impermissible_request(request)
+            )
 
         if cls(data=request.POST).is_valid():
-            return cls.handle_valid_request(request)
-        return cls.handle_invalid_request(request)
+            return JsonResponse(
+                {'status': cls.Status.SUCCESS.value} |
+                cls.handle_valid_request(request)
+            )
+
+        return JsonResponse(
+            {'status': cls.Status.INVALID.value} |
+            cls.handle_invalid_request(request)
+        )
 
     @classmethod
     @abstractmethod
-    def handle_valid_request(cls, request):
+    def handle_valid_request(cls, request) -> Dict[str, str]:
         """
         Handles the POST request received by the view this form's data was posted to if the request
         is permissible and the form data is valid.
@@ -340,7 +368,7 @@ class BaCa2ModelForm(BaCa2Form):
 
     @classmethod
     @abstractmethod
-    def handle_invalid_request(cls, request):
+    def handle_invalid_request(cls, request) -> Dict[str, str]:
         """
         Handles the POST request received by the view this form's data was posted to if the request
         is permissible but the form data is invalid.
@@ -349,7 +377,7 @@ class BaCa2ModelForm(BaCa2Form):
 
     @classmethod
     @abstractmethod
-    def handle_impermissible_request(cls, request):
+    def handle_impermissible_request(cls, request) -> Dict[str, str]:
         """
         Handles the POST request received by the view this form's data was posted to if the request
         is impermissible.
