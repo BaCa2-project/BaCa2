@@ -22,10 +22,76 @@ function formsSetup() {
     toggleableGroupSetup();
     toggleableFieldSetup();
     confirmationPopupSetup();
+    refreshButtonSetup()
+    liveValidationSetup();
+}
+
+function liveValidationSetup() {
+    $('form').each(function () {
+        submitButtonRefresh($(this));
+    });
+}
+
+function refreshButtonSetup() {
+    $('form').each(function () {
+        const form = $(this)
+        form.find('.form-refresh-button').on('click', function () {
+           form[0].reset();
+           clearValidation(form);
+           resetToggleables(form);
+           submitButtonRefresh(form);
+       });
+    });
+}
+
+function clearValidation(form) {
+    form.find('input').removeClass('is-valid').removeClass('is-invalid');
+    form.find('.invalid-feedback').remove();
+}
+
+function resetToggleables(form) {
+    form.find('.field-toggle-btn').each(function () {
+        toggleableFieldButtonInit($(this));
+    });
+
+    form.find('.group-toggle-btn').each(function () {
+        toggleableGroupButtonInit($(this));
+    });
+}
+
+function submitButtonRefresh(form) {
+    if (form.find('.live-validation').filter(function () {
+        return ($(this)).find('input:not(:disabled):not(.is-valid)').length > 0;
+    }).length > 0)
+        form.find('.submit-btn').attr('disabled', true);
+    else
+        enableSubmitButton(form.find('.submit-btn'));
+}
+
+function enableSubmitButton(submitButton) {
+    if (submitButton.is(':disabled')) {
+        submitButton.attr('disabled', false);
+        submitButton.addClass('submit-enabled');
+
+        setTimeout(function () {
+            submitButton.removeClass('submit-enabled');
+        }, 300);
+    }
+}
+
+function toggleableFieldButtonInit(button) {
+    let on = button.data('initial-state') !== 'off';
+    if (button.hasClass('switch-on') && !on)
+        toggleTextSwitchBtn(button)
+    toggleField(button.closest('.input-group').find('input'), on);
 }
 
 function toggleableFieldSetup() {
     const buttons = $('.field-toggle-btn');
+
+    buttons.each(function () {
+        toggleableFieldButtonInit($(this));
+    });
 
     buttons.on('click', function(e) {
         e.preventDefault();
@@ -40,18 +106,24 @@ function toggleableFieldSetup() {
 
         if (on)
             input.focus();
-    });
 
-    buttons.each(function () {
-        let on = false;
-        if ($(this).hasClass('switch-on'))
-            on = true;
-        toggleField($(this).closest('.input-group').find('input'), on);
+        submitButtonRefresh($(this).closest('form'));
     });
+}
+
+function toggleableGroupButtonInit(button) {
+    let on  = button.data('initial-state') !== 'off';
+    if (button.hasClass('switch-on') && !on)
+        toggleTextSwitchBtn(button)
+    toggleFieldGroup(button.closest('.form-element-group'), on)
 }
 
 function toggleableGroupSetup() {
     const buttons = $('.group-toggle-btn');
+
+    buttons.each(function () {
+        toggleableGroupButtonInit($(this))
+    });
 
     buttons.on('click', function(e) {
         e.preventDefault();
@@ -66,13 +138,8 @@ function toggleableGroupSetup() {
 
         if (on)
             group.find('input:first').focus()
-    });
 
-    buttons.each(function () {
-        let on  = false;
-        if ($(this).hasClass('switch-on'))
-            on = true;
-        toggleFieldGroup($(this).closest('.form-element-group'), on)
+        submitButtonRefresh($(this).closest('form'));
     });
 }
 
@@ -117,18 +184,25 @@ function update_validation_status(field, fieldCls, required, minLength, url) {
             if (data.status === 'ok') {
                 $(field).removeClass('is-invalid');
                 $(field).addClass('is-valid');
+
                 const input_block = $(field).closest('.input-block');
                 $(input_block).find('.invalid-feedback').remove();
+
+                submitButtonRefresh($(field).closest('form'));
             } else {
                 $(field).removeClass('is-valid');
                 $(field).addClass('is-invalid');
+
                 const input_block = $(field).closest('.input-block');
                 $(input_block).find('.invalid-feedback').remove();
+
                 for (let i = 0; i < data.messages.length; i++) {
                     $(input_block).append(
                         "<div class='invalid-feedback'>" + data.messages[i] + "</div>"
                     );
                 }
+
+                $(field).closest('form').find('.submit-btn').attr('disabled', true);
             }
         }
     });

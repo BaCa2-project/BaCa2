@@ -33,6 +33,7 @@ class FormWidget(Widget):
                  post_url: str = None,
                  ajax_post: bool = False,
                  button_text: str = _('Submit'),
+                 refresh_button: bool = True,
                  display_non_field_validation: bool = True,
                  display_field_errors: bool = True,
                  floating_labels: bool = True,
@@ -89,6 +90,7 @@ class FormWidget(Widget):
         self.form_cls = form.__class__.__name__
         self.ajax_post = ajax_post
         self.button_text = button_text
+        self.refresh_button = refresh_button
         self.display_non_field_validation = display_non_field_validation
         self.display_field_errors = display_field_errors
         self.floating_labels = floating_labels
@@ -172,6 +174,7 @@ class FormWidget(Widget):
             'ajax_post': self.ajax_post,
             'elements': self.elements,
             'button_text': self.button_text,
+            'refresh_button': self.refresh_button,
             'display_non_field_errors': self.display_non_field_validation,
             'display_field_errors': self.display_field_errors,
             'floating_labels': self.floating_labels,
