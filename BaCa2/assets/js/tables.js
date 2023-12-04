@@ -90,7 +90,11 @@ function create_table(
     }
     table_params['columnDefs'] = column_defs;
 
-    tables_dict[table_id] = $(`#${table_id}`).DataTable(table_params);
+    table_params['rowCallback'] = function (row, data) {
+        $(row).attr('data-record-id', `${data.id}`);
+    }
+
+    tables_dict[table_id] = $(`#${table_id}`).dataTable(table_params);
 
     if (refresh) {
         setInterval(() => {

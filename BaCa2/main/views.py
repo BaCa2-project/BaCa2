@@ -12,7 +12,7 @@ from util.models import model_cls
 from util.views import normalize_string_to_python
 from main.models import (Course, User)
 from widgets.base import Widget
-from widgets.listing import TableWidget
+from widgets.listing import TableWidget, TableWidget2, Column
 from widgets.forms import FormWidget
 from widgets.forms.fields import get_field_validation_status
 from widgets.navigation import (NavBar, SideNav)
@@ -137,7 +137,7 @@ class BaCa2ContextMixin:
         pass
 
     # List of all widget types used in BaCa2 views.
-    WIDGET_TYPES = [TableWidget, FormWidget, NavBar, SideNav]
+    WIDGET_TYPES = [TableWidget, FormWidget, NavBar, SideNav, TableWidget2]
     # List of all widgets which are unique (i.e. there can only be one instance of each widget type
     # can exist in the context dictionary).
     UNIQUE_WIDGETS = [NavBar, SideNav]
@@ -405,7 +405,17 @@ class DashboardView(BaCa2LoggedInView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['display_navbar'] = True
+
+        self.add_widget(context, TableWidget2(
+            model_cls=Course,
+            cols=[
+                Column('id', 'ID', True),
+                Column('name', 'Name', True),
+            ],
+            allow_select=True,
+            allow_delete=True,
+        ))
+
         return context
 
 
