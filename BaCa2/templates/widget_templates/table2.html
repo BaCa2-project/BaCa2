@@ -1,0 +1,46 @@
+{% load custom_tags %}
+
+<div class="table-wrapper card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="{{ table_widget.table_class }}"
+                   id="{{ table_widget.name }}"
+                   style="width:100%">
+                <thead>
+                    <tr>
+                        {% for col in table_widget.cols %}
+                            <th>
+                                {{ col.header }}
+                            </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="table-icons-util">
+    <div class="icon-wrapper icon-m d-flex details-icon">
+        {% include 'icons/3-lines.svg' %}
+    </div>
+    <div class="icon-wrapper icon-m d-flex edit-icon">
+        {% include 'icons/pencil.svg' %}
+    </div>
+    <div class="icon-wrapper icon-m d-flex delete-icon">
+        {% include 'icons/trash.svg' %}
+    </div>
+</div>
+
+
+<script type="text/javascript">
+    tableSetup({
+        table_id: '{{ table_widget.name }}',
+        model_name: '{{ table_widget.model_name }}',
+        cols: {{ table_widget.cols|safe }},
+        default_order: '{{ table_widget.default_order }}',
+        default_order_col: parseInt({{ table_widget.default_order_col }}),
+        paging: {{ table_widget.paging|safe }},
+    });
+</script>
+
