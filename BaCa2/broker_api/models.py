@@ -81,25 +81,29 @@ class BrokerSubmit(models.Model):
                 break
             sleep(BROKER_RETRY["individual submit retry interval"])
         else:
-            new_submit.update_status(cls.StatusEnum.ERROR)
+            new_submit.update_status(cls.StatusEnum.ERROR)  # ???
             raise ConnectionError(f'Cannot sent message to broker (error code: {code})')
         new_submit.update_status(cls.StatusEnum.AWAITING_RESPONSE)
         return new_submit
 
     @classmethod
     @transaction.atomic
-    def handle_result(cls, broker_submit_id: str, response: brcom.BrokerToBaca) -> None:
-        # Authentication
-        course_name, submit_id = brcom.split_broker_submit_id(broker_submit_id)
+    def authenticate(cls, response: brcom.BrokerToBaca) -> 'BrokerSubmit':
+        course_name, submit_id = brcom.split_broker_submit_id(response.submit_id)
         print(f'{course_name=}, {submit_id=}')
         broker_submit = cls.objects.filter(course__name=course_name, submit_id=submit_id).first()
         print(f'{broker_submit=}')
-        if response.submit_id != broker_submit_id:
-            raise ValueError('broker_submit_id in the url and in the json message have to match.')
         if broker_submit is None:
-            raise ValueError(f"No submit with broker_id {broker_submit_id} exists.")
+            raise ValueError(f"No submit with broker_id {response.submit_id} exists.")
         if response.pass_hash != broker_submit.hash_password(BACA_PASSWORD):
             raise PermissionError("Wrong password.")
+        return broker_submit
+
+    @classmethod
+    @transaction.atomic
+    def handle_result(cls, response: brcom.BrokerToBaca) -> None:
+        broker_submit = cls.authenticate(response)
+        course_name, submit_id = brcom.split_broker_submit_id(response.submit_id)
 
         print('update status')
         broker_submit.update_status(cls.StatusEnum.CHECKED)
@@ -114,6 +118,12 @@ class BrokerSubmit(models.Model):
 
         broker_submit.update_status(cls.StatusEnum.SAVED)
 
+    @classmethod
+    @transaction.atomic
+    def handle_error(cls, response: brcom.BrokerToBacaError) -> None:
+        broker_submit = cls.authenticate(response)
+        broker_submit.update_status(cls.StatusEnum.ERROR)
+
     @property
     def solution(self):
         with InCourse(self.course.short_name):
@@ -121,8 +131,6 @@ class BrokerSubmit(models.Model):
 
     @transaction.atomic
     def update_status(self, new_status: StatusEnum):
-        if new_status - 1 != self.status and new_status != self.StatusEnum.EXPIRED:
-            raise ValueError(f"Attempted to change status from {self.status} to {new_status}.")
         self.status = new_status
         self.update_date = timezone.now()
         self.save()
