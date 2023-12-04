@@ -23,12 +23,14 @@ class CreateCourseForm(BaCa2Form):
     #: Subject code of the course in the USOS system.
     USOS_course_code = forms.CharField(
         label=_('USOS course code'),
+        min_length=1,
         max_length=Course._meta.get_field('USOS_course_code').max_length,
         required=False
     )
     #: Term code of the course in the USOS system.
     USOS_term_code = forms.CharField(
         label=_('USOS term code'),
+        min_length=1,
         max_length=Course._meta.get_field('USOS_term_code').max_length,
         required=False
     )
