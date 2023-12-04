@@ -204,11 +204,15 @@ BROKER_PASSWORD = 'tmp-broker-password'
 # Broker retry policy
 BROKER_RETRY = {
     # In seconds
-    'retry timeout': 60.0,
-    'max retries': 3,
+    'individual submit retry interval': 0.05,
+    "individual max retries": 10,
+
+    # In seconds
+    'retry timeout': 20.0,
+    'max retries': 2,
 
     # In minutes
-    'retry check interval': 60.0
+    'retry check interval': 20.0
 }
 
 # import secrets

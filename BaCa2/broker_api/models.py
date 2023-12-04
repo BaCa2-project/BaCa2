@@ -1,10 +1,12 @@
+from time import sleep
+
 from django.db import models, transaction
 from django.utils import timezone
 
 import requests
 import baca2PackageManager.broker_communication as brcom
 
-from BaCa2.settings import BROKER_PASSWORD, BACA_PASSWORD, BROKER_URL
+from BaCa2.settings import BROKER_PASSWORD, BACA_PASSWORD, BROKER_URL, BROKER_RETRY
 from main.models import Course
 from package.models import PackageInstance
 from course.routing import InCourse
@@ -19,6 +21,7 @@ from course.models import Submit, Result
 class BrokerSubmit(models.Model):
 
     class StatusEnum(models.IntegerChoices):
+        ERROR = -2
         EXPIRED = -1
         NEW = 0
         AWAITING_RESPONSE = 1
@@ -48,8 +51,14 @@ class BrokerSubmit(models.Model):
             commit_id=self.package_instance.commit,
             submit_path=self.solution
         )
-        r = requests.post(url, json=message.serialize())
-        return message, r.status_code
+        try:
+            r = requests.post(url, json=message.serialize())
+        except requests.exceptions.ConnectionError:
+            return message, -1
+        except requests.exceptions.ChunkedEncodingError:
+            return message, -2
+        else:
+            return message, r.status_code
 
     @classmethod
     @transaction.atomic
@@ -65,8 +74,14 @@ class BrokerSubmit(models.Model):
             package_instance=package_instance
         )
         new_submit.save()
-        _, code = cls.send_submit(new_submit, BROKER_URL, BROKER_PASSWORD)
-        if code != 200:
+        code = -100
+        for _ in range(BROKER_RETRY["individual max retries"]):
+            _, code = cls.send_submit(new_submit, BROKER_URL, BROKER_PASSWORD)
+            if code == 200:
+                break
+            sleep(BROKER_RETRY["individual submit retry interval"])
+        else:
+            new_submit.update_status(cls.StatusEnum.ERROR)
             raise ConnectionError(f'Cannot sent message to broker (error code: {code})')
         new_submit.update_status(cls.StatusEnum.AWAITING_RESPONSE)
         return new_submit
@@ -101,7 +116,7 @@ class BrokerSubmit(models.Model):
 
     @property
     def solution(self):
-        with InCourse(self.course.name):
+        with InCourse(self.course.short_name):
             return Submit.objects.get(id=self.submit_id).source_code
 
     @transaction.atomic
