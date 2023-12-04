@@ -110,7 +110,10 @@ class CourseModelView(BaCa2ModelView):
     MODEL = Course
 
     def post(self, request, **kwargs) -> JsonResponse:
-        return JsonResponse({'status': 'ok'})
+        if request.POST.get('form_name') == 'add_course_form':
+            return CreateCourseForm.handle_post_request(request)
+        else:
+            return JsonResponse({'status': 'w łeb się puknij głupolu co to ma kurwa być'})
 
 
 class UserModelView(BaCa2ModelView):
