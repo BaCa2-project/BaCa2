@@ -1,6 +1,11 @@
-from django.db import models
+from __future__ import annotations
+from typing import TYPE_CHECKING
 
 from BaCa2.settings import currentDB
+
+if TYPE_CHECKING:
+    from main.models import Course
+
 
 class SimpleCourseRouter:
     """
@@ -50,6 +55,7 @@ class ContextCourseRouter(SimpleCourseRouter):
     """
     Router that uses context given by :py:class:`InCourse' context manager.
     """
+
     @staticmethod
     def _get_context(model, **hints):
         """
@@ -67,7 +73,8 @@ class ContextCourseRouter(SimpleCourseRouter):
         try:
             db = currentDB.get()
         except LookupError:
-            raise RoutingError(f"No DB chosen. Remember to use 'with InCourse', while accessing course instance.")
+            raise RoutingError(
+                f"No DB chosen. Remember to use 'with InCourse', while accessing course instance.")
         if db not in DATABASES.keys():
             raise RoutingError(f"Can't access course DB {db}. Check the name in 'with InCourse'")
 
@@ -108,11 +115,50 @@ class InCourse:
 
     This code will create new submission inside of course ``course123``.
     """
-    def __init__(self, db: str):
-        self.db = db
+
+    def __init__(self, course: int | str | Course):
+        from util.models_registry import ModelsRegistry
+        if isinstance(course, str):
+            self.db = course
+        else:
+            self.db = ModelsRegistry.get_course(course).short_name
 
     def __enter__(self):
         self.token = currentDB.set(self.db)
 
     def __exit__(self, *args):
         currentDB.reset(self.token)
+
+
+class OptionalInCourse(InCourse):
+    """
+    It allows you to give the context database. Everything called inside this context manager
+    will be performed on database specified on initialization. If no database is specified, it will
+    be on already set context database.
+
+    Usage example:
+
+    .. code-block:: python
+
+        from course.routing import OptionalInCourse
+
+        using OptionalInCourse('course123'):
+            Submit.create_new(...)
+
+    This code will create new submission inside of course ``course123``.
+    """
+
+    def __init__(self, course_or_none: int | str | Course | None):
+        self.db_provided = course_or_none is not None
+        if self.db_provided:
+            super().__init__(course_or_none)
+        else:
+            self.db = None
+
+    def __enter__(self):
+        if self.db_provided:
+            super().__enter__()
+
+    def __exit__(self, *args):
+        if self.db_provided:
+            super().__exit__(*args)

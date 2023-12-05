@@ -4,9 +4,13 @@ from typing import (TYPE_CHECKING, List)
 
 from django.db.models import QuerySet
 
+from course.routing import OptionalInCourse
+
 if TYPE_CHECKING:
     from django.contrib.auth.models import (Group, Permission)
     from main.models import (User, Course, Role, RolePreset)
+    from course.models import (Round, Task, Submit)
+    from package.models import PackageSource, PackageInstance
 
 
 class ModelsRegistry:
@@ -360,3 +364,173 @@ class ModelsRegistry:
         if isinstance(preset, int):
             return RolePreset.objects.get(id=preset)
         return preset
+
+    # ------------------------------------package models --------------------------------------- #
+
+    @staticmethod
+    def get_package_instance(pkg_instance: int | PackageInstance) -> PackageInstance:
+        """
+        Returns a PackageInstance model instance from the database using its id as a reference. It can
+        also be used to return the same instance if it is passed as the parameter (for ease of use
+        in case of methods which accept both model instances and their identifiers).
+
+        :param pkg_instance: PackageInstance id or model instance.
+        :type pkg_instance: int | PackageInstance
+
+        :return: PackageInstance model instance.
+        :rtype: PackageInstance
+        """
+        from package.models import PackageInstance
+
+        if isinstance(pkg_instance, int):
+            return PackageInstance.objects.get(id=pkg_instance)
+        return pkg_instance
+
+    # -------------------------------------- course models ------------------------------------- #
+
+    @staticmethod
+    def get_round(round: int | Round, course: str | int | Course = None) -> Round:
+        """
+        Returns a Round model instance from the database using its id or name and course as
+        a reference. It can also be used to return the same instance if it is passed as the
+        parameter (for ease of use in case of methods which accept both model instances and their
+        identifiers).
+
+        :param round: Round name, id or model instance.
+        :type round: str | int | Round
+        :param course: Course short name, id or model instance.
+        :type course: str | int | Course
+
+        :return: Round model instance.
+        :rtype: Round
+
+        :raises ValueError: If the round name is passed as a parameter but its course is not.
+        """
+        from course.models import Round
+
+        with OptionalInCourse(course):
+            if isinstance(round, int):
+                return Round.objects.get(id=round)
+        return round
+
+    @staticmethod
+    def get_rounds(
+            rounds: List[int] | List[Round],
+            course: str | int | Course = None,
+            return_queryset: bool = False
+    ) -> QuerySet[Round] | List[Round]:
+        """
+        Returns a QuerySet of rounds using a list of their ids or model instances and course as a
+        reference. It can also be used to return a list of Round model instances if it is passed as
+        the parameter (for ease of use in case of methods which accept both model instances and
+        their identifiers).
+
+        :param rounds: List of Round names, ids or model instances.
+        :type rounds: List[int] | List[Round]
+        :param course: Course short name, id or model instance.
+        :type course: str | int | Course
+        :param return_queryset: If True, returns a QuerySet of Round model instances. Otherwise,
+            returns a list of Round model instances.
+        :type return_queryset: bool
+
+        :return: QuerySet of Round model instances or list of Round model instances.
+        :rtype: QuerySet[Round] | List[Round]
+
+        :raises ValueError: If the round names are passed as a parameter but their course is not.
+        """
+        from course.models import Round
+
+        with OptionalInCourse(course):
+            if isinstance(rounds[0], int):
+                rounds = Round.objects.filter(id__in=rounds)
+                if return_queryset:
+                    return rounds
+                else:
+                    return list(rounds)
+        return rounds
+
+    @staticmethod
+    def get_task(task: int | Task, course: str | int | Course = None) -> Task:
+        """
+        Returns a Task model instance from the database using its id or name and course as
+        a reference. It can also be used to return the same instance if it is passed as the
+        parameter (for ease of use in case of methods which accept both model instances and their
+        identifiers).
+
+        :param task: Task name, id or model instance.
+        :type task: str | int | Task
+        :param course: Course short name, id or model instance.
+        :type course: str | int | Course
+
+        :return: Task model instance.
+        :rtype: Task
+
+        :raises ValueError: If the task name is passed as a parameter but its course is not.
+        """
+        from course.models import Task
+
+        with OptionalInCourse(course):
+            if isinstance(task, int):
+                return Task.objects.get(id=task)
+        return task
+
+    @staticmethod
+    def get_tasks(
+            tasks: List[int] | List[Task],
+            course: str | int | Course = None,
+            return_queryset: bool = False
+    ) -> QuerySet[Task] | List[Task]:
+        """
+        Returns a QuerySet of tasks using a list of their ids or model instances and course as a
+        reference. It can also be used to return a list of Task model instances if it is passed as
+        the parameter (for ease of use in case of methods which accept both model instances and
+        their identifiers).
+
+        :param tasks: List of Task names, ids or model instances.
+        :type tasks: List[int] | List[Task]
+        :param course: Course short name, id or model instance.
+        :type course: str | int | Course
+        :param return_queryset: If True, returns a QuerySet of Task model instances. Otherwise,
+            returns a list of Task model instances.
+        :type return_queryset: bool
+
+        :return: QuerySet of Task model instances or list of Task model instances.
+        :rtype: QuerySet[Task] | List[Task]
+
+        :raises ValueError: If the task names are passed as a parameter but their course is not.
+        """
+        from course.models import Task
+
+        with OptionalInCourse(course):
+            if isinstance(tasks[0], int):
+                tasks = Task.objects.filter(id__in=tasks)
+                if return_queryset:
+                    return tasks
+                else:
+                    return list(tasks)
+        return tasks
+
+    @staticmethod
+    def get_submit(submit: int | Task, course: str | int | Course = None) -> Submit:
+        """
+        Returns a Submit model instance from the database using its id or name and course as
+        a reference. It can also be used to return the same instance if it is passed as the
+        parameter (for ease of use in case of methods which accept both model instances and their
+        identifiers).
+
+        :param submit: Submit name, id or model instance.
+        :type submit: str | int | Submit
+        :param course: Course short name, id or model instance.
+        :type course: str | int | Course
+
+        :return: Submit model instance.
+        :rtype: Submit
+
+        :raises ValueError: If the task name is passed as a parameter but its course is not.
+        """
+        from course.models import Task
+
+        with OptionalInCourse(course):
+            if isinstance(submit, int):
+                return Task.objects.get(id=submit)
+        return submit
