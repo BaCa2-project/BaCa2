@@ -12,7 +12,7 @@ from util.models import model_cls
 from util.views import normalize_string_to_python
 from main.models import (Course, User)
 from widgets.base import Widget
-from widgets.listing import TableWidget, TableWidget2, Column
+from widgets.listing import (TableWidget, TableWidget2, TextColumn)
 from widgets.forms import FormWidget
 from widgets.forms.fields import get_field_validation_status
 from widgets.navigation import (NavBar, SideNav)
@@ -409,8 +409,8 @@ class DashboardView(BaCa2LoggedInView):
         self.add_widget(context, TableWidget2(
             model_cls=Course,
             cols=[
-                Column('id', 'ID', True),
-                Column('name', 'Name', True),
+                TextColumn('id', 'ID', True),
+                TextColumn('name', 'Name', True),
             ],
             allow_select=True,
             allow_delete=True,

@@ -1,5 +1,8 @@
 {% load custom_tags %}
 
+{% if table_widget.allow_delete %}
+{% endif %}
+
 <div class="table-wrapper card">
     <div class="card-body">
         <div class="table-responsive">
@@ -9,7 +12,7 @@
                 <thead>
                     <tr>
                         {% for col in table_widget.cols %}
-                            <th>
+                            <th class="{{ col.col_type }}">
                                 {{ col.header }}
                             </th>
                         {% endfor %}
@@ -17,18 +20,6 @@
                 </thead>
             </table>
         </div>
-    </div>
-</div>
-
-<div class="table-icons-util">
-    <div class="icon-wrapper icon-m d-flex details-icon">
-        {% include 'icons/3-lines.svg' %}
-    </div>
-    <div class="icon-wrapper icon-m d-flex edit-icon">
-        {% include 'icons/pencil.svg' %}
-    </div>
-    <div class="icon-wrapper icon-m d-flex delete-icon">
-        {% include 'icons/trash.svg' %}
     </div>
 </div>
 
@@ -41,6 +32,8 @@
         default_order: '{{ table_widget.default_order }}',
         default_order_col: parseInt({{ table_widget.default_order_col }}),
         paging: {{ table_widget.paging|safe }},
+        refresh: {{ table_widget.refresh|safe }},
+        refresh_interval: parseInt({{ table_widget.refresh_interval }}),
     });
 </script>
 
