@@ -12,7 +12,7 @@ from util.models import model_cls
 from util.views import normalize_string_to_python
 from main.models import (Course, User)
 from widgets.base import Widget
-from widgets.listing import (TableWidget, TableWidget2, TextColumn)
+from widgets.listing import (TableWidget, TextColumn)
 from widgets.forms import FormWidget
 from widgets.forms.fields import get_field_validation_status
 from widgets.navigation import (NavBar, SideNav)
@@ -137,7 +137,7 @@ class BaCa2ContextMixin:
         pass
 
     # List of all widget types used in BaCa2 views.
-    WIDGET_TYPES = [TableWidget, FormWidget, NavBar, SideNav, TableWidget2]
+    WIDGET_TYPES = [FormWidget, NavBar, SideNav, TableWidget]
     # List of all widgets which are unique (i.e. there can only be one instance of each widget type
     # can exist in the context dictionary).
     UNIQUE_WIDGETS = [NavBar, SideNav]
@@ -363,19 +363,13 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
             self.add_widget(context, CreateCourseFormWidget())
 
         self.add_widget(context, TableWidget(
-            name='courses_table',
             model_cls=Course,
-            access_mode='admin',
-            create=True,
-            details=True,
-            edit=True,
-            delete=True,
-            select=True,
-            cols=['id', 'name'],
-            header={'name': 'Course Name'},
-            default_order_col='name',
-            refresh=False,
-            paging=False
+            cols=[
+                TextColumn('id', 'ID', True),
+                TextColumn('name', 'Name', True),
+            ],
+            allow_select=True,
+            allow_delete=True,
         ))
 
         return context
@@ -406,7 +400,7 @@ class DashboardView(BaCa2LoggedInView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        self.add_widget(context, TableWidget2(
+        self.add_widget(context, TableWidget(
             model_cls=Course,
             cols=[
                 TextColumn('id', 'ID', True),
@@ -421,16 +415,6 @@ class DashboardView(BaCa2LoggedInView):
 
 class CoursesView(BaCa2LoggedInView):
     template_name = 'courses.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        table = TableWidget(model_cls=Course,
-                            refresh=False,
-                            paging=False)
-
-        context['table'] = table.get_context()
-        return context
 
 
 class JsonView(LoginRequiredMixin, View):

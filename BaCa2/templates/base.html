@@ -34,16 +34,8 @@
         <script src="{% static 'js/base.js' %}"></script>
         <script src="{% static 'js/logo.js' %}"></script>
         <script src="{% static 'js/buttons.js' %}"></script>
-        <script src="{% static 'js/tables2.js' %}"></script>
-        {% if widgets.TableWidget %}
-            <script src="{% static 'js/tables.js' %}"></script>
-            <script>
-                const tables = {};
-            </script>
-        {% endif %}
-        {% if widgets.FormWidget %}
-            <script src="{% static 'js/forms.js' %}"></script>
-        {% endif %}
+        <script src="{% static 'js/tables.js' %}"></script>
+        <script src="{% static 'js/forms.js' %}"></script>
 
         <!-- template-specific -->
         {% block head %}
