@@ -70,9 +70,11 @@ class TableWidgetPaging:
     def __init__(self,
                  page_length: int = 10,
                  allow_length_change: bool = False,
-                 length_change_options: List[int] = None) -> None:
+                 length_change_options: List[int] = None,
+                 deselect_on_page_change: bool = True) -> None:
         self.page_length = page_length
         self.allow_length_change = allow_length_change
+        self.deselect_on_page_change = deselect_on_page_change
 
         if not length_change_options:
             if page_length == 10:
@@ -85,5 +87,6 @@ class TableWidgetPaging:
         return {
             'page_length': self.page_length,
             'allow_length_change': json.dumps(self.allow_length_change),
-            'length_change_options': self.length_change_options
+            'length_change_options': self.length_change_options,
+            'deselect_on_page_change': json.dumps(self.deselect_on_page_change)
         }

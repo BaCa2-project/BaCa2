@@ -12,7 +12,7 @@ from util.models import model_cls
 from util.views import normalize_string_to_python
 from main.models import (Course, User)
 from widgets.base import Widget
-from widgets.listing import TableWidget
+from widgets.listing import (TableWidget, TableWidgetPaging)
 from widgets.listing.columns import TextColumn
 from widgets.forms import FormWidget
 from widgets.forms.fields import get_field_validation_status
@@ -371,6 +371,7 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
             ],
             allow_select=True,
             allow_delete=True,
+            paging=TableWidgetPaging(5, False),
         ))
 
         return context
