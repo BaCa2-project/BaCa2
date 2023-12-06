@@ -53,7 +53,7 @@ class TableWidget {
     }
 
     toggleSelectAll(on) {
-        this.getRowsInOrder().each(function () {
+        this.getCurrentPageRowsInOrder().each(function () {
             $(this).find('.select-checkbox').prop('checked', on);
 
             if (on)
@@ -91,7 +91,11 @@ class TableWidget {
     }
 
     getRowsInOrder() {
-        return this.table.rows({ order: 'applied' }).nodes().to$();
+        return this.table.rows({ order: 'applied'}).nodes().to$();
+    }
+
+    getCurrentPageRowsInOrder() {
+        return this.table.rows({ order: 'applied', page: 'current' }).nodes().to$();
     }
 
     getRowIndex(row) {
@@ -121,6 +125,7 @@ function initTable(
     } = {}
 ) {
     const tableParams = {};
+    const table = $(`#${tableId}`);
 
     tableParams['ajax'] = `/main/models/${modelName}`;
     tableParams['order'] = [[defaultOrderCol, defaultOrder]];
@@ -133,7 +138,7 @@ function initTable(
     if (paging) {
         tableParams['pageLength'] = paging['page_length'];
 
-        if (paging['allow_length_change']) {
+        if (JSON.parse(paging['allow_length_change'])) {
             const pagingMenuVals = [];
             const pagingMenuLabels = [];
 
@@ -143,7 +148,16 @@ function initTable(
             })
 
             tableParams['lengthMenu'] = [pagingMenuVals, pagingMenuLabels];
-        }
+        } else
+            tableParams['lengthChange'] = false;
+
+        if (JSON.parse(paging['deselect_on_page_change']))
+            table.on('page.dt', function () {
+                const selectHeaderCheckbox = $(`#${tableId}`).find('th .select-header-checkbox');
+                window.tableWidgets[`#${tableId}`].toggleSelectAll(false);
+                selectHeaderCheckbox.prop('checked', false);
+                selectHeaderCheckbox.prop('indeterminate', false);
+            });
     } else
         tableParams['paging'] = false;
 
@@ -160,8 +174,8 @@ function initTable(
 
     window.tableWidgets[`#${tableId}`] = new TableWidget(
         tableId,
-        $(`#${tableId}`).DataTable(tableParams)
-    )
+        table.DataTable(tableParams)
+    );
 
     if (refresh) {
         setInterval(function () {
