@@ -2,11 +2,9 @@
 
 {% block content %}
     <div class="row">
-        <div class="col-4">
             {% with widgets.TableWidget2.course_table_widget as table_widget %}
                 {% include 'widget_templates/table2.html' %}
             {% endwith %}
-        </div>
     </div>
 
 {% endblock %}

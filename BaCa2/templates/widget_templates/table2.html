@@ -25,15 +25,15 @@
 
 
 <script type="text/javascript">
-    tableSetup({
-        table_id: '{{ table_widget.name }}',
-        model_name: '{{ table_widget.model_name }}',
+    initTable({
+        tableId: '{{ table_widget.name }}',
+        modelName: '{{ table_widget.model_name }}',
         cols: {{ table_widget.cols|safe }},
-        default_order: '{{ table_widget.default_order }}',
-        default_order_col: parseInt({{ table_widget.default_order_col }}),
+        defaultOrder: '{{ table_widget.default_order }}',
+        defaultOrderCol: parseInt({{ table_widget.default_order_col }}),
         paging: {{ table_widget.paging|safe }},
         refresh: {{ table_widget.refresh|safe }},
-        refresh_interval: parseInt({{ table_widget.refresh_interval }}),
+        refreshInterval: parseInt({{ table_widget.refresh_interval }}),
     });
 </script>
 
