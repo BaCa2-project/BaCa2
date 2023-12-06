@@ -1,19 +1,129 @@
-function tableSetup(
+class TableWidget {
+    constructor(tableId, table) {
+        this.tableId = tableId;
+        this.table = table;
+        this.lastSelectedRow = null;
+        this.lastDeselectedRow = null;
+    }
+
+    toggleSelectRow(row, on) {
+        if (on) {
+            this.lastSelectedRow = row;
+            this.lastDeselectedRow = null;
+            row.addClass('row-selected');
+        } else {
+            this.lastSelectedRow = null;
+            this.lastDeselectedRow = row;
+            row.removeClass('row-selected');
+        }
+    }
+
+    toggleSelectRange(row, on) {
+        const rows = this.getRowsInOrder();
+        const currentIndex = this.getRowIndex(row)
+        const lastIndex = on ?
+            this.getRowIndex(this.lastSelectedRow) :
+            this.getRowIndex(this.lastDeselectedRow);
+
+        let selecting = false;
+        let last = false;
+
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const index = this.getRowIndex(row);
+
+            if (index === currentIndex || index === lastIndex) {
+                if (selecting)
+                    last = true;
+                else
+                    selecting = true;
+            }
+
+            if (selecting) {
+                if (on)
+                    $(row).addClass('row-selected');
+                else
+                    $(row).removeClass('row-selected');
+                $(row).find('.select-checkbox').prop('checked', on);
+            }
+
+            if (last)
+                break;
+        }
+    }
+
+    toggleSelectAll(on) {
+        this.getRowsInOrder().each(function () {
+            $(this).find('.select-checkbox').prop('checked', on);
+
+            if (on)
+                $(this).addClass('row-selected');
+            else
+                $(this).removeClass('row-selected');
+        });
+    }
+
+    updateSelectHeader() {
+        const headerCheckbox = $(`#${this.tableId} .select-header-checkbox`);
+        let allSelected = true;
+        let noneSelected = true;
+
+        this.getRowsInOrder().each(function () {
+            if ($(this).hasClass('row-selected'))
+                noneSelected = false;
+            else
+                allSelected = false;
+        });
+
+        if (allSelected) {
+            headerCheckbox.prop('checked', true);
+            headerCheckbox.prop('indeterminate', false);
+            headerCheckbox.data('state', 'on');
+        } else if (noneSelected) {
+            headerCheckbox.prop('checked', false);
+            headerCheckbox.prop('indeterminate', false);
+            headerCheckbox.data('state', 'off');
+        } else {
+            headerCheckbox.prop('checked', false);
+            headerCheckbox.prop('indeterminate', true);
+            headerCheckbox.data('state', 'indeterminate');
+        }
+    }
+
+    getRowsInOrder() {
+        return this.table.rows({ order: 'applied' }).nodes().to$();
+    }
+
+    getRowIndex(row) {
+        return this.table.row(row).index();
+    }
+
+    hasLastSelectedRow() {
+        return this.lastSelectedRow !== null;
+    }
+
+    hasLastDeselectedRow() {
+        return this.lastDeselectedRow !== null;
+    }
+}
+
+
+function initTable(
     {
-        table_id,
-        model_name,
+        tableId,
+        modelName,
         cols,
-        default_order,
-        default_order_col,
+        defaultOrder,
+        defaultOrderCol,
         paging,
         refresh,
-        refresh_interval,
+        refreshInterval,
     } = {}
 ) {
     const tableParams = {};
 
-    tableParams['ajax'] = `/main/models/${model_name}`;
-    tableParams['order'] = [[default_order_col, default_order]];
+    tableParams['ajax'] = `/main/models/${modelName}`;
+    tableParams['order'] = [[defaultOrderCol, defaultOrder]];
     tableParams['searching'] = false;
 
     const columns = [];
@@ -45,17 +155,23 @@ function tableSetup(
         $(row).attr('data-record-id', `${data.id}`);
     }
 
-    $(`#${table_id}`).DataTable(tableParams);
+    if (!window.tableWidgets)
+        window.tableWidgets = {};
+
+    window.tableWidgets[`#${tableId}`] = new TableWidget(
+        tableId,
+        $(`#${tableId}`).DataTable(tableParams)
+    )
 
     if (refresh) {
         setInterval(function () {
-            $(`#${table_id}`).DataTable().ajax.reload();
-        }, refresh_interval);
+            window.tableWidgets[`#${tableId}`].table.ajax.reload();
+        }, refreshInterval);
     }
 }
 
+
 function createColumnDef (col, index) {
-    console.log(col);
     const def = {
         'targets': [index],
         'orderable': JSON.parse(col['sortable']),
@@ -83,13 +199,18 @@ function createColumnDef (col, index) {
     return def;
 }
 
+
 function renderSelectField (data, type, row, meta) {
     return $('<input>')
         .attr('type', 'checkbox')
         .attr('class', 'form-check-input select-checkbox')
         .attr('data-record-target', row['id'])
-        [0].outerHTML;
+        .attr(
+            'onclick',
+            'selectCheckboxClickHandler(event, $(this))'
+        )[0].outerHTML;
 }
+
 
 function renderDeleteField (data, type, row, meta) {
     return $('<a>')
@@ -97,4 +218,45 @@ function renderDeleteField (data, type, row, meta) {
         .attr('data-record-target', row['id'])
         .html('<i class="bi bi-x-lg"></i>')
         [0].outerHTML;
+}
+
+
+function renderSelectHeader (header) {
+    const checkbox = $('<input>')
+        .attr('type', 'checkbox')
+        .attr('class', 'form-check-input select-header-checkbox')
+        .attr('data-state', 'off')
+        .on('click', function (e) {
+            selectHeaderClickHandler(e, $(this));
+        });
+    header.append(checkbox);
+}
+
+
+function selectHeaderClickHandler (e, checkbox) {
+    window.tableWidgets[`#${checkbox.closest('table').attr('id')}`].toggleSelectAll(
+        checkbox.prop('checked')
+    );
+}
+
+
+function selectCheckboxClickHandler (e, checkbox) {
+    const table = window.tableWidgets[`#${checkbox.closest('table').attr('id')}`]
+    const row = checkbox.closest('tr');
+    const on = checkbox.prop('checked');
+
+    if (e.shiftKey && on && table.hasLastSelectedRow())
+        table.toggleSelectRange(row, on);
+    else if (e.ctrlKey && !on && table.hasLastDeselectedRow())
+        table.toggleSelectRange(row, on);
+    else
+        table.toggleSelectRow(row, on);
+
+    table.updateSelectHeader();
+}
+
+function tablesSetup() {
+    $('th.select').each(function () {
+        renderSelectHeader($(this));
+    });
 }

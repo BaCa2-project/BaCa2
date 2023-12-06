@@ -649,6 +649,10 @@ form .card-body {
   height: fit-content;
 }
 
+.row-selected td {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
 [data-bs-theme=light] .table-wrapper .record-method-link .icon-wrapper svg {
   transition: stroke ease 0.5s;
   stroke: gray;
