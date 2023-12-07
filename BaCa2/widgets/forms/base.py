@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import (Dict, List, Any)
 from enum import Enum
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 from django import forms
 from django.http import JsonResponse
@@ -10,7 +10,9 @@ from django.utils.translation import gettext_lazy as _
 
 from widgets.base import Widget
 from util.models import model_cls
+from util.models_registry import ModelsRegistry
 from BaCa2.choices import ModelAction
+from main.models import Course
 
 
 class FormWidget(Widget):
@@ -29,10 +31,9 @@ class FormWidget(Widget):
         pass
 
     def __init__(self,
-                 name: str,
                  form: forms.Form,
-                 post_url: str = None,
-                 ajax_post: bool = False,
+                 post_target: FormPostTarget = None,
+                 name: str = '',
                  button_text: str = _('Submit'),
                  refresh_button: bool = True,
                  display_non_field_validation: bool = True,
@@ -43,53 +44,19 @@ class FormWidget(Widget):
                  toggleable_params: Dict[str, Dict[str, str]] = None,
                  live_validation: bool = True,
                  confirmation_popup: FormConfirmationPopup = None) -> None:
-        """
-        :param name: Name of the widget. Should be unique within the scope of one view.
-        :type name: str
-        :param form: django form object to base the widget on. Should inherit from BaCa2Form.
-        :type form: forms.Form
-        :param post_url: URL to which the form should be submitted. If not provided, the form will
-            be submitted to the same URL as the one used to render the form.
-        :type post_url: str
-        :param ajax_post: Whether the form should be submitted using AJAX. If `True`, the form will
-            be submitted using AJAX and the page will not be reloaded. If `False`, the form will be
-            submitted using a standard POST request and the page will be reloaded.
-        :type ajax_post: bool
-        :param button_text: Text to be displayed on the submit button.
-        :type button_text: str
-        :param display_non_field_validation: Whether to display non-field validation errors.
-        :type display_non_field_validation: bool
-        :param display_field_errors: Whether to display field specific errors. If `True`, field
-            specific errors will be displayed below their corresponding fields.
-        :type display_field_errors: bool
-        :param floating_labels: Whether to use floating labels for the form fields.
-        :type floating_labels: bool
-        :param toggleable_fields: List of names of fields that should be toggleable. This list
-            should only contain fields that are not required. If an item of the list is itself a
-            list, the fields in that sublist will be considered a toggleable group. If one of them
-            is toggled it will also toggle the other fields in the group.
-        :type toggleable_fields: List[str | List[str]]
-        :param toggleable_params: Dictionary containing parameters for toggleable fields.
-            The keys of the dictionary should be the names of the toggleable fields. The values
-            should be dictionaries containing the parameters for the toggleable field. The
-            following parameters are supported: `button_text_on` - text to be displayed on the
-            toggle button when the field is in the "on" state, `button_text_off` - text to be
-            displayed on the toggle button when the field is in the "off" state. If the
-            parameters are not specified, the default values for the supported parameters will be
-            used.
-        :type toggleable_params: Dict[str, Dict[str, str]]
-        :param live_validation: Whether to perform live validation of the form fields. If `True`,
-            the form will be validated on every change of the form fields. Validation results will
-            be displayed below the corresponding fields or in form of a green checkmark if the
-            field is valid.
-        :type live_validation: bool
+        if not name:
+            form_name = getattr(form, 'form_name', False)
+            if form_name:
+                name = f'{form_name}_widget'
+            else:
+                raise FormWidget.FormWidgetException(
+                    'Cannot create form widget for an unnamed form without specifying the widget '
+                    'name.'
+                )
 
-        :raises FormWidgetException: If the AJAX post is enabled without specifying the post URL.
-        """
         super().__init__(name)
         self.form = form
         self.form_cls = form.__class__.__name__
-        self.ajax_post = ajax_post
         self.button_text = button_text
         self.refresh_button = refresh_button
         self.display_non_field_validation = display_non_field_validation
@@ -124,13 +91,10 @@ class FormWidget(Widget):
 
         self.elements = FormElementGroup(elements, 'form_elements')
 
-        if ajax_post and not post_url:
-            raise FormWidget.FormWidgetException(
-                'Cannot use AJAX post without specifying the post URL.'
-            )
-
-        if not post_url:
+        if not post_target:
             post_url = ''
+        else:
+            post_url = post_target.get_post_url()
         self.post_url = post_url
 
         if not toggleable_fields:
@@ -172,7 +136,6 @@ class FormWidget(Widget):
             'form': self.form,
             'form_cls': self.form_cls,
             'post_url': self.post_url,
-            'ajax_post': self.ajax_post,
             'elements': self.elements,
             'button_text': self.button_text,
             'refresh_button': self.refresh_button,
@@ -187,6 +150,31 @@ class FormWidget(Widget):
             'live_validation': self.live_validation,
             'confirmation_popup': self.confirmation_popup
         }
+
+
+class FormPostTarget(ABC):
+    @abstractmethod
+    def get_post_url(self) -> str:
+        raise NotImplementedError('This method has to be implemented by inheriting classes.')
+
+
+class ModelFormPostTarget(FormPostTarget):
+    def __init__(self, model: model_cls) -> None:
+        self.model = model
+
+    def get_post_url(self) -> str:
+        return f'/{self.model._meta.app_label}/models/{self.model._meta.model_name}'
+
+
+class CourseModelFormPostTarget(ModelFormPostTarget):
+    def __init__(self, model: model_cls, course: str | int | Course) -> None:
+        if not isinstance(course, str):
+            course = ModelsRegistry.get_course(course).short_name
+        self.course = course
+        super().__init__(model)
+
+    def get_post_url(self) -> str:
+        return f'course/{self.course}/models/{self.model._meta.model_name}'
 
 
 class FormElementGroup(Widget):
@@ -330,7 +318,7 @@ class BaCa2ModelForm(BaCa2Form):
 
     def __init__(self, **kwargs):
         super().__init__(initial={'form_name': f'{self.ACTION.label}_form',
-                                  'action': self.ACTION.name}, **kwargs)
+                                  'action': self.ACTION.value}, **kwargs)
 
     @classmethod
     def handle_post_request(cls, request):
