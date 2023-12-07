@@ -1,1 +1,1 @@
-from .base import TableWidget, TableWidgetPaging
+from .base import (TableWidget, TableWidgetPaging, ModelDataSource, CourseModelDataSource)

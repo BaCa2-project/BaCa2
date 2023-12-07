@@ -12,7 +12,7 @@ from util.models import model_cls
 from util.views import normalize_string_to_python
 from main.models import (Course, User)
 from widgets.base import Widget
-from widgets.listing import (TableWidget, TableWidgetPaging)
+from widgets.listing import (TableWidget, TableWidgetPaging, ModelDataSource)
 from widgets.listing.columns import TextColumn
 from widgets.forms import FormWidget
 from widgets.forms.fields import get_field_validation_status
@@ -364,7 +364,7 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
             self.add_widget(context, CreateCourseFormWidget())
 
         self.add_widget(context, TableWidget(
-            model_cls=Course,
+            data_source=ModelDataSource(Course),
             cols=[
                 TextColumn('id', 'ID', True),
                 TextColumn('name', 'Name', True),
@@ -403,7 +403,7 @@ class DashboardView(BaCa2LoggedInView):
         context = super().get_context_data(**kwargs)
 
         self.add_widget(context, TableWidget(
-            model_cls=Course,
+            data_source=ModelDataSource(Course),
             cols=[
                 TextColumn('id', 'ID', True),
                 TextColumn('name', 'Name', True),

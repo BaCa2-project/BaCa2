@@ -115,7 +115,7 @@ class TableWidget {
 function initTable(
     {
         tableId,
-        modelName,
+        dataSourceUrl,
         cols,
         defaultOrder,
         defaultOrderCol,
@@ -127,7 +127,7 @@ function initTable(
     const tableParams = {};
     const table = $(`#${tableId}`);
 
-    tableParams['ajax'] = `/main/models/${modelName}`;
+    tableParams['ajax'] = dataSourceUrl;
     tableParams['order'] = [[defaultOrderCol, defaultOrder]];
     tableParams['searching'] = false;
 

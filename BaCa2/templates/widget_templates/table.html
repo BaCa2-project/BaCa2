@@ -1,6 +1,7 @@
 {% load custom_tags %}
 
-{% if table_widget.allow_delete %}
+{% if table_widget.delete_form_widget %}
+
 {% endif %}
 
 <div class="table-wrapper card">
@@ -27,7 +28,7 @@
 <script type="text/javascript">
     initTable({
         tableId: '{{ table_widget.name }}',
-        modelName: '{{ table_widget.model_name }}',
+        dataSourceUrl: '{{ table_widget.data_source_url }}',
         cols: {{ table_widget.cols|safe }},
         defaultOrder: '{{ table_widget.default_order }}',
         defaultOrderCol: parseInt({{ table_widget.default_order_col }}),
