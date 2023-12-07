@@ -52,7 +52,7 @@
     {% endif %}
 {% endwith %}
 
-{% if form_widget.ajax_post %}
+{% if form_widget.post_url %}
     <script>
         $(document).on('submit', '#{{ form_widget.name }}', function (e) {
             e.preventDefault();

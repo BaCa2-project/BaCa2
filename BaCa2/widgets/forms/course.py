@@ -3,11 +3,10 @@ from typing import Dict
 from django import forms
 from django.utils.translation import gettext_lazy as _
 from django.urls import reverse_lazy
-from django.http import JsonResponse
 
 from main.models import Course
 from widgets.forms.base import (BaCa2Form, FormWidget, FormElementGroup, FormConfirmationPopup,
-                                BaCa2ModelForm)
+                                BaCa2ModelForm, ModelFormPostTarget)
 from widgets.forms.fields.course import CourseShortName
 
 
@@ -82,8 +81,7 @@ class CreateCourseFormWidget(FormWidget):
         super().__init__(
             name='create_course_form_widget',
             form=form,
-            post_url=reverse_lazy('main:course-model-view'),
-            ajax_post=True,
+            post_target=ModelFormPostTarget(Course),
             button_text=_('Add course'),
             toggleable_fields=['short_name'],
             element_groups=FormElementGroup(
@@ -146,8 +144,7 @@ class DeleteCourseFormWidget(FormWidget):
         super().__init__(
             name='delete_course_form_widget',
             form=form,
-            post_url=reverse_lazy('main:course-model-view'),
-            ajax_post=True,
+            post_target=ModelFormPostTarget(Course),
             button_text=_('Delete course'),
             confirmation_popup=FormConfirmationPopup(
                 title=_('Confirm course deletion'),
