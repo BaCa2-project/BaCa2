@@ -1,18 +1,25 @@
 from __future__ import annotations
 
-from typing import (List, Dict, TypeVar, Type, Any)
-from django.db import models
 import json
+from typing import (List, Dict, Any)
+from abc import ABC, abstractmethod
 
 from widgets.base import Widget
-from widgets.listing.columns import Column, SelectColumn, DeleteColumn
-
-T = TypeVar('T', bound=models.Model)
+from widgets.listing.columns import (Column, SelectColumn, DeleteColumn)
+from widgets.forms import (BaCa2ModelForm, FormWidget)
+from widgets.forms.course import DeleteCourseForm
+from util.models import model_cls
+from util.models_registry import ModelsRegistry
+from main.models import Course
 
 
 class TableWidget(Widget):
+    delete_forms = {
+        Course: DeleteCourseForm
+    }
+
     def __init__(self,
-                 model_cls: Type[T],
+                 data_source: TableDataSource,
                  cols: List[Column],
                  allow_select: bool = False,
                  allow_delete: bool = False,
@@ -23,8 +30,8 @@ class TableWidget(Widget):
                  default_order_col: str = '',
                  default_order_asc: bool = True,
                  stripe_rows: bool = True) -> None:
-        model_name = model_cls.__name__.lower()
-        name = name if name else f'{model_name}_table_widget'
+        if not name:
+            name = data_source.generate_table_widget_name()
 
         super().__init__(name)
 
@@ -36,8 +43,7 @@ class TableWidget(Widget):
         if allow_delete:
             cols.append(DeleteColumn())
 
-        self.model_cls = model_cls
-        self.model_name = model_name
+        self.data_source = data_source
         self.cols = cols
         self.paging = paging
         self.refresh = refresh
@@ -53,8 +59,7 @@ class TableWidget(Widget):
 
     def get_context(self) -> Dict[str, Any]:
         return super().get_context() | {
-            'model_cls': self.model_cls,
-            'model_name': self.model_name,
+            'data_source_url': self.data_source.get_url(),
             'cols': [col.get_context() for col in self.cols],
             'cols_num': len(self.cols),
             'paging': self.paging.get_context() if self.paging else json.dumps(False),
@@ -62,8 +67,40 @@ class TableWidget(Widget):
             'refresh_interval': self.refresh_interval,
             'table_class': self.table_class,
             'default_order_col': self.default_order_col,
-            'default_order': self.default_order
+            'default_order': self.default_order,
         }
+
+
+class TableDataSource(ABC):
+    @abstractmethod
+    def get_url(self) -> str:
+        raise NotImplementedError('This method has to be implemented by inheriting classes.')
+
+    @abstractmethod
+    def generate_table_widget_name(self) -> str:
+        raise NotImplementedError('This method has to be implemented by inheriting classes.')
+
+
+class ModelDataSource(TableDataSource):
+    def __init__(self, model: model_cls) -> None:
+        self.model = model
+
+    def get_url(self) -> str:
+        return f'/{self.model._meta.app_label}/models/{self.model._meta.model_name}'
+
+    def generate_table_widget_name(self) -> str:
+        return f'{self.model._meta.model_name}_table_widget'
+
+
+class CourseModelDataSource(ModelDataSource):
+    def __init__(self, model: model_cls, course: str | int | Course) -> None:
+        if not isinstance(course, str):
+            course = ModelsRegistry.get_course(course).short_name
+        self.course = course
+        super().__init__(model)
+
+    def get_url(self) -> str:
+        return f'course/{self.course}/models/{self.model._meta.model_name}'
 
 
 class TableWidgetPaging:
@@ -90,3 +127,8 @@ class TableWidgetPaging:
             'length_change_options': self.length_change_options,
             'deselect_on_page_change': json.dumps(self.deselect_on_page_change)
         }
+
+
+class DeleteRecordFormWidget(FormWidget):
+    def __init__(self, form: BaCa2ModelForm) -> None:
+        super().__init__(form=form)
