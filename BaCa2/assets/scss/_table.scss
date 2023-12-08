@@ -11,6 +11,10 @@
         width: fit-content;
         height: fit-content;
     }
+
+    .table-widget-forms-wrapper form {
+        display: none;
+    }
 }
 
 .row-selected td {

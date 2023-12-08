@@ -230,6 +230,7 @@ function renderDeleteField (data, type, row, meta) {
     return $('<a>')
         .attr('href', '#')
         .attr('data-record-target', row['id'])
+        .attr('onclick', 'deleteButtonClickHandler(event, $(this))')
         .html('<i class="bi bi-x-lg"></i>')
         [0].outerHTML;
 }
@@ -267,6 +268,16 @@ function selectCheckboxClickHandler (e, checkbox) {
         table.toggleSelectRow(row, on);
 
     table.updateSelectHeader();
+}
+
+
+function deleteButtonClickHandler (e, button) {
+    const form = button.closest('.table-wrapper').find('.delete-record-form form');
+    const input = form.find('input').filter(function () {
+        return $(this).val().length === 0;
+    });
+    input.val(button.data('record-target'));
+    form.find('.submit-btn').click();
 }
 
 function tablesSetup() {

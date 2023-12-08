@@ -648,6 +648,9 @@ form .card-body {
   width: fit-content;
   height: fit-content;
 }
+.table-wrapper .table-widget-forms-wrapper form {
+  display: none;
+}
 
 .row-selected td {
   background-color: rgba(255, 255, 255, 0.03);

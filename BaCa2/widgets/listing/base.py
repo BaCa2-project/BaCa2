@@ -3,10 +3,12 @@ from __future__ import annotations
 import json
 from typing import (List, Dict, Any)
 
+from django.utils.translation import gettext_lazy as _
+
 from widgets.base import Widget
 from widgets.listing.columns import (Column, SelectColumn, DeleteColumn)
 from widgets.listing.data_sources import TableDataSource
-from widgets.forms import (BaCa2ModelForm, FormWidget)
+from widgets.forms import (BaCa2ModelForm, FormWidget, FormConfirmationPopup)
 from widgets.forms.course import DeleteCourseForm
 from main.models import Course
 
@@ -38,8 +40,25 @@ class TableWidget(Widget):
 
         if allow_select:
             cols.insert(0, SelectColumn())
+
         if allow_delete:
+            model = getattr(data_source, 'model', None)
+
+            if not model:
+                raise ValueError('Data source has to be a ModelDataSource to allow delete.')
+            if model not in TableWidget.delete_forms.keys():
+                raise ValueError(f'No delete form found for model {model}.')
+
+            delete_record_form_widget = DeleteRecordFormWidget(
+                form=TableWidget.delete_forms[model](),
+                post_url=data_source.get_url(),
+                name=f'{name}_delete_record_form'
+            )
             cols.append(DeleteColumn())
+        else:
+            delete_record_form_widget = None
+        self.allow_delete = allow_delete
+        self.delete_record_form_widget = delete_record_form_widget
 
         self.data_source = data_source
         self.cols = cols
@@ -66,6 +85,9 @@ class TableWidget(Widget):
             'table_class': self.table_class,
             'default_order_col': self.default_order_col,
             'default_order': self.default_order,
+            'allow_delete': self.allow_delete,
+            'delete_record_form_widget': self.delete_record_form_widget.get_context()
+            if self.delete_record_form_widget else None
         }
 
 
@@ -96,5 +118,11 @@ class TableWidgetPaging:
 
 
 class DeleteRecordFormWidget(FormWidget):
-    def __init__(self, form: BaCa2ModelForm) -> None:
-        super().__init__(form=form)
+    def __init__(self, form: BaCa2ModelForm, post_url: str, name: str) -> None:
+        super().__init__(form=form,
+                         post_target=post_url,
+                         name=name,
+                         confirmation_popup=FormConfirmationPopup(
+                             title=_("Confirm record deletion"),
+                             description=_("Are you sure you want to delete this record")
+                         ))

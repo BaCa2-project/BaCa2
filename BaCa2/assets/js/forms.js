@@ -36,12 +36,16 @@ function refreshButtonSetup() {
     $('form').each(function () {
         const form = $(this)
         form.find('.form-refresh-button').on('click', function () {
-           form[0].reset();
-           clearValidation(form);
-           resetToggleables(form);
-           submitButtonRefresh(form);
-       });
+           formRefresh(form)
+        });
     });
+}
+
+function formRefresh(form) {
+    form[0].reset();
+    clearValidation(form);
+    resetToggleables(form);
+    submitButtonRefresh(form);
 }
 
 function clearValidation(form) {
