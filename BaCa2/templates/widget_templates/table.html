@@ -1,25 +1,32 @@
 {% load custom_tags %}
 
-{% if table_widget.delete_form_widget %}
-
-{% endif %}
-
-<div class="table-wrapper card">
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="{{ table_widget.table_class }}"
-                   id="{{ table_widget.name }}"
-                   style="width:100%">
-                <thead>
-                    <tr>
-                        {% for col in table_widget.cols %}
-                            <th class="{{ col.col_type }}">
-                                {{ col.header }}
-                            </th>
-                        {% endfor %}
-                    </tr>
-                </thead>
-            </table>
+<div class="table-wrapper">
+    <div class="table-widget-forms-wrapper">
+        {% if table_widget.allow_delete %}
+            <div class="table-widget-form delete-record-form">
+                {% with table_widget.delete_record_form_widget as form_widget %}
+                    {% include 'widget_templates/forms/default.html' %}
+                {% endwith %}
+            </div>
+        {% endif %}
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="{{ table_widget.table_class }}"
+                       id="{{ table_widget.name }}"
+                       style="width:100%">
+                    <thead>
+                        <tr>
+                            {% for col in table_widget.cols %}
+                                <th class="{{ col.col_type }}">
+                                    {{ col.header }}
+                                </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                </table>
+            </div>
         </div>
     </div>
 </div>

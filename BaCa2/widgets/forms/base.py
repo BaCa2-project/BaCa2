@@ -32,7 +32,7 @@ class FormWidget(Widget):
 
     def __init__(self,
                  form: forms.Form,
-                 post_target: FormPostTarget = None,
+                 post_target: FormPostTarget | str = None,
                  name: str = '',
                  button_text: str = _('Submit'),
                  refresh_button: bool = True,
@@ -92,10 +92,10 @@ class FormWidget(Widget):
         self.elements = FormElementGroup(elements, 'form_elements')
 
         if not post_target:
-            post_url = ''
-        else:
-            post_url = post_target.get_post_url()
-        self.post_url = post_url
+            post_target = ''
+        if isinstance(post_target, FormPostTarget):
+            post_target = post_target.get_post_url()
+        self.post_url = post_target
 
         if not toggleable_fields:
             toggleable_fields = []

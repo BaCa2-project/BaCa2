@@ -17,7 +17,7 @@ from widgets.listing.columns import TextColumn
 from widgets.forms import FormWidget
 from widgets.forms.fields import get_field_validation_status
 from widgets.navigation import (NavBar, SideNav)
-from widgets.forms.course import (CreateCourseForm, CreateCourseFormWidget)
+from widgets.forms.course import (CreateCourseForm, CreateCourseFormWidget, DeleteCourseForm)
 from BaCa2.choices import BasicPermissionType
 
 
@@ -113,6 +113,8 @@ class CourseModelView(BaCa2ModelView):
     def post(self, request, **kwargs) -> JsonResponse:
         if request.POST.get('form_name') == 'add_course_form':
             return CreateCourseForm.handle_post_request(request)
+        if request.POST.get('form_name') == 'delete_course_form':
+            return DeleteCourseForm.handle_post_request(request)
         else:
             return JsonResponse({'status': 'w łeb się puknij głupolu co to ma kurwa być'})
 

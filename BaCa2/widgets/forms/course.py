@@ -2,7 +2,6 @@ from typing import Dict
 
 from django import forms
 from django.utils.translation import gettext_lazy as _
-from django.urls import reverse_lazy
 
 from main.models import Course
 from widgets.forms.base import (BaCa2Form, FormWidget, FormElementGroup, FormConfirmationPopup,
@@ -106,10 +105,13 @@ class CreateCourseFormWidget(FormWidget):
         )
 
 
-class DeleteCourseForm(BaCa2Form):
+class DeleteCourseForm(BaCa2ModelForm):
     """
     Form for deleting existing :py:class:`main.Course` objects.
     """
+
+    MODEL = Course
+    ACTION = Course.BasicAction.DEL
 
     #: ID of the course to be deleted.
     course_id = forms.IntegerField(
@@ -121,7 +123,7 @@ class DeleteCourseForm(BaCa2Form):
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
         try:
-            Course.objects.delete_course(request.POST.get('course_id'))
+            Course.objects.delete_course(int(request.POST.get('course_id')))
         except Exception as e:
             return {'message': str(e)}
 
