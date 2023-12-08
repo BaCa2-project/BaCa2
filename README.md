@@ -22,8 +22,6 @@ The Django project is organized into three main apps:
 
 The BaCa2 web application component is currently being developed by 2 members of the project team:
 
-### Krzysztof Kalita
-
 <a href="https://github.com/k-kalita">
   <img src="https://avatars.githubusercontent.com/u/116686132?v=4" width="70" height="70" align="left" alt="krzysztof-kalita-pfp"/>
 </a>
