@@ -16,7 +16,7 @@ The Django project is organized into three main apps:
 
 2. **`course`** - responsible for management of tasks, submissions and other data and functionalities internal to any given course
 
-3. **`package`** - used to represent to communicate with BaCa2-package-manager and represent its packages within the web app
+3. **`package`** - used to communicate with BaCa2-package-manager and represent its packages within the web app
 
 ## Contributors
 
