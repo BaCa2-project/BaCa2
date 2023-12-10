@@ -36,7 +36,8 @@ class DelayedAction(dict):
     def release_lock(self, key):
         if key not in self.locks:
             self.set_lock(key)
-        self.locks[key].release()
+        if self.locks[key].locked():
+            self.locks[key].release()
 
     def put_func(self, key, func, *args, **kwargs):
         self[key] = (func, args, kwargs)
@@ -57,7 +58,8 @@ class DelayedAction(dict):
 
     def clear(self):
         for key in self.locks:
-            self.locks[key].release()
+            if self.locks[key].locked():
+                self.locks[key].release()
         self.locks.clear()
         super().clear()
 
@@ -65,7 +67,7 @@ class DelayedAction(dict):
 def send(url, message):
     cl = Client()
     resp = cl.post(url, message, content_type='application/json')
-    assert resp.status_code == 200
+    return resp
 
 
 class DummyBrokerHandler(server.BaseHTTPRequestHandler):
@@ -170,7 +172,7 @@ class General(TestCase):
                                               self.pkg_instance, broker_password=BROKER_PASSWORD)
 
         self.assertTrue(DelayedAction.INSTANCE.wait_for(broker_submit.broker_id, 2))
-        DelayedAction.INSTANCE.exec_func(broker_submit.broker_id)
+        self.assertEqual(200, DelayedAction.INSTANCE.exec_func(broker_submit.broker_id).status_code)
 
         broker_submit.refresh_from_db()
         self.assertTrue(broker_submit.status == BrokerSubmit.StatusEnum.SAVED)
@@ -189,7 +191,42 @@ class General(TestCase):
                                               self.pkg_instance, broker_password='wrong')
 
         self.assertTrue(DelayedAction.INSTANCE.wait_for(broker_submit.broker_id, 2))
-        DelayedAction.INSTANCE.exec_func(broker_submit.broker_id)
+        self.assertEqual(200, DelayedAction.INSTANCE.exec_func(broker_submit.broker_id).status_code)
 
         broker_submit.refresh_from_db()
         self.assertTrue(broker_submit.status == BrokerSubmit.StatusEnum.ERROR)
+
+    def test_wrong_submit_id(self):
+        ret = send('/broker_api/result', json.dumps(BrokerToBaca(
+            pass_hash=make_hash(BACA_PASSWORD, 'wrong'),
+            submit_id='wrong',
+            results={}
+        ).serialize()))
+        self.assertEqual(403, ret.status_code)
+
+        ret = send('/broker_api/error', json.dumps(BrokerToBacaError(
+            pass_hash=make_hash(BACA_PASSWORD, 'wrong'),
+            submit_id='wrong',
+            error='error'
+        ).serialize()))
+        self.assertEqual(403, ret.status_code)
+
+    def test_wrong_password(self):
+        src_code = SUBMITS_DIR / '1234.cpp'
+        src_code = src_code.absolute()
+
+        with InCourse(self.course.short_name):
+            submit = Submit.create_new(source_code=src_code, task=self.task, usr=self.user)
+            submit.pk = 1
+            submit.save()
+            submit_id = submit.pk
+            DelayedAction.INSTANCE.set_lock(create_broker_submit_id(self.course.name, int(submit_id)))
+            broker_submit = BrokerSubmit.send(self.course, submit_id,
+                                              self.pkg_instance, broker_password='wrong')
+
+        ret = send('/broker_api/result', json.dumps(BrokerToBaca(
+            pass_hash=make_hash('wrong', broker_submit.broker_id),
+            submit_id=broker_submit.broker_id,
+            results={}
+        ).serialize()))
+        self.assertEqual(401, ret.status_code)
