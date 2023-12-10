@@ -203,16 +203,22 @@ BROKER_PASSWORD = 'tmp-broker-password'
 
 # Broker retry policy
 BROKER_RETRY = {
-    # In seconds
+    # (In seconds) specify how many retries and how often should an
+    # HTTP post request be sent to the broker for one submit
     'individual submit retry interval': 0.05,
     "individual max retries": 10,
 
-    # In seconds
-    'retry timeout': 20.0,
-    'max retries': 2,
+    # (In seconds) how long it should take for a submit to become expired
+    'expiration timeout': 180.0,
+    # (In seconds) how many times a submit should be resent after it expires
+    'resend max retries': 2,
+    # (In minutes) how often should expiration check be performed
+    'retry check interval': 60.0,
 
-    # In minutes
-    'retry check interval': 20.0
+    # (In minutes) specify how old should error submits be before they are deleted
+    'deletion timeout': 60.0 * 24,
+    # (In minutes) specify how often should the deletion check be performed
+    'deletion check interval': 60.0 * 6,
 }
 
 # import secrets
