@@ -64,7 +64,7 @@ class BrokerSubmit(models.Model):
              broker_url: str = BROKER_URL,
              broker_password: str = BROKER_PASSWORD) -> 'BrokerSubmit':
         if cls.objects.filter(course=course, submit_id=submit_id).exists():
-            raise Exception
+            raise ValueError(f'Submit with id {submit_id} already exists.')
         new_submit = cls.objects.create(
             course=course,
             submit_id=submit_id,
