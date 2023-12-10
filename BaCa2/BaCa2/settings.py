@@ -206,7 +206,7 @@ BROKER_RETRY = {
     # (In seconds) specify how many retries and how often should an
     # HTTP post request be sent to the broker for one submit
     'individual submit retry interval': 0.05,
-    "individual max retries": 10,
+    "individual max retries": 5,
 
     # (In seconds) how long it should take for a submit to become expired
     'expiration timeout': 180.0,
