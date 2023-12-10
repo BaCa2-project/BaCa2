@@ -1,1 +1,2 @@
-import broker_api.scheduler
+from broker_api.scheduler import scheduler
+scheduler.start()

@@ -13,9 +13,6 @@ def check_model_updates():
     call_command('resendToBroker')
 
 
-@scheduler.scheduled_job('interval', minutes=BROKER_RETRY['delete check interval'])
+@scheduler.scheduled_job('interval', minutes=BROKER_RETRY['deletion check interval'])
 def delete_old_errors():
     call_command('deleteErrors')
-
-
-scheduler.start()
