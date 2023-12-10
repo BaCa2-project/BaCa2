@@ -20,3 +20,4 @@ class Command(BaseCommand):
         for submit in data:
             submit.update_date = timezone.now()
             submit.update_status(BrokerSubmit.StatusEnum.EXPIRED)
+            submit.save()
