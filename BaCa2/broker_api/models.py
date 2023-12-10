@@ -13,11 +13,6 @@ from course.routing import InCourse
 from course.models import Submit, Result
 
 
-# HELP:
-# package_path = package_instance.package_source.path
-# commit_id = package_instance.commit
-
-
 class BrokerSubmit(models.Model):
 
     class StatusEnum(models.IntegerChoices):
@@ -65,7 +60,9 @@ class BrokerSubmit(models.Model):
     def send(cls,
              course: Course,
              submit_id: int,
-             package_instance: PackageInstance) -> 'BrokerSubmit':
+             package_instance: PackageInstance,
+             broker_url: str = BROKER_URL,
+             broker_password: str = BROKER_PASSWORD) -> 'BrokerSubmit':
         if cls.objects.filter(course=course, submit_id=submit_id).exists():
             raise Exception
         new_submit = cls.objects.create(
@@ -76,7 +73,7 @@ class BrokerSubmit(models.Model):
         new_submit.save()
         code = -100
         for _ in range(BROKER_RETRY["individual max retries"]):
-            _, code = cls.send_submit(new_submit, BROKER_URL, BROKER_PASSWORD)
+            _, code = cls.send_submit(new_submit, broker_url, broker_password)
             if code == 200:
                 break
             sleep(BROKER_RETRY["individual submit retry interval"])
@@ -104,12 +101,13 @@ class BrokerSubmit(models.Model):
     def handle_result(cls, response: brcom.BrokerToBaca) -> None:
         broker_submit = cls.authenticate(response)
         course_name, submit_id = brcom.split_broker_submit_id(response.submit_id)
+        course = Course.objects.get(name=course_name)
 
         print('update status')
         broker_submit.update_status(cls.StatusEnum.CHECKED)
 
         print('unpack results')
-        with InCourse(course_name):
+        with InCourse(course.short_name):
             Result.unpack_results(submit_id, response)
             submit = Submit.objects.get(pk=submit_id)
             submit.score()
