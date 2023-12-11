@@ -102,7 +102,7 @@ class DummyBrokerHandler(server.BaseHTTPRequestHandler):
                 )
                 DelayedAction.INSTANCE.put_func(content.submit_id, send,
                                                 '/broker_api/result', json.dumps(out.serialize()))
-        except TypeError:  # TODO
+        except TypeError:
             self.send_response(400)
             self.end_headers()
             return
@@ -197,17 +197,39 @@ class General(TestCase):
         broker_submit.refresh_from_db()
         self.assertTrue(broker_submit.status == BrokerSubmit.StatusEnum.ERROR)
 
+    def test_wrong_requests(self):
+        cl = Client()
+        self.assertEqual(404, cl.get('/broker_api/result').status_code)
+        self.assertEqual(404, cl.get('/broker_api/error').status_code)
+        self.assertEqual(400, cl.post('/broker_api/result', content_type='text/plain').status_code)
+        self.assertEqual(400, cl.post('/broker_api/error', content_type='text/plain').status_code)
+
+    def test_broker_no_communication(self):
+        src_code = SUBMITS_DIR / '1234.cpp'
+        src_code = src_code.absolute()
+
+        with InCourse(self.course.short_name):
+            submit = Submit.create_new(source_code=src_code, task=self.task, usr=self.user)
+            submit.pk = 1
+            submit.save()
+            submit_id = submit.pk
+            self.assertRaises(ConnectionError, BrokerSubmit.send, self.course, submit_id,
+                              self.pkg_instance, broker_url='http://127.0.0.1/wrong')
+
+        broker_submit = BrokerSubmit.objects.get(course=self.course, submit_id=submit_id)
+        self.assertEqual(broker_submit.status, BrokerSubmit.StatusEnum.ERROR)
+
     def test_wrong_submit_id(self):
         ret = send('/broker_api/result', json.dumps(BrokerToBaca(
-            pass_hash=make_hash(BACA_PASSWORD, 'wrong'),
-            submit_id='wrong',
+            pass_hash=make_hash(BACA_PASSWORD, 'wrong___12'),
+            submit_id='wrong___12',
             results={}
         ).serialize()))
         self.assertEqual(403, ret.status_code)
 
         ret = send('/broker_api/error', json.dumps(BrokerToBacaError(
-            pass_hash=make_hash(BACA_PASSWORD, 'wrong'),
-            submit_id='wrong',
+            pass_hash=make_hash(BACA_PASSWORD, 'wrong___12'),
+            submit_id='wrong___12',
             error='error'
         ).serialize()))
         self.assertEqual(403, ret.status_code)
