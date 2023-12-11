@@ -56,7 +56,6 @@ class BrokerSubmit(models.Model):
             return message, r.status_code
 
     @classmethod
-    @transaction.atomic
     def send(cls,
              course: Course,
              submit_id: int,
@@ -78,12 +77,11 @@ class BrokerSubmit(models.Model):
                 break
             sleep(BrokerRetryPolicy.individual_submit_retry_interval)
         else:
-            new_submit.update_status(cls.StatusEnum.ERROR)  # ???
+            new_submit.update_status(cls.StatusEnum.ERROR)
             raise ConnectionError(f'Cannot sent message to broker (error code: {code})')
         new_submit.update_status(cls.StatusEnum.AWAITING_RESPONSE)
         return new_submit
 
-    @transaction.atomic
     def resend(self, broker_url: str = BROKER_URL, broker_password: str = BROKER_PASSWORD) -> None:
         for _ in range(BrokerRetryPolicy.individual_max_retries):
             _, code = self.send_submit(broker_url, broker_password)
@@ -96,7 +94,6 @@ class BrokerSubmit(models.Model):
             self.update_status(self.StatusEnum.ERROR)
 
     @classmethod
-    @transaction.atomic
     def authenticate(cls, response: brcom.BrokerToBaca) -> 'BrokerSubmit':
         course_name, submit_id = brcom.split_broker_submit_id(response.submit_id)
         print(f'{course_name=}, {submit_id=}')
@@ -109,7 +106,6 @@ class BrokerSubmit(models.Model):
         return broker_submit
 
     @classmethod
-    @transaction.atomic
     def handle_result(cls, response: brcom.BrokerToBaca) -> None:
         broker_submit = cls.authenticate(response)
         course_name, submit_id = brcom.split_broker_submit_id(response.submit_id)
@@ -129,7 +125,6 @@ class BrokerSubmit(models.Model):
         broker_submit.update_status(cls.StatusEnum.SAVED)
 
     @classmethod
-    @transaction.atomic
     def handle_error(cls, response: brcom.BrokerToBacaError) -> None:
         broker_submit = cls.authenticate(response)
         broker_submit.update_status(cls.StatusEnum.ERROR)
