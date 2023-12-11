@@ -5,14 +5,14 @@ from django.utils import timezone
 
 import logging
 
-from BaCa2.settings import BROKER_RETRY
+from BaCa2.settings import BrokerRetryPolicy
 from broker_api.models import BrokerSubmit
 
 
 class Command(BaseCommand):
     help = 'Marks expired submits as such'
 
-    retry_timeout: float = BROKER_RETRY['expiration timeout']
+    retry_timeout: float = BrokerRetryPolicy.expiration_timeout
 
     def handle(self, *args, **options):
         print(f"Command {__file__} called.")

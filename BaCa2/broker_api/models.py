@@ -6,7 +6,7 @@ from django.utils import timezone
 import requests
 import baca2PackageManager.broker_communication as brcom
 
-from BaCa2.settings import BROKER_PASSWORD, BACA_PASSWORD, BROKER_URL, BROKER_RETRY
+from BaCa2.settings import BROKER_PASSWORD, BACA_PASSWORD, BROKER_URL, BrokerRetryPolicy
 from main.models import Course
 from package.models import PackageInstance
 from course.routing import InCourse
@@ -72,11 +72,11 @@ class BrokerSubmit(models.Model):
         )
         new_submit.save()
         code = -100
-        for _ in range(BROKER_RETRY["individual max retries"]):
+        for _ in range(BrokerRetryPolicy.individual_max_retries):
             _, code = cls.send_submit(new_submit, broker_url, broker_password)
             if code == 200:
                 break
-            sleep(BROKER_RETRY["individual submit retry interval"])
+            sleep(BrokerRetryPolicy.individual_submit_retry_interval)
         else:
             new_submit.update_status(cls.StatusEnum.ERROR)  # ???
             raise ConnectionError(f'Cannot sent message to broker (error code: {code})')
@@ -85,13 +85,13 @@ class BrokerSubmit(models.Model):
 
     @transaction.atomic
     def resend(self, broker_url: str = BROKER_URL, broker_password: str = BROKER_PASSWORD) -> None:
-        for _ in range(BROKER_RETRY["individual max retries"]):
+        for _ in range(BrokerRetryPolicy.individual_max_retries):
             _, code = self.send_submit(broker_url, broker_password)
             if code == 200:
                 self.retry_amount += 1
                 self.update_status(self.StatusEnum.AWAITING_RESPONSE)
                 break
-            sleep(BROKER_RETRY["individual submit retry interval"])
+            sleep(BrokerRetryPolicy.individual_submit_retry_interval)
         else:
             self.update_status(self.StatusEnum.ERROR)
 

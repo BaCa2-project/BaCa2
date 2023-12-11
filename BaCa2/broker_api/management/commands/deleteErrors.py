@@ -5,14 +5,14 @@ from django.utils import timezone
 
 import logging
 
-from BaCa2.settings import BROKER_RETRY
+from BaCa2.settings import BrokerRetryPolicy
 from broker_api.models import BrokerSubmit
 
 
 class Command(BaseCommand):
     help = 'Deletes old error submits'
 
-    deletion_timeout: float = BROKER_RETRY['deletion timeout']
+    deletion_timeout: float = BrokerRetryPolicy.deletion_timeout
 
     def handle(self, *args, **options):
         print(f"Command {__file__} called.")

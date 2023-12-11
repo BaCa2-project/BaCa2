@@ -1,9 +1,6 @@
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 
-import logging
-
-from BaCa2.settings import BROKER_RETRY
+from BaCa2.settings import BrokerRetryPolicy
 from broker_api.models import BrokerSubmit
 
 
@@ -11,7 +8,7 @@ class Command(BaseCommand):
     help = 'Resends expired submits'
 
     # maximum number of retries
-    retry_limit: int = BROKER_RETRY['resend max retries']
+    retry_limit: int = BrokerRetryPolicy.resend_max_retries
 
     def handle(self, *args, **options):
         print(f"Command {__file__} called.")
