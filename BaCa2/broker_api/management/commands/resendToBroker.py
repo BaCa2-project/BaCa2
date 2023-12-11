@@ -17,13 +17,7 @@ class Command(BaseCommand):
         print(f"Command {__file__} called.")
         data = BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.EXPIRED)
         for submit in data:
-            if submit.retries >= self.retry_limit:
-                submit.update_date = timezone.now()
-                submit.update_status(BrokerSubmit.StatusEnum.ERROR)
-                submit.save()
+            if submit.retry_amount < self.retry_limit:
+                submit.resend()
             else:
-                submit.retries += 1
-                submit.update_date = timezone.now()
-                submit.update_status(BrokerSubmit.StatusEnum.AWAITING_RESPONSE)
-                submit.save()
-                submit.send_submit()
+                submit.update_status(BrokerSubmit.StatusEnum.ERROR)

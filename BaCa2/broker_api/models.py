@@ -29,7 +29,7 @@ class BrokerSubmit(models.Model):
 
     status = models.IntegerField(StatusEnum, default=StatusEnum.NEW)
     update_date = models.DateTimeField(default=timezone.now)
-    retires = models.IntegerField(default=0)
+    retry_amount = models.IntegerField(default=0)
 
     @property
     def broker_id(self):
@@ -82,6 +82,18 @@ class BrokerSubmit(models.Model):
             raise ConnectionError(f'Cannot sent message to broker (error code: {code})')
         new_submit.update_status(cls.StatusEnum.AWAITING_RESPONSE)
         return new_submit
+
+    @transaction.atomic
+    def resend(self, broker_url: str = BROKER_URL, broker_password: str = BROKER_PASSWORD) -> None:
+        for _ in range(BROKER_RETRY["individual max retries"]):
+            _, code = self.send_submit(broker_url, broker_password)
+            if code == 200:
+                self.retry_amount += 1
+                self.update_status(self.StatusEnum.AWAITING_RESPONSE)
+                break
+            sleep(BROKER_RETRY["individual submit retry interval"])
+        else:
+            self.update_status(self.StatusEnum.ERROR)
 
     @classmethod
     @transaction.atomic
