@@ -5,8 +5,9 @@ from threading import Thread, Lock
 from typing import Any
 
 from django.test import TestCase, Client
+from django.core.management import call_command
 
-from BaCa2.settings import SUBMITS_DIR, BROKER_PASSWORD, BACA_PASSWORD
+from BaCa2.settings import SUBMITS_DIR, BROKER_PASSWORD, BACA_PASSWORD, BROKER_RETRY
 from broker_api.broker_communication import *
 from broker_api.views import *
 from course.models import Round, Task, Submit
@@ -230,3 +231,66 @@ class General(TestCase):
             results={}
         ).serialize()))
         self.assertEqual(401, ret.status_code)
+
+    def test_deleteErrors(self):
+        for i in range(10):
+            BrokerSubmit.objects.create(course=self.course,
+                                        submit_id=i,
+                                        package_instance=self.pkg_instance,
+                                        status=BrokerSubmit.StatusEnum.ERROR,
+                                        update_date=datetime.now() - timedelta(BROKER_RETRY['deletion timeout']))
+        for i in range(10):
+            BrokerSubmit.objects.create(course=self.course,
+                                        submit_id=i,
+                                        package_instance=self.pkg_instance,
+                                        status=BrokerSubmit.StatusEnum.ERROR,
+                                        update_date=datetime.now())
+        self.assertEqual(20, BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.ERROR).count())
+        call_command('deleteErrors')
+        self.assertEqual(10, BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.ERROR).count())
+
+    def test_markExpired(self):
+        for i in range(10):
+            BrokerSubmit.objects.create(course=self.course,
+                                        submit_id=i,
+                                        package_instance=self.pkg_instance,
+                                        status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE,
+                                        update_date=datetime.now() - timedelta(BROKER_RETRY['expiration timeout']))
+        for i in range(10):
+            BrokerSubmit.objects.create(course=self.course,
+                                        submit_id=i,
+                                        package_instance=self.pkg_instance,
+                                        status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE,
+                                        update_date=datetime.now())
+        self.assertEqual(20, BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE).count())
+        call_command('markExpired')
+        self.assertEqual(10, BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.EXPIRED).count())
+
+    def test_resendToBroker(self):
+        for i in range(10):
+            src_code = SUBMITS_DIR / '1234.cpp'
+            src_code = src_code.absolute()
+
+            with InCourse(self.course.short_name):
+                submit = Submit.create_new(source_code=src_code, task=self.task, usr=self.user)
+                submit.pk = i
+                submit.save()
+                submit_id = submit.pk
+                BrokerSubmit.send(self.course, submit_id,
+                                  self.pkg_instance, broker_password=BROKER_PASSWORD)
+
+        call_command('resendToBroker')
+        self.assertEqual(10, BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE).count())
+        for i in range(BROKER_RETRY['resend max retries']):
+            BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE, submit_id__gte=5).update(
+                                        status=BrokerSubmit.StatusEnum.EXPIRED)
+            call_command('resendToBroker')
+            self.assertEqual(10, BrokerSubmit.objects.filter(
+                status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE).count())
+            self.assertEqual(0, BrokerSubmit.objects.filter(
+                status=BrokerSubmit.StatusEnum.EXPIRED).count())
+        BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE, submit_id__gte=5).update(
+            status=BrokerSubmit.StatusEnum.EXPIRED)
+        call_command('resendToBroker')
+        self.assertEqual(5, BrokerSubmit.objects.filter(
+            status=BrokerSubmit.StatusEnum.ERROR).count())

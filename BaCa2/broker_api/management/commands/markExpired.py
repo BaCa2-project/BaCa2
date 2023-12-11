@@ -21,6 +21,4 @@ class Command(BaseCommand):
             update_date__lte=timezone.now() - timedelta(seconds=self.retry_timeout)
         )
         for submit in data:
-            submit.update_date = timezone.now()
             submit.update_status(BrokerSubmit.StatusEnum.EXPIRED)
-            submit.save()
