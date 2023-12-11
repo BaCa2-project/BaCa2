@@ -219,6 +219,9 @@ BROKER_RETRY = {
     'deletion timeout': 60.0 * 24,
     # (In minutes) specify how often should the deletion check be performed
     'deletion check interval': 60.0 * 6,
+
+    # Auto start broker daemons
+    'auto start': True,
 }
 
 # import secrets

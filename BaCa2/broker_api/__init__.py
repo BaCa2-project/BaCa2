@@ -1,2 +1,5 @@
 from broker_api.scheduler import scheduler
-scheduler.start()
+from BaCa2.settings import BROKER_RETRY
+
+if BROKER_RETRY['auto start']:
+    scheduler.start()
