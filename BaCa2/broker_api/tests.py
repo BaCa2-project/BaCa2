@@ -7,7 +7,7 @@ from typing import Any
 from django.test import TestCase, Client
 from django.core.management import call_command
 
-from BaCa2.settings import SUBMITS_DIR, BROKER_PASSWORD, BACA_PASSWORD, BROKER_RETRY
+from BaCa2.settings import SUBMITS_DIR, BROKER_PASSWORD, BACA_PASSWORD, BrokerRetryPolicy
 from broker_api.broker_communication import *
 from broker_api.views import *
 from course.models import Round, Task, Submit
@@ -238,7 +238,7 @@ class General(TestCase):
                                         submit_id=i,
                                         package_instance=self.pkg_instance,
                                         status=BrokerSubmit.StatusEnum.ERROR,
-                                        update_date=datetime.now() - timedelta(BROKER_RETRY['deletion timeout']))
+                                        update_date=datetime.now() - timedelta(BrokerRetryPolicy.deletion_timeout))
         for i in range(10):
             BrokerSubmit.objects.create(course=self.course,
                                         submit_id=i,
@@ -255,7 +255,7 @@ class General(TestCase):
                                         submit_id=i,
                                         package_instance=self.pkg_instance,
                                         status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE,
-                                        update_date=datetime.now() - timedelta(BROKER_RETRY['expiration timeout']))
+                                        update_date=datetime.now() - timedelta(BrokerRetryPolicy.expiration_timeout))
         for i in range(10):
             BrokerSubmit.objects.create(course=self.course,
                                         submit_id=i,
@@ -281,7 +281,7 @@ class General(TestCase):
 
         call_command('resendToBroker')
         self.assertEqual(10, BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE).count())
-        for i in range(BROKER_RETRY['resend max retries']):
+        for i in range(BrokerRetryPolicy.resend_max_retries):
             BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE, submit_id__gte=5).update(
                                         status=BrokerSubmit.StatusEnum.EXPIRED)
             call_command('resendToBroker')

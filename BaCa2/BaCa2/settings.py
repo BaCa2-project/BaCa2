@@ -201,28 +201,29 @@ SUBMITS_DIR = BASE_DIR / 'submits'
 BACA_PASSWORD = 'tmp-baca-password'
 BROKER_PASSWORD = 'tmp-broker-password'
 
-# Broker retry policy
-BROKER_RETRY = {
+
+class BrokerRetryPolicy:
+    """Broker retry policy settings"""
     # (In seconds) specify how many retries and how often should an
     # HTTP post request be sent to the broker for one submit
-    'individual submit retry interval': 0.05,
-    "individual max retries": 5,
+    individual_submit_retry_interval = 0.05
+    individual_max_retries = 5
 
     # (In seconds) how long it should take for a submit to become expired
-    'expiration timeout': 180.0,
+    expiration_timeout = 180.0
     # (In seconds) how many times a submit should be resent after it expires
-    'resend max retries': 2,
+    resend_max_retries = 2
     # (In minutes) how often should expiration check be performed
-    'retry check interval': 60.0,
+    retry_check_interval = 60.0
 
     # (In minutes) specify how old should error submits be before they are deleted
-    'deletion timeout': 60.0 * 24,
+    deletion_timeout = 60.0 * 24
     # (In minutes) specify how often should the deletion check be performed
-    'deletion check interval': 60.0 * 6,
+    deletion_check_interval = 60.0 * 6
 
     # Auto start broker daemons
-    'auto start': True,
-}
+    auto_start = True
+
 
 # import secrets
 SECRETS_DIR = BASE_DIR / "secrets.yaml"
