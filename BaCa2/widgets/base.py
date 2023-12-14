@@ -7,6 +7,12 @@ class Widget(ABC):
     Base abstract class from which all widgets inherit. Contains any shared logic and methods which
     all widgets have to implement.
     """
+    class WidgetParameterError(Exception):
+        """
+        Exception raised when receives an invalid parameter or combination of parameters.
+        """
+        pass
+
     def __init__(self, name: str) -> None:
         """
         Initializes the widget with a name. Name is used to distinguish between widgets of the same

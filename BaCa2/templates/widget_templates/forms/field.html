@@ -10,6 +10,9 @@
                 {% else %}
                     toggleable-off
                 {% endif %}
+            {% endif %}
+            {% if form_widget.live_validation %}
+                live-validation
             {% endif %}">
         {% if form_widget.floating_labels %}
             <div class="form-floating">
@@ -37,17 +40,13 @@
         {% endif %}
 
         {% if field.name in form_widget.toggleable_fields %}
-            {% with button_params=form_widget.toggleable_fields_params|get_item:field.name %}
-                <button class="btn btn-outline-secondary"
-                        type="button"
-                        onclick="toggleField('{{ field.name }}',
-                                '{{ button_params|get_item:'button_text_off' }}',
-                                '{{ button_params|get_item:'button_text_on' }}')">
-                    {% if field.value %}
-                        {{ button_params|get_item:'button_text_on'}}
-                    {% else %}
-                        {{ button_params|get_item:'button_text_off'}}
-                    {% endif %}
+            {% with button_params=form_widget.toggleable_params|get_item:field.name %}
+                <button class="btn btn-outline-secondary
+                               text-switch-btn switch-off
+                               field-toggle-btn"
+                        data-text-on="{{ button_params|get_item:'button_text_on'}}"
+                        data-text-off="{{ button_params|get_item:'button_text_off'}}"
+                        data-initial-state="off">
                 </button>
             {% endwith %}
         {% endif %}

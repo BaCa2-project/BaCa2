@@ -29,13 +29,13 @@
         <!-- stylesheets -->
         <link rel="stylesheet" href="{% static 'css/base.css' %}">
 
+
         <!-- scripts -->
-        {% if widgets.TableWidget %}
-            <script src="{% static 'js/tables.js' %}"></script>
-            <script>
-                const tables = {};
-            </script>
-        {% endif %}
+        <script src="{% static 'js/base.js' %}"></script>
+        <script src="{% static 'js/logo.js' %}"></script>
+        <script src="{% static 'js/buttons.js' %}"></script>
+        <script src="{% static 'js/tables.js' %}"></script>
+        <script src="{% static 'js/forms.js' %}"></script>
 
         <!-- template-specific -->
         {% block head %}
@@ -51,7 +51,7 @@
             {% endwith %}
         {% endif %}
 
-        <div class="h-100 container main-container">
+        <div class="h-100 container main-container" id="main-container">
             {% if display_navbar %}
                 <div class="navbar-padding">
             {% endif %}
@@ -71,7 +71,6 @@
 
                     {% if display_sidenav %}
                         </div>
-                        </div>
                     {% endif %}
 
                 {% if display_sidenav %}
@@ -81,5 +80,19 @@
                 </div>
             {% endif %}
         </div>
+
+        <script>
+            initCommon();
+        </script>
+
+        {% block initializers %}
+        {% endblock %}
+
+        <script>
+            showPage();
+        </script>
+
+        {% block scripts %}
+        {% endblock %}
     </body>
 </html>

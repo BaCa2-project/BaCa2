@@ -23,6 +23,10 @@
 
 // display and size styling
 .logo-wrapper {
+    .baca2-logo {
+        transition: height 0.8s ease;
+    }
+
     @each $version in $logo_versions {
         .logo-#{$version} {
             display: none;
