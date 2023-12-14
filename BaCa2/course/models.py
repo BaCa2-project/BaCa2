@@ -111,8 +111,37 @@ class Round(models.Model):
         """
         It deletes the round object.
         """
-        Task.objects.get(round=self).delete(using, keep_parents)
+        tasks = Task.objects.filter(round=self).all()
+        for task in tasks:
+            task.delete()
         super().delete(using, keep_parents)
+
+    @property
+    def is_open(self) -> bool:
+        """
+        It checks if the round is open.
+
+        :return: A boolean value.
+        """
+        return self.start_date <= now() <= self.deadline_date
+
+    @property
+    def tasks(self) -> QuerySet:
+        """
+        It returns all the tasks that are associated with the round
+
+        :return: A list of all the Task objects that are associated with the Round object.
+        """
+        return Task.objects.filter(round=self).all()
+
+    @property
+    def round_points(self) -> float:
+        """
+        It returns the amount of points that can be gained for completing all the tasks in the round.
+
+        :return: The amount of points that can be gained for completing all the tasks in the round.
+        """
+        return sum(task.points for task in self.tasks)
 
     def __str__(self):
         return f"Round {self.pk}"
@@ -172,7 +201,7 @@ class Task(models.Model):
     """
 
     #: Pseudo-foreign key to package instance.
-    package_instance_id = models.BigIntegerField(validators=[PackageInstance.exists])
+    package_instance_id = models.BigIntegerField(validators=[PackageInstance.objects.exists])
     #: Represents displayed task name
     task_name = models.CharField(max_length=1023)
     #: Foreign key to round, which task is assigned to.
@@ -201,7 +230,7 @@ class Task(models.Model):
         """
         pkg = self.package_instance.package
         for t_set in pkg.sets():
-            TestSet.create_from_package(t_set, self)
+            TestSet.objects.create_from_package(t_set, self)
 
     @transaction.atomic
     def delete(self, using=None, keep_parents=False):
@@ -501,6 +530,16 @@ class Submit(models.Model):
         return f"Submit {self.pk}: User: {self.user}; Task: {self.task.task_name}; " \
                f"Score: {self.final_score if self.final_score > -1 else 'PENDING'}"
 
+    @property
+    def results(self) -> QuerySet:
+        """
+        Returns all results associated with this submit.
+
+        :return: QuerySet of results
+        :rtype: QuerySet
+        """
+        return Result.objects.filter(submit=self).all()
+
     def score(self, rejudge: bool = False) -> float:
         """
         It calculates the score of *self* submit.
@@ -611,6 +650,35 @@ class ResultManager(models.Manager):
                 results_list.append(result)
         return results_list
 
+    @transaction.atomic
+    def create_result(self,
+                      test: int | Test,
+                      submit: int | Submit,
+                      status: str | ResultStatus = ResultStatus.PND,
+                      time_real: float = None,
+                      time_cpu: float = None,
+                      runtime_memory: int = None) -> Result:
+        """
+        It creates a new result object.
+
+        :param test: The test that you want to associate the result with.
+        :type test: int | Test
+        :param submit: The submit that you want to associate the result with.
+        :type submit: int | Submit
+        :param status: The status of the result, defaults to ResultStatus.PND (optional)
+        :type status: str | ResultStatus
+        :param time_real: The real time of the result, defaults to None (optional)
+        :type time_real: float
+        :param time_cpu: The cpu time of the result, defaults to None (optional)
+        :type time_cpu: float
+        :param runtime_memory: The runtime memory of the result, defaults to None (optional)
+        :type runtime_memory: int
+
+        :return: A new result object.
+        :rtype: Result
+        """
+        raise NotImplementedError("This method is not implemented yet.")
+
 
 class Result(models.Model):
     """
@@ -635,7 +703,7 @@ class Result(models.Model):
     runtime_memory = models.IntegerField(null=True, default=None)
 
     #: The manager for the Result model.
-    object = ResultManager()
+    objects = ResultManager()
 
     def __str__(self):
         return f"Result {self.pk}: Set[{self.test.test_set.short_name}] Test[{self.test.short_name}]; " \
