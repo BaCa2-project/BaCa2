@@ -1,3 +1,105 @@
+// ---------------------------------------- forms setup --------------------------------------- //
+
+function formsSetup() {
+    toggleableGroupSetup();
+    toggleableFieldSetup();
+    confirmationPopupSetup();
+    refreshButtonSetup()
+    liveValidationSetup();
+}
+
+function refreshButtonSetup() {
+    $('form').each(function () {
+        const form = $(this)
+        form.find('.form-refresh-button').on('click', function () {
+           formRefresh(form)
+        });
+    });
+}
+
+function liveValidationSetup() {
+    $('form').each(function () {
+        submitButtonRefresh($(this));
+    });
+}
+
+// --------------------------------------- toggle setup --------------------------------------- //
+
+function toggleableFieldSetup() {
+    const buttons = $('.field-toggle-btn');
+
+    buttons.each(function () {
+        toggleableFieldButtonInit($(this));
+    });
+
+    buttons.on('click', function(e) {
+        toggleFieldButtonClickHandler(e)
+    });
+}
+
+function toggleableFieldButtonInit(button) {
+    let on = button.data('initial-state') !== 'off';
+    if (button.hasClass('switch-on') && !on)
+        toggleTextSwitchBtn(button)
+    toggleField(button.closest('.input-group').find('input'), on);
+}
+
+function toggleableGroupSetup() {
+    const buttons = $('.group-toggle-btn');
+
+    buttons.each(function () {
+        toggleableGroupButtonInit($(this))
+    });
+
+    buttons.on('click', function(e) {
+        toggleGroupButtonClickHandler(e)
+    });
+}
+
+function toggleableGroupButtonInit(button) {
+    let on  = button.data('initial-state') !== 'off';
+    if (button.hasClass('switch-on') && !on)
+        toggleTextSwitchBtn(button)
+    toggleFieldGroup(button.closest('.form-element-group'), on)
+}
+
+// ---------------------------------------- popup setup --------------------------------------- //
+
+function confirmationPopupSetup() {
+    $('.submit-btn').filter(function () {
+        return $(this).data('bs-toggle') === 'modal';
+    }).filter(function () {
+        return $($(this).data('bs-target')).find('.input-summary').length > 0;
+    }).on('click', function (e) {
+        e.preventDefault();
+        renderConfirmationPopup($($(this).data('bs-target')));
+    });
+
+    $('.form-confirmation-popup .submit-btn').on('click', function () {
+        $(this).closest('.form-confirmation-popup').modal('hide');
+        $('#' + $(this).data('form-target')).submit();
+    });
+}
+
+// ----------------------------------- field & group toggle ----------------------------------- //
+
+function toggleFieldButtonClickHandler(e) {
+    e.preventDefault();
+    toggleTextSwitchBtn($(this));
+    let on = false;
+    const input = $(this).closest('.input-group').find('input')
+
+    if ($(this).hasClass('switch-on'))
+        on = true;
+
+    toggleField(input, on);
+
+    if (on)
+        input.focus();
+
+    submitButtonRefresh($(this).closest('form'));
+}
+
 function toggleField(field, on) {
     if (on)
         $(field).attr('disabled', false);
@@ -12,34 +114,30 @@ function toggleField(field, on) {
     }
 }
 
+function toggleGroupButtonClickHandler(e) {
+    e.preventDefault();
+    toggleTextSwitchBtn($(this));
+    let on = false;
+    const group = $(this).closest('.form-element-group');
+
+    if ($(this).hasClass('switch-on'))
+        on = true;
+
+    toggleFieldGroup(group, on)
+
+    if (on)
+        group.find('input:first').focus()
+
+    submitButtonRefresh($(this).closest('form'));
+}
+
 function toggleFieldGroup(formElementGroup, on) {
     formElementGroup.find('input').each(function () {
         toggleField($(this), on)
     });
 }
 
-function formsSetup() {
-    toggleableGroupSetup();
-    toggleableFieldSetup();
-    confirmationPopupSetup();
-    refreshButtonSetup()
-    liveValidationSetup();
-}
-
-function liveValidationSetup() {
-    $('form').each(function () {
-        submitButtonRefresh($(this));
-    });
-}
-
-function refreshButtonSetup() {
-    $('form').each(function () {
-        const form = $(this)
-        form.find('.form-refresh-button').on('click', function () {
-           formRefresh(form)
-        });
-    });
-}
+// --------------------------------------- form refresh --------------------------------------- //
 
 function formRefresh(form) {
     form[0].reset();
@@ -63,115 +161,7 @@ function resetToggleables(form) {
     });
 }
 
-function submitButtonRefresh(form) {
-    if (form.find('.live-validation').filter(function () {
-        return ($(this)).find('input:not(:disabled):not(.is-valid)').length > 0;
-    }).length > 0)
-        form.find('.submit-btn').attr('disabled', true);
-    else
-        enableSubmitButton(form.find('.submit-btn'));
-}
-
-function enableSubmitButton(submitButton) {
-    if (submitButton.is(':disabled')) {
-        submitButton.attr('disabled', false);
-        submitButton.addClass('submit-enabled');
-
-        setTimeout(function () {
-            submitButton.removeClass('submit-enabled');
-        }, 300);
-    }
-}
-
-function toggleableFieldButtonInit(button) {
-    let on = button.data('initial-state') !== 'off';
-    if (button.hasClass('switch-on') && !on)
-        toggleTextSwitchBtn(button)
-    toggleField(button.closest('.input-group').find('input'), on);
-}
-
-function toggleableFieldSetup() {
-    const buttons = $('.field-toggle-btn');
-
-    buttons.each(function () {
-        toggleableFieldButtonInit($(this));
-    });
-
-    buttons.on('click', function(e) {
-        e.preventDefault();
-        toggleTextSwitchBtn($(this));
-        let on = false;
-        const input = $(this).closest('.input-group').find('input')
-
-        if ($(this).hasClass('switch-on'))
-            on = true;
-
-        toggleField(input, on);
-
-        if (on)
-            input.focus();
-
-        submitButtonRefresh($(this).closest('form'));
-    });
-}
-
-function toggleableGroupButtonInit(button) {
-    let on  = button.data('initial-state') !== 'off';
-    if (button.hasClass('switch-on') && !on)
-        toggleTextSwitchBtn(button)
-    toggleFieldGroup(button.closest('.form-element-group'), on)
-}
-
-function toggleableGroupSetup() {
-    const buttons = $('.group-toggle-btn');
-
-    buttons.each(function () {
-        toggleableGroupButtonInit($(this))
-    });
-
-    buttons.on('click', function(e) {
-        e.preventDefault();
-        toggleTextSwitchBtn($(this));
-        let on = false;
-        const group = $(this).closest('.form-element-group');
-
-        if ($(this).hasClass('switch-on'))
-            on = true;
-
-        toggleFieldGroup(group, on)
-
-        if (on)
-            group.find('input:first').focus()
-
-        submitButtonRefresh($(this).closest('form'));
-    });
-}
-
-function confirmationPopupSetup() {
-    $('.submit-btn').filter(function () {
-        return $(this).data('bs-toggle') === 'modal';
-    }).filter(function () {
-        return $($(this).data('bs-target')).find('.input-summary').length > 0;
-    }).on('click', function (e) {
-        e.preventDefault();
-        const popup = $($(this).data('bs-target'));
-
-        popup.find('.input-summary-label').text(function () {
-            return $('#' + $(this).data('input-target')).closest('.input-group')
-                .find('label').text() + ':';
-        });
-
-        popup.find('.input-summary-value').text(function () {
-            const value = $('#' + $(this).data('input-target')).val();
-            return value.length > 0 ? value : '-';
-        });
-    });
-
-    $('.form-confirmation-popup .submit-btn').on('click', function () {
-        $(this).closest('.form-confirmation-popup').modal('hide');
-        $('#' + $(this).data('form-target')).submit();
-    });
-}
+// -------------------------------------- live validation ------------------------------------- //
 
 function update_validation_status(field, fieldCls, required, minLength, url) {
     const value = $(field).val();
@@ -209,5 +199,39 @@ function update_validation_status(field, fieldCls, required, minLength, url) {
                 $(field).closest('form').find('.submit-btn').attr('disabled', true);
             }
         }
+    });
+}
+
+function submitButtonRefresh(form) {
+    if (form.find('.live-validation').filter(function () {
+        return ($(this)).find('input:not(:disabled):not(.is-valid)').length > 0;
+    }).length > 0)
+        form.find('.submit-btn').attr('disabled', true);
+    else
+        enableSubmitButton(form.find('.submit-btn'));
+}
+
+function enableSubmitButton(submitButton) {
+    if (submitButton.is(':disabled')) {
+        submitButton.attr('disabled', false);
+        submitButton.addClass('submit-enabled');
+
+        setTimeout(function () {
+            submitButton.removeClass('submit-enabled');
+        }, 300);
+    }
+}
+
+// ------------------------------------------ popups ------------------------------------------ //
+
+function renderConfirmationPopup(popup) {
+    popup.find('.input-summary-label').text(function () {
+        return $('#' + $(this).data('input-target')).closest('.input-group')
+            .find('label').text() + ':';
+    });
+
+    popup.find('.input-summary-value').text(function () {
+        const value = $('#' + $(this).data('input-target')).val();
+        return value.length > 0 ? value : '-';
     });
 }
