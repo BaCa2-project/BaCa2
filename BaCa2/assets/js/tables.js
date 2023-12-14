@@ -1,264 +1,287 @@
-function create_table(
+class TableWidget {
+    constructor(tableId, table) {
+        this.tableId = tableId;
+        this.table = table;
+        this.lastSelectedRow = null;
+        this.lastDeselectedRow = null;
+    }
+
+    toggleSelectRow(row, on) {
+        if (on) {
+            this.lastSelectedRow = row;
+            this.lastDeselectedRow = null;
+            row.addClass('row-selected');
+        } else {
+            this.lastSelectedRow = null;
+            this.lastDeselectedRow = row;
+            row.removeClass('row-selected');
+        }
+    }
+
+    toggleSelectRange(row, on) {
+        const rows = this.getRowsInOrder();
+        const currentIndex = this.getRowIndex(row)
+        const lastIndex = on ?
+            this.getRowIndex(this.lastSelectedRow) :
+            this.getRowIndex(this.lastDeselectedRow);
+
+        let selecting = false;
+        let last = false;
+
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const index = this.getRowIndex(row);
+
+            if (index === currentIndex || index === lastIndex) {
+                if (selecting)
+                    last = true;
+                else
+                    selecting = true;
+            }
+
+            if (selecting) {
+                if (on)
+                    $(row).addClass('row-selected');
+                else
+                    $(row).removeClass('row-selected');
+                $(row).find('.select-checkbox').prop('checked', on);
+            }
+
+            if (last)
+                break;
+        }
+    }
+
+    toggleSelectAll(on) {
+        this.getCurrentPageRowsInOrder().each(function () {
+            $(this).find('.select-checkbox').prop('checked', on);
+
+            if (on)
+                $(this).addClass('row-selected');
+            else
+                $(this).removeClass('row-selected');
+        });
+    }
+
+    updateSelectHeader() {
+        const headerCheckbox = $(`#${this.tableId} .select-header-checkbox`);
+        let allSelected = true;
+        let noneSelected = true;
+
+        this.getRowsInOrder().each(function () {
+            if ($(this).hasClass('row-selected'))
+                noneSelected = false;
+            else
+                allSelected = false;
+        });
+
+        if (allSelected) {
+            headerCheckbox.prop('checked', true);
+            headerCheckbox.prop('indeterminate', false);
+            headerCheckbox.data('state', 'on');
+        } else if (noneSelected) {
+            headerCheckbox.prop('checked', false);
+            headerCheckbox.prop('indeterminate', false);
+            headerCheckbox.data('state', 'off');
+        } else {
+            headerCheckbox.prop('checked', false);
+            headerCheckbox.prop('indeterminate', true);
+            headerCheckbox.data('state', 'indeterminate');
+        }
+    }
+
+    getRowsInOrder() {
+        return this.table.rows({ order: 'applied'}).nodes().to$();
+    }
+
+    getCurrentPageRowsInOrder() {
+        return this.table.rows({ order: 'applied', page: 'current' }).nodes().to$();
+    }
+
+    getRowIndex(row) {
+        return this.table.row(row).index();
+    }
+
+    hasLastSelectedRow() {
+        return this.lastSelectedRow !== null;
+    }
+
+    hasLastDeselectedRow() {
+        return this.lastDeselectedRow !== null;
+    }
+}
+
+
+function initTable(
     {
-        tables_dict,
-        table_id,
-        model_name,
-        access_mode,
+        tableId,
+        dataSourceUrl,
         cols,
-        default_order,
-        default_order_col,
+        defaultOrder,
+        defaultOrderCol,
         paging,
-        page_length,
-        length_change,
-        length_menu,
-        non_sortable_indexes,
-        record_methods,
         refresh,
-        refresh_interval,
+        refreshInterval,
     } = {}
 ) {
-    const table_params = {};
-    table_params['ajax'] = `/main/models/${model_name}`;
-    table_params['order'] = [[default_order_col, default_order]];
+    const tableParams = {};
+    const table = $(`#${tableId}`);
 
-    const cols_data = [];
-    for (let i = 0; i < cols.length; i++) {
-            cols_data.push({'data': cols[i]});
-        }
-    table_params['columns'] = cols_data;
+    tableParams['ajax'] = dataSourceUrl;
+    tableParams['order'] = [[defaultOrderCol, defaultOrder]];
+    tableParams['searching'] = false;
+
+    const columns = [];
+    cols.forEach(col => {columns.push({'data': col['name']})});
+    tableParams['columns'] = columns;
 
     if (paging) {
-        table_params['pageLength'] = page_length;
+        tableParams['pageLength'] = paging['page_length'];
 
-        if (length_change) {
-            const length_menu_vals = [];
-            const length_menu_labels = [];
+        if (JSON.parse(paging['allow_length_change'])) {
+            const pagingMenuVals = [];
+            const pagingMenuLabels = [];
 
-            for (let length in length_menu) {
-                length_menu_vals.push(length);
+            paging['length_change_options'].forEach(option => {
+                pagingMenuVals.push(option);
+                pagingMenuLabels.push(option === -1 ? 'All' : `${option}`);
+            })
 
-                if (length !== -1) {
-                    length_menu_labels.push(`${length}`);
-                } else {
-                    length_menu_labels.push('All');
-                }
-            }
+            tableParams['lengthMenu'] = [pagingMenuVals, pagingMenuLabels];
+        } else
+            tableParams['lengthChange'] = false;
 
-            table_params['lengthMenu'] = [length_menu_vals, length_menu_labels];
-        } else {
-            table_params['lengthChange'] = false;
-        }
-    } else {
-        table_params['paging'] = false;
+        if (JSON.parse(paging['deselect_on_page_change']))
+            table.on('page.dt', function () {
+                const selectHeaderCheckbox = $(`#${tableId}`).find('th .select-header-checkbox');
+                window.tableWidgets[`#${tableId}`].toggleSelectAll(false);
+                selectHeaderCheckbox.prop('checked', false);
+                selectHeaderCheckbox.prop('indeterminate', false);
+            });
+    } else
+        tableParams['paging'] = false;
+
+    const columnDefs = [];
+    cols.forEach(col => columnDefs.push(createColumnDef(col, cols.indexOf(col))));
+    tableParams['columnDefs'] = columnDefs;
+
+    tableParams['rowCallback'] = function (row, data) {
+        $(row).attr('data-record-id', `${data.id}`);
     }
 
-    table_params['searching'] = false;
+    if (!window.tableWidgets)
+        window.tableWidgets = {};
 
-    const column_defs = [];
-    if (non_sortable_indexes.length > 0) {
-        column_defs.push({
-            'targets': non_sortable_indexes,
-            'orderable': false
-        });
-    }
-    if (record_methods['select']['on']) {
-        column_defs.push({
-            'targets': [record_methods['select']['col_index']],
-            'data': null,
-            'render': function (data, type, row, meta) {
-                return render_checkbox(`checkbox-${row.id}`, table_id);
-            }
-        });
-    }
-    if (record_methods['edit']['on']) {
-        column_defs.push({
-            'targets': [record_methods['edit']['col_index']],
-            'data': null,
-            'render': function (data, type, row, meta) {
-                return render_method_button('edit');
-            }
-        });
-    }
-    if (record_methods['delete']['on']) {
-        column_defs.push({
-            'targets': [record_methods['delete']['col_index']],
-            'data': null,
-            'render': function (data, type, row, meta) {
-                return render_method_button('delete');
-            }
-        });
-    }
-    table_params['columnDefs'] = column_defs;
-
-    tables_dict[table_id] = $(`#${table_id}`).DataTable(table_params);
+    window.tableWidgets[`#${tableId}`] = new TableWidget(
+        tableId,
+        table.DataTable(tableParams)
+    );
 
     if (refresh) {
-        setInterval(() => {
-            tables_dict[table_id].ajax.reload();
-        }, refresh_interval);
+        setInterval(function () {
+            window.tableWidgets[`#${tableId}`].table.ajax.reload();
+        }, refreshInterval);
     }
 }
 
-function render_checkbox (id, table_id) {
-    const checkbox = document.createElement('div');
-    $(checkbox).addClass('select-checkbox');
 
-    const checkbox_child = document.createElement('input');
-    $(checkbox_child).addClass('form-check-input');
-    $(checkbox_child).prop('type', 'checkbox');
-    $(checkbox_child).prop('id', id);
-    checkbox_child.setAttribute('onclick', `table_select(this, "${table_id}")`);
+function createColumnDef (col, index) {
+    const def = {
+        'targets': [index],
+        'orderable': JSON.parse(col['sortable']),
+        'className': col['col_type']
+    };
 
-    checkbox.appendChild(checkbox_child);
-    return checkbox.outerHTML;
-}
+    if (JSON.parse(col['data_null']))
+        def['data'] = null;
 
-function render_method_button (method) {
-    const button = document.createElement('a');
-    $(button).addClass('record-method-link');
-    button.innerHTML = $('.table-icons-util').find(`.${method}-icon`)[0].outerHTML
-    return button.outerHTML;
-}
+    if (!JSON.parse(col['auto_width'])) {
+        def['autoWidth'] = false;
+        def['width'] = col['width'];
+    } else
+        def['autoWidth'] = true;
 
-let shift_pressed = false;
-let ctrl_pressed = false;
-let last_selected_row = null;
-let last_deselected_row = null;
-
-$(document).ready(() => {
-    document.addEventListener("keydown", function (e) {
-        if (e.key === 'Shift') {
-            shift_pressed = true;
-        } else if (e.key === 'Control') {
-            ctrl_pressed = true;
-        }
-    })
-
-    document.addEventListener("keyup", function (e) {
-        if (e.key === 'Shift') {
-            shift_pressed = false;
-        } else if (e.key === 'Control') {
-            ctrl_pressed = false;
-        }
-    })
-})
-
-function table_select (current_checkbox, table_id) {
-    const toggled_row = $(current_checkbox).closest('tr');
-    const table = tables[table_id]
-
-    console.log(last_deselected_row);
-    console.log(last_selected_row);
-    console.log(shift_pressed);
-    console.log(ctrl_pressed);
-
-    if ($(current_checkbox).prop('checked')) {
-        if (shift_pressed && last_selected_row !== null) {
-            toggle_range(
-                table,
-                [table.row(toggled_row).index(), table.row(last_selected_row).index()]
-            )
-        }
-        last_selected_row = toggled_row;
-        last_deselected_row = null;
-    } else {
-        if (ctrl_pressed && last_deselected_row !== null) {
-            toggle_range(
-                table,
-                [table.row(toggled_row).index(), table.row(last_deselected_row).index()],
-                false
-            )
-        }
-        last_selected_row = null;
-        last_deselected_row = toggled_row
-    }
-    update_master_checkbox(table_id)
-}
-
-function toggle_range (table, range, on = true) {
-    const rows = table.rows({ order: 'applied' }).nodes().to$();
-    let selecting = false;
-    let last_index = false;
-
-    for (let i = 0; i < rows.length; i++) {
-        let row = rows[i];
-
-        if (table.row(row).index() === range[0] || table.row(row).index() === range[1]) {
-            if (selecting) {
-                last_index = true;
-            } else {
-                selecting = true;
-            }
-        }
-
-        if (selecting) {
-            let checkbox = $(row).find(".form-check-input");
-            if (on && !checkbox.prop('checked')) {
-                toggle_checkbox(checkbox);
-            } else if (!on && checkbox.prop('checked')) {
-                toggle_checkbox(checkbox);
-            }
-        }
-
-        if (last_index) {
+    switch (col['col_type']) {
+        case 'select':
+            def['render'] = renderSelectField;
             break;
-        }
+        case 'delete':
+            def['render'] = renderDeleteField;
+            break;
     }
+
+    return def;
 }
 
-function toggle_all (checkbox, table_id) {
-    const table = tables[table_id];
-    const rows_indexes = table.rows({ order: 'applied' }).indexes().to$();
-    const range = [rows_indexes[0], rows_indexes[rows_indexes.length - 1]];
 
-    if ($(checkbox).data('state') === 'on') {
-        $(checkbox).prop({checked: false, indeterminate: false});
-        $(checkbox).data('state', 'off');
-        toggle_range(table, range, false);
-    } else {
-        $(checkbox).prop({checked: true, indeterminate: false});
-        $(checkbox).data('state', 'on');
-        toggle_range(table, range);
-    }
+function renderSelectField (data, type, row, meta) {
+    return $('<input>')
+        .attr('type', 'checkbox')
+        .attr('class', 'form-check-input select-checkbox')
+        .attr('data-record-target', row['id'])
+        .attr(
+            'onclick',
+            'selectCheckboxClickHandler(event, $(this))'
+        )[0].outerHTML;
 }
 
-function update_master_checkbox (table_id) {
-    const master_checkbox = $(`#${table_id}`).find('.master-checkbox');
-    const table = tables[table_id];
-    const rows = table.rows().nodes().to$();
-    let all_selected = true;
-    let all_deselected = true;
 
-    for (let i = 0; i < rows.length; i++) {
-        let row = rows[i];
-        let checkbox = $(row).find(".form-check-input");
-
-        if (checkbox.prop('checked')) {
-            all_deselected = false;
-        } else {
-            all_selected = false;
-        }
-
-        if (!all_deselected && !all_selected) {
-            master_checkbox.prop({checked: false, indeterminate: true});
-            master_checkbox.data('state', 'indeterminate');
-            return;
-        }
-    }
-
-    if (all_selected) {
-        master_checkbox.prop({checked: true, indeterminate: false});
-        master_checkbox.data('state', 'on');
-    } else {
-        master_checkbox.prop({checked: false, indeterminate: false});
-        master_checkbox.data('state', 'off');
-    }
+function renderDeleteField (data, type, row, meta) {
+    return $('<a>')
+        .attr('href', '#')
+        .attr('data-record-target', row['id'])
+        .attr('onclick', 'deleteButtonClickHandler(event, $(this))')
+        .html('<i class="bi bi-x-lg"></i>')
+        [0].outerHTML;
 }
 
-function toggle_checkbox (checkbox) {
-    if (checkbox.prop('checked')) {
-        checkbox.prop('checked', false);
-    } else {
-        checkbox.prop('checked', true);
-    }
+
+function renderSelectHeader (header) {
+    const checkbox = $('<input>')
+        .attr('type', 'checkbox')
+        .attr('class', 'form-check-input select-header-checkbox')
+        .attr('data-state', 'off')
+        .on('click', function (e) {
+            selectHeaderClickHandler(e, $(this));
+        });
+    header.append(checkbox);
+}
+
+
+function selectHeaderClickHandler (e, checkbox) {
+    window.tableWidgets[`#${checkbox.closest('table').attr('id')}`].toggleSelectAll(
+        checkbox.prop('checked')
+    );
+}
+
+
+function selectCheckboxClickHandler (e, checkbox) {
+    const table = window.tableWidgets[`#${checkbox.closest('table').attr('id')}`]
+    const row = checkbox.closest('tr');
+    const on = checkbox.prop('checked');
+
+    if (e.shiftKey && on && table.hasLastSelectedRow())
+        table.toggleSelectRange(row, on);
+    else if (e.ctrlKey && !on && table.hasLastDeselectedRow())
+        table.toggleSelectRange(row, on);
+    else
+        table.toggleSelectRow(row, on);
+
+    table.updateSelectHeader();
+}
+
+
+function deleteButtonClickHandler (e, button) {
+    const form = button.closest('.table-wrapper').find('.delete-record-form form');
+    const input = form.find('input').filter(function () {
+        return $(this).val().length === 0;
+    });
+    input.val(button.data('record-target'));
+    form.find('.submit-btn').click();
+}
+
+function tablesSetup() {
+    $('th.select').each(function () {
+        renderSelectHeader($(this));
+    });
 }

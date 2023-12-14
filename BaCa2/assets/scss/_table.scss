@@ -11,6 +11,14 @@
         width: fit-content;
         height: fit-content;
     }
+
+    .table-widget-forms-wrapper form {
+        display: none;
+    }
+}
+
+.row-selected td {
+    background-color: rgba(255, 255, 255, 0.03);
 }
 
 @each $theme, $map in $table_theme_variables {

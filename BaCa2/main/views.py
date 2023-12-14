@@ -7,17 +7,17 @@ from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout
 from django.http import (JsonResponse, HttpResponseRedirect)
 from django.urls import reverse_lazy
-from django.utils.translation import gettext_lazy as _
 
 from util.models import model_cls
+from util.views import normalize_string_to_python
 from main.models import (Course, User)
-from widgets import forms
 from widgets.base import Widget
-from widgets.listing import TableWidget
+from widgets.listing import (TableWidget, TableWidgetPaging, ModelDataSource)
+from widgets.listing.columns import TextColumn
 from widgets.forms import FormWidget
 from widgets.forms.fields import get_field_validation_status
 from widgets.navigation import (NavBar, SideNav)
-from widgets.forms.course import (CreateCourseForm, CreateCourseFormWidget)
+from widgets.forms.course import (CreateCourseForm, CreateCourseFormWidget, DeleteCourseForm)
 from BaCa2.choices import BasicPermissionType
 
 
@@ -110,6 +110,14 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
 class CourseModelView(BaCa2ModelView):
     MODEL = Course
 
+    def post(self, request, **kwargs) -> JsonResponse:
+        if request.POST.get('form_name') == 'add_course_form':
+            return CreateCourseForm.handle_post_request(request)
+        if request.POST.get('form_name') == 'delete_course_form':
+            return DeleteCourseForm.handle_post_request(request)
+        else:
+            return JsonResponse({'status': 'w łeb się puknij głupolu co to ma kurwa być'})
+
 
 class UserModelView(BaCa2ModelView):
     MODEL = User
@@ -132,7 +140,7 @@ class BaCa2ContextMixin:
         pass
 
     # List of all widget types used in BaCa2 views.
-    WIDGET_TYPES = [TableWidget, FormWidget, NavBar, SideNav]
+    WIDGET_TYPES = [FormWidget, NavBar, SideNav, TableWidget]
     # List of all widgets which are unique (i.e. there can only be one instance of each widget type
     # can exist in the context dictionary).
     UNIQUE_WIDGETS = [NavBar, SideNav]
@@ -358,19 +366,14 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
             self.add_widget(context, CreateCourseFormWidget())
 
         self.add_widget(context, TableWidget(
-            name='courses_table',
-            model_cls=Course,
-            access_mode='admin',
-            create=True,
-            details=True,
-            edit=True,
-            delete=True,
-            select=True,
-            cols=['id', 'name'],
-            header={'name': 'Course Name'},
-            default_order_col='name',
-            refresh=False,
-            paging=False
+            data_source=ModelDataSource(Course),
+            cols=[
+                TextColumn('id', 'ID', True),
+                TextColumn('name', 'Name', True),
+            ],
+            allow_select=True,
+            allow_delete=True,
+            paging=TableWidgetPaging(5, False),
         ))
 
         return context
@@ -400,22 +403,22 @@ class DashboardView(BaCa2LoggedInView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['display_navbar'] = True
+
+        self.add_widget(context, TableWidget(
+            data_source=ModelDataSource(Course),
+            cols=[
+                TextColumn('id', 'ID', True),
+                TextColumn('name', 'Name', True),
+            ],
+            allow_select=True,
+            allow_delete=True,
+        ))
+
         return context
 
 
 class CoursesView(BaCa2LoggedInView):
     template_name = 'courses.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        table = TableWidget(model_cls=Course,
-                            refresh=False,
-                            paging=False)
-
-        context['table'] = table.get_context()
-        return context
 
 
 class JsonView(LoginRequiredMixin, View):
@@ -455,9 +458,10 @@ class FieldValidationView(LoginRequiredMixin, View):
         return JsonResponse(
             get_field_validation_status(
                 field_cls=field_cls_name,
-                value=request.GET.get('value', ''),
-                required=request.GET.get('required', False),
-                min_length=request.GET.get('min_length', False))
+                value=normalize_string_to_python(request.GET.get('value')),
+                required=normalize_string_to_python(request.GET.get('required')),
+                min_length=normalize_string_to_python(request.GET.get('min_length'))
+            )
         )
 
 

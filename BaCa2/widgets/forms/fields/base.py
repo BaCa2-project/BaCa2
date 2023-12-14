@@ -1,9 +1,8 @@
 from typing import Any, Dict, List
 
-from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from widgets.listing import TableWidget
+from widgets.forms.fields.course import *
 
 
 def get_field_validation_status(field_cls: str,
@@ -27,6 +26,13 @@ def get_field_validation_status(field_cls: str,
         validation failed.
     :rtype: Dict[str, str or List[str]]
     """
+    if value is None:
+        value = ''
+    if required is None:
+        required = False
+    if min_length is None:
+        min_length = False
+
     try:
         field = eval(field_cls)()
     except NameError:
@@ -71,14 +77,16 @@ class TableSelectField(forms.CharField):
         """
         pass
 
+    # TODO: Implement TableSelectField with new TableWidget
+    """
     def __init__(self, table_widget: TableWidget, **kwargs) -> None:
-        """
+        
         :param table_widget: Table widget to use for record selection.
         :type table_widget: TableWidget
 
         :raises TableSelectFieldException: If the table widget does not have record selection
         enabled.
-        """
+        
         if not table_widget.has_record_method('select'):
             raise TableSelectField.TableSelectFieldException(
                 'Table widget used in TableSelectField does not have '
@@ -97,7 +105,7 @@ class TableSelectField(forms.CharField):
 
     @staticmethod
     def get_target_list(form: forms.Form, field_name: str) -> List[int] | None:
-        """
+        
         Get a list of ids of targeted model instances from a table select field of a form.
 
         :param form: Form containing the table select field.
@@ -108,10 +116,11 @@ class TableSelectField(forms.CharField):
         :return: List of ids of targeted model instances or `None` if it was not provided in the
             request
         :rtype: List[int] | None
-        """
+        
         targets: str = form.cleaned_data.get(field_name, None)
 
         if not targets:
             return None
 
         return [int(target_id) for target_id in targets.split(',')]
+    """

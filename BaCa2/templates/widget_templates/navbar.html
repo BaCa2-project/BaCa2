@@ -3,7 +3,7 @@
 <nav class="navbar navbar-expand-md fixed-top">
     <div class="container">
         <a class="navbar-brand me-4" href="{% url 'main:dashboard' %}">
-            <div class="logo-wrapper logo-horizontal logo-s">
+            <div class="logo-wrapper logo-horizontal logo-xs">
                 {% include 'util/baca2_logo.html' %}
             </div>
         </a>
@@ -44,14 +44,12 @@
                     <a class="nav-link dropdown-toggle hover-highlight"
                        href="#"
                        id="user-links"
-                       data-bs-toggle="dropdown"
-                       aria-haspopup="true"
-                       aria-expanded="false">
+                       data-bs-toggle="dropdown">
                         <div class="icon-wrapper icon-m d-flex">
                             {% include 'icons/user.svg' %}
                         </div>
                     </a>
-                    <div class="dropdown-menu" aria-labelledby="user-links">
+                    <div class="dropdown-menu">
                         <a class="dropdown-item" href="#">Profil</a>
                         <a class="dropdown-item" href="#">Ustawienia</a>
                         <div class="dropdown-divider"></div>

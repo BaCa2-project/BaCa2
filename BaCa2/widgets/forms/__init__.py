@@ -1,1 +1,1 @@
-from .base import BaCa2Form, FormWidget
+from .base import (BaCa2Form, BaCa2ModelForm, FormWidget, FormConfirmationPopup)
