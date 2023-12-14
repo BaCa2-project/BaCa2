@@ -368,11 +368,33 @@ class ModelsRegistry:
     # ------------------------------------package models --------------------------------------- #
 
     @staticmethod
+    def get_package_source(pkg_source: str | int | PackageSource) -> PackageSource:
+        """
+        Returns a PackageSource model instance from the database using its name or id as a
+        reference. It can also be used to return the same instance if it is passed as the parameter
+        (for ease of use in case of methods which accept both model instances and their
+        identifiers).
+
+        :param pkg_source: PackageSource model instance, its name or id.
+        :type pkg_source: str | int | PackageSource
+
+        :return: PackageSource model instance.
+        :rtype: PackageSource
+        """
+        from package.models import PackageSource
+
+        if isinstance(pkg_source, str):
+            return PackageSource.objects.get(name=pkg_source)
+        if isinstance(pkg_source, int):
+            return PackageSource.objects.get(id=pkg_source)
+        return pkg_source
+
+    @staticmethod
     def get_package_instance(pkg_instance: int | PackageInstance) -> PackageInstance:
         """
-        Returns a PackageInstance model instance from the database using its id as a reference. It can
-        also be used to return the same instance if it is passed as the parameter (for ease of use
-        in case of methods which accept both model instances and their identifiers).
+        Returns a PackageInstance model instance from the database using its id as a reference. It
+        can also be used to return the same instance if it is passed as the parameter (for ease
+        of use in case of methods which accept both model instances and their identifiers).
 
         :param pkg_instance: PackageInstance id or model instance.
         :type pkg_instance: int | PackageInstance
