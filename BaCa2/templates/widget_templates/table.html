@@ -3,7 +3,8 @@
 <div class="table-wrapper">
     <div class="table-widget-forms-wrapper">
         {% if table_widget.allow_delete %}
-            <div class="table-widget-form delete-record-form">
+            <div class="table-widget-form delete-record-form"
+                 data-table-id="{{ table_widget.name }}">
                 {% with table_widget.delete_record_form_widget as form_widget %}
                     {% include 'widget_templates/forms/default.html' %}
                 {% endwith %}
