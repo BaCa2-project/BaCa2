@@ -20,7 +20,9 @@
 
     <div class="form-footer">
         <div class="row">
+            {% if form_widget.refresh_button %}
             <div class="col-10">
+            {% endif %}
                 <button class="submit-btn btn btn-primary w-100
                         {% if form_widget.confirmation_popup %}
                             submit-confirmation-btn
@@ -34,6 +36,7 @@
                         {% endif %}>
                     {{ form_widget.button_text }}
                 </button>
+            {% if form_widget.refresh_button %}
             </div>
             <div class="col d-flex">
                 <div class="icon-wrapper icon-m w-100">
@@ -42,6 +45,7 @@
                     </button>
                 </div>
             </div>
+            {% endif %}
         </div>
     </div>
 </form>
