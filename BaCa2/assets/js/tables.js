@@ -284,4 +284,13 @@ function tablesSetup() {
     $('th.select').each(function () {
         renderSelectHeader($(this));
     });
+
+    $('.delete-record-form').each(function () {
+        const form = $(this).find('form');
+        const tableId = $(this).data('table-id');
+
+        form.on('submit-success', function (e, data) {
+            window.tableWidgets[`#${tableId}`].table.ajax.reload();
+        });
+    });
 }

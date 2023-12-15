@@ -1,11 +1,21 @@
 // ---------------------------------------- forms setup --------------------------------------- //
 
 function formsSetup() {
+    ajaxPostSetup();
     toggleableGroupSetup();
     toggleableFieldSetup();
     confirmationPopupSetup();
     refreshButtonSetup()
     liveValidationSetup();
+}
+
+function ajaxPostSetup() {
+    $('form').filter(function () {
+        return $(this).attr("action") !== undefined;
+    }).on('submit', function (e) {
+        e.preventDefault();
+        handleAjaxSubmit($(this));
+    });
 }
 
 function refreshButtonSetup() {
@@ -78,6 +88,32 @@ function confirmationPopupSetup() {
     $('.form-confirmation-popup .submit-btn').on('click', function () {
         $(this).closest('.form-confirmation-popup').modal('hide');
         $('#' + $(this).data('form-target')).submit();
+    });
+}
+
+// ---------------------------------------- ajax submit --------------------------------------- //
+
+function handleAjaxSubmit(form) {
+    $.ajax({
+        type: 'POST',
+        url: form.attr('action'),
+        data: form.serialize(),
+        success: function (data) {
+            formRefresh(form);
+
+            if (data.status === 'success')
+                form.trigger('submit-success', [data]);
+            else {
+                form.trigger('submit-failure', [data]);
+
+                if (data.status === 'invalid')
+                    form.trigger('submit-invalid', [data])
+                else if (data.status === 'impermissible')
+                    form.trigger('submit-impermissible', [data])
+                else if (data.status === 'error')
+                    form.trigger('submit-error', [data])
+            }
+        }
     });
 }
 

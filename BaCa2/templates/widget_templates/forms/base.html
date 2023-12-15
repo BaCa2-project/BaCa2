@@ -51,20 +51,3 @@
         {% include 'widget_templates/forms/confirmation_popup.html' %}
     {% endif %}
 {% endwith %}
-
-{% if form_widget.post_url %}
-    <script>
-        $(document).on('submit', '#{{ form_widget.name }}', function (e) {
-            e.preventDefault();
-            $.ajax({
-                type: 'POST',
-                url: '{{ form_widget.post_url }}',
-                data: $(this).serialize(),
-                success: function (data) {
-                    console.log(data);
-                    formRefresh($('#{{ form_widget.name }}'));
-                }
-            });
-        });
-    </script>
-{% endif %}

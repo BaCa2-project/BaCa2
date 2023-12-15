@@ -265,9 +265,53 @@ class FormConfirmationPopup(Widget):
         }
 
 
+class BaCa2FormResponse(JsonResponse):
+    """
+    Base class for all JSON responses returned as a result of an AJAX post request sent by a form
+    widget. Contains basic fields required to handle the response along with predefined values
+    for the status field.
+
+    See Also:
+        :class:`BaCa2Form`
+        :class:`FormWidget`
+    """
+
+    class Status(Enum):
+        """
+        Enum used to indicate the possible outcomes of an AJAX post request sent by a form widget.
+        Its values are used to determine the event triggered by the submit handling script upon
+        receiving the response.
+        """
+        #: Indicates that the request was successful.
+        SUCCESS = 'success'
+        #: Indicates that the request was unsuccessful due to invalid form data.
+        INVALID = 'invalid'
+        #: Indicates that the request was unsuccessful due to the user not having the permission to
+        #: perform the action specified by the form.
+        IMPERMISSIBLE = 'impermissible'
+        #: Indicates that the request was unsuccessful due to an error not related to form
+        #: validation or the user's permissions.
+        ERROR = 'error'
+
+    def __init__(self, status: Status, message: str = '', **kwargs: dict) -> None:
+        """
+        :param status: Status of the response.
+        :type status: :class:`BaCa2FormResponse.Status`
+        :param message: Message accompanying the response.
+        :type message: str
+        :param kwargs: Additional fields to be included in the response.
+        :type kwargs: dict
+        """
+        super().__init__({'status': status.value, 'message': message} | kwargs)
+
+
 class BaCa2Form(forms.Form):
     """
-    Base form for all forms in the BaCa2 system. Contains shared, hidden fields
+    Base form for all forms in the BaCa2 system. Contains shared, hidden fields common to all forms.
+
+    See Also:
+        :class:`BaCa2ModelForm`
+        :class:`FormWidget`
     """
 
     #: Form name used to identify the form for views which may receive post data from more than one
@@ -288,6 +332,68 @@ class BaCa2Form(forms.Form):
     )
 
 
+class BaCa2ModelFormResponse(BaCa2FormResponse):
+    """
+    Base class for all JSON responses returned as a result of an AJAX post request sent by a model
+    form.
+
+    See Also:
+        :class:`BaCa2ModelForm`
+        :class:`BaCa2FormResponse`
+    """
+
+    def __init__(self,
+                 model: model_cls,
+                 action: ModelAction,
+                 status: BaCa2FormResponse.Status,
+                 message: str = '',
+                 **kwargs: dict) -> None:
+        """
+        :param status: Status of the response.
+        :type status: :class:`BaCa2FormResponse.Status`
+        :param message: Message accompanying the response. If no message is provided, a default
+            message will be generated based on the status of the response, the model and the action
+            performed.
+        :type message: str
+        :param kwargs: Additional fields to be included in the response.
+        :type kwargs: dict
+        """
+        if not message:
+            message = self.generate_response_message(status, model, action)
+        super().__init__(status, message, **kwargs)
+
+    @staticmethod
+    def generate_response_message(status, model, action) -> str:
+        """
+        Generates a response message based on the status of the response, the model and the action
+        performed.
+
+        :param status: Status of the response.
+        :type status: :class:`BaCa2FormResponse.Status`
+        :param model: Model class which instances the request pertains to.
+        :type model: Type[Model]
+        :param action: Action performed using the form data.
+        :type action: :class:`ModelAction`
+        :return: Response message.
+        :rtype: str
+        """
+        model_name = model._meta.verbose_name
+
+        if status == BaCa2FormResponse.Status.SUCCESS:
+            return f'successfully performed {action.label} on {model_name}'
+
+        message = f'failed to perform {action.label} on {model_name}'
+
+        if status == BaCa2FormResponse.Status.INVALID:
+            message += ' due to invalid form data'
+        elif status == BaCa2FormResponse.Status.IMPERMISSIBLE:
+            message += ' due to insufficient permissions'
+        elif status == BaCa2FormResponse.Status.ERROR:
+            message += ' due to an error'
+
+        return message
+
+
 class BaCa2ModelForm(BaCa2Form):
     """
     Base form for all forms in the BaCa2 system which are used to create, delete or modify
@@ -298,23 +404,6 @@ class BaCa2ModelForm(BaCa2Form):
     MODEL: model_cls = None
     #: Action which should be performed using the form data.
     ACTION: ModelAction = None
-
-    class Status(Enum):
-        """
-        Enum used to indicate the possible outcomes of a post request sent via a model form.
-        A JSON response returned by the handle_post_request method of a model will always contain
-        a status field with one of the values from this enum.
-        """
-        #: Indicates that the request was successful.
-        SUCCESS = 'success'
-        #: Indicates that the request was unsuccessful due to invalid form data.
-        INVALID = 'invalid'
-        #: Indicates that the request was unsuccessful due to the user not having the permission to
-        # perform the action specified by the form.
-        IMPERMISSIBLE = 'impermissible'
-        #: Indicates that the request was unsuccessful due to an error not related to form
-        # validation or the user's permissions.
-        ERROR = 'error'
 
     def __init__(self, **kwargs):
         super().__init__(initial={'form_name': f'{self.ACTION.label}_form',
@@ -329,20 +418,26 @@ class BaCa2ModelForm(BaCa2Form):
         :type request: HttpRequest
         """
         if not cls.is_permissible(request):
-            return JsonResponse(
-                {'status': cls.Status.IMPERMISSIBLE.value} |
-                cls.handle_impermissible_request(request)
+            return BaCa2ModelFormResponse(
+                model=cls.MODEL,
+                action=cls.ACTION,
+                status=BaCa2FormResponse.Status.IMPERMISSIBLE,
+                **cls.handle_impermissible_request(request)
             )
 
         if cls(data=request.POST).is_valid():
-            return JsonResponse(
-                {'status': cls.Status.SUCCESS.value} |
-                cls.handle_valid_request(request)
+            return BaCa2ModelFormResponse(
+                model=cls.MODEL,
+                action=cls.ACTION,
+                status=BaCa2FormResponse.Status.SUCCESS,
+                **cls.handle_valid_request(request)
             )
 
-        return JsonResponse(
-            {'status': cls.Status.INVALID.value} |
-            cls.handle_invalid_request(request)
+        return BaCa2ModelFormResponse(
+            model=cls.MODEL,
+            action=cls.ACTION,
+            status=BaCa2FormResponse.Status.INVALID,
+            **cls.handle_invalid_request(request)
         )
 
     @classmethod
@@ -352,7 +447,7 @@ class BaCa2ModelForm(BaCa2Form):
         Handles the POST request received by the view this form's data was posted to if the request
         is permissible and the form data is valid.
         """
-        pass
+        raise NotImplementedError('This method has to be implemented by inheriting classes.')
 
     @classmethod
     @abstractmethod
@@ -361,7 +456,7 @@ class BaCa2ModelForm(BaCa2Form):
         Handles the POST request received by the view this form's data was posted to if the request
         is permissible but the form data is invalid.
         """
-        pass
+        raise NotImplementedError('This method has to be implemented by inheriting classes.')
 
     @classmethod
     @abstractmethod
@@ -370,7 +465,7 @@ class BaCa2ModelForm(BaCa2Form):
         Handles the POST request received by the view this form's data was posted to if the request
         is impermissible.
         """
-        pass
+        raise NotImplementedError('This method has to be implemented by inheriting classes.')
 
     @classmethod
     def is_permissible(cls, request) -> bool:
