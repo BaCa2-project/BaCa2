@@ -32,7 +32,8 @@ class RoundManager(models.Manager):
                      start_date: datetime,
                      deadline_date: datetime,
                      end_date: datetime = None,
-                     reveal_date: datetime = None) -> Round:
+                     reveal_date: datetime = None,
+                     course: str | int | Course = None) -> Round:
         """
         It creates a new round object, but validates it first.
 
@@ -44,14 +45,21 @@ class RoundManager(models.Manager):
         :type end_date: datetime
         :param reveal_date: The results reveal date for the round, defaults to None (optional)
         :type reveal_date: datetime
+        :param course: The course that the round is in, if None - acquired from external definition
+            (optional)
+        :type course: str | int | Course
+
+        :return: A new round object.
+        :rtype: Round
         """
         Round.validate_dates(start_date, deadline_date, end_date)
-        new_round = self.model(start_date=start_date,
-                               deadline_date=deadline_date,
-                               end_date=end_date,
-                               reveal_date=reveal_date)
-        new_round.save()
-        return new_round
+        with OptionalInCourse(course):
+            new_round = self.model(start_date=start_date,
+                                   deadline_date=deadline_date,
+                                   end_date=end_date,
+                                   reveal_date=reveal_date)
+            new_round.save()
+            return new_round
 
     @transaction.atomic
     def delete_round(self, round_: int | Round, course: str | int | Course = None) -> None:
@@ -122,6 +130,7 @@ class Round(models.Model):
         It checks if the round is open.
 
         :return: A boolean value.
+        :rtype: bool
         """
         return self.start_date <= now() <= self.deadline_date
 
@@ -131,6 +140,7 @@ class Round(models.Model):
         It returns all the tasks that are associated with the round
 
         :return: A list of all the Task objects that are associated with the Round object.
+        :rtype: QuerySet
         """
         return Task.objects.filter(round=self).all()
 
@@ -155,8 +165,9 @@ class TaskManager(models.Manager):
                     round_: int | Round,
                     task_name: str,
                     points: float,
-                    judging_mode: TaskJudgingMode = TaskJudgingMode.LIN,
-                    initialise_task: bool = True) -> Task:
+                    judging_mode: str | TaskJudgingMode = TaskJudgingMode.LIN,
+                    initialise_task: bool = True,
+                    course: str | int | Course = None) -> Task:
         """
         It creates a new task object, and (if `initialise_task` is True) initialises it using
         data from `PackageManager`.
@@ -176,23 +187,41 @@ class TaskManager(models.Manager):
             PackageManager, otherwise sub-objects (tasks, sets & tests) won't be created
         defaults to True (optional)
         :type initialise_task: bool
+        :param course: The course that the task is in, if None - acquired from external definition
+            (optional)
+        :type course: str | int | Course
 
         :return: A new task object.
         :rtype: Task
         """
-        raise NotImplementedError("This method is not implemented yet.")
+        package_instance = ModelsRegistry.get_package_instance(package_instance)
+        round_ = ModelsRegistry.get_round(round_)
+        judging_mode = ModelsRegistry.get_task_judging_mode(judging_mode)
+        with OptionalInCourse(course):
+            new_task = self.model(package_instance_id=package_instance.pk,
+                                  task_name=task_name,
+                                  round=round_,
+                                  judging_mode=judging_mode,
+                                  points=points)
+            new_task.save()
+            if initialise_task:
+                new_task.initialise_task()
+            return new_task
 
     @transaction.atomic
     def delete_task(self, task: int | Task, course: str | int | Course = None) -> None:
         """
-        It deletes a task object.
+        It deletes a task object (with all the test sets and tests that are associated with it).
 
         :param task: The task id that you want to delete.
         :type task: int
-        :param course: The course that the task is in, defaults to None (optional)
+        :param course: The course that the task is in, if None - acquired from external definition
+            (optional)
         :type course: str | int | Course
         """
-        raise NotImplementedError("This method is not implemented yet.")
+        task = ModelsRegistry.get_task(task, course)
+        with OptionalInCourse(course):
+            task.delete()
 
 
 class Task(models.Model):
@@ -234,7 +263,12 @@ class Task(models.Model):
 
     @transaction.atomic
     def delete(self, using=None, keep_parents=False):
-        raise NotImplementedError("This method is not implemented yet.")
+        """
+        It deletes the task object, and all the test sets and tests that are associated with it.
+        """
+        for t_set in self.sets:
+            t_set.delete()
+        super().delete(using, keep_parents)
 
     @property
     def sets(self) -> QuerySet:
@@ -380,7 +414,12 @@ class TestSet(models.Model):
 
     @transaction.atomic
     def delete(self, using=None, keep_parents=False):
-        raise NotImplementedError("This method is not implemented yet.")
+        """
+        It deletes the TestSet object, and all the tests that are associated with it.
+        """
+        for test in self.tests:
+            test.delete()
+        super().delete(using, keep_parents)
 
     @property
     def tests(self) -> QuerySet:
@@ -407,7 +446,10 @@ class TestManager(models.Manager):
         :return: A new test object.
         :rtype: Test
         """
-        raise NotImplementedError("This method is not implemented yet.")
+        new_test = self.model(short_name=short_name,
+                              test_set=test_set)
+        new_test.save()
+        return new_test
 
     @transaction.atomic
     def delete_test(self, test: int | Test, course: str | int | Course = None) -> None:
@@ -419,7 +461,8 @@ class TestManager(models.Manager):
         :param course: The course that the test is in, defaults to None (optional)
         :type course: str | int | Course
         """
-        raise NotImplementedError("This method is not implemented yet.")
+        test_to_delete = ModelsRegistry.get_test(test, course)
+        test_to_delete.delete()
 
     @transaction.atomic
     def create_from_package(self, test: TestF, test_set: TestSet) -> Test:
@@ -454,14 +497,30 @@ class Test(models.Model):
         return f"Test {self.pk}: Test/set/task: " \
                f"{self.short_name}/{self.test_set.short_name}/{self.test_set.task.task_name}"
 
+    @property
+    def associated_results(self) -> QuerySet:
+        """
+        Returns all results associated with this test.
+
+        :return: QuerySet of results
+        :rtype: QuerySet
+        """
+        return Result.objects.filter(test=self).all()
+
+    @transaction.atomic
     def delete(self, using=None, keep_parents=False):
-        raise NotImplementedError("This method is not implemented yet.")
+        """
+        It deletes the Test object, and all the results that are associated with it.
+        """
+        for result in self.associated_results:
+            result.delete()
+        super().delete(using, keep_parents)
 
 
 class SubmitManager(models.Manager):
     @transaction.atomic
     def create_submit(self,
-                      source_code_path: str | Path,
+                      source_code: str | Path,
                       task: int | Task,
                       usr: str | int | User,
                       submit_date: datetime = now(),
@@ -469,8 +528,8 @@ class SubmitManager(models.Manager):
         """
         It creates a new submit object.
 
-        :param source_code_path: The path to the source code file.
-        :type source_code_path: str | Path
+        :param source_code: The path to the source code file.
+        :type source_code: str | Path
         :param task: The task that you want to associate the submit with.
         :type task: int | Task
         :param usr: The user that you want to associate the submit with.
@@ -506,7 +565,7 @@ class Submit(models.Model):
     #: Datetime when submit took place.
     submit_date = models.DateTimeField(auto_now_add=True)
     #: Field submitted to the task
-    source_code = models.FilePathField(path=SUBMITS_DIR, allow_files=True)
+    source_code = models.FilePathField(path=SUBMITS_DIR, allow_files=True, null=True)
     #: :py:class:`Task` model, to which submit is assigned.
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
     #: Pseudo-foreign key to :py:class:`main.models.User` model (user), who submitted to the task.
@@ -529,6 +588,8 @@ class Submit(models.Model):
     def __str__(self):
         return f"Submit {self.pk}: User: {self.user}; Task: {self.task.task_name}; " \
                f"Score: {self.final_score if self.final_score > -1 else 'PENDING'}"
+
+
 
     @property
     def results(self) -> QuerySet:

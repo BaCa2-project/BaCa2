@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from typing import (TYPE_CHECKING, List)
 
 from django.db.models import QuerySet
@@ -9,8 +11,9 @@ from course.routing import OptionalInCourse
 if TYPE_CHECKING:
     from django.contrib.auth.models import (Group, Permission)
     from main.models import (User, Course, Role, RolePreset)
-    from course.models import (Round, Task, Submit)
+    from course.models import (Round, Task, Submit, Test)
     from package.models import PackageSource, PackageInstance
+    from BaCa2.choices import TaskJudgingMode
 
 
 class ModelsRegistry:
@@ -416,7 +419,8 @@ class ModelsRegistry:
         Returns a Round model instance from the database using its id or name and course as
         a reference. It can also be used to return the same instance if it is passed as the
         parameter (for ease of use in case of methods which accept both model instances and their
-        identifiers).
+        identifiers). If course is not passed as a parameter, it has to be available in context (
+        in that case this method should be used inside ``with InCourse(<course>):``).
 
         :param round: Round name, id or model instance.
         :type round: str | int | Round
@@ -425,8 +429,6 @@ class ModelsRegistry:
 
         :return: Round model instance.
         :rtype: Round
-
-        :raises ValueError: If the round name is passed as a parameter but its course is not.
         """
         from course.models import Round
 
@@ -445,7 +447,8 @@ class ModelsRegistry:
         Returns a QuerySet of rounds using a list of their ids or model instances and course as a
         reference. It can also be used to return a list of Round model instances if it is passed as
         the parameter (for ease of use in case of methods which accept both model instances and
-        their identifiers).
+        their identifiers). If course is not passed as a parameter, it has to be available in
+        context (in that case this method should be used inside ``with InCourse(<course>):``).
 
         :param rounds: List of Round names, ids or model instances.
         :type rounds: List[int] | List[Round]
@@ -457,8 +460,6 @@ class ModelsRegistry:
 
         :return: QuerySet of Round model instances or list of Round model instances.
         :rtype: QuerySet[Round] | List[Round]
-
-        :raises ValueError: If the round names are passed as a parameter but their course is not.
         """
         from course.models import Round
 
@@ -477,7 +478,8 @@ class ModelsRegistry:
         Returns a Task model instance from the database using its id or name and course as
         a reference. It can also be used to return the same instance if it is passed as the
         parameter (for ease of use in case of methods which accept both model instances and their
-        identifiers).
+        identifiers). If course is not passed as a parameter, it has to be available in
+        context (in that case this method should be used inside ``with InCourse(<course>):``).
 
         :param task: Task name, id or model instance.
         :type task: str | int | Task
@@ -486,8 +488,6 @@ class ModelsRegistry:
 
         :return: Task model instance.
         :rtype: Task
-
-        :raises ValueError: If the task name is passed as a parameter but its course is not.
         """
         from course.models import Task
 
@@ -506,7 +506,8 @@ class ModelsRegistry:
         Returns a QuerySet of tasks using a list of their ids or model instances and course as a
         reference. It can also be used to return a list of Task model instances if it is passed as
         the parameter (for ease of use in case of methods which accept both model instances and
-        their identifiers).
+        their identifiers). If course is not passed as a parameter, it has to be available in
+        context (in that case this method should be used inside ``with InCourse(<course>):``).
 
         :param tasks: List of Task names, ids or model instances.
         :type tasks: List[int] | List[Task]
@@ -518,8 +519,6 @@ class ModelsRegistry:
 
         :return: QuerySet of Task model instances or list of Task model instances.
         :rtype: QuerySet[Task] | List[Task]
-
-        :raises ValueError: If the task names are passed as a parameter but their course is not.
         """
         from course.models import Task
 
@@ -538,7 +537,8 @@ class ModelsRegistry:
         Returns a Submit model instance from the database using its id or name and course as
         a reference. It can also be used to return the same instance if it is passed as the
         parameter (for ease of use in case of methods which accept both model instances and their
-        identifiers).
+        identifiers). If course is not passed as a parameter, it has to be available in
+        context (in that case this method should be used inside ``with InCourse(<course>):``).
 
         :param submit: Submit name, id or model instance.
         :type submit: str | int | Submit
@@ -547,8 +547,6 @@ class ModelsRegistry:
 
         :return: Submit model instance.
         :rtype: Submit
-
-        :raises ValueError: If the task name is passed as a parameter but its course is not.
         """
         from course.models import Task
 
@@ -556,3 +554,49 @@ class ModelsRegistry:
             if isinstance(submit, int):
                 return Task.objects.get(id=submit)
         return submit
+
+    @staticmethod
+    def get_task_judging_mode(judging_mode: str | TaskJudgingMode) -> TaskJudgingMode:
+        """
+        Returns a TaskJudgingMode model instance from the database using its name as a reference.
+        It can also be used to return the same instance if it is passed as the parameter (for ease
+        of use in case of methods which accept both model instances and their identifiers).
+
+        :param judging_mode: TaskJudgingMode name or model instance.
+        :type judging_mode: str | TaskJudgingMode
+
+        :return: TaskJudgingMode model instance.
+        :rtype: TaskJudgingMode
+        """
+        from BaCa2.choices import TaskJudgingMode
+
+        if isinstance(judging_mode, str):
+            judging_mode = judging_mode.upper()
+            for mode in list(TaskJudgingMode):
+                if mode.value == judging_mode:
+                    return mode
+        return judging_mode
+
+    @staticmethod
+    def get_test(test: int | Test, course: str | int | Test = None) -> Test:
+        """
+        Returns a Test model instance from the database using its id or name and course as
+        a reference. It can also be used to return the same instance if it is passed as the
+        parameter (for ease of use in case of methods which accept both model instances and their
+        identifiers). If course is not passed as a parameter, it has to be available in
+        context (in that case this method should be used inside ``with InCourse(<course>):``).
+
+        :param test: Test name, id or model instance.
+        :type test: str | int | Test
+        :param course: Course short name, id or model instance.
+        :type course: str | int | Test
+
+        :return: Test model instance.
+        :rtype: Test
+        """
+        from course.models import Test
+
+        with OptionalInCourse(course):
+            if isinstance(test, int):
+                return Test.objects.get(id=test)
+        return test

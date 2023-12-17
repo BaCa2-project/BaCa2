@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Self
+from typing import Self, List
 
 from django.db import models
 from main.models import User
@@ -52,18 +52,39 @@ class PackageSourceManager(models.Manager):
         """
         package_source = self.model(name=name)
         package_source.save()
+        if not package_source.path.exists():
+            package_source.path.mkdir()
         return package_source
 
-    def create_package_source_from_zip(self, zip_file: Path) -> PackageSource:
+    @transaction.atomic
+    def create_package_source_from_zip(self,
+                                       name: str,
+                                       zip_file: Path,
+                                       creator: int | str | User = None) -> PackageSource:
         """
         Create a new package source from the given zip file
 
+        :param name: The name of the package source
+        :type name: str
         :param zip_file: The path to the zip file
         :type zip_file: Path
+        :param creator: The creator of the package (optional)
+        :type creator: int | str | User
 
         :return: A new PackageSource object.
         """
-        raise NotImplementedError("create_package_source_from_zip is not implemented yet")
+        package_source = self.model(name=name)
+        package_source.save()
+        if not package_source.path.exists():
+            package_source.path.mkdir()
+        package_instance = PackageInstance.objects.create_package_instance_from_zip(
+            package_source,
+            zip_file
+        )
+        package_instance.save()
+        if creator:
+            PackageInstanceUser.objects.create_package_instance_user(creator, package_instance)
+        return package_source
 
     @transaction.atomic
     def delete_package_source(self, package_source: PackageSource):
@@ -136,6 +157,10 @@ class PackageInstanceUserManager(models.Manager):
         """
         user = ModelsRegistry.get_user(user)
         package_instance = ModelsRegistry.get_package_instance(package_instance)
+        package_instance_user = self.model.objects.filter(user=user,
+                                                          package_instance=package_instance)
+        if package_instance_user.exists():
+            return package_instance_user.first()
         package_instance_user = self.model(user=user, package_instance=package_instance)
         package_instance_user.save()
         return package_instance_user
@@ -194,7 +219,8 @@ class PackageInstanceManager(models.Manager):
     @transaction.atomic
     def create_package_instance(self,
                                 package_source: int | str | PackageSource,
-                                commit: str) -> PackageInstance:
+                                commit: str,
+                                creator: int | str | User = None) -> PackageInstance:
         """
         Create a new package instance from the given path
 
@@ -202,6 +228,8 @@ class PackageInstanceManager(models.Manager):
         :type package_source: PackageSource
         :param commit: The commit of the package
         :type commit: str
+        :param creator: The creator of the package (optional)
+        :type creator: int | str | User
 
         :return: A new PackageInstance object.
         """
@@ -210,27 +238,50 @@ class PackageInstanceManager(models.Manager):
         PACKAGES[PackageInstance.commit_msg(package_source, commit)] = Package(package_source.path,
                                                                                commit)
         package_instance.save()
+        if creator:
+            PackageInstanceUser.objects.create_package_instance_user(creator, package_instance)
         return package_instance
 
-    def create_source_and_instance(self, name: str, commit: str) -> PackageInstance:
+    @transaction.atomic
+    def create_source_and_instance(self,
+                                   name: str,
+                                   commit: str,
+                                   creator: int | str | User = None) -> PackageInstance:
         """
         Create a new package source from the given name. Also create a new package instance for it.
+
+        :param name: The name of the package source
+        :type name: str
+        :param commit: The commit of the package
+        :type commit: str
+        :param creator: The creator of the package (optional)
+        :type creator: int | str | User
+
+        :return: A new PackageInstance object.
+        :rtype: PackageInstance
         """
         package_source = PackageSource.objects.create_package_source(name)
-        return self.create_package_instance(package_source, commit)
+        return self.create_package_instance(package_source, commit, creator)
 
     @transaction.atomic
-    def make_package_instance_commit(self, package_instance: int | PackageInstance):
+    def make_package_instance_commit(self,
+                                     package_instance: int | PackageInstance,
+                                     copy_permissions: bool = True,
+                                     creator: int | str | User = None) -> PackageInstance:
         """
         Create a new package instance from the given path
 
         :param package_instance: The package instance
         :type package_instance: PackageInstance
+        :param copy_permissions: If True, copy the permissions from the old package instance
+        :type copy_permissions: bool
+        :param creator: The creator of the package (optional)
+        :type creator: int | str | User
 
         :return: A new PackageInstance object.
         """
         package_instance = ModelsRegistry.get_package_instance(package_instance)
-        new_commit = timezone.now().timestamp()
+        new_commit = f'{timezone.now().timestamp()}'
 
         new_package = package_instance.package.make_commit(new_commit)
         new_package.check_package()
@@ -244,19 +295,69 @@ class PackageInstanceManager(models.Manager):
         )
         new_instance.save()
 
+        if copy_permissions:
+            for user in package_instance.permitted_users:
+                new_instance.add_permitted_user(user)
+        elif creator:
+            PackageInstanceUser.objects.create_package_instance_user(creator, new_instance)
+
         return new_instance
 
     @transaction.atomic
-    def delete_package_instance(self, package_instance: int | PackageInstance):
+    def delete_package_instance(self,
+                                package_instance: int | PackageInstance,
+                                delete_files: bool = False):
         """
         If the package instance is not in the database, raise an exception.
         Otherwise, delete the package instance and its package from the database
 
         :param package_instance: The package instance to delete
-        :type package_instance: PackageInstance
+        :type package_instance: int | PackageInstance
+        :param delete_files: If True, delete the files associated with the package instance
+        :type delete_files: bool
         """
         package_instance = ModelsRegistry.get_package_instance(package_instance)
-        package_instance.delete()
+        package_instance.delete(delete_files)
+
+    @transaction.atomic
+    def create_package_instance_from_zip(self,
+                                         package_source: int | str | PackageSource,
+                                         zip_file: Path,
+                                         overwrite: bool = False,
+                                         permissions_from_instance: int | PackageInstance = None,
+                                         creator: int | str | User = None) -> PackageInstance:
+        """
+        Create a new package instance from the given path
+
+        :param package_source: The package source
+        :type package_source: PackageSource
+        :param zip_file: The path to the zip file
+        :type zip_file: Path
+        :param overwrite: If True, overwrite the package instance files if it already exists
+        :type overwrite: bool
+        :param permissions_from_instance: The package instance to copy the permissions from
+            (optional)
+        :type permissions_from_instance: int | PackageInstance
+        :param creator: The creator of the package (optional)
+        :type creator: int | str | User
+
+
+        :return: A new PackageInstance object.
+        """
+        package_source = ModelsRegistry.get_package_source(package_source)
+        commit_name = f'from_zip_{timezone.now().timestamp()}'
+        pkg = Package.create_from_zip(package_source.path, commit_name, zip_file, overwrite)
+        package_instance = self.model(package_source=package_source, commit=commit_name)
+        PACKAGES[PackageInstance.commit_msg(package_source, commit_name)] = pkg
+        package_instance.save()
+        if permissions_from_instance:
+            permissions_from_instance = ModelsRegistry.get_package_instance(
+                permissions_from_instance)
+            for user in permissions_from_instance.permitted_users:
+                PackageInstanceUser.objects.create_package_instance_user(user, package_instance)
+        if creator:
+            PackageInstanceUser.objects.create_package_instance_user(creator, package_instance)
+        return package_instance
 
     def exists_validator(self, pkg_id: int) -> bool:
         """
@@ -268,6 +369,7 @@ class PackageInstanceManager(models.Manager):
         :return: A boolean value.
         """
         return self.filter(pk=pkg_id).exists()
+
 
 class PackageInstance(models.Model):
     """
@@ -338,10 +440,13 @@ class PackageInstance(models.Model):
         from course.models import Task
         return Task.check_instance(self)
 
-    def delete(self, using=None, keep_parents=False):
+    def delete(self, delete_files: bool = False, using=None, keep_parents=False):
         """
         If the task is not in the database, raise an exception.
         Otherwise, delete the task and its package from the database
+
+        :param delete_files: If True, delete the files associated with the package instance
+        :type delete_files: bool
 
         :raises ValidationError: If the package instance is used in any task
         """
@@ -350,21 +455,42 @@ class PackageInstance(models.Model):
 
         with transaction.atomic():
             # deleting instance in source directory
-            self.package.delete()
+            if delete_files:
+                self.package.delete()
             PACKAGES.pop(self.key)
             # self delete instance
             super().delete(using, keep_parents)
 
-    def share(self, user: User):
-        """
-        It creates a new instance of a package, and then creates a new PackageInstanceUser object that links
-        the new package instance to the user
+    # def share(self, user: User):
+    #     """
+    #     It creates a new instance of a package, and then creates a new PackageInstanceUser object
+    #     that links the new package instance to the user
+    #
+    #     :param user: The user to share the package with
+    #     :type user: User
+    #     """
+    #     new_instance = self.objects.make_package_instance_commit(self)
+    #     PackageInstanceUser.objects.create(user=user, package_instance=new_instance)
 
-        :param user: The user to share the package with
+    @property
+    def permitted_users(self) -> List[User]:
+        """
+        It returns the users that have permissions to the package instance
+
+        :return: The users that have permissions to the package instance.
+        """
+        pkg_instance_users = PackageInstanceUser.objects.filter(package_instance=self)
+        return [pkg_instance_user.user for pkg_instance_user in pkg_instance_users]
+
+    @transaction.atomic
+    def add_permitted_user(self, user: int | str | User) -> None:
+        """
+        It adds a user to the package instance
+
+        :param user: The user to add
         :type user: User
         """
-        new_instance = self.objects.make_package_instance_commit(self)
-        PackageInstanceUser.objects.create(user=user, package_instance=new_instance)
+        PackageInstanceUser.objects.create_package_instance_user(user, self)
 
     def check_user(self, user: int | str | User) -> bool:
         """
