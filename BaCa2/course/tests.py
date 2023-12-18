@@ -1,10 +1,11 @@
-from random import choice
+from random import choice, randint
 
 from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta
 
 from django.test import TestCase
 from django.utils import timezone
+from parameterized import parameterized
 
 from BaCa2.choices import ResultStatus
 from package.models import PackageInstance
@@ -59,10 +60,15 @@ def create_test_result(submit, test, status, course=None):
 
 
 def create_task_results(course, submit, possible_results=(ResultStatus.OK,)):
+    unused_results = [r for r in possible_results]
     with InCourse(course):
         for task_set in submit.task.sets:
             for test in task_set.tests:
-                create_test_result(submit, test, choice(possible_results))
+                if unused_results:
+                    result = create_test_result(submit, test, choice(unused_results))
+                    unused_results.remove(result.status)
+                else:
+                    create_test_result(submit, test, choice(possible_results))
 
 
 def create_submit(course, task, user, src_code):
@@ -302,13 +308,73 @@ class TestTaskWithResults(TestCase):
     def tearDown(self):
         with InCourse(self.course):
             Result.objects.all().delete()
+            Submit.objects.all().delete()
 
     def test_01_add_result(self):
         submit = create_submit(self.course, self.task1, self.user, '1234.cpp')
         create_task_results(self.course, submit)
         with InCourse(self.course):
-            self.assertCountEqual(Test.objects.get(task=self.task1).all(),
-                                  Result.objects.get(task=self.task1).all())
+            self.assertEqual(Test.objects.filter(test_set__task=self.task1).count(),
+                             Result.objects.filter(submit__task=self.task1).count())
             self.assertTrue(all(
                 [r.status == ResultStatus.OK for r in submit.results]
             ))
+
+    @parameterized.expand([
+        ('all ok', (ResultStatus.OK,)),
+        ('ANS and TLE', (ResultStatus.ANS, ResultStatus.TLE,))])
+    def test_02_check_scoring(self, name, possible_results):
+        submit = create_submit(self.course, self.task1, self.user, '1234.cpp')
+        create_task_results(self.course, submit, possible_results)
+        with InCourse(self.course):
+            if name == 'all ok':
+                self.assertEqual(submit.score(), 1.0)
+            else:
+                self.assertEqual(submit.score(), 0)
+
+    @parameterized.expand([
+        ('best submit',),
+        ('last submit',),
+    ])
+    def test_03_check_scoring_with_multiple_submits(self, name):
+        submit1 = create_submit(self.course, self.task1, self.user, '1234.cpp')
+        submit2 = create_submit(self.course, self.task1, self.user, '1234.cpp')
+        create_task_results(self.course, submit1)
+        create_task_results(self.course, submit2, (ResultStatus.ANS,))
+        with InCourse(self.course):
+            if name == 'best submit':
+                best_submit = self.task1.best_submit(self.user)
+                self.assertEqual(best_submit.score(), 1.0)
+                self.assertEqual(best_submit, submit1)
+            if name == 'last submit':
+                last_submit = self.task1.last_submit(self.user)
+                self.assertEqual(last_submit.score(), 0)
+                self.assertEqual(last_submit, submit2)
+
+    @parameterized.expand([
+        ('best submit', 10),
+        ('last submit', 10),
+        ('best submit', 100),
+        ('last submit', 100),
+        ('best submit', 500),
+        ('last submit', 500),
+    ])
+    def test_04_multiple_submits(self, name, submits_amount):
+        best_s = randint(0, submits_amount - 2)
+        for i in range(submits_amount):
+            submit = create_submit(self.course, self.task1, self.user, '1234.cpp')
+            if i == best_s:
+                create_task_results(self.course, submit)
+            else:
+                create_task_results(self.course, submit,
+                                    (ResultStatus.OK, ResultStatus.ANS, ResultStatus.TLE))
+        with InCourse(self.course):
+            if name == 'best submit':
+                best_submit = self.task1.best_submit(self.user)
+                self.assertEqual(best_submit.score(), 1.0)
+            if name == 'last submit':
+                last_submit = self.task1.last_submit(self.user)
+                self.assertLess(last_submit.score(), 1)
+                self.assertGreater(last_submit.score(), 0)
+
+    

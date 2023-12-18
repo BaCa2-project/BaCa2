@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from typing import List, Self, Any
+from typing import List, Self, Any, TYPE_CHECKING
 
 from django.db import models, transaction
 from django.db.models import Count, QuerySet
@@ -13,14 +13,14 @@ from BaCa2.choices import TaskJudgingMode, ResultStatus
 from BaCa2.exceptions import DataError
 from BaCa2.settings import SUBMITS_DIR
 from course.routing import OptionalInCourse
-
-from main.models import User, Course
-
-from package.models import PackageInstance
 from baca2PackageManager import Package, TSet, TestF
 from baca2PackageManager.broker_communication import BrokerToBaca
 
 from util.models_registry import ModelsRegistry
+
+if TYPE_CHECKING:
+    from main.models import User, Course
+    from package.models import PackageInstance
 
 __all__ = ['Round', 'Task', 'TestSet', 'Test', 'Submit', 'Result']
 
@@ -223,6 +223,20 @@ class TaskManager(models.Manager):
         with OptionalInCourse(course):
             task.delete()
 
+    @staticmethod
+    def package_instance_exists_validator(package_instance: int) -> bool:
+        """
+        It checks if a package instance exists.
+
+        :param package_instance: The package instance id that you want to check.
+        :type package_instance: int | PackageInstance
+
+        :return: A boolean value.
+        :rtype: bool
+        """
+        from package.models import PackageInstance
+        return PackageInstance.objects.exists_validator(package_instance)
+
 
 class Task(models.Model):
     """
@@ -230,7 +244,8 @@ class Task(models.Model):
     """
 
     #: Pseudo-foreign key to package instance.
-    package_instance_id = models.BigIntegerField(validators=[PackageInstance.objects.exists])
+    package_instance_id = models.BigIntegerField(
+        validators=[TaskManager.package_instance_exists_validator])
     #: Represents displayed task name
     task_name = models.CharField(max_length=1023)
     #: Foreign key to round, which task is assigned to.
@@ -280,39 +295,83 @@ class Task(models.Model):
         return TestSet.objects.filter(task=self).all()
 
     @property
+    def sets_amount(self) -> int:
+        """
+        It returns the amount of test sets that are associated with the task
+
+        :return: The amount of TestSet objects that are associated with the Task object.
+        """
+        return TestSet.objects.filter(task=self).count()
+
+    @property
+    def tests_amount(self) -> int:
+        """
+        It returns the amount of tests that are associated with the task
+
+        :return: The amount of Test objects that are associated with the Task object.
+        """
+        return Test.objects.filter(test_set__task=self).count()
+
+    @property
     def package_instance(self) -> PackageInstance:
         """
         It returns the package instance associated with the current package instance
 
         :return: A PackageInstance object.
         """
+        from package.models import PackageInstance
         return PackageInstance.objects.get(pk=self.package_instance_id)
 
-    def last_submit(self, usr: str | int | User, amount=1) -> Submit | List[Submit]:
+    @transaction.atomic
+    def refresh_user_submits(self, user: str | int | User, rejudge: bool = False) -> None:
+        """
+        It refreshes the submits' scores for a user for a task. If rejudge is True, the score will
+        be recalculated even if it was already calculated before.
+
+        :param user: The user who submitted the task
+        :type user: str | int | User
+        :param rejudge: If True, the score will be recalculated even if it was already calculated
+            before, defaults to False (optional)
+        :type rejudge: bool
+        """
+        user = ModelsRegistry.get_user(user)
+        for submit in Submit.objects.filter(task=self, usr=user.pk).all():
+            submit.score(rejudge=rejudge)
+
+    def last_submit(self, user: str | int | User, amount=1) -> Submit | List[Submit]:
         """
         It returns the last submit of a user for a task or a list of 'amount' last submits to that task.
 
-        :param usr: The user who submitted the task
+        :param user: The user who submitted the task
+        :type user: str | int | User
         :param amount: The amount of submits to return, defaults to 1 (optional)
+        :type amount: int
+
         :return: The last submit of a user for a task.
         """
-        usr = ModelsRegistry.get_user(usr)
+        user = ModelsRegistry.get_user(user)
+        self.refresh_user_submits(user)
         if amount == 1:
-            return Submit.objects.filter(task=self, usr=usr.pk).order_by('-submit_date').first()
-        return Submit.objects.filter(task=self, usr=usr.pk).order_by('-submit_date').all()[:amount]
+            return Submit.objects.filter(task=self, usr=user.pk).order_by('-submit_date').first()
+        return Submit.objects.filter(task=self, usr=user.pk).order_by('-submit_date').all()[:amount]
 
-    def best_submit(self, usr: str | int | User, amount=1) -> Submit | List[Submit]:
+    def best_submit(self, user: str | int | User, amount=1) -> Submit | List[Submit]:
         """
-        It returns the best submit of a user for a task or list of 'amount' best submits to that task.
+        It returns the best submit of a user for a task or list of 'amount' best submits to that
+        task.
 
-        :param usr: The user who submitted the solution
+        :param user: The user who submitted the solution
+        :type user: str | int | User
         :param amount: The amount of submits you want to get, defaults to 1 (optional)
+        :type amount: int
+
         :return: The best submit of a user for a task.
         """
-        usr = ModelsRegistry.get_user(usr)
+        user = ModelsRegistry.get_user(user)
+        self.refresh_user_submits(user)
         if amount == 1:
-            return Submit.objects.filter(task=self, usr=usr.pk).order_by('-final_score').first()
-        return Submit.objects.filter(task=self, usr=usr.pk).order_by('-final_score').all()[:amount]
+            return Submit.objects.filter(task=self, usr=user.pk).order_by('-final_score').first()
+        return Submit.objects.filter(task=self, usr=user.pk).order_by('-final_score').all()[:amount]
 
     @classmethod
     def check_instance(cls, pkg_instance: PackageInstance, in_every_course: bool = True) -> bool:
@@ -332,6 +391,7 @@ class Task(models.Model):
 
         # check in every course
         from .routing import InCourse
+        from main.models import Course
         courses = Course.objects.all()
         for course in courses:
             with InCourse(course):
@@ -356,8 +416,19 @@ class TestSetManager(models.Manager):
 
         :return: A new test set object.
         :rtype: TestSet
+
+        :raise ValidationError: If test set with given short name already exists under chosen task.
         """
-        raise NotImplementedError("This method is not implemented yet.")
+        task = ModelsRegistry.get_task(task)
+        sets = task.sets
+        if sets.filter(short_name=short_name).exists():
+            raise ValidationError(f"TestSet: Test set with short name {short_name} already exists.")
+
+        new_test_set = self.model(short_name=short_name,
+                                  weight=weight,
+                                  task=task)
+        new_test_set.save()
+        return new_test_set
 
     @transaction.atomic
     def delete_test_set(self, test_set: int | TestSet, course: str | int | Course = None) -> None:
@@ -369,7 +440,8 @@ class TestSetManager(models.Manager):
         :param course: The course that the test set is in, defaults to None (optional)
         :type course: str | int | Course
         """
-        raise NotImplementedError("This method is not implemented yet.")
+        test_set = ModelsRegistry.get_test_set(test_set, course)
+        test_set.delete()
 
     @transaction.atomic
     def create_from_package(self, t_set: TSet, task: Task) -> TestSet:
@@ -522,7 +594,7 @@ class SubmitManager(models.Manager):
     def create_submit(self,
                       source_code: str | Path,
                       task: int | Task,
-                      usr: str | int | User,
+                      user: str | int | User,
                       submit_date: datetime = now(),
                       final_score: float = -1) -> Submit:
         """
@@ -532,8 +604,8 @@ class SubmitManager(models.Manager):
         :type source_code: str | Path
         :param task: The task that you want to associate the submit with.
         :type task: int | Task
-        :param usr: The user that you want to associate the submit with.
-        :type usr: str | int | User
+        :param user: The user that you want to associate the submit with.
+        :type user: str | int | User
         :param submit_date: The date and time when the submit was created, defaults to now() (optional)
         :type submit_date: datetime
         :param final_score: The final score of the submit, defaults to -1 (optional)
@@ -542,7 +614,16 @@ class SubmitManager(models.Manager):
         :return: A new submit object.
         :rtype: Submit
         """
-        raise NotImplementedError("This method is not implemented yet.")
+        task = ModelsRegistry.get_task(task)
+        user = ModelsRegistry.get_user(user)
+        source_code = ModelsRegistry.get_source_code(source_code)
+        new_submit = self.model(submit_date=submit_date,
+                                source_code=source_code,
+                                task=task,
+                                usr=user.pk,
+                                final_score=final_score)
+        new_submit.save()
+        return new_submit
 
     @transaction.atomic
     def delete_submit(self, submit: int | Submit, course: str | int | Course = None) -> None:
@@ -554,7 +635,22 @@ class SubmitManager(models.Manager):
         :param course: The course that the submit is in, defaults to None (optional)
         :type course: str | int | Course
         """
-        raise NotImplementedError("This method is not implemented yet.")
+        submit = ModelsRegistry.get_submit(submit, course)
+        submit.delete()
+
+    @staticmethod
+    def user_exists_validator(user: int) -> bool:
+        """
+        It checks if a user exists.
+
+        :param user: The user id that you want to check.
+        :type user: int
+
+        :return: A boolean value.
+        :rtype: bool
+        """
+        from main.models import User
+        return User.exists(user)
 
 
 class Submit(models.Model):
@@ -569,12 +665,29 @@ class Submit(models.Model):
     #: :py:class:`Task` model, to which submit is assigned.
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
     #: Pseudo-foreign key to :py:class:`main.models.User` model (user), who submitted to the task.
-    usr = models.BigIntegerField(validators=[User.exists])
+    usr = models.BigIntegerField(validators=[SubmitManager.user_exists_validator])
     #: Final score (as percent), gained by user's submission. Before solution check score is set to ``-1``.
     final_score = models.FloatField(default=-1)
 
     #: The manager for the Submit model.
     objects = SubmitManager()
+
+    def send(self):
+        """
+        It sends the submit to the broker.
+
+        :return: None
+        """
+        raise NotImplementedError("This method is not implemented yet.")
+        # TODO: Submit sending to broker
+
+    def delete(self, using=None, keep_parents=False):
+        """
+        It deletes the submit object, and all the results that are associated with it.
+        """
+        for result in self.results:
+            result.delete()
+        super().delete(using, keep_parents)
 
     @property
     def user(self) -> User:
@@ -583,13 +696,12 @@ class Submit(models.Model):
 
         :return: Returns user model
         """
+        from main.models import User
         return User.objects.get(pk=self.usr)
 
     def __str__(self):
         return f"Submit {self.pk}: User: {self.user}; Task: {self.task.task_name}; " \
                f"Score: {self.final_score if self.final_score > -1 else 'PENDING'}"
-
-
 
     @property
     def results(self) -> QuerySet:
@@ -601,14 +713,17 @@ class Submit(models.Model):
         """
         return Result.objects.filter(submit=self).all()
 
+    @transaction.atomic()
     def score(self, rejudge: bool = False) -> float:
         """
         It calculates the score of *self* submit.
 
-        :param rejudge: If True, the score will be recalculated even if it was already calculated before,
-            defaults to False (optional)
+        :param rejudge: If True, the score will be recalculated even if it was already calculated
+        before, defaults to False (optional)
         :type rejudge: bool
+
         :return: The score of the submit.
+
         :raise DataError: if there is more results than tests
         :raise NotImplementedError: if selected judging mode is not implemented
         """
@@ -617,8 +732,13 @@ class Submit(models.Model):
             self.final_score = -1
 
         # It's a cache. If the score was already calculated, it will be returned without recalculating.
-        if self.final_score != -1:
+        if self.final_score >= 0:
             return self.final_score
+
+        if self.results.count() < self.task.tests_amount:
+            self.final_score = -1
+            self.save()
+            return -1
 
         # It counts amount of different statuses, grouped by test sets.
         results = (
@@ -674,6 +794,7 @@ class Submit(models.Model):
             final_score += s['score'] * weight
 
         self.final_score = round(final_score / final_weight, 6)
+        self.save()
         return self.final_score
 
 
@@ -681,7 +802,8 @@ class ResultManager(models.Manager):
     @transaction.atomic
     def unpack_results(self,
                        submit: int | Submit,
-                       results: BrokerToBaca) -> List[Result]:
+                       results: BrokerToBaca,
+                       auto_score: bool = True) -> List[Result]:
         """
         It unpacks the results from the BrokerToBaca object and saves them to the database.
 
@@ -689,6 +811,9 @@ class ResultManager(models.Manager):
         :type submit: int | Submit
         :param results: The BrokerToBaca object that you want to unpack the results from.
         :type results: BrokerToBaca
+        :param auto_score: If True, the score of the submit will be calculated automatically,
+            defaults to True (optional)
+        :type auto_score: bool
 
         :return: None
         """
@@ -709,6 +834,8 @@ class ResultManager(models.Manager):
                 )
                 result.save()
                 results_list.append(result)
+        if auto_score:
+            submit.score(rejudge=True)
         return results_list
 
     @transaction.atomic
@@ -738,7 +865,30 @@ class ResultManager(models.Manager):
         :return: A new result object.
         :rtype: Result
         """
-        raise NotImplementedError("This method is not implemented yet.")
+        test = ModelsRegistry.get_test(test)
+        submit = ModelsRegistry.get_submit(submit)
+        status = ModelsRegistry.get_result_status(status)
+        new_result = self.model(test=test,
+                                submit=submit,
+                                status=status,
+                                time_real=time_real,
+                                time_cpu=time_cpu,
+                                runtime_memory=runtime_memory)
+        new_result.save()
+        return new_result
+
+    @transaction.atomic
+    def delete_result(self, result: int | Result, course: str | int | Course = None) -> None:
+        """
+        It deletes a result object.
+
+        :param result: The result id that you want to delete.
+        :type result: int
+        :param course: The course that the result is in, defaults to None (optional)
+        :type course: str | int | Course
+        """
+        result = ModelsRegistry.get_result(result, course)
+        result.delete()
 
 
 class Result(models.Model):
@@ -769,3 +919,11 @@ class Result(models.Model):
     def __str__(self):
         return f"Result {self.pk}: Set[{self.test.test_set.short_name}] Test[{self.test.short_name}]; " \
                f"Stat: {ResultStatus[self.status]}"
+
+    def delete(self, using=None, keep_parents=False, rejudge: bool = False):
+        """
+        It deletes the result object.
+        """
+        super().delete(using, keep_parents)
+        if rejudge:
+            self.submit.score(rejudge=True)
