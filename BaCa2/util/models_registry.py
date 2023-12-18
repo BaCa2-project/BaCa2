@@ -11,7 +11,7 @@ from course.routing import OptionalInCourse
 if TYPE_CHECKING:
     from django.contrib.auth.models import (Group, Permission)
     from main.models import (User, Course, Role, RolePreset)
-    from course.models import (Round, Task, Submit, Test)
+    from course.models import (Round, Task, Submit, Test, TestSet)
     from package.models import PackageSource, PackageInstance
     from BaCa2.choices import TaskJudgingMode
 
@@ -578,6 +578,30 @@ class ModelsRegistry:
         return judging_mode
 
     @staticmethod
+    def get_test_set(test_set: int | TestSet, course: str | int | Course = None) -> TestSet:
+        """
+        Returns a TestSet model instance from the database using its id or name and course as
+        a reference. It can also be used to return the same instance if it is passed as the
+        parameter (for ease of use in case of methods which accept both model instances and their
+        identifiers). If course is not passed as a parameter, it has to be available in
+        context (in that case this method should be used inside ``with InCourse(<course>):``).
+
+        :param test_set: TestSet name, id or model instance.
+        :type test_set: str | int | TestSet
+        :param course: Course short name, id or model instance.
+        :type course: str | int | Course
+
+        :return: TestSet model instance.
+        :rtype: TestSet
+        """
+        from course.models import TestSet
+
+        with OptionalInCourse(course):
+            if isinstance(test_set, int):
+                return TestSet.objects.get(id=test_set)
+        return test_set
+
+    @staticmethod
     def get_test(test: int | Test, course: str | int | Test = None) -> Test:
         """
         Returns a Test model instance from the database using its id or name and course as
@@ -600,3 +624,70 @@ class ModelsRegistry:
             if isinstance(test, int):
                 return Test.objects.get(id=test)
         return test
+
+    @staticmethod
+    def get_result(result: int | Test, course: str | int | Test = None) -> Test:
+        """
+        Returns a Result model instance from the database using its id or name and course as
+        a reference. It can also be used to return the same instance if it is passed as the
+        parameter (for ease of use in case of methods which accept both model instances and their
+        identifiers). If course is not passed as a parameter, it has to be available in
+        context (in that case this method should be used inside ``with InCourse(<course>):``).
+
+        :param result: Result name, id or model instance.
+        :type result: str | int | Result
+        :param course: Course short name, id or model instance.
+        :type course: str | int | Result
+
+        :return: Result model instance.
+        :rtype: Result
+        """
+        from course.models import Result
+
+        with OptionalInCourse(course):
+            if isinstance(result, int):
+                return Result.objects.get(id=result)
+        return result
+
+    @staticmethod
+    def get_source_code(src: str | Path) -> Path:
+        """
+        Returns a Path object to the source code file.
+        :param src: Path to the source code file or its name.
+        :return: Path to the source code file.
+        """
+        from BaCa2.settings import SUBMITS_DIR
+        if isinstance(src, str):
+            path = Path(src)
+            path = path.absolute()
+            if not path.is_relative_to(SUBMITS_DIR):
+                path = SUBMITS_DIR / src
+        else:
+            path = src
+        if not path.exists():
+            raise FileNotFoundError(f'File {path} does not exist.')
+        if not path.is_relative_to(SUBMITS_DIR):
+            raise FileNotFoundError(f'Path {path} is not a file.')
+        return path
+
+    @staticmethod
+    def get_result_status(status: str) -> str:
+        """
+        Returns a result status from the database using its name as a reference.
+        It can also be used to return the same status if it is passed as the parameter (for ease
+        of use in case of methods which accept both model instances and their identifiers).
+
+        :param status: Result status name or model instance.
+        :type status: str | ResultStatus
+
+        :return: ResultStatus model instance.
+        :rtype: ResultStatus
+        """
+        from BaCa2.choices import ResultStatus
+
+        if isinstance(status, str):
+            status = status.upper()
+            for result_status in list(ResultStatus):
+                if result_status.value == status:
+                    return result_status
+        return status
