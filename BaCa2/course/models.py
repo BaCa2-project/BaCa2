@@ -74,6 +74,15 @@ class RoundManager(models.Manager):
         with OptionalInCourse(course):
             ModelsRegistry.get_round(round_).delete()
 
+    def all_rounds(self) -> List[Round]:
+        """
+        It returns all the rounds.
+
+        :return: A list of all the Round objects.
+        :rtype: List[Round]
+        """
+        return list(self.all())
+
 
 class Round(models.Model):
     """

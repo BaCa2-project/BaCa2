@@ -16,6 +16,8 @@ from django.utils.translation import gettext_lazy as _
 
 from BaCa2.choices import (BasicPermissionType, PermissionCheck, ModelAction)
 from course.manager import (create_course as create_course_db, delete_course as delete_course_db)
+# import course.models as crs
+from course.routing import InCourse
 from util.models import (model_cls,
                          get_model_permissions,
                          replace_special_symbols)
@@ -1045,6 +1047,28 @@ class Course(models.Model):
         if self.user_is_member(user):
             raise Course.CourseMemberError("User is already a member of the course")
 
+    # -------------------------------- Inside course actions ----------------------------------- #
+
+    from course.models import Round
+
+    @staticmethod
+    def inside_course(func):
+        def action(self: Course, *args, **kwargs):
+            with InCourse(self):
+                return func(*args, **kwargs)
+
+        return action
+
+    #: Creates a new round in the course using :py:meth:`course.models.Round.objects.create_round`.
+    create_round = inside_course(Round.objects.create_round)
+
+    #: Deletes a round from the course using :py:meth:`course.models.Round.objects.delete_round`.
+    delete_round = inside_course(Round.objects.delete_round)
+
+    #: Returns a QuerySet of all rounds in the course using
+    rounds = inside_course(Round.objects.all_rounds)
+
+
     # --------------------------------------- Deletion ----------------------------------------- #
 
     def delete(self, using: Any = None, keep_parents: bool = False) -> None:
@@ -1481,7 +1505,7 @@ class User(AbstractBaseUser):
                                            model: model_cls,
                                            course: Course | str | int,
                                            permissions: BasicPermissionType |
-                                           List[BasicPermissionType] = 'all') -> bool:
+                                                        List[BasicPermissionType] = 'all') -> bool:
         """
         Check whether a user possesses a specified permission/list of permissions for a given
         'course' database model. Does not check user-specific permissions or group-level
