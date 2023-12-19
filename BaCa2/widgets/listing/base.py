@@ -8,7 +8,8 @@ from django.utils.translation import gettext_lazy as _
 from widgets.base import Widget
 from widgets.listing.columns import (Column, SelectColumn, DeleteColumn)
 from widgets.listing.data_sources import TableDataSource
-from widgets.forms import (BaCa2ModelForm, FormWidget, FormConfirmationPopup)
+from widgets.forms import (BaCa2ModelForm, FormWidget)
+from widgets.popups import FormConfirmationPopup
 from widgets.forms.course import DeleteCourseForm
 from main.models import Course
 
@@ -25,6 +26,7 @@ class TableWidget(Widget):
                  allow_delete: bool = False,
                  name: str = '',
                  paging: TableWidgetPaging = None,
+                 refresh_button: bool = False,
                  refresh: bool = False,
                  refresh_interval: int = 30,
                  default_order_col: str = '',
@@ -60,13 +62,15 @@ class TableWidget(Widget):
         self.allow_delete = allow_delete
         self.delete_record_form_widget = delete_record_form_widget
 
+        if stripe_rows:
+            self.add_class('stripe')
+
         self.data_source = data_source
         self.cols = cols
         self.paging = paging
         self.refresh = refresh
         self.refresh_interval = refresh_interval * 1000
         self.default_order = 'asc' if default_order_asc else 'desc'
-        self.table_class = 'stripe' if stripe_rows else ''
 
         try:
             self.default_order_col = next(index for index, col in enumerate(cols)
@@ -82,7 +86,6 @@ class TableWidget(Widget):
             'paging': self.paging.get_context() if self.paging else json.dumps(False),
             'refresh': json.dumps(self.refresh),
             'refresh_interval': self.refresh_interval,
-            'table_class': self.table_class,
             'default_order_col': self.default_order_col,
             'default_order': self.default_order,
             'allow_delete': self.allow_delete,
@@ -122,7 +125,7 @@ class DeleteRecordFormWidget(FormWidget):
         super().__init__(form=form,
                          post_target=post_url,
                          name=name,
-                         confirmation_popup=FormConfirmationPopup(
+                         submit_confirmation_popup=FormConfirmationPopup(
                              title=_("Confirm record deletion"),
-                             description=_("Are you sure you want to delete this record")
+                             message=_("Are you sure you want to delete this record")
                          ))

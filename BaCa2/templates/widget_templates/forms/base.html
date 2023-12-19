@@ -24,12 +24,12 @@
             <div class="col-10">
             {% endif %}
                 <button class="submit-btn btn btn-primary w-100
-                        {% if form_widget.confirmation_popup %}
+                        {% if form_widget.submit_confirmation_popup %}
                             submit-confirmation-btn
                         {% endif %}"
-                        {% if form_widget.confirmation_popup %}
+                        {% if form_widget.submit_confirmation_popup %}
                             type="button"
-                            data-bs-target="#{{ form_widget.confirmation_popup.name }}"
+                            data-bs-target="#{{ form_widget.submit_confirmation_popup.name }}"
                             data-bs-toggle="modal"
                         {% else %}
                             type="submit"
@@ -50,8 +50,8 @@
     </div>
 </form>
 
-{% with form_widget.confirmation_popup as confirmation_popup %}
-    {% if confirmation_popup %}
-        {% include 'widget_templates/forms/confirmation_popup.html' %}
+{% with form_widget.submit_confirmation_popup as popup_widget %}
+    {% if popup_widget %}
+        {% include 'widget_templates/popups/submit_confirmation.html' %}
     {% endif %}
 {% endwith %}
