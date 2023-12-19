@@ -414,7 +414,7 @@ class ModelsRegistry:
     # -------------------------------------- course models ------------------------------------- #
 
     @staticmethod
-    def get_round(round: int | Round, course: str | int | Course = None) -> Round:
+    def get_round(round_: int | Round, course: str | int | Course = None) -> Round:
         """
         Returns a Round model instance from the database using its id or name and course as
         a reference. It can also be used to return the same instance if it is passed as the
@@ -422,8 +422,8 @@ class ModelsRegistry:
         identifiers). If course is not passed as a parameter, it has to be available in context (
         in that case this method should be used inside ``with InCourse(<course>):``).
 
-        :param round: Round name, id or model instance.
-        :type round: str | int | Round
+        :param round_: Round name, id or model instance.
+        :type round_: str | int | Round
         :param course: Course short name, id or model instance.
         :type course: str | int | Course
 
@@ -433,9 +433,9 @@ class ModelsRegistry:
         from course.models import Round
 
         with OptionalInCourse(course):
-            if isinstance(round, int):
-                return Round.objects.get(id=round)
-        return round
+            if isinstance(round_, int):
+                return Round.objects.get(id=round_)
+        return round_
 
     @staticmethod
     def get_rounds(
@@ -548,11 +548,11 @@ class ModelsRegistry:
         :return: Submit model instance.
         :rtype: Submit
         """
-        from course.models import Task
+        from course.models import Submit
 
         with OptionalInCourse(course):
             if isinstance(submit, int):
-                return Task.objects.get(id=submit)
+                return Submit.objects.get(id=submit)
         return submit
 
     @staticmethod

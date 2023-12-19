@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import (List, Type, Any)
+from typing import (List, Type, Any, Callable)
 
 from django.contrib.auth.models import (AbstractBaseUser,
                                         PermissionsMixin,
@@ -16,7 +16,6 @@ from django.utils.translation import gettext_lazy as _
 
 from BaCa2.choices import (BasicPermissionType, PermissionCheck, ModelAction)
 from course.manager import (create_course as create_course_db, delete_course as delete_course_db)
-# import course.models as crs
 from course.routing import InCourse
 from util.models import (model_cls,
                          get_model_permissions,
@@ -1049,15 +1048,28 @@ class Course(models.Model):
 
     # -------------------------------- Inside course actions ----------------------------------- #
 
-    from course.models import Round
+    from course.models import Round, Task, Submit
 
     @staticmethod
-    def inside_course(func):
+    def inside_course(func: Callable) -> Callable:
+        """
+        Decorator used to wrap methods that deal with course database objects. The decorator
+        ensures that the method is called within the scope of a course database.
+
+        :param func: The method to be wrapped.
+        :type func: Callable
+
+        :return: The wrapped method (in course scope)
+        :rtype: Callable
+        """
+
         def action(self: Course, *args, **kwargs):
             with InCourse(self):
                 return func(*args, **kwargs)
 
         return action
+
+    # Round actions -------------
 
     #: Creates a new round in the course using :py:meth:`course.models.Round.objects.create_round`.
     create_round = inside_course(Round.objects.create_round)
@@ -1065,9 +1077,33 @@ class Course(models.Model):
     #: Deletes a round from the course using :py:meth:`course.models.Round.objects.delete_round`.
     delete_round = inside_course(Round.objects.delete_round)
 
-    #: Returns a QuerySet of all rounds in the course using
+    #: Returns a QuerySet of all rounds in the course using :py:meth:`course.models.Round.objects.all_rounds`.
     rounds = inside_course(Round.objects.all_rounds)
 
+    #: Getter for Round model
+    get_round = inside_course(ModelsRegistry.get_round)
+
+    # Task actions --------------
+
+    #: Creates a new task in the course using :py:meth:`course.models.Task.objects.create_task`.
+    create_task = inside_course(Task.objects.create_task)
+
+    #: Deletes a task from the course using :py:meth:`course.models.Task.objects.delete_task`.
+    delete_task = inside_course(Task.objects.delete_task)
+
+    #: Getter for Task model
+    get_task = inside_course(ModelsRegistry.get_task)
+
+    # Submit actions ------------
+
+    #: Creates a new submit in the course using :py:meth:`course.models.Submit.objects.create_submit`.
+    create_submit = inside_course(Submit.objects.create_submit)
+
+    #: Deletes a submit from the course using :py:meth:`course.models.Submit.objects.delete_submit`.
+    delete_submit = inside_course(Submit.objects.delete_submit)
+
+    #: Getter for Submit model
+    get_submit = inside_course(ModelsRegistry.get_submit)
 
     # --------------------------------------- Deletion ----------------------------------------- #
 

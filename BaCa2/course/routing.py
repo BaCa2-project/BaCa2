@@ -129,6 +129,19 @@ class InCourse:
     def __exit__(self, *args):
         currentDB.reset(self.token)
 
+    @staticmethod
+    def is_defined():
+        """
+        Checks if there is any context database set.
+
+        :return: True if there is any context database set.
+        """
+        try:
+            currentDB.get()
+        except LookupError:
+            return False
+        return True
+
 
 class OptionalInCourse(InCourse):
     """
