@@ -9,7 +9,7 @@ from widgets.forms.base import (BaCa2Form,
                                 FormElementGroup,
                                 BaCa2ModelForm,
                                 ModelFormPostTarget)
-from widgets.popups import FormConfirmationPopup
+from widgets.popups.forms import SubmitConfirmationPopup
 from widgets.forms.fields.course import CourseShortName
 
 
@@ -97,7 +97,7 @@ class CreateCourseFormWidget(FormWidget):
                 frame=True,
                 layout=FormElementGroup.FormElementsLayout.HORIZONTAL
             ),
-            submit_confirmation_popup=FormConfirmationPopup(
+            submit_confirmation_popup=SubmitConfirmationPopup(
                 title=_('Confirm course creation'),
                 message=_(
                     'Are you sure you want to create a new course with the following data?'
@@ -153,7 +153,7 @@ class DeleteCourseFormWidget(FormWidget):
             form=form,
             post_target=ModelFormPostTarget(Course),
             button_text=_('Delete course'),
-            submit_confirmation_popup=FormConfirmationPopup(
+            submit_confirmation_popup=SubmitConfirmationPopup(
                 title=_('Confirm course deletion'),
                 message=_(
                     'Are you sure you want to delete this course? This action cannot be undone.'

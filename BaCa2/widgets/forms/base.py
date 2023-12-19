@@ -9,7 +9,7 @@ from django.http import JsonResponse
 from django.utils.translation import gettext_lazy as _
 
 from widgets.base import Widget
-from widgets.popups import FormConfirmationPopup
+from widgets.popups.forms import SubmitConfirmationPopup
 from util.models import model_cls
 from util.models_registry import ModelsRegistry
 from BaCa2.choices import ModelAction
@@ -28,7 +28,7 @@ class FormWidget(Widget):
     See Also:
         - :class:`FormPostTarget`
         - :class:`FormElementGroup`
-        - :class:`FormConfirmationPopup`
+        - :class:`SubmitConfirmationPopup`
         - :class:`FormSuccessPopup`
     """
 
@@ -46,7 +46,7 @@ class FormWidget(Widget):
                  toggleable_fields: List[str] = None,
                  toggleable_params: Dict[str, Dict[str, str]] = None,
                  live_validation: bool = True,
-                 submit_confirmation_popup: FormConfirmationPopup = None,
+                 submit_confirmation_popup: SubmitConfirmationPopup = None,
                  submit_success_popup: bool = True) -> None:
         """
         :param form: Form to be rendered.
@@ -85,7 +85,7 @@ class FormWidget(Widget):
         :param submit_confirmation_popup: Determines the rendering of the confirmation popup shown
             before submitting the form. If no popup is specified, no popup will be shown and the
             form will be submitted immediately upon clicking the submit button.
-        :type submit_confirmation_popup: :class:`widgets.popups.FormConfirmationPopup`
+        :type submit_confirmation_popup: :class:`widgets.popups.forms.SubmitConfirmationPopup`
         :param submit_success_popup: Determines whether the form should display a popup upon
             successful submission.
         :type submit_success_popup: bool
@@ -290,7 +290,7 @@ class FormSuccessPopup(Widget):
 
     See Also:
         - :class:`FormWidget`
-        - :class:`FormConfirmationPopup`
+        - :class:`SubmitConfirmationPopup`
     """
     def __init__(self,
                  title: str,
