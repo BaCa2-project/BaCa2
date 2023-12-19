@@ -101,6 +101,8 @@ function handleAjaxSubmit(form) {
         success: function (data) {
             formRefresh(form);
 
+            form.trigger('submit-complete', [data])
+
             if (data.status === 'success')
                 form.trigger('submit-success', [data]);
             else {
@@ -180,6 +182,7 @@ function formRefresh(form) {
     clearValidation(form);
     resetToggleables(form);
     submitButtonRefresh(form);
+    resetHiddenFields(form);
 }
 
 function clearValidation(form) {
@@ -195,6 +198,14 @@ function resetToggleables(form) {
     form.find('.group-toggle-btn').each(function () {
         toggleableGroupButtonInit($(this));
     });
+}
+
+function resetHiddenFields(form) {
+    form.find('input[type="hidden"]').each(function () {
+        if ($(this).data('reset-on-refresh') === true)
+            $(this).val('');
+    });
+
 }
 
 // -------------------------------------- live validation ------------------------------------- //
