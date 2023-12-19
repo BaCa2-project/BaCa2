@@ -695,6 +695,13 @@ form .card-body {
   color: white;
 }
 
+.form-confirmation-popup p.popup-message {
+  margin-bottom: 0;
+}
+.form-confirmation-popup .popup-summary {
+  margin-top: 1rem;
+}
+
 /*!
  * Bootstrap Icons v1.11.2 (https://icons.getbootstrap.com/)
  * Copyright 2019-2023 The Bootstrap Authors

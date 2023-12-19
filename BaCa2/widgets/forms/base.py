@@ -9,6 +9,7 @@ from django.http import JsonResponse
 from django.utils.translation import gettext_lazy as _
 
 from widgets.base import Widget
+from widgets.popups import FormConfirmationPopup
 from util.models import model_cls
 from util.models_registry import ModelsRegistry
 from BaCa2.choices import ModelAction
@@ -17,20 +18,22 @@ from main.models import Course
 
 class FormWidget(Widget):
     """
-    Base widget for forms. Responsible for generating the context dictionary necessary for rendering
-    the form. The default template used for rendering the form is:
-    `BaCa2/templates/widget_templates/forms/default.html`.
-    FormWidget __init__ method arguments control the rendered form's behaviour and appearance.
+    Base :class:`widgets.base.Widget` for all forms. Responsible for generating the context
+    dictionary necessary for rendering a form in accordance with the specified parameters.
+
+    Templates used for rendering forms are located in the `BaCa2/templates/widget_templates/forms`
+    directory. The default template used for rendering forms is `default.html`. Any custom form
+    templates should extend the `base.html` template.
+
+    See Also:
+        - :class:`FormPostTarget`
+        - :class:`FormElementGroup`
+        - :class:`FormConfirmationPopup`
+        - :class:`FormSuccessPopup`
     """
 
-    class FormWidgetException(Exception):
-        """
-        Exception raised when an error related to incongruence in the parameters of the FormWidget
-        class occurs.
-        """
-        pass
-
     def __init__(self,
+                 *,
                  form: forms.Form,
                  post_target: FormPostTarget | str = None,
                  name: str = '',
@@ -43,13 +46,58 @@ class FormWidget(Widget):
                  toggleable_fields: List[str] = None,
                  toggleable_params: Dict[str, Dict[str, str]] = None,
                  live_validation: bool = True,
-                 confirmation_popup: FormConfirmationPopup = None) -> None:
+                 submit_confirmation_popup: FormConfirmationPopup = None,
+                 submit_success_popup: bool = True) -> None:
+        """
+        :param form: Form to be rendered.
+        :type form: forms.Form
+        :param post_target: Target URL for the form's POST request. If no target is specified, the
+            form will be posted to the same URL as the page it is rendered on.
+        :type post_target: :class:`FormPostTarget` | str
+        :param name: Name of the widget. If no name is specified, the name of the form will be used
+            to generate the widget name.
+        :type name: str
+        :param button_text: Text displayed on the submit button.
+        :type button_text: str
+        :param refresh_button: Determines whether the form should have a refresh button.
+        :type refresh_button: bool
+        :param display_non_field_validation: Determines whether non-field validation errors should
+            be displayed.
+        :type display_non_field_validation: bool
+        :param display_field_errors: Determines whether field errors should be displayed.
+        :type display_field_errors: bool
+        :param floating_labels: Determines whether the form should use floating labels.
+        :type floating_labels: bool
+        :param element_groups: Groups of form elements. Used to create more complex form layouts or
+            assign certain behaviors to groups of fields.
+        :type element_groups: :class:`FormElementGroup` | List[:class:`FormElementGroup`]
+        :param toggleable_fields: List of names of fields which should be rendered as toggleable.
+        :type toggleable_fields: List[str]
+        :param toggleable_params: Parameters for toggleable fields. Each field name should be a key
+            in the dictionary. The value of each key should be a dictionary containing the
+            'button_text_on' and 'button_text_off' keys. The values of these keys will be used as
+            the text displayed on the toggle button when the field is enabled and disabled
+            respectively.
+        :type toggleable_params: Dict[str, Dict[str, str]]
+        :param live_validation: Determines whether the form should use live validation. Password
+            fields will always be excluded from live validation.
+        :type live_validation: bool
+        :param submit_confirmation_popup: Determines the rendering of the confirmation popup shown
+            before submitting the form. If no popup is specified, no popup will be shown and the
+            form will be submitted immediately upon clicking the submit button.
+        :type submit_confirmation_popup: :class:`widgets.popups.FormConfirmationPopup`
+        :param submit_success_popup: Determines whether the form should display a popup upon
+            successful submission.
+        :type submit_success_popup: bool
+        :raises Widget.WidgetParameterError: If no name is specified and the form passed to the
+            widget does not have a name.
+        """
         if not name:
             form_name = getattr(form, 'form_name', False)
             if form_name:
                 name = f'{form_name}_widget'
             else:
-                raise FormWidget.FormWidgetException(
+                raise Widget.WidgetParameterError(
                     'Cannot create form widget for an unnamed form without specifying the widget '
                     'name.'
                 )
@@ -63,10 +111,11 @@ class FormWidget(Widget):
         self.display_field_errors = display_field_errors
         self.floating_labels = floating_labels
         self.live_validation = live_validation
-        self.confirmation_popup = confirmation_popup
+        self.submit_success_popup = submit_success_popup
+        self.submit_confirmation_popup = submit_confirmation_popup
 
-        if confirmation_popup:
-            self.confirmation_popup.name = f'{self.name}_confirmation_popup'
+        if submit_confirmation_popup:
+            self.submit_confirmation_popup.name = f'{self.name}_confirmation_popup'
 
         if not element_groups:
             element_groups = []
@@ -148,7 +197,8 @@ class FormWidget(Widget):
             'field_required': self.field_required,
             'field_min_length': self.field_min_length,
             'live_validation': self.live_validation,
-            'confirmation_popup': self.confirmation_popup
+            'submit_confirmation_popup': self.submit_confirmation_popup.get_context(),
+            'submit_success_popup': self.submit_success_popup
         }
 
 
@@ -233,35 +283,29 @@ class FormElementGroup(Widget):
         }
 
 
-class FormConfirmationPopup(Widget):
+class FormSuccessPopup(Widget):
+    """
+    :class:`widgets.base.Widget` used to render a popup displayed upon successful submission of a
+    form.
+
+    See Also:
+        - :class:`FormWidget`
+        - :class:`FormConfirmationPopup`
+    """
     def __init__(self,
                  title: str,
                  description: str,
-                 confirm_button_text: str = _('Confirm'),
-                 cancel_button_text: str = _('Cancel'),
-                 input_summary: bool = False,
-                 input_summary_fields: List[str] = None) -> None:
-        if input_summary and not input_summary_fields:
-            raise FormWidget.FormWidgetException(
-                "Cannot use input summary without specifying input summary fields."
-            )
-
+                 button_text: str = _('OK')) -> None:
         super().__init__('')
         self.title = title
         self.description = description
-        self.confirm_button_text = confirm_button_text
-        self.cancel_button_text = cancel_button_text
-        self.input_summary = input_summary
-        self.input_summary_fields = input_summary_fields
+        self.button_text = button_text
 
     def get_context(self) -> Dict[str, Any]:
         return super().get_context() | {
             'title': self.title,
             'description': self.description,
-            'input_summary': self.input_summary,
-            'input_summary_fields': self.input_summary_fields,
-            'confirm_button_text': self.confirm_button_text,
-            'cancel_button_text': self.cancel_button_text
+            'button_text': self.button_text
         }
 
 

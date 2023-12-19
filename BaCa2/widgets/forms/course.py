@@ -4,8 +4,12 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from main.models import Course
-from widgets.forms.base import (BaCa2Form, FormWidget, FormElementGroup, FormConfirmationPopup,
-                                BaCa2ModelForm, ModelFormPostTarget)
+from widgets.forms.base import (BaCa2Form,
+                                FormWidget,
+                                FormElementGroup,
+                                BaCa2ModelForm,
+                                ModelFormPostTarget)
+from widgets.popups import FormConfirmationPopup
 from widgets.forms.fields.course import CourseShortName
 
 
@@ -83,6 +87,7 @@ class CreateCourseFormWidget(FormWidget):
             post_target=ModelFormPostTarget(Course),
             button_text=_('Add course'),
             toggleable_fields=['short_name'],
+            refresh_button=False,
             element_groups=FormElementGroup(
                 elements=['USOS_course_code', 'USOS_term_code'],
                 name='USOS_data',
@@ -92,9 +97,9 @@ class CreateCourseFormWidget(FormWidget):
                 frame=True,
                 layout=FormElementGroup.FormElementsLayout.HORIZONTAL
             ),
-            confirmation_popup=FormConfirmationPopup(
+            submit_confirmation_popup=FormConfirmationPopup(
                 title=_('Confirm course creation'),
-                description=_(
+                message=_(
                     'Are you sure you want to create a new course with the following data?'
                 ),
                 confirm_button_text=_('Create course'),
@@ -148,9 +153,9 @@ class DeleteCourseFormWidget(FormWidget):
             form=form,
             post_target=ModelFormPostTarget(Course),
             button_text=_('Delete course'),
-            confirmation_popup=FormConfirmationPopup(
+            submit_confirmation_popup=FormConfirmationPopup(
                 title=_('Confirm course deletion'),
-                description=_(
+                message=_(
                     'Are you sure you want to delete this course? This action cannot be undone.'
                 ),
                 confirm_button_text=_('Delete course'),
