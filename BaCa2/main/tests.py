@@ -2,7 +2,10 @@ from django.db import transaction
 from django.test import TestCase
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from parameterized import parameterized
 
+from course.models import Round
+from course.routing import InCourse
 from main.models import (User, Course, Role, RolePreset)
 
 
@@ -678,6 +681,36 @@ class CourseTest(TestCase):
         with self.assertRaises(Course.CourseRoleError):
             course_a.change_member_role(self.user_1, self.role_2)
 
+
+class TestCourseActions(TestCase):
+    course_1 = None
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.course_1 = Course.objects.create_course(
+            name='Design Patterns 2',
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.course_1.delete()
+
+    def test_01_create_round(self):
+        self.course_1.create_round(
+            start_date=timezone.now() - timezone.timedelta(days=1),
+            deadline_date=timezone.now() + timezone.timedelta(days=1),
+        )
+        self.assertEqual(len(self.course_1.rounds()), 1)
+
+    def test_02_delete_round(self):
+        self.course_1.create_round(
+            start_date=timezone.now() - timezone.timedelta(days=1),
+            deadline_date=timezone.now() + timezone.timedelta(days=1),
+        )
+        with InCourse(self.course_1):
+            self.assertEqual(len(Round.objects.all()), 1)
+            self.course_1.delete_round(Round.objects.all()[0])
+            self.assertEqual(len(Round.objects.all()), 0)
 
 class UserTest(TestCase):
     pass
