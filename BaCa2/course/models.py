@@ -8,11 +8,12 @@ from django.db import models, transaction
 from django.db.models import Count, QuerySet
 from django.core.exceptions import ValidationError
 from django.utils.timezone import now
+from django.db.models.base import ModelBase
 
 from BaCa2.choices import TaskJudgingMode, ResultStatus
 from BaCa2.exceptions import DataError
 from BaCa2.settings import SUBMITS_DIR
-from course.routing import OptionalInCourse
+from course.routing import OptionalInCourse, InCourse
 from baca2PackageManager import Package, TSet, TestF
 from baca2PackageManager.broker_communication import BrokerToBaca
 
@@ -25,12 +26,54 @@ if TYPE_CHECKING:
 __all__ = ['Round', 'Task', 'TestSet', 'Test', 'Submit', 'Result']
 
 
+class ReadCourseMeta(ModelBase):
+    def __new__(cls, name, bases, dct):
+        # Create a new class with the same name, bases, and dictionary
+        new_class = super().__new__(cls, name, bases, dct)
+
+        # Decorate all non-static, non-class methods with the hook method
+        for attr_name, attr_value in dct.items():
+            if all(((callable(attr_value) or isinstance(attr_value, property)),
+                    not attr_name.startswith("_"),
+                    not isinstance(attr_value, classmethod),
+                    not isinstance(attr_value, staticmethod))):
+                setattr(new_class,
+                        attr_name,
+                        cls.read_course_decorator(attr_value, isinstance(attr_value, property)))
+        return new_class
+
+    @staticmethod
+    def read_course_decorator(original_method, prop=False):
+        def wrapper_method(self, *args, **kwargs):
+            result = None
+            if InCourse.is_defined():
+                result = original_method(self, *args, **kwargs)
+            else:
+                with InCourse(self._state.db):
+                    result = original_method(self, *args, **kwargs)
+            return result
+
+        def wrapper_property(self):
+            result = None
+            if InCourse.is_defined():
+                result = original_method.fget(self)
+            else:
+                with InCourse(self._state.db):
+                    result = original_method.fget(self)
+            return result
+
+        if prop:
+            return property(wrapper_property)
+        return wrapper_method
+
+
 class RoundManager(models.Manager):
 
     @transaction.atomic
     def create_round(self,
                      start_date: datetime,
                      deadline_date: datetime,
+                     name: str = None,
                      end_date: datetime = None,
                      reveal_date: datetime = None,
                      course: str | int | Course = None) -> Round:
@@ -41,6 +84,8 @@ class RoundManager(models.Manager):
         :type start_date: datetime
         :param deadline_date: The deadline date of the round.
         :type deadline_date: datetime
+        :param name: The name of the round, defaults to ``Round <nb>`` (optional)
+        :type name: str
         :param end_date: The end date of the round, defaults to None (optional)
         :type end_date: datetime
         :param reveal_date: The results reveal date for the round, defaults to None (optional)
@@ -53,9 +98,12 @@ class RoundManager(models.Manager):
         :rtype: Round
         """
         Round.validate_dates(start_date, deadline_date, end_date)
+        if name is None:
+            name = self.default_round_name
         with OptionalInCourse(course):
             new_round = self.model(start_date=start_date,
                                    deadline_date=deadline_date,
+                                   name=name,
                                    end_date=end_date,
                                    reveal_date=reveal_date)
             new_round.save()
@@ -83,12 +131,24 @@ class RoundManager(models.Manager):
         """
         return list(self.all())
 
+    @property
+    def default_round_name(self) -> str:
+        """
+        It returns the default round name.
 
-class Round(models.Model):
+        :return: The default round name.
+        :rtype: str
+        """
+        return f'Round {self.count() + 1}'
+
+
+class Round(models.Model, metaclass=ReadCourseMeta):
     """
     A round is a period of time in which a tasks can be submitted.
     """
 
+    #: Name of round
+    name = models.CharField(max_length=2047, default='<no-name>')
     #: The date and time when the round starts.
     start_date = models.DateTimeField()
     #: The date and time when ends possibility to gain max points.
@@ -144,14 +204,14 @@ class Round(models.Model):
         return self.start_date <= now() <= self.deadline_date
 
     @property
-    def tasks(self) -> QuerySet:
+    def tasks(self) -> List[Task]:
         """
         It returns all the tasks that are associated with the round
 
         :return: A list of all the Task objects that are associated with the Round object.
         :rtype: QuerySet
         """
-        return Task.objects.filter(round=self).all()
+        return list(Task.objects.filter(round=self).all())
 
     @property
     def round_points(self) -> float:
@@ -247,7 +307,7 @@ class TaskManager(models.Manager):
         return PackageInstance.objects.exists_validator(package_instance)
 
 
-class Task(models.Model):
+class Task(models.Model, metaclass=ReadCourseMeta):
     """
     It represents a task that user can submit a solution to. The task is judged and scored automatically
     """
@@ -295,13 +355,13 @@ class Task(models.Model):
         super().delete(using, keep_parents)
 
     @property
-    def sets(self) -> QuerySet:
+    def sets(self) -> List[TestSet]:
         """
         It returns all the test sets that are associated with the task
 
         :return: A list of all the TestSet objects that are associated with the Task object.
         """
-        return TestSet.objects.filter(task=self).all()
+        return list(TestSet.objects.filter(task=self).all())
 
     @property
     def sets_amount(self) -> int:
@@ -346,6 +406,22 @@ class Task(models.Model):
         user = ModelsRegistry.get_user(user)
         for submit in Submit.objects.filter(task=self, usr=user.pk).all():
             submit.score(rejudge=rejudge)
+
+    def submits(self, user: str | int | User = None) -> List[Submit]:
+        """
+        It returns all the submits that are associated with the task. If user is specified,
+        returns only submits of that user.
+
+        :param user: The user who submitted the task, defaults to None (optional)
+        :type user: str | int | User
+
+        :return: A list of all the Submit objects that are associated with the Task object.
+        :rtype: List[Submit]
+        """
+        if user is None:
+            return list(Submit.objects.filter(task=self).all())
+        user = ModelsRegistry.get_user(user)
+        return list(Submit.objects.filter(task=self, usr=user.pk).all())
 
     def last_submit(self, user: str | int | User, amount=1) -> Submit | List[Submit]:
         """
@@ -474,7 +550,7 @@ class TestSetManager(models.Manager):
         return test_set
 
 
-class TestSet(models.Model):
+class TestSet(models.Model, metaclass=ReadCourseMeta):
     """
     Model groups single tests into a set of tests. Gives them a set name, and weight, used while calculating results for
     whole task.
@@ -503,13 +579,13 @@ class TestSet(models.Model):
         super().delete(using, keep_parents)
 
     @property
-    def tests(self) -> QuerySet:
+    def tests(self) -> List[Test]:
         """
         It returns all the tests that are associated with the test set
 
         :return: A list of all the tests in the test set.
         """
-        return Test.objects.filter(test_set=self).all()
+        return list(Test.objects.filter(test_set=self).all())
 
 
 class TestManager(models.Manager):
@@ -561,7 +637,7 @@ class TestManager(models.Manager):
         return self.create_test(short_name=test['name'], test_set=test_set)
 
 
-class Test(models.Model):
+class Test(models.Model, metaclass=ReadCourseMeta):
     """
     Single test. Primary object to be connected with students' results.
     """
@@ -579,14 +655,14 @@ class Test(models.Model):
                f"{self.short_name}/{self.test_set.short_name}/{self.test_set.task.task_name}"
 
     @property
-    def associated_results(self) -> QuerySet:
+    def associated_results(self) -> List[Result]:
         """
         Returns all results associated with this test.
 
         :return: QuerySet of results
         :rtype: QuerySet
         """
-        return Result.objects.filter(test=self).all()
+        return list(Result.objects.filter(test=self).all())
 
     @transaction.atomic
     def delete(self, using=None, keep_parents=False):
@@ -605,7 +681,8 @@ class SubmitManager(models.Manager):
                       task: int | Task,
                       user: str | int | User,
                       submit_date: datetime = now(),
-                      final_score: float = -1) -> Submit:
+                      final_score: float = -1,
+                      auto_send: bool = True) -> Submit:
         """
         It creates a new submit object.
 
@@ -619,6 +696,8 @@ class SubmitManager(models.Manager):
         :type submit_date: datetime
         :param final_score: The final score of the submit, defaults to -1 (optional)
         :type final_score: float
+        :param auto_send: If True, the submit will be sent to the broker, defaults to True (optional)
+        :type auto_send: bool
 
         :return: A new submit object.
         :rtype: Submit
@@ -632,6 +711,8 @@ class SubmitManager(models.Manager):
                                 usr=user.pk,
                                 final_score=final_score)
         new_submit.save()
+        if auto_send:
+            new_submit.send()
         return new_submit
 
     @transaction.atomic
@@ -662,7 +743,7 @@ class SubmitManager(models.Manager):
         return User.exists(user)
 
 
-class Submit(models.Model):
+class Submit(models.Model, metaclass=ReadCourseMeta):
     """
     Model containing single submit information. It is assigned to task and user.
     """
@@ -687,7 +768,7 @@ class Submit(models.Model):
 
         :return: None
         """
-        raise NotImplementedError("This method is not implemented yet.")
+        pass
         # TODO: Submit sending to broker
 
     def delete(self, using=None, keep_parents=False):
@@ -713,14 +794,14 @@ class Submit(models.Model):
                f"Score: {self.final_score if self.final_score > -1 else 'PENDING'}"
 
     @property
-    def results(self) -> QuerySet:
+    def results(self) -> List[Result]:
         """
         Returns all results associated with this submit.
 
         :return: QuerySet of results
         :rtype: QuerySet
         """
-        return Result.objects.filter(submit=self).all()
+        return list(Result.objects.filter(submit=self).all())
 
     @transaction.atomic()
     def score(self, rejudge: bool = False) -> float:
@@ -744,7 +825,7 @@ class Submit(models.Model):
         if self.final_score >= 0:
             return self.final_score
 
-        if self.results.count() < self.task.tests_amount:
+        if len(self.results) < self.task.tests_amount:
             self.final_score = -1
             self.save()
             return -1
@@ -900,7 +981,7 @@ class ResultManager(models.Manager):
         result.delete()
 
 
-class Result(models.Model):
+class Result(models.Model, metaclass=ReadCourseMeta):
     """
     Result of single :py:class:`Test` testing.
     """

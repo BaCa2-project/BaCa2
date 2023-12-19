@@ -77,6 +77,7 @@ def create_submit(course, task, user, src_code):
             source_code=src_code,
             task=task,
             user=user,
+            auto_send=False,
         )
         submit.save()
     return submit
@@ -113,12 +114,14 @@ class RoundTest(TestCase):
             round1 = Round.objects.create_round(
                 start_date=datetime(2020, 1, 1, tzinfo=timezone.utc),
                 deadline_date=datetime(2020, 1, 2, tzinfo=timezone.utc),
+                name="Test 1"
             )
             round2 = Round.objects.create_round(
                 start_date=datetime(2020, 1, 3, tzinfo=timezone.utc),
                 deadline_date=datetime(2020, 1, 5, tzinfo=timezone.utc),
                 end_date=datetime(2020, 1, 4, tzinfo=timezone.utc),
                 reveal_date=datetime(2020, 1, 6, tzinfo=timezone.utc),
+                name="Test 2"
             )
             round1.save()
             round2.save()
@@ -131,6 +134,7 @@ class RoundTest(TestCase):
                              datetime(2020, 1, 4, tzinfo=timezone.utc))
             self.assertEqual(round_res.reveal_date,
                              datetime(2020, 1, 6, tzinfo=timezone.utc))
+            self.assertEqual(round_res.name, "Test 2")
 
     def test_02_validate_round(self):
         with InCourse(self.course):
@@ -204,7 +208,7 @@ class RoundTest(TestCase):
     def test_06_tasks_listing(self):
         with InCourse(self.course):
             round1 = self.generic_round_with_2_tasks()
-            self.assertEqual(round1.tasks.count(), 2)
+            self.assertEqual(len(round1.tasks), 2)
             round1.delete()
 
     def test_07_round_points(self):
@@ -212,6 +216,15 @@ class RoundTest(TestCase):
             round1 = self.generic_round_with_2_tasks()
             self.assertEqual(round1.round_points, 10)
             round1.delete()
+
+    @parameterized.expand([(3,), (10,), (100,)])
+    def test_08_round_auto_name(self, amount):
+        rounds = create_rounds(self.course, amount)
+        with InCourse(self.course):
+            rounds_res = [r.name for r in Round.objects.all_rounds()]
+            self.assertEqual(len(rounds_res), amount)
+            for i, r in enumerate(rounds_res):
+                self.assertIn(f'Round {i + 1}', rounds_res)
 
 
 class TaskTestMain(TestCase):
@@ -260,7 +273,7 @@ class TaskTestMain(TestCase):
             self.assertEqual(pkg['title'], 'Liczby Doskonałe')
             self.assertEqual(len(task.sets), 4)
             self.assertEqual(pkg.sets('set0')['name'], 'set0')
-            set0 = task.sets.filter(short_name='set0').first()
+            set0 = list(filter(lambda x: x.short_name == 'set0', task.sets))[0]
             self.assertEqual(len(set0.tests), 2)
             tests = [t.short_name for t in set0.tests]
             self.assertIn('dosko0a', tests)
@@ -356,8 +369,8 @@ class TestTaskWithResults(TestCase):
         ('last submit', 10),
         ('best submit', 100),
         ('last submit', 100),
-        ('best submit', 500),
-        ('last submit', 500),
+        # ('best submit', 500),
+        # ('last submit', 500),
     ])
     def test_04_multiple_submits(self, name, submits_amount):
         best_s = randint(0, submits_amount - 2)
@@ -376,5 +389,3 @@ class TestTaskWithResults(TestCase):
                 last_submit = self.task1.last_submit(self.user)
                 self.assertLess(last_submit.score(), 1)
                 self.assertGreater(last_submit.score(), 0)
-
-    

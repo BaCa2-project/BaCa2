@@ -4,9 +4,10 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 from parameterized import parameterized
 
-from course.models import Round
+from course.models import Round, Task, Submit
 from course.routing import InCourse
 from main.models import (User, Course, Role, RolePreset)
+from package.models import PackageInstance
 
 
 class CourseTest(TestCase):
@@ -684,33 +685,115 @@ class CourseTest(TestCase):
 
 class TestCourseActions(TestCase):
     course_1 = None
+    user_1 = None
 
     @classmethod
     def setUpTestData(cls):
         cls.course_1 = Course.objects.create_course(
             name='Design Patterns 2',
         )
+        cls.user_1 = User.objects.create_user(
+            email='test@test.com',
+            password='test'
+        )
 
     @classmethod
     def tearDownClass(cls):
         cls.course_1.delete()
+        cls.user_1.delete()
+
+    def tearDown(self):
+        with InCourse(self.course_1):
+            Round.objects.all().delete()
+            Task.objects.all().delete()
+            Submit.objects.all().delete()
+
+    def new_round(self, name=None):
+        round_ = self.course_1.create_round(
+            start_date=timezone.now() - timezone.timedelta(days=1),
+            deadline_date=timezone.now() + timezone.timedelta(days=1),
+            name=name
+        )
+        return round_
+
+    @staticmethod
+    def get_pkg(name='dosko'):
+        pkgs = PackageInstance.objects.filter(package_source__name=name).all()
+        if len(pkgs) == 0:
+            return PackageInstance.objects.create_source_and_instance(name, '1')
+        else:
+            return pkgs[0]
+
+    def new_task(self, round_, name='Liczby Doskonałe'):
+        pkg = self.get_pkg()
+        task = self.course_1.create_task(
+            package_instance=pkg,
+            round_=round_,
+            task_name=name,
+            points=10,
+        )
+        return task
+
+    def new_submit(self, task, user):
+        submit = self.course_1.create_submit(
+            task=task,
+            user=user,
+            source_code='1234.cpp',
+            auto_send=False
+        )
+        return submit
 
     def test_01_create_round(self):
-        self.course_1.create_round(
-            start_date=timezone.now() - timezone.timedelta(days=1),
-            deadline_date=timezone.now() + timezone.timedelta(days=1),
-        )
+        self.new_round('round_1')
         self.assertEqual(len(self.course_1.rounds()), 1)
+        self.assertEqual(self.course_1.rounds()[0].name, 'round_1')
 
     def test_02_delete_round(self):
-        self.course_1.create_round(
-            start_date=timezone.now() - timezone.timedelta(days=1),
-            deadline_date=timezone.now() + timezone.timedelta(days=1),
-        )
+        r = self.new_round()
         with InCourse(self.course_1):
             self.assertEqual(len(Round.objects.all()), 1)
-            self.course_1.delete_round(Round.objects.all()[0])
+        self.course_1.delete_round(r.pk)
+        with InCourse(self.course_1):
             self.assertEqual(len(Round.objects.all()), 0)
 
+    def test_03_get_round(self):
+        r1 = self.new_round('test 1')
+        r2 = self.new_round('test 2')
+        self.assertEqual(self.course_1.get_round(r1.pk), r1)
+        self.assertEqual(self.course_1.get_round(r2.pk), r2)
+
+    def test_04_create_task(self):
+        self.new_task(self.new_round())
+        r = self.course_1.rounds()[0]
+        self.assertEqual(len(r.tasks), 1)
+        t = r.tasks[0]
+        self.assertEqual(t.task_name, 'Liczby Doskonałe')
+        self.assertEqual(len(t.sets), 4)
+
+    def test_05_get_task(self):
+        t = self.new_task(self.new_round())
+        self.assertEqual(self.course_1.get_task(t.pk), t)
+        self.assertEqual(self.course_1.get_task(t), t)
+
+    def test_06_delete_task(self):
+        t = self.new_task(self.new_round())
+        r = self.course_1.rounds()[0]
+        self.assertEqual(len(r.tasks), 1)
+        self.course_1.delete_task(t.pk)
+        self.assertEqual(len(r.tasks), 0)
+
+    def test_07_create_submit(self):
+        t = self.new_task(self.new_round())
+        self.new_submit(t, self.user_1)
+        self.assertEqual(len(t.submits()), 1)
+        s = t.submits()[0]
+        self.assertEqual(s.user, self.user_1)
+
+    def test_08_delete_submit(self):
+        t = self.new_task(self.new_round())
+        s = self.new_submit(t, self.user_1)
+        self.assertEqual(len(t.submits()), 1)
+        self.course_1.delete_submit(s.pk)
+        self.assertEqual(len(t.submits()), 0)
 class UserTest(TestCase):
     pass
