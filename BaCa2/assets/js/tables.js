@@ -274,7 +274,7 @@ function selectCheckboxClickHandler (e, checkbox) {
 function deleteButtonClickHandler (e, button) {
     const form = button.closest('.table-wrapper').find('.delete-record-form form');
     const input = form.find('input').filter(function () {
-        return $(this).val().length === 0;
+        return $(this).hasClass('model-id')
     });
     input.val(button.data('record-target'));
     form.find('.submit-btn').click();

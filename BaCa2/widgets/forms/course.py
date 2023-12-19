@@ -87,7 +87,6 @@ class CreateCourseFormWidget(FormWidget):
             post_target=ModelFormPostTarget(Course),
             button_text=_('Add course'),
             toggleable_fields=['short_name'],
-            refresh_button=False,
             element_groups=FormElementGroup(
                 elements=['USOS_course_code', 'USOS_term_code'],
                 name='USOS_data',
@@ -121,8 +120,8 @@ class DeleteCourseForm(BaCa2ModelForm):
     #: ID of the course to be deleted.
     course_id = forms.IntegerField(
         label=_('Course ID'),
-        widget=forms.HiddenInput(),
-        required=True
+        widget=forms.HiddenInput(attrs={'class': 'model-id', 'data-reset-on-refresh': 'true'}),
+        required=True,
     )
 
     @classmethod
