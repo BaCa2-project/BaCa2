@@ -9,7 +9,7 @@ from widgets.base import Widget
 from widgets.listing.columns import (Column, SelectColumn, DeleteColumn)
 from widgets.listing.data_sources import TableDataSource
 from widgets.forms import (BaCa2ModelForm, FormWidget)
-from widgets.popups import FormConfirmationPopup
+from widgets.popups.forms import SubmitConfirmationPopup
 from widgets.forms.course import DeleteCourseForm
 from main.models import Course
 
@@ -125,7 +125,7 @@ class DeleteRecordFormWidget(FormWidget):
         super().__init__(form=form,
                          post_target=post_url,
                          name=name,
-                         submit_confirmation_popup=FormConfirmationPopup(
+                         submit_confirmation_popup=SubmitConfirmationPopup(
                              title=_("Confirm record deletion"),
                              message=_("Are you sure you want to delete this record")
                          ))
