@@ -2,7 +2,14 @@
 <script src="{% static 'js/forms.js' %}"></script>
 
 <form method="post" id="{{ form_widget.name }}"
-      {% if form_widget.post_url %} action="{{ form_widget.post_url }}" {% endif %}>
+        {% if form_widget.post_url %}
+      action="{{ form_widget.post_url }}"
+        {% endif %}
+        {% if form_widget.show_response_popups %}
+      data-show-response-popups="true"
+      data-submit-success-popup="{{ form_widget.submit_success_popup.name }}"
+      data-submit-failure-popup="{{ form_widget.submit_failure_popup.name }}"
+        {% endif %}>
     {% csrf_token %}
 
     {% if form_widget.display_non_field_errors %}
@@ -21,30 +28,30 @@
     <div class="form-footer">
         <div class="row">
             {% if form_widget.refresh_button %}
-            <div class="col-10">
+                <div class="col-10">
             {% endif %}
-                <button class="submit-btn btn btn-primary w-100
+            <button class="submit-btn btn btn-primary w-100
                         {% if form_widget.submit_confirmation_popup %}
                             submit-confirmation-btn
                         {% endif %}"
-                        {% if form_widget.submit_confirmation_popup %}
-                            type="button"
-                            data-bs-target="#{{ form_widget.submit_confirmation_popup.name }}"
-                            data-bs-toggle="modal"
-                        {% else %}
-                            type="submit"
-                        {% endif %}>
-                    {{ form_widget.button_text }}
-                </button>
+                    {% if form_widget.submit_confirmation_popup %}
+                    type="button"
+                    data-bs-target="#{{ form_widget.submit_confirmation_popup.name }}"
+                    data-bs-toggle="modal"
+                    {% else %}
+                    type="submit"
+                    {% endif %}>
+                {{ form_widget.button_text }}
+            </button>
             {% if form_widget.refresh_button %}
-            </div>
-            <div class="col d-flex">
-                <div class="icon-wrapper icon-m w-100">
-                    <button class="btn btn-primary form-refresh-button w-100" type="button">
-                        {% include 'icons/refresh.svg' %}
-                    </button>
                 </div>
-            </div>
+                <div class="col d-flex">
+                    <div class="icon-wrapper icon-m w-100">
+                        <button class="btn btn-primary form-refresh-button w-100" type="button">
+                            {% include 'icons/refresh.svg' %}
+                        </button>
+                    </div>
+                </div>
             {% endif %}
         </div>
     </div>
@@ -53,5 +60,17 @@
 {% with form_widget.submit_confirmation_popup as popup_widget %}
     {% if popup_widget %}
         {% include 'widget_templates/popups/submit_confirmation.html' %}
+    {% endif %}
+{% endwith %}
+
+{% with form_widget.submit_success_popup as popup_widget %}
+    {% if popup_widget %}
+        {% include 'widget_templates/popups/submit_success.html' %}
+    {% endif %}
+{% endwith %}
+
+{% with form_widget.submit_failure_popup as popup_widget %}
+    {% if popup_widget %}
+        {% include 'widget_templates/popups/submit_failure.html' %}
     {% endif %}
 {% endwith %}

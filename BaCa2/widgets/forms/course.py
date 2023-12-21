@@ -126,12 +126,12 @@ class DeleteCourseForm(BaCa2ModelForm):
 
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
-        try:
-            Course.objects.delete_course(int(request.POST.get('course_id')))
-        except Exception as e:
-            return {'message': str(e)}
-
+        Course.objects.delete_course(int(request.POST.get('course_id')))
         return {'message': _('Course deleted successfully')}
+
+    @classmethod
+    def handle_error(cls, request, error) -> Dict[str, str]:
+        return {'message': str(error)}
 
     @classmethod
     def handle_invalid_request(cls, request) -> Dict[str, str]:

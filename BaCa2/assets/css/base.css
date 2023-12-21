@@ -695,6 +695,16 @@ form .card-body {
   color: white;
 }
 
+.btn-outline-success:hover {
+  background-color: rgba(8, 217, 214, 0.3);
+  color: white;
+}
+
+.btn-outline-danger:hover {
+  background-color: rgba(254, 46, 99, 0.3);
+  color: white;
+}
+
 .form-confirmation-popup p.popup-message {
   margin-bottom: 0;
 }
@@ -702,6 +712,84 @@ form .card-body {
   margin-top: 1rem;
 }
 
+.form-success-popup .path {
+  stroke: #08D9D6;
+}
+
+.form-failure-popup .path {
+  stroke: #FE2E63;
+}
+
+.form-success-popup .modal-content svg, .form-failure-popup .modal-content svg {
+  width: 100px;
+}
+.form-success-popup .modal-content .path, .form-failure-popup .modal-content .path {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 0;
+}
+.form-success-popup .modal-content .path.circle, .form-failure-popup .modal-content .path.circle {
+  -webkit-animation: dash 0.9s ease-in-out;
+  animation: dash 0.9s ease-in-out;
+}
+.form-success-popup .modal-content .path.line, .form-failure-popup .modal-content .path.line {
+  stroke-dashoffset: 1000;
+  -webkit-animation: dash 0.95s 0.35s ease-in-out forwards;
+  animation: dash 0.95s 0.35s ease-in-out forwards;
+}
+.form-success-popup .modal-content .path.check, .form-failure-popup .modal-content .path.check {
+  stroke-dashoffset: -100;
+  -webkit-animation: dash-check 0.95s 0.35s ease-in-out forwards;
+  animation: dash-check 0.95s 0.35s ease-in-out forwards;
+}
+
+@-webkit-keyframes dash {
+  0% {
+    stroke-dashoffset: 1000;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes dash {
+  0% {
+    stroke-dashoffset: 1000;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+@-webkit-keyframes dash {
+  0% {
+    stroke-dashoffset: 1000;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes dash {
+  0% {
+    stroke-dashoffset: 1000;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+@-webkit-keyframes dash-check {
+  0% {
+    stroke-dashoffset: -100;
+  }
+  100% {
+    stroke-dashoffset: 900;
+  }
+}
+@keyframes dash-check {
+  0% {
+    stroke-dashoffset: -100;
+  }
+  100% {
+    stroke-dashoffset: 900;
+  }
+}
 /*!
  * Bootstrap Icons v1.11.2 (https://icons.getbootstrap.com/)
  * Copyright 2019-2023 The Bootstrap Authors

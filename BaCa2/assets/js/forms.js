@@ -5,7 +5,8 @@ function formsSetup() {
     toggleableGroupSetup();
     toggleableFieldSetup();
     confirmationPopupSetup();
-    refreshButtonSetup()
+    responsePopupsSetup();
+    refreshButtonSetup();
     liveValidationSetup();
 }
 
@@ -88,6 +89,24 @@ function confirmationPopupSetup() {
     $('.form-confirmation-popup .submit-btn').on('click', function () {
         $(this).closest('.form-confirmation-popup').modal('hide');
         $('#' + $(this).data('form-target')).submit();
+    });
+}
+
+function responsePopupsSetup() {
+    const forms = $('form').filter(function () {
+        return $(this).data('show-response-popups');
+    });
+
+    forms.on('submit-success', function (e, data) {
+        const popup = $(`#${$(this).data('submit-success-popup')}`);
+        renderResponsePopup(popup, data);
+        popup.modal('show');
+    });
+
+    forms.on('submit-failure', function (e, data) {
+        const popup = $(`#${$(this).data('submit-failure-popup')}`);
+        renderResponsePopup(popup, data);
+        popup.modal('show');
     });
 }
 
@@ -281,4 +300,10 @@ function renderConfirmationPopup(popup) {
         const value = $('#' + $(this).data('input-target')).val();
         return value.length > 0 ? value : '-';
     });
+}
+
+function renderResponsePopup(popup, data) {
+    const message = popup.find('.popup-message');
+    if (message.data('render-message') === true)
+        message.text(data.message);
 }

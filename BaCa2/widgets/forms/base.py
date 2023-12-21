@@ -9,7 +9,7 @@ from django.http import JsonResponse
 from django.utils.translation import gettext_lazy as _
 
 from widgets.base import Widget
-from widgets.popups.forms import SubmitConfirmationPopup
+from widgets.popups.forms import SubmitConfirmationPopup, SubmitSuccessPopup, SubmitFailurePopup
 from util.models import model_cls
 from util.models_registry import ModelsRegistry
 from BaCa2.choices import ModelAction
@@ -30,6 +30,7 @@ class FormWidget(Widget):
         - :class:`FormElementGroup`
         - :class:`SubmitConfirmationPopup`
         - :class:`FormSuccessPopup`
+        - :class:`FormFailurePopup`
     """
 
     def __init__(self,
@@ -47,7 +48,8 @@ class FormWidget(Widget):
                  toggleable_params: Dict[str, Dict[str, str]] = None,
                  live_validation: bool = True,
                  submit_confirmation_popup: SubmitConfirmationPopup = None,
-                 submit_success_popup: bool = True) -> None:
+                 submit_success_popup: SubmitSuccessPopup = SubmitSuccessPopup(),
+                 submit_failure_popup: SubmitFailurePopup = SubmitFailurePopup()) -> None:
         """
         :param form: Form to be rendered.
         :type form: forms.Form
@@ -85,12 +87,18 @@ class FormWidget(Widget):
         :param submit_confirmation_popup: Determines the rendering of the confirmation popup shown
             before submitting the form. If no popup is specified, no popup will be shown and the
             form will be submitted immediately upon clicking the submit button.
-        :type submit_confirmation_popup: :class:`widgets.popups.forms.SubmitConfirmationPopup`
-        :param submit_success_popup: Determines whether the form should display a popup upon
-            successful submission.
-        :type submit_success_popup: bool
+        :type submit_confirmation_popup: :class:`SubmitConfirmationPopup`
+        :param submit_success_popup: Determines the rendering of the success popup shown after
+            submitting the form and receiving a successful response. If no popup is specified, no
+            popup will be shown.
+        :type submit_success_popup: :class:`SubmitSuccessPopup`
+        :param submit_failure_popup: Determines the rendering of the failure popup shown after
+            submitting the form and receiving an unsuccessful response. If no popup is specified, no
+            popup will be shown.
+        :type submit_failure_popup: :class:`SubmitFailurePopup`
         :raises Widget.WidgetParameterError: If no name is specified and the form passed to the
-            widget does not have a name.
+            widget does not have a name. If submit success popup or submit failure popup is
+            specified without the other.
         """
         if not name:
             form_name = getattr(form, 'form_name', False)
@@ -102,6 +110,11 @@ class FormWidget(Widget):
                     'name.'
                 )
 
+        if (submit_success_popup is None) ^ (submit_failure_popup is None):
+            raise Widget.WidgetParameterError(
+                'Both submit success popup and submit failure popup must be specified or neither.'
+            )
+
         super().__init__(name)
         self.form = form
         self.form_cls = form.__class__.__name__
@@ -111,11 +124,23 @@ class FormWidget(Widget):
         self.display_field_errors = display_field_errors
         self.floating_labels = floating_labels
         self.live_validation = live_validation
-        self.submit_success_popup = submit_success_popup
-        self.submit_confirmation_popup = submit_confirmation_popup
+        self.show_response_popups = False
 
         if submit_confirmation_popup:
-            self.submit_confirmation_popup.name = f'{self.name}_confirmation_popup'
+            submit_confirmation_popup.name = f'{self.name}_confirmation_popup'
+            submit_confirmation_popup = submit_confirmation_popup.get_context()
+        self.submit_confirmation_popup = submit_confirmation_popup
+
+        if submit_success_popup:
+            self.show_response_popups = True
+            submit_success_popup.name = f'{self.name}_success_popup'
+            submit_success_popup = submit_success_popup.get_context()
+        self.submit_success_popup = submit_success_popup
+
+        if submit_failure_popup:
+            submit_failure_popup.name = f'{self.name}_failure_popup'
+            submit_failure_popup = submit_failure_popup.get_context()
+        self.submit_failure_popup = submit_failure_popup
 
         if not element_groups:
             element_groups = []
@@ -197,8 +222,10 @@ class FormWidget(Widget):
             'field_required': self.field_required,
             'field_min_length': self.field_min_length,
             'live_validation': self.live_validation,
-            'submit_confirmation_popup': self.submit_confirmation_popup.get_context(),
-            'submit_success_popup': self.submit_success_popup
+            'submit_confirmation_popup': self.submit_confirmation_popup,
+            'show_response_popups': self.show_response_popups,
+            'submit_failure_popup': self.submit_failure_popup,
+            'submit_success_popup': self.submit_success_popup,
         }
 
 
@@ -280,32 +307,6 @@ class FormElementGroup(Widget):
             'toggleable': self.toggleable,
             'toggleable_params': self.toggleable_params,
             'frame': self.frame
-        }
-
-
-class FormSuccessPopup(Widget):
-    """
-    :class:`widgets.base.Widget` used to render a popup displayed upon successful submission of a
-    form.
-
-    See Also:
-        - :class:`FormWidget`
-        - :class:`SubmitConfirmationPopup`
-    """
-    def __init__(self,
-                 title: str,
-                 description: str,
-                 button_text: str = _('OK')) -> None:
-        super().__init__('')
-        self.title = title
-        self.description = description
-        self.button_text = button_text
-
-    def get_context(self) -> Dict[str, Any]:
-        return super().get_context() | {
-            'title': self.title,
-            'description': self.description,
-            'button_text': self.button_text
         }
 
 
@@ -470,12 +471,20 @@ class BaCa2ModelForm(BaCa2Form):
             )
 
         if cls(data=request.POST).is_valid():
-            return BaCa2ModelFormResponse(
-                model=cls.MODEL,
-                action=cls.ACTION,
-                status=BaCa2FormResponse.Status.SUCCESS,
-                **cls.handle_valid_request(request)
-            )
+            try:
+                return BaCa2ModelFormResponse(
+                    model=cls.MODEL,
+                    action=cls.ACTION,
+                    status=BaCa2FormResponse.Status.SUCCESS,
+                    **cls.handle_valid_request(request)
+                )
+            except Exception as e:
+                return BaCa2ModelFormResponse(
+                    model=cls.MODEL,
+                    action=cls.ACTION,
+                    status=BaCa2FormResponse.Status.ERROR,
+                    **cls.handle_error(request, e)
+                )
 
         return BaCa2ModelFormResponse(
             model=cls.MODEL,
@@ -508,6 +517,15 @@ class BaCa2ModelForm(BaCa2Form):
         """
         Handles the POST request received by the view this form's data was posted to if the request
         is impermissible.
+        """
+        raise NotImplementedError('This method has to be implemented by inheriting classes.')
+
+    @classmethod
+    @abstractmethod
+    def handle_error(cls, request, error) -> Dict[str, str]:
+        """
+        Handles the POST request received by the view this form's data was posted to if the request
+        resulted in an error unrelated to form validation or the user's permissions.
         """
         raise NotImplementedError('This method has to be implemented by inheriting classes.')
 
