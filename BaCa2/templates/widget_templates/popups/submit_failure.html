@@ -1,0 +1,36 @@
+{% extends 'widget_templates/popups/base.html' %}
+
+{% block popup_header %}
+    <div class="w-100 text-center">
+        <h5 class="text-center modal-title">{{ popup_widget.title }}</h5>
+    </div>
+{% endblock %}
+
+{% block popup_body %}
+    <div class="text-center">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130.2 130.2">
+            <circle class="path circle" fill="none" stroke="#db3646" stroke-width="6"
+                    stroke-miterlimit="10" cx="65.1" cy="65.1" r="62.1"></circle>
+            <line class="path line" fill="none" stroke="#db3646" stroke-width="6"
+                  stroke-linecap="round" stroke-miterlimit="10" x1="34.4" y1="37.9"
+                  x2="95.8" y2="92.3"></line>
+            <line class="path line" fill="none" stroke="#db3646" stroke-width="6"
+                  stroke-linecap="round" stroke-miterlimit="10" x1="95.8" y1="38" X2="34.4"
+                  y2="92.2"></line>
+        </svg>
+        <p class="popup-message mt-3 mb-0"
+                {% if popup_widget.message %}
+           data-render-message="false"
+                {% else %}
+           data-render-message="true"
+                {% endif %}>
+            {{ popup_widget.message }}
+        </p>
+    </div>
+{% endblock %}
+
+{% block popup_footer %}
+    <button type="button" class="btn btn-outline-danger w-100" data-bs-dismiss="modal">
+        {{ popup_widget.confirm_button_text }}
+    </button>
+{% endblock %}

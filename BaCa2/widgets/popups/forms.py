@@ -15,6 +15,7 @@ class SubmitConfirmationPopup(PopupWidget):
         - :class:`widgets.forms.FormWidget`
         - :class:`widgets.popups.PopupWidget`
     """
+
     def __init__(self,
                  title: str,
                  message: str,
@@ -50,7 +51,8 @@ class SubmitConfirmationPopup(PopupWidget):
         super().__init__(name=name,
                          title=title,
                          message=message,
-                         popup_class="form-confirmation-popup")
+                         widget_class="form-confirmation-popup",
+                         size=PopupWidget.PopupSize.MEDIUM)
         self.confirm_button_text = confirm_button_text
         self.cancel_button_text = cancel_button_text
         self.input_summary = input_summary
@@ -62,4 +64,84 @@ class SubmitConfirmationPopup(PopupWidget):
             'input_summary_fields': self.input_summary_fields,
             'confirm_button_text': self.confirm_button_text,
             'cancel_button_text': self.cancel_button_text
+        }
+
+
+class SubmitSuccessPopup(PopupWidget):
+    """
+    A popup widget used to display a success message after a form submission. Can display either a
+    predefined message or a message received in the JSON response from the server.
+
+    See Also:
+        - :class:`widgets.forms.FormWidget`
+        - :class:`widgets.popups.PopupWidget`
+    """
+
+    def __init__(self,
+                 title: str = _('Success'),
+                 message: str = '',
+                 name: str = '',
+                 confirm_button_text: str = _('OK')) -> None:
+        """
+        :param title: Title of the popup. Defaults to "Success".
+        :type title: str
+        :param message: Message of the popup. If not specified, the message received in the JSON
+            response from the server will be used instead.
+        :type message: str
+        :param name: Name of the widget. Will normally be automatically provided by a parent form
+            widget.
+        :type name: str
+        :param confirm_button_text: Text displayed on the confirmation button. Defaults to "OK".
+        :type confirm_button_text: str
+        """
+        super().__init__(name=name,
+                         title=title,
+                         message=message,
+                         widget_class="form-success-popup",
+                         size=PopupWidget.PopupSize.SMALL)
+        self.confirm_button_text = confirm_button_text
+
+    def get_context(self) -> Dict[str, Any]:
+        return super().get_context() | {
+            'confirm_button_text': self.confirm_button_text
+        }
+
+
+class SubmitFailurePopup(PopupWidget):
+    """
+    A popup widget used to display a failure message after a form submission. Can display either a
+    predefined message or a message received in the JSON response from the server.
+
+    See Also:
+        - :class:`widgets.forms.FormWidget`
+        - :class:`widgets.popups.PopupWidget`
+    """
+
+    def __init__(self,
+                 title: str = _('Failure'),
+                 message: str = '',
+                 name: str = '',
+                 confirm_button_text: str = _('OK')) -> None:
+        """
+        :param title: Title of the popup. Defaults to "Failure".
+        :type title: str
+        :param message: Message of the popup. If not specified, the message received in the JSON
+            response from the server will be used instead.
+        :type message: str
+        :param name: Name of the widget. Will normally be automatically provided by a parent form
+            widget.
+        :type name: str
+        :param confirm_button_text: Text displayed on the confirmation button. Defaults to "OK".
+        :type confirm_button_text: str
+        """
+        super().__init__(name=name,
+                         title=title,
+                         message=message,
+                         widget_class="form-failure-popup",
+                         size=PopupWidget.PopupSize.SMALL)
+        self.confirm_button_text = confirm_button_text
+
+    def get_context(self) -> Dict[str, Any]:
+        return super().get_context() | {
+            'confirm_button_text': self.confirm_button_text
         }
