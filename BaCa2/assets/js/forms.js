@@ -44,7 +44,7 @@ function toggleableFieldSetup() {
     });
 
     buttons.on('click', function(e) {
-        toggleFieldButtonClickHandler(e)
+        toggleFieldButtonClickHandler(e, $(this))
     });
 }
 
@@ -63,7 +63,7 @@ function toggleableGroupSetup() {
     });
 
     buttons.on('click', function(e) {
-        toggleGroupButtonClickHandler(e)
+        toggleGroupButtonClickHandler(e, $(this))
     });
 }
 
@@ -140,13 +140,13 @@ function handleAjaxSubmit(form) {
 
 // ----------------------------------- field & group toggle ----------------------------------- //
 
-function toggleFieldButtonClickHandler(e) {
+function toggleFieldButtonClickHandler(e, btn) {
     e.preventDefault();
-    toggleTextSwitchBtn($(this));
+    toggleTextSwitchBtn(btn);
     let on = false;
-    const input = $(this).closest('.input-group').find('input')
+    const input = btn.closest('.input-group').find('input')
 
-    if ($(this).hasClass('switch-on'))
+    if (btn.hasClass('switch-on'))
         on = true;
 
     toggleField(input, on);
@@ -154,7 +154,7 @@ function toggleFieldButtonClickHandler(e) {
     if (on)
         input.focus();
 
-    submitButtonRefresh($(this).closest('form'));
+    submitButtonRefresh(btn.closest('form'));
 }
 
 function toggleField(field, on) {
@@ -171,13 +171,13 @@ function toggleField(field, on) {
     }
 }
 
-function toggleGroupButtonClickHandler(e) {
+function toggleGroupButtonClickHandler(e, btn) {
     e.preventDefault();
-    toggleTextSwitchBtn($(this));
+    toggleTextSwitchBtn(btn);
     let on = false;
-    const group = $(this).closest('.form-element-group');
+    const group = btn.closest('.form-element-group');
 
-    if ($(this).hasClass('switch-on'))
+    if (btn.hasClass('switch-on'))
         on = true;
 
     toggleFieldGroup(group, on)
@@ -185,7 +185,7 @@ function toggleGroupButtonClickHandler(e) {
     if (on)
         group.find('input:first').focus()
 
-    submitButtonRefresh($(this).closest('form'));
+    submitButtonRefresh(btn.closest('form'));
 }
 
 function toggleFieldGroup(formElementGroup, on) {
