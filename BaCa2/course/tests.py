@@ -367,6 +367,10 @@ class TestTaskWithResults(TestCase):
     @parameterized.expand([
         ('best submit', 10),
         ('last submit', 10),
+        ('best submit', 25),
+        ('last submit', 25),
+        ('best submit', 50),
+        ('last submit', 50),
         ('best submit', 100),
         ('last submit', 100),
         # ('best submit', 500),
