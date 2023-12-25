@@ -2,18 +2,26 @@ from typing import Dict
 
 from django import forms
 from django.utils.translation import gettext_lazy as _
-from django.urls import reverse_lazy
-from django.http import JsonResponse
 
 from main.models import Course
-from widgets.forms.base import (BaCa2Form, FormWidget, FormElementGroup, FormConfirmationPopup,
-                                BaCa2ModelForm)
+from widgets.forms.base import (BaCa2Form,
+                                FormWidget,
+                                FormElementGroup,
+                                BaCa2ModelForm,
+                                ModelFormPostTarget)
+from widgets.popups.forms import SubmitConfirmationPopup
 from widgets.forms.fields.course import CourseShortName
 
 
+# ---------------------------------------- create course --------------------------------------- #
+
 class CreateCourseForm(BaCa2ModelForm):
     """
-    Form for creating new :py:class:`main.Course` objects.
+    Form used to create a new :class:`Course` object.
+
+    See also:
+        - :class:`BaCa2ModelForm`
+        - :class:`Course`
     """
 
     MODEL = Course
@@ -26,8 +34,10 @@ class CreateCourseForm(BaCa2ModelForm):
         max_length=Course._meta.get_field('name').max_length,
         required=True
     )
+
     #: New course's short name.
     short_name = CourseShortName()
+
     #: Subject code of the course in the USOS system.
     USOS_course_code = forms.CharField(
         label=_('USOS course code'),
@@ -35,6 +45,7 @@ class CreateCourseForm(BaCa2ModelForm):
         max_length=Course._meta.get_field('USOS_course_code').max_length,
         required=False
     )
+
     #: Term code of the course in the USOS system.
     USOS_term_code = forms.CharField(
         label=_('USOS term code'),
@@ -45,36 +56,82 @@ class CreateCourseForm(BaCa2ModelForm):
 
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
-        try:
-            Course.objects.create_course(
-                name=request.POST.get('name'),
-                short_name=request.POST.get('short_name'),
-                usos_course_code=request.POST.get('USOS_course_code'),
-                usos_term_code=request.POST.get('USOS_term_code')
-            )
-        except Exception as e:
-            return {'message': str(e)}
+        """
+        Creates a new :class:`Course` object based on the data provided in the request.
 
-        return {'message': _('Course created successfully')}
+        :param request: POST request containing the course data.
+        :type request: HttpRequest
+        :return: Dictionary containing a success message.
+        :rtype: Dict[str, str]
+        """
+        Course.objects.create_course(
+            name=request.POST.get('name'),
+            short_name=request.POST.get('short_name'),
+            usos_course_code=request.POST.get('USOS_course_code'),
+            usos_term_code=request.POST.get('USOS_term_code')
+        )
+        return {'message': _('Course ') + request.POST.get('name') + _(' created successfully')}
 
     @classmethod
-    def handle_invalid_request(cls, request) -> Dict[str, str]:
-        return {}
+    def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
+        """
+        Returns response message for a request containing invalid data.
+
+        :param request: POST request containing the course data.
+        :type request: HttpRequest
+        :param errors: Dictionary containing information about the errors found in the form data.
+        :type errors: dict
+        :return: Dictionary containing an error message preceding the list of errors.
+        :rtype: Dict[str, str]
+        """
+        return {'message': _('Course creation failed due to invalid data. Please correct the '
+                             'following errors:')}
 
     @classmethod
     def handle_impermissible_request(cls, request) -> Dict[str, str]:
-        return {}
+        """
+        Returns response message for a request from a user without the permission to create new
+        courses.
+
+        :param request: POST request containing the course data.
+        :type request: HttpRequest
+        :return: Dictionary containing an error message.
+        :rtype: Dict[str, str]
+        """
+        return {'message': _('Course creation failed due to insufficient permissions.')}
+
+    @classmethod
+    def handle_error(cls, request, error) -> Dict[str, str]:
+        """
+        Returns response message for a request that failed due to an error other than invalid data
+        or insufficient permissions.
+
+        :param request: POST request containing the course data.
+        :type request: HttpRequest
+        :param error: Error that caused the request to fail.
+        :type error: Exception
+        :return: Dictionary containing an error message.
+        :rtype: Dict[str, str]
+        """
+        return {'message': 'Course creation failed due to the following error:\n' + str(error)}
 
 
 class CreateCourseFormWidget(FormWidget):
     """
-    Form widget for creating new courses. Built on top of :py:class:`FormWidget`.
+    Form widget for creating new courses.
+
+    See also:
+        - :class:`FormWidget`
+        - :class:`CreateCourseForm`
     """
 
     def __init__(self, form: CreateCourseForm = None, **kwargs) -> None:
         """
         :param form: Form to be base the widget on. If not provided, a new form will be created.
-        :type form: CreateCourseForm
+        :type form: :class:`CreateCourseForm`
+        :param kwargs: Additional keyword arguments to be passed to the :class:`FormWidget`
+            super constructor.
+        :type kwargs: dict
         """
         if not form:
             form = CreateCourseForm()
@@ -82,8 +139,7 @@ class CreateCourseFormWidget(FormWidget):
         super().__init__(
             name='create_course_form_widget',
             form=form,
-            post_url=reverse_lazy('main:course-model-view'),
-            ajax_post=True,
+            post_target=ModelFormPostTarget(Course),
             button_text=_('Add course'),
             toggleable_fields=['short_name'],
             element_groups=FormElementGroup(
@@ -95,9 +151,9 @@ class CreateCourseFormWidget(FormWidget):
                 frame=True,
                 layout=FormElementGroup.FormElementsLayout.HORIZONTAL
             ),
-            confirmation_popup=FormConfirmationPopup(
+            submit_confirmation_popup=SubmitConfirmationPopup(
                 title=_('Confirm course creation'),
-                description=_(
+                message=_(
                     'Are you sure you want to create a new course with the following data?'
                 ),
                 confirm_button_text=_('Create course'),
@@ -108,67 +164,110 @@ class CreateCourseFormWidget(FormWidget):
         )
 
 
-class DeleteCourseForm(BaCa2Form):
+# ---------------------------------------- delete course --------------------------------------- #
+
+
+class DeleteCourseForm(BaCa2ModelForm):
     """
     Form for deleting existing :py:class:`main.Course` objects.
     """
 
+    MODEL = Course
+    ACTION = Course.BasicAction.DEL
+
     #: ID of the course to be deleted.
     course_id = forms.IntegerField(
         label=_('Course ID'),
-        widget=forms.HiddenInput(),
-        required=True
+        widget=forms.HiddenInput(attrs={'class': 'model-id', 'data-reset-on-refresh': 'true'}),
+        required=True,
     )
 
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
-        try:
-            Course.objects.delete_course(request.POST.get('course_id'))
-        except Exception as e:
-            return {'message': str(e)}
+        """
+        Deletes the course with the ID provided in the request.
 
+        :param request: POST request containing the course ID.
+        :type request: HttpRequest
+        :return: Dictionary containing a success message.
+        :rtype: Dict[str, str]
+        """
+        Course.objects.delete_course(int(request.POST.get('course_id')))
         return {'message': _('Course deleted successfully')}
 
     @classmethod
-    def handle_invalid_request(cls, request) -> Dict[str, str]:
-        return {}
+    def handle_error(cls, request, error) -> Dict[str, str]:
+        """
+        Returns response message for a request that failed due to an error other than invalid data
+        or insufficient permissions.
+
+        :param request: POST request containing the course ID.
+        :type request: HttpRequest
+        :param error: Error that caused the request to fail.
+        :type error: Exception
+        :return: Dictionary containing an error message.
+        :rtype: Dict[str, str]
+        """
+        return {'message': 'Course deletion failed due to the following error:\n' + str(error)}
+
+    @classmethod
+    def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
+        """
+        Returns response message for a request containing invalid data.
+
+        :param request: POST request containing the course ID.
+        :type request: HttpRequest
+        :param errors: Dictionary containing information about the errors found in the form data.
+        :type errors: dict
+        :return: Dictionary containing an error message preceding the list of errors.
+        :rtype: Dict[str, str]
+        """
+        return {'message': _('Course deletion failed due to invalid data. Please correct the '
+                             'following errors:')}
 
     @classmethod
     def handle_impermissible_request(cls, request) -> Dict[str, str]:
-        return {}
+        """
+        Returns response message for a request from a user without the permission to delete courses.
+
+        :param request: POST request containing the course ID.
+        :type request: HttpRequest
+        :return: Dictionary containing an error message.
+        :rtype: Dict[str, str]
+        """
+        return {'message': _('Course deletion failed due to insufficient permissions.')}
 
 
 class DeleteCourseFormWidget(FormWidget):
+    """
+    Form widget for deleting courses.
+
+    See also:
+        - :class:`FormWidget`
+        - :class:`DeleteCourseForm`
+    """
     def __init__(self, form: DeleteCourseForm = None, **kwargs) -> None:
+        """
+        :param form: Form to be base the widget on. If not provided, a new form will be created.
+        :type form: :class:`DeleteCourseForm`
+        :param kwargs: Additional keyword arguments to be passed to the :class:`FormWidget`
+            super constructor.
+        :type kwargs: dict
+        """
         if not form:
             form = DeleteCourseForm()
 
         super().__init__(
             name='delete_course_form_widget',
             form=form,
-            post_url=reverse_lazy('main:course-model-view'),
-            ajax_post=True,
+            post_target=ModelFormPostTarget(Course),
             button_text=_('Delete course'),
-            confirmation_popup=FormConfirmationPopup(
+            submit_confirmation_popup=SubmitConfirmationPopup(
                 title=_('Confirm course deletion'),
-                description=_(
+                message=_(
                     'Are you sure you want to delete this course? This action cannot be undone.'
                 ),
                 confirm_button_text=_('Delete course'),
             ),
             **kwargs
         )
-
-
-class CourseForm(BaCa2Form):
-    """
-    Base form for all forms used to edit existing :py:class:`main.Course` objects.
-    """
-
-    #: ID of the course to be edited. Used to identify the course from which scope the request
-    # originates.
-    course_id = forms.IntegerField(
-        label=_('Course ID'),
-        widget=forms.HiddenInput(),
-        required=True
-    )

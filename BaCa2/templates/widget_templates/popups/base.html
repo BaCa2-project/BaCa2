@@ -1,0 +1,23 @@
+<div class="modal fade {{ popup_widget.widget_class }}"
+     id="{{ popup_widget.name }}"
+     data-bs-backfrop="static"
+     data-bs-keyboard="false"
+     tabindex="-1"
+     role="dialog">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                {% block popup_header %}
+                {% endblock %}
+            </div>
+            <div class="modal-body">
+                {% block popup_body %}
+                {% endblock %}
+            </div>
+            <div class="modal-footer">
+                {% block popup_footer %}
+                {% endblock %}
+            </div>
+        </div>
+    </div>
+</div>

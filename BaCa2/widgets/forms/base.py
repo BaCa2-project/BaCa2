@@ -2,37 +2,212 @@ from __future__ import annotations
 
 from typing import (Dict, List, Any)
 from enum import Enum
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 from django import forms
 from django.http import JsonResponse
 from django.utils.translation import gettext_lazy as _
 
 from widgets.base import Widget
+from widgets.popups.forms import SubmitConfirmationPopup, SubmitSuccessPopup, SubmitFailurePopup
 from util.models import model_cls
+from util.models_registry import ModelsRegistry
 from BaCa2.choices import ModelAction
+from main.models import Course
 
+
+# -------------------------------------- base form classes ------------------------------------- #
+
+class BaCa2Form(forms.Form):
+    """
+    Base form for all forms in the BaCa2 system. Contains shared, hidden fields common to all forms.
+
+    See Also:
+        :class:`BaCa2ModelForm`
+        :class:`FormWidget`
+    """
+
+    #: Form name used to identify the form for views which may receive post data from more than one
+    #: form.
+    form_name = forms.CharField(
+        label=_('Form name'),
+        max_length=100,
+        widget=forms.HiddenInput(),
+        required=True,
+        initial='form'
+    )
+    #: Informs the view receiving the post data about the action which should be performed using it.
+    action = forms.CharField(
+        label=_('Action'),
+        max_length=100,
+        widget=forms.HiddenInput(),
+        initial='',
+    )
+
+
+class BaCa2ModelForm(BaCa2Form):
+    """
+    Base form for all forms in the BaCa2 system which are used to create, delete or modify
+    django model objects.
+    """
+
+    #: Model class which instances are affected by the form.
+    MODEL: model_cls = None
+    #: Action which should be performed using the form data.
+    ACTION: ModelAction = None
+
+    def __init__(self, **kwargs):
+        super().__init__(initial={'form_name': f'{self.ACTION.label}_form',
+                                  'action': self.ACTION.value}, **kwargs)
+
+    @classmethod
+    def handle_post_request(cls, request) -> BaCa2ModelFormResponse:
+        """
+        Handles the POST request received by the view this form's data was posted to. Based on the
+        user's permissions and the validity of the form data, returns a JSON response containing
+        information about the status of the request and a message accompanying it.
+
+        :param request: Request object.
+        :type request: HttpRequest
+        :return: JSON response to the request.
+        :rtype: :class:`BaCa2ModelFormResponse`
+        """
+        if not cls.is_permissible(request):
+            return BaCa2ModelFormResponse(
+                model=cls.MODEL,
+                action=cls.ACTION,
+                status=BaCa2FormResponse.Status.IMPERMISSIBLE,
+                **cls.handle_impermissible_request(request)
+            )
+
+        if cls(data=request.POST).is_valid():
+            try:
+                return BaCa2ModelFormResponse(
+                    model=cls.MODEL,
+                    action=cls.ACTION,
+                    status=BaCa2FormResponse.Status.SUCCESS,
+                    **cls.handle_valid_request(request)
+                )
+            except Exception as e:
+                return BaCa2ModelFormResponse(
+                    model=cls.MODEL,
+                    action=cls.ACTION,
+                    status=BaCa2FormResponse.Status.ERROR,
+                    **cls.handle_error(request, e)
+                )
+
+        validation_errors = cls(data=request.POST).errors
+
+        return BaCa2ModelFormResponse(
+            model=cls.MODEL,
+            action=cls.ACTION,
+            status=BaCa2FormResponse.Status.INVALID,
+            **cls.handle_invalid_request(request, validation_errors) | {'errors': validation_errors}
+        )
+
+    @classmethod
+    @abstractmethod
+    def handle_valid_request(cls, request) -> Dict[str, str]:
+        """
+        Handles the POST request received by the view this form's data was posted to if the request
+        is permissible and the form data is valid.
+
+        :param request: Request object.
+        :type request: HttpRequest
+        :return: Dictionary containing a success message and any additional data to be included in
+            the response.
+        :rtype: Dict[str, str]
+        """
+        raise NotImplementedError('This method has to be implemented by inheriting classes.')
+
+    @classmethod
+    @abstractmethod
+    def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
+        """
+        Handles the POST request received by the view this form's data was posted to if the request
+        is permissible but the form data is invalid.
+
+        :param request: Request object.
+        :type request: HttpRequest
+        :param errors: Dictionary containing information about the errors found in the form data.
+        :type errors: dict
+        :return: Dictionary containing a failure message and any additional data to be included in
+            the response.
+        :rtype: Dict[str, str]
+        """
+        raise NotImplementedError('This method has to be implemented by inheriting classes.')
+
+    @classmethod
+    @abstractmethod
+    def handle_impermissible_request(cls, request) -> Dict[str, str]:
+        """
+        Handles the POST request received by the view this form's data was posted to if the request
+        is impermissible.
+
+        :param request: Request object.
+        :type request: HttpRequest
+        :return: Dictionary containing a failure message and any additional data to be included in
+            the response.
+        :rtype: Dict[str, str]
+        """
+        raise NotImplementedError('This method has to be implemented by inheriting classes.')
+
+    @classmethod
+    @abstractmethod
+    def handle_error(cls, request, error: Exception) -> Dict[str, str]:
+        """
+        Handles the POST request received by the view this form's data was posted to if the request
+        resulted in an error unrelated to form validation or the user's permissions.
+
+        :param request: Request object.
+        :type request: HttpRequest
+        :param error: Error which occurred while processing the request.
+        :type error: Exception
+        :return: Dictionary containing a failure message and any additional data to be included in
+            the response.
+        :rtype: Dict[str, str]
+        """
+        raise NotImplementedError('This method has to be implemented by inheriting classes.')
+
+    @classmethod
+    def is_permissible(cls, request) -> bool:
+        """
+        Checks whether the user has the permission to perform the action specified by the form.
+
+        :param request: Request object.
+        :type request: HttpRequest
+
+        :return: `True` if the user has the permission to perform the action specified by the form,
+            `False` otherwise.
+        :rtype: bool
+        """
+        return request.user.has_permission(cls.ACTION.label)
+
+
+# ----------------------------------------- form widget ---------------------------------------- #
 
 class FormWidget(Widget):
     """
-    Base widget for forms. Responsible for generating the context dictionary necessary for rendering
-    the form. The default template used for rendering the form is:
-    `BaCa2/templates/widget_templates/forms/default.html`.
-    FormWidget __init__ method arguments control the rendered form's behaviour and appearance.
+    Base :class:`Widget` class for all form widgets. Responsible for generating the context
+    dictionary needed to render a form in accordance with the specified parameters.
+
+    Templates used for rendering forms are located in the `BaCa2/templates/widget_templates/forms`
+    directory. The default template used for rendering forms is `default.html`. Any custom form
+    templates should extend the `base.html` template.
+
+    See Also:
+        - :class:`FormPostTarget`
+        - :class:`FormElementGroup`
+        - :class:`SubmitConfirmationPopup`
+        - :class:`FormSuccessPopup`
+        - :class:`FormFailurePopup`
     """
 
-    class FormWidgetException(Exception):
-        """
-        Exception raised when an error related to incongruence in the parameters of the FormWidget
-        class occurs.
-        """
-        pass
-
     def __init__(self,
-                 name: str,
+                 *,
                  form: forms.Form,
-                 post_url: str = None,
-                 ajax_post: bool = False,
+                 post_target: FormPostTarget | str = None,
+                 name: str = '',
                  button_text: str = _('Submit'),
                  refresh_button: bool = True,
                  display_non_field_validation: bool = True,
@@ -42,64 +217,100 @@ class FormWidget(Widget):
                  toggleable_fields: List[str] = None,
                  toggleable_params: Dict[str, Dict[str, str]] = None,
                  live_validation: bool = True,
-                 confirmation_popup: FormConfirmationPopup = None) -> None:
+                 submit_confirmation_popup: SubmitConfirmationPopup = None,
+                 submit_success_popup: SubmitSuccessPopup = SubmitSuccessPopup(),
+                 submit_failure_popup: SubmitFailurePopup = SubmitFailurePopup()) -> None:
         """
-        :param name: Name of the widget. Should be unique within the scope of one view.
-        :type name: str
-        :param form: django form object to base the widget on. Should inherit from BaCa2Form.
+        :param form: Form to be rendered.
         :type form: forms.Form
-        :param post_url: URL to which the form should be submitted. If not provided, the form will
-            be submitted to the same URL as the one used to render the form.
-        :type post_url: str
-        :param ajax_post: Whether the form should be submitted using AJAX. If `True`, the form will
-            be submitted using AJAX and the page will not be reloaded. If `False`, the form will be
-            submitted using a standard POST request and the page will be reloaded.
-        :type ajax_post: bool
-        :param button_text: Text to be displayed on the submit button.
+        :param post_target: Target URL for the form's POST request. If no target is specified, the
+            form will be posted to the same URL as the page it is rendered on.
+        :type post_target: :class:`FormPostTarget` | str
+        :param name: Name of the widget. If no name is specified, the name of the form will be used
+            to generate the widget name.
+        :type name: str
+        :param button_text: Text displayed on the submit button.
         :type button_text: str
-        :param display_non_field_validation: Whether to display non-field validation errors.
+        :param refresh_button: Determines whether the form should have a refresh button.
+        :type refresh_button: bool
+        :param display_non_field_validation: Determines whether non-field validation errors should
+            be displayed.
         :type display_non_field_validation: bool
-        :param display_field_errors: Whether to display field specific errors. If `True`, field
-            specific errors will be displayed below their corresponding fields.
+        :param display_field_errors: Determines whether field errors should be displayed.
         :type display_field_errors: bool
-        :param floating_labels: Whether to use floating labels for the form fields.
+        :param floating_labels: Determines whether the form should use floating labels.
         :type floating_labels: bool
-        :param toggleable_fields: List of names of fields that should be toggleable. This list
-            should only contain fields that are not required. If an item of the list is itself a
-            list, the fields in that sublist will be considered a toggleable group. If one of them
-            is toggled it will also toggle the other fields in the group.
-        :type toggleable_fields: List[str | List[str]]
-        :param toggleable_params: Dictionary containing parameters for toggleable fields.
-            The keys of the dictionary should be the names of the toggleable fields. The values
-            should be dictionaries containing the parameters for the toggleable field. The
-            following parameters are supported: `button_text_on` - text to be displayed on the
-            toggle button when the field is in the "on" state, `button_text_off` - text to be
-            displayed on the toggle button when the field is in the "off" state. If the
-            parameters are not specified, the default values for the supported parameters will be
-            used.
+        :param element_groups: Groups of form elements. Used to create more complex form layouts or
+            assign certain behaviors to groups of fields.
+        :type element_groups: :class:`FormElementGroup` | List[:class:`FormElementGroup`]
+        :param toggleable_fields: List of names of fields which should be rendered as toggleable.
+        :type toggleable_fields: List[str]
+        :param toggleable_params: Parameters for toggleable fields. Each field name should be a key
+            in the dictionary. The value of each key should be a dictionary containing the
+            'button_text_on' and 'button_text_off' keys. The values of these keys will be used as
+            the text displayed on the toggle button when the field is enabled and disabled
+            respectively.
         :type toggleable_params: Dict[str, Dict[str, str]]
-        :param live_validation: Whether to perform live validation of the form fields. If `True`,
-            the form will be validated on every change of the form fields. Validation results will
-            be displayed below the corresponding fields or in form of a green checkmark if the
-            field is valid.
+        :param live_validation: Determines whether the form should use live validation. Password
+            fields will always be excluded from live validation.
         :type live_validation: bool
-
-        :raises FormWidgetException: If the AJAX post is enabled without specifying the post URL.
+        :param submit_confirmation_popup: Determines the rendering of the confirmation popup shown
+            before submitting the form. If no popup is specified, no popup will be shown and the
+            form will be submitted immediately upon clicking the submit button.
+        :type submit_confirmation_popup: :class:`SubmitConfirmationPopup`
+        :param submit_success_popup: Determines the rendering of the success popup shown after
+            submitting the form and receiving a successful response. If no popup is specified, no
+            popup will be shown.
+        :type submit_success_popup: :class:`SubmitSuccessPopup`
+        :param submit_failure_popup: Determines the rendering of the failure popup shown after
+            submitting the form and receiving an unsuccessful response. If no popup is specified, no
+            popup will be shown.
+        :type submit_failure_popup: :class:`SubmitFailurePopup`
+        :raises Widget.WidgetParameterError: If no name is specified and the form passed to the
+            widget does not have a name. If submit success popup or submit failure popup is
+            specified without the other.
         """
+        if not name:
+            form_name = getattr(form, 'form_name', False)
+            if form_name:
+                name = f'{form_name}_widget'
+            else:
+                raise Widget.WidgetParameterError(
+                    'Cannot create form widget for an unnamed form without specifying the widget '
+                    'name.'
+                )
+
+        if (submit_success_popup is None) ^ (submit_failure_popup is None):
+            raise Widget.WidgetParameterError(
+                'Both submit success popup and submit failure popup must be specified or neither.'
+            )
+
         super().__init__(name)
         self.form = form
         self.form_cls = form.__class__.__name__
-        self.ajax_post = ajax_post
         self.button_text = button_text
         self.refresh_button = refresh_button
         self.display_non_field_validation = display_non_field_validation
         self.display_field_errors = display_field_errors
         self.floating_labels = floating_labels
         self.live_validation = live_validation
-        self.confirmation_popup = confirmation_popup
+        self.show_response_popups = False
 
-        if confirmation_popup:
-            self.confirmation_popup.name = f'{self.name}_confirmation_popup'
+        if submit_confirmation_popup:
+            submit_confirmation_popup.name = f'{self.name}_confirmation_popup'
+            submit_confirmation_popup = submit_confirmation_popup.get_context()
+        self.submit_confirmation_popup = submit_confirmation_popup
+
+        if submit_success_popup:
+            self.show_response_popups = True
+            submit_success_popup.name = f'{self.name}_success_popup'
+            submit_success_popup = submit_success_popup.get_context()
+        self.submit_success_popup = submit_success_popup
+
+        if submit_failure_popup:
+            submit_failure_popup.name = f'{self.name}_failure_popup'
+            submit_failure_popup = submit_failure_popup.get_context()
+        self.submit_failure_popup = submit_failure_popup
 
         if not element_groups:
             element_groups = []
@@ -122,16 +333,13 @@ class FormWidget(Widget):
                 elements.append(field.name)
                 included_fields[field.name] = True
 
-        self.elements = FormElementGroup(elements, 'form_elements')
+        self.elements = FormElementGroup(elements=elements, name='form_elements')
 
-        if ajax_post and not post_url:
-            raise FormWidget.FormWidgetException(
-                'Cannot use AJAX post without specifying the post URL.'
-            )
-
-        if not post_url:
-            post_url = ''
-        self.post_url = post_url
+        if not post_target:
+            post_target = ''
+        if isinstance(post_target, FormPostTarget):
+            post_target = post_target.get_post_url()
+        self.post_url = post_target
 
         if not toggleable_fields:
             toggleable_fields = []
@@ -167,12 +375,11 @@ class FormWidget(Widget):
             else:
                 self.field_min_length[field_name] = False
 
-    def get_context(self) -> dict:
+    def get_context(self) -> Dict[str, Any]:
         return super().get_context() | {
             'form': self.form,
             'form_cls': self.form_cls,
             'post_url': self.post_url,
-            'ajax_post': self.ajax_post,
             'elements': self.elements,
             'button_text': self.button_text,
             'refresh_button': self.refresh_button,
@@ -185,22 +392,140 @@ class FormWidget(Widget):
             'field_required': self.field_required,
             'field_min_length': self.field_min_length,
             'live_validation': self.live_validation,
-            'confirmation_popup': self.confirmation_popup
+            'submit_confirmation_popup': self.submit_confirmation_popup,
+            'show_response_popups': self.show_response_popups,
+            'submit_failure_popup': self.submit_failure_popup,
+            'submit_success_popup': self.submit_success_popup,
         }
 
 
+# -------------------------------------- form post targets ------------------------------------- #
+
+class FormPostTarget(ABC):
+    """
+    Abstract base class for all classes used to specify the target URL for a form's POST request.
+
+    See Also:
+        - :class:`FormWidget`
+        - :class:`ModelFormPostTarget`
+        - :class:`CourseModelFormPostTarget`
+    """
+
+    @abstractmethod
+    def get_post_url(self) -> str:
+        """
+        Returns the URL to which the form's POST request should be sent.
+        """
+        raise NotImplementedError('This method has to be implemented by inheriting classes.')
+
+
+class ModelFormPostTarget(FormPostTarget):
+    """
+    Class used to generate the default database model view URL as the target for a form's POST
+    request.
+
+    See Also:
+        - :class:`FormWidget`
+        - :class:`FormPostTarget`
+    """
+
+    def __init__(self, model: model_cls) -> None:
+        """
+        :param model: Model class which view the form's POST request should be sent to.
+        :type model: Type[Model]
+        """
+        self.model = model
+
+    def get_post_url(self) -> str:
+        """
+        Returns the URL of the model view of the given model class.
+
+        :return: URL of the model view
+        :rtype: str
+        """
+        return f'/{self.model._meta.app_label}/models/{self.model._meta.model_name}'
+
+
+class CourseModelFormPostTarget(ModelFormPostTarget):
+    """
+    Class used to generate the course database model view URL as the target for a form's POST
+    request.
+
+    See Also:
+        - :class:`FormWidget`
+        - :class:`ModelPostTarget`
+    """
+
+    def __init__(self, model: model_cls, course: str | int | Course) -> None:
+        """
+        :param model: Model class which view the form's POST request should be sent to.
+        :type model: Type[Model]
+        :param course: Course which the model belongs to. Can be specified as the course's short
+            name, ID or model instance.
+        :type course: str | int | Course
+        """
+        if not isinstance(course, str):
+            course = ModelsRegistry.get_course(course).short_name
+        self.course = course
+        super().__init__(model)
+
+    def get_post_url(self) -> str:
+        """
+        Returns the URL of the model view of the given model class for the specified course.
+
+        :return: URL of the model view
+        :rtype: str
+        """
+        return f'course/{self.course}/models/{self.model._meta.model_name}'
+
+
+# -------------------------------------- form element group ------------------------------------ #
+
 class FormElementGroup(Widget):
+    """
+    Class used to group form elements together. Used to dictate the layout or assign certain
+    behaviors to groups of fields. More complex form layouts can be created by nesting multiple
+    form element groups.
+
+    See Also:
+        - :class:`FormWidget`
+    """
+
     class FormElementsLayout(Enum):
+        """
+        Enum used to specify the layout of form elements in a group.
+        """
+        #: Form elements will be displayed in a single row.
         HORIZONTAL = 'horizontal'
+        #: Form elements will be displayed in a single column.
         VERTICAL = 'vertical'
 
     def __init__(self,
+                 *,
                  elements: List[str | FormElementGroup],
                  name: str,
                  layout: FormElementsLayout = FormElementsLayout.VERTICAL,
                  toggleable: bool = False,
                  toggleable_params: Dict[str, str] = None,
                  frame: bool = False) -> None:
+        """
+        :param elements: Form elements to be included in the group, specified as a list of field
+            names or other form element groups.
+        :type elements: List[str | :class:`FormElementGroup`]
+        :param name: Name of the group.
+        :type name: str
+        :param layout: Layout of the form elements in the group.
+        :type layout: :class:`FormElementGroup.FormElementsLayout`
+        :param toggleable: Determines whether the group should be toggleable.
+        :type toggleable: bool
+        :param toggleable_params: Parameters for the toggleable group. Should contain the
+            'button_text_on' and 'button_text_off' keys. The values of these keys will be used as
+            the text displayed on the toggle button when the group is enabled and disabled
+            respectively. If no parameters are specified, default values will be used.
+        :type toggleable_params: Dict[str, str]
+        :param frame: Determines whether the group should be displayed in a frame.
+        :type frame: bool
+        """
         super().__init__(name)
         self.elements = elements
         self.toggleable = toggleable
@@ -218,6 +543,14 @@ class FormElementGroup(Widget):
                 toggleable_params['button_text_off'] = _('Enter manually')
 
     def field_in_group(self, field_name: str) -> bool:
+        """
+        Checks whether the specified field is included in the group.
+
+        :param field_name: Name of the field to check.
+        :type field_name: str
+        :return: `True` if the field is included in the group, `False` otherwise.
+        :rtype: bool
+        """
         if field_name in self.elements:
             return True
         for element in self.elements:
@@ -227,6 +560,12 @@ class FormElementGroup(Widget):
         return False
 
     def fields(self) -> List[str]:
+        """
+        Returns a list containing the names of all fields included in the group.
+
+        :return: List of field names.
+        :rtype: List[str]
+        """
         fields = []
         for element in self.elements:
             if isinstance(element, FormElementGroup):
@@ -245,155 +584,105 @@ class FormElementGroup(Widget):
         }
 
 
-class FormConfirmationPopup(Widget):
-    def __init__(self,
-                 title: str,
-                 description: str,
-                 confirm_button_text: str = _('Confirm'),
-                 cancel_button_text: str = _('Cancel'),
-                 input_summary: bool = False,
-                 input_summary_fields: List[str] = None) -> None:
-        if input_summary and not input_summary_fields:
-            raise FormWidget.FormWidgetException(
-                "Cannot use input summary without specifying input summary fields."
-            )
+# --------------------------------------- form responses --------------------------------------- #
 
-        super().__init__('')
-        self.title = title
-        self.description = description
-        self.confirm_button_text = confirm_button_text
-        self.cancel_button_text = cancel_button_text
-        self.input_summary = input_summary
-        self.input_summary_fields = input_summary_fields
-
-    def get_context(self) -> Dict[str, Any]:
-        return super().get_context() | {
-            'title': self.title,
-            'description': self.description,
-            'input_summary': self.input_summary,
-            'input_summary_fields': self.input_summary_fields,
-            'confirm_button_text': self.confirm_button_text,
-            'cancel_button_text': self.cancel_button_text
-        }
-
-
-class BaCa2Form(forms.Form):
+class BaCa2FormResponse(JsonResponse):
     """
-    Base form for all forms in the BaCa2 system. Contains shared, hidden fields
+    Base class for all JSON responses returned as a result of an AJAX post request sent by a form
+    widget. Contains basic fields required to handle the response along with predefined values
+    for the status field.
+
+    See Also:
+        :class:`BaCa2Form`
+        :class:`FormWidget`
     """
-
-    #: Form name used to identify the form for views which may receive post data from more than one
-    # form.
-    form_name = forms.CharField(
-        label=_('Form name'),
-        max_length=100,
-        widget=forms.HiddenInput(),
-        required=True,
-        initial='form'
-    )
-    #: Informs the view receiving the post data about the action which should be performed using it.
-    action = forms.CharField(
-        label=_('Action'),
-        max_length=100,
-        widget=forms.HiddenInput(),
-        initial='',
-    )
-
-
-class BaCa2ModelForm(BaCa2Form):
-    """
-    Base form for all forms in the BaCa2 system which are used to create, delete or modify
-    django model objects.
-    """
-
-    #: Model class which instances are affected by the form.
-    MODEL: model_cls = None
-    #: Action which should be performed using the form data.
-    ACTION: ModelAction = None
 
     class Status(Enum):
         """
-        Enum used to indicate the possible outcomes of a post request sent via a model form.
-        A JSON response returned by the handle_post_request method of a model will always contain
-        a status field with one of the values from this enum.
+        Enum used to indicate the possible outcomes of an AJAX post request sent by a form widget.
+        Its values are used to determine the event triggered by the submit handling script upon
+        receiving the response.
         """
         #: Indicates that the request was successful.
         SUCCESS = 'success'
         #: Indicates that the request was unsuccessful due to invalid form data.
         INVALID = 'invalid'
         #: Indicates that the request was unsuccessful due to the user not having the permission to
-        # perform the action specified by the form.
+        #: perform the action specified by the form.
         IMPERMISSIBLE = 'impermissible'
         #: Indicates that the request was unsuccessful due to an error not related to form
-        # validation or the user's permissions.
+        #: validation or the user's permissions.
         ERROR = 'error'
 
-    def __init__(self, **kwargs):
-        super().__init__(initial={'form_name': f'{self.ACTION.label}_form',
-                                  'action': self.ACTION.name}, **kwargs)
-
-    @classmethod
-    def handle_post_request(cls, request):
+    def __init__(self, status: Status, message: str = '', **kwargs: dict) -> None:
         """
-        Handles the POST request received by the view this form's data was posted to.
-
-        :param request: Request object.
-        :type request: HttpRequest
+        :param status: Status of the response.
+        :type status: :class:`BaCa2FormResponse.Status`
+        :param message: Message accompanying the response.
+        :type message: str
+        :param kwargs: Additional fields to be included in the response.
+        :type kwargs: dict
         """
-        if not cls.is_permissible(request):
-            return JsonResponse(
-                {'status': cls.Status.IMPERMISSIBLE.value} |
-                cls.handle_impermissible_request(request)
-            )
+        super().__init__({'status': status.value, 'message': message} | kwargs)
 
-        if cls(data=request.POST).is_valid():
-            return JsonResponse(
-                {'status': cls.Status.SUCCESS.value} |
-                cls.handle_valid_request(request)
-            )
 
-        return JsonResponse(
-            {'status': cls.Status.INVALID.value} |
-            cls.handle_invalid_request(request)
-        )
+class BaCa2ModelFormResponse(BaCa2FormResponse):
+    """
+    Base class for all JSON responses returned as a result of an AJAX post request sent by a model
+    form.
 
-    @classmethod
-    @abstractmethod
-    def handle_valid_request(cls, request) -> Dict[str, str]:
-        """
-        Handles the POST request received by the view this form's data was posted to if the request
-        is permissible and the form data is valid.
-        """
-        pass
+    See Also:
+        :class:`BaCa2ModelForm`
+        :class:`BaCa2FormResponse`
+    """
 
-    @classmethod
-    @abstractmethod
-    def handle_invalid_request(cls, request) -> Dict[str, str]:
+    def __init__(self,
+                 model: model_cls,
+                 action: ModelAction,
+                 status: BaCa2FormResponse.Status,
+                 message: str = '',
+                 **kwargs: dict) -> None:
         """
-        Handles the POST request received by the view this form's data was posted to if the request
-        is permissible but the form data is invalid.
+        :param status: Status of the response.
+        :type status: :class:`BaCa2FormResponse.Status`
+        :param message: Message accompanying the response. If no message is provided, a default
+            message will be generated based on the status of the response, the model and the action
+            performed.
+        :type message: str
+        :param kwargs: Additional fields to be included in the response.
+        :type kwargs: dict
         """
-        pass
+        if not message:
+            message = self.generate_response_message(status, model, action)
+        super().__init__(status, message, **kwargs)
 
-    @classmethod
-    @abstractmethod
-    def handle_impermissible_request(cls, request) -> Dict[str, str]:
+    @staticmethod
+    def generate_response_message(status, model, action) -> str:
         """
-        Handles the POST request received by the view this form's data was posted to if the request
-        is impermissible.
-        """
-        pass
+        Generates a response message based on the status of the response, the model and the action
+        performed.
 
-    @classmethod
-    def is_permissible(cls, request) -> bool:
+        :param status: Status of the response.
+        :type status: :class:`BaCa2FormResponse.Status`
+        :param model: Model class which instances the request pertains to.
+        :type model: Type[Model]
+        :param action: Action performed using the form data.
+        :type action: :class:`ModelAction`
+        :return: Response message.
+        :rtype: str
         """
-        Checks whether the user has the permission to perform the action specified by the form.
+        model_name = model._meta.verbose_name
 
-        :param request: Request object.
-        :type request: HttpRequest
+        if status == BaCa2FormResponse.Status.SUCCESS:
+            return f'successfully performed {action.label} on {model_name}'
 
-        :return: `True` if the user has the permission to perform the action specified by the form,
-            `False` otherwise.
-        :rtype: bool
-        """
-        return request.user.has_permission(cls.ACTION.label)
+        message = f'failed to perform {action.label} on {model_name}'
+
+        if status == BaCa2FormResponse.Status.INVALID:
+            message += ' due to invalid form data'
+        elif status == BaCa2FormResponse.Status.IMPERMISSIBLE:
+            message += ' due to insufficient permissions'
+        elif status == BaCa2FormResponse.Status.ERROR:
+            message += ' due to an error'
+
+        return message

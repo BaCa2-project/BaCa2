@@ -4,6 +4,7 @@ function initCommon() {
         sessionStorage.removeItem("loginFormAlert");
     }
     buttonsSetup();
+    tablesSetup();
     formsSetup();
 }
 
