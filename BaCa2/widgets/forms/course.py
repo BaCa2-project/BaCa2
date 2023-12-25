@@ -4,13 +4,13 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from main.models import Course
-from widgets.forms.base import (BaCa2Form,
-                                FormWidget,
+from widgets.forms.base import (FormWidget,
                                 FormElementGroup,
                                 BaCa2ModelForm,
                                 ModelFormPostTarget)
+from widgets.forms.fields import AlphanumericField
+from widgets.forms.fields.course import CourseShortName, USOSCode
 from widgets.popups.forms import SubmitConfirmationPopup
-from widgets.forms.fields.course import CourseShortName
 
 
 # ---------------------------------------- create course --------------------------------------- #
@@ -28,7 +28,7 @@ class CreateCourseForm(BaCa2ModelForm):
     ACTION = Course.BasicAction.ADD
 
     #: New course's name.
-    name = forms.CharField(
+    name = AlphanumericField(
         label=_('Course name'),
         min_length=5,
         max_length=Course._meta.get_field('name').max_length,
@@ -39,17 +39,15 @@ class CreateCourseForm(BaCa2ModelForm):
     short_name = CourseShortName()
 
     #: Subject code of the course in the USOS system.
-    USOS_course_code = forms.CharField(
+    USOS_course_code = USOSCode(
         label=_('USOS course code'),
-        min_length=1,
         max_length=Course._meta.get_field('USOS_course_code').max_length,
         required=False
     )
 
     #: Term code of the course in the USOS system.
-    USOS_term_code = forms.CharField(
+    USOS_term_code = USOSCode(
         label=_('USOS term code'),
-        min_length=1,
         max_length=Course._meta.get_field('USOS_term_code').max_length,
         required=False
     )

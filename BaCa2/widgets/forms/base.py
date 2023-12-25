@@ -679,10 +679,10 @@ class BaCa2ModelFormResponse(BaCa2FormResponse):
         message = f'failed to perform {action.label} on {model_name}'
 
         if status == BaCa2FormResponse.Status.INVALID:
-            message += ' due to invalid form data'
+            message += ' due to invalid form data. Please correct the following errors:'
         elif status == BaCa2FormResponse.Status.IMPERMISSIBLE:
-            message += ' due to insufficient permissions'
+            message += ' due to insufficient permissions.'
         elif status == BaCa2FormResponse.Status.ERROR:
-            message += ' due to an error'
+            message += ' due an error.'
 
         return message
