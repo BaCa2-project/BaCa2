@@ -47,13 +47,14 @@ def get_field_validation_status(field_cls: str,
                 return {'status': 'error',
                         'messages': [_('This field is required.')]}
 
-            if required and min_length and len(value) < min_length:
-                return {'status': 'error',
-                        'messages': [_(f'Minimum length is {min_length} characters.')]}
-
-            elif min_length and len(value) < min_length:
-                return {'status': 'error',
-                        'messages': [_(f'Minimum length is {min_length} characters.')]}
+            if min_length and len(value) < min_length:
+                if min_length == 1:
+                    return {'status': 'error',
+                            'messages': [_('This field cannot be empty.')]}
+                else:
+                    return {'status': 'error',
+                            'messages': [_('This field must contain at least '
+                                           f'{min_length} characters.')]}
 
             return {'status': 'ok'}
         except forms.ValidationError as e:
@@ -61,6 +62,31 @@ def get_field_validation_status(field_cls: str,
                     'messages': e.messages}
     else:
         return {'status': 'ok'}
+
+
+class AlphanumericField(forms.CharField):
+    """
+    Form field which accepts only strings consisting of alphanumeric characters.
+    """
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(
+            validators=[AlphanumericField.validate_syntax],
+            **kwargs
+        )
+
+    @staticmethod
+    def validate_syntax(value: str) -> None:
+        """
+        Checks if the value contains only alphanumeric characters.
+
+        :param value: Value to be validated.
+        :type value: str
+        :raises: ValidationError if the value contains characters other than alphanumeric
+            characters.
+        """
+        if any(not c.isalnum() for c in value):
+            raise forms.ValidationError(_('This field can only contain alphanumeric characters.'))
 
 
 class TableSelectField(forms.CharField):
