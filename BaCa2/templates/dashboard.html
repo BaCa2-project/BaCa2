@@ -1,4 +1,10 @@
 {% extends 'base.html' %}
 
 {% block content %}
+    <div class="row">
+            {% with widgets.TableWidget.course_table_widget as table_widget %}
+                {% include 'widget_templates/table.html' %}
+            {% endwith %}
+    </div>
+
 {% endblock %}

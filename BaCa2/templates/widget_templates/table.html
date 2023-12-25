@@ -1,62 +1,48 @@
 {% load custom_tags %}
 
-<div class="table-wrapper card">
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="{{ table_widget.table_class }}"
-                   id="{{ table_widget.table_id }}"
-                   style="width:100%">
-                <thead>
-                <tr>
-                    {% for col in table_widget.cols %}
-                        {% if col == 'select' %}
-                            <th>
-                                <div class="form-check">
-                                    <input class="form-check-input master-checkbox"
-                                           type="checkbox" data-state="off"
-                                           onclick="toggle_all(this, '{{ table_widget.table_id }}')">
-                                </div>
-                            </th>
-                        {% else %}
-                            <th>{{ table_widget.header|get_item:col }}</th>
-                        {% endif %}
-                    {% endfor %}
-                </tr>
-                </thead>
-            </table>
+<div class="table-wrapper">
+    <div class="table-widget-forms-wrapper">
+        {% if table_widget.allow_delete %}
+            <div class="table-widget-form delete-record-form"
+                 data-table-id="{{ table_widget.name }}">
+                {% with table_widget.delete_record_form_widget as form_widget %}
+                    {% include 'widget_templates/forms/default.html' %}
+                {% endwith %}
+            </div>
+        {% endif %}
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="{{ table_widget.widget_class }}"
+                       id="{{ table_widget.name }}"
+                       style="width:100%">
+                    <thead>
+                        <tr>
+                            {% for col in table_widget.cols %}
+                                <th class="{{ col.col_type }}">
+                                    {{ col.header }}
+                                </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                </table>
+            </div>
         </div>
-    </div>
-</div>
-
-<div class="table-icons-util">
-    <div class="icon-wrapper icon-m d-flex details-icon">
-        {% include 'icons/3-lines.svg' %}
-    </div>
-    <div class="icon-wrapper icon-m d-flex edit-icon">
-        {% include 'icons/pencil.svg' %}
-    </div>
-    <div class="icon-wrapper icon-m d-flex delete-icon">
-        {% include 'icons/trash.svg' %}
     </div>
 </div>
 
 
 <script type="text/javascript">
-    create_table({
-        tables_dict: tables,
-        table_id: '{{ table_widget.table_id }}',
-        model_name: '{{ table_widget.model_name }}',
-        access_mode: '{{ table_widget.access_mode }}',
+    initTable({
+        tableId: '{{ table_widget.name }}',
+        dataSourceUrl: '{{ table_widget.data_source_url }}',
         cols: {{ table_widget.cols|safe }},
-        default_order: '{{ table_widget.default_order }}',
-        default_order_col: parseInt({{ table_widget.default_order_col }}),
+        defaultOrder: '{{ table_widget.default_order }}',
+        defaultOrderCol: parseInt({{ table_widget.default_order_col }}),
         paging: {{ table_widget.paging|safe }},
-        page_length: parseInt({{ table_widget.page_length }}),
-        length_change: {{ table_widget.length_change|safe }},
-        length_menu: {{ table_widget.length_menu|safe }},
-        non_sortable_indexes: {{ table_widget.non_sortable_indexes|safe }},
-        record_methods: {{ table_widget.record_methods|safe }},
         refresh: {{ table_widget.refresh|safe }},
-        refresh_interval: parseInt({{ table_widget.refresh_interval }})
+        refreshInterval: parseInt({{ table_widget.refresh_interval }}),
     });
 </script>
+

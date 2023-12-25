@@ -1,3 +1,162 @@
+// ---------------------------------------- forms setup --------------------------------------- //
+
+function formsSetup() {
+    ajaxPostSetup();
+    toggleableGroupSetup();
+    toggleableFieldSetup();
+    confirmationPopupSetup();
+    responsePopupsSetup();
+    refreshButtonSetup();
+    liveValidationSetup();
+}
+
+function ajaxPostSetup() {
+    $('form').filter(function () {
+        return $(this).attr("action") !== undefined;
+    }).on('submit', function (e) {
+        e.preventDefault();
+        handleAjaxSubmit($(this));
+    });
+}
+
+function refreshButtonSetup() {
+    $('form').each(function () {
+        const form = $(this)
+        form.find('.form-refresh-button').on('click', function () {
+           formRefresh(form)
+        });
+    });
+}
+
+function liveValidationSetup() {
+    $('form').each(function () {
+        submitButtonRefresh($(this));
+    });
+}
+
+// --------------------------------------- toggle setup --------------------------------------- //
+
+function toggleableFieldSetup() {
+    const buttons = $('.field-toggle-btn');
+
+    buttons.each(function () {
+        toggleableFieldButtonInit($(this));
+    });
+
+    buttons.on('click', function(e) {
+        toggleFieldButtonClickHandler(e, $(this))
+    });
+}
+
+function toggleableFieldButtonInit(button) {
+    let on = button.data('initial-state') !== 'off';
+    if (button.hasClass('switch-on') && !on)
+        toggleTextSwitchBtn(button)
+    toggleField(button.closest('.input-group').find('input'), on);
+}
+
+function toggleableGroupSetup() {
+    const buttons = $('.group-toggle-btn');
+
+    buttons.each(function () {
+        toggleableGroupButtonInit($(this))
+    });
+
+    buttons.on('click', function(e) {
+        toggleGroupButtonClickHandler(e, $(this))
+    });
+}
+
+function toggleableGroupButtonInit(button) {
+    let on  = button.data('initial-state') !== 'off';
+    if (button.hasClass('switch-on') && !on)
+        toggleTextSwitchBtn(button)
+    toggleFieldGroup(button.closest('.form-element-group'), on)
+}
+
+// ---------------------------------------- popup setup --------------------------------------- //
+
+function confirmationPopupSetup() {
+    $('.submit-btn').filter(function () {
+        return $(this).data('bs-toggle') === 'modal';
+    }).filter(function () {
+        return $($(this).data('bs-target')).find('.input-summary').length > 0;
+    }).on('click', function (e) {
+        e.preventDefault();
+        renderConfirmationPopup($($(this).data('bs-target')));
+    });
+
+    $('.form-confirmation-popup .submit-btn').on('click', function () {
+        $(this).closest('.form-confirmation-popup').modal('hide');
+        $('#' + $(this).data('form-target')).submit();
+    });
+}
+
+function responsePopupsSetup() {
+    const forms = $('form').filter(function () {
+        return $(this).data('show-response-popups');
+    });
+
+    forms.on('submit-success', function (e, data) {
+        const popup = $(`#${$(this).data('submit-success-popup')}`);
+        renderResponsePopup(popup, data);
+        popup.modal('show');
+    });
+
+    forms.on('submit-failure', function (e, data) {
+        const popup = $(`#${$(this).data('submit-failure-popup')}`);
+        renderResponsePopup(popup, data);
+        popup.modal('show');
+    });
+}
+
+// ---------------------------------------- ajax submit --------------------------------------- //
+
+function handleAjaxSubmit(form) {
+    $.ajax({
+        type: 'POST',
+        url: form.attr('action'),
+        data: form.serialize(),
+        success: function (data) {
+            formRefresh(form);
+
+            form.trigger('submit-complete', [data])
+
+            if (data.status === 'success')
+                form.trigger('submit-success', [data]);
+            else {
+                form.trigger('submit-failure', [data]);
+
+                if (data.status === 'invalid')
+                    form.trigger('submit-invalid', [data])
+                else if (data.status === 'impermissible')
+                    form.trigger('submit-impermissible', [data])
+                else if (data.status === 'error')
+                    form.trigger('submit-error', [data])
+            }
+        }
+    });
+}
+
+// ----------------------------------- field & group toggle ----------------------------------- //
+
+function toggleFieldButtonClickHandler(e, btn) {
+    e.preventDefault();
+    toggleTextSwitchBtn(btn);
+    let on = false;
+    const input = btn.closest('.input-group').find('input')
+
+    if (btn.hasClass('switch-on'))
+        on = true;
+
+    toggleField(input, on);
+
+    if (on)
+        input.focus();
+
+    submitButtonRefresh(btn.closest('form'));
+}
+
 function toggleField(field, on) {
     if (on)
         $(field).attr('disabled', false);
@@ -12,36 +171,37 @@ function toggleField(field, on) {
     }
 }
 
+function toggleGroupButtonClickHandler(e, btn) {
+    e.preventDefault();
+    toggleTextSwitchBtn(btn);
+    let on = false;
+    const group = btn.closest('.form-element-group');
+
+    if (btn.hasClass('switch-on'))
+        on = true;
+
+    toggleFieldGroup(group, on)
+
+    if (on)
+        group.find('input:first').focus()
+
+    submitButtonRefresh(btn.closest('form'));
+}
+
 function toggleFieldGroup(formElementGroup, on) {
     formElementGroup.find('input').each(function () {
         toggleField($(this), on)
     });
 }
 
-function formsSetup() {
-    toggleableGroupSetup();
-    toggleableFieldSetup();
-    confirmationPopupSetup();
-    refreshButtonSetup()
-    liveValidationSetup();
-}
+// --------------------------------------- form refresh --------------------------------------- //
 
-function liveValidationSetup() {
-    $('form').each(function () {
-        submitButtonRefresh($(this));
-    });
-}
-
-function refreshButtonSetup() {
-    $('form').each(function () {
-        const form = $(this)
-        form.find('.form-refresh-button').on('click', function () {
-           form[0].reset();
-           clearValidation(form);
-           resetToggleables(form);
-           submitButtonRefresh(form);
-       });
-    });
+function formRefresh(form) {
+    form[0].reset();
+    clearValidation(form);
+    resetToggleables(form);
+    submitButtonRefresh(form);
+    resetHiddenFields(form);
 }
 
 function clearValidation(form) {
@@ -59,115 +219,15 @@ function resetToggleables(form) {
     });
 }
 
-function submitButtonRefresh(form) {
-    if (form.find('.live-validation').filter(function () {
-        return ($(this)).find('input:not(:disabled):not(.is-valid)').length > 0;
-    }).length > 0)
-        form.find('.submit-btn').attr('disabled', true);
-    else
-        enableSubmitButton(form.find('.submit-btn'));
-}
-
-function enableSubmitButton(submitButton) {
-    if (submitButton.is(':disabled')) {
-        submitButton.attr('disabled', false);
-        submitButton.addClass('submit-enabled');
-
-        setTimeout(function () {
-            submitButton.removeClass('submit-enabled');
-        }, 300);
-    }
-}
-
-function toggleableFieldButtonInit(button) {
-    let on = button.data('initial-state') !== 'off';
-    if (button.hasClass('switch-on') && !on)
-        toggleTextSwitchBtn(button)
-    toggleField(button.closest('.input-group').find('input'), on);
-}
-
-function toggleableFieldSetup() {
-    const buttons = $('.field-toggle-btn');
-
-    buttons.each(function () {
-        toggleableFieldButtonInit($(this));
+function resetHiddenFields(form) {
+    form.find('input[type="hidden"]').each(function () {
+        if ($(this).data('reset-on-refresh') === true)
+            $(this).val('');
     });
 
-    buttons.on('click', function(e) {
-        e.preventDefault();
-        toggleTextSwitchBtn($(this));
-        let on = false;
-        const input = $(this).closest('.input-group').find('input')
-
-        if ($(this).hasClass('switch-on'))
-            on = true;
-
-        toggleField(input, on);
-
-        if (on)
-            input.focus();
-
-        submitButtonRefresh($(this).closest('form'));
-    });
 }
 
-function toggleableGroupButtonInit(button) {
-    let on  = button.data('initial-state') !== 'off';
-    if (button.hasClass('switch-on') && !on)
-        toggleTextSwitchBtn(button)
-    toggleFieldGroup(button.closest('.form-element-group'), on)
-}
-
-function toggleableGroupSetup() {
-    const buttons = $('.group-toggle-btn');
-
-    buttons.each(function () {
-        toggleableGroupButtonInit($(this))
-    });
-
-    buttons.on('click', function(e) {
-        e.preventDefault();
-        toggleTextSwitchBtn($(this));
-        let on = false;
-        const group = $(this).closest('.form-element-group');
-
-        if ($(this).hasClass('switch-on'))
-            on = true;
-
-        toggleFieldGroup(group, on)
-
-        if (on)
-            group.find('input:first').focus()
-
-        submitButtonRefresh($(this).closest('form'));
-    });
-}
-
-function confirmationPopupSetup() {
-    $('.submit-btn').filter(function () {
-        return $(this).data('bs-toggle') === 'modal';
-    }).filter(function () {
-        return $($(this).data('bs-target')).find('.input-summary').length > 0;
-    }).on('click', function (e) {
-        e.preventDefault();
-        const popup = $($(this).data('bs-target'));
-
-        popup.find('.input-summary-label').text(function () {
-            return $('#' + $(this).data('input-target')).closest('.input-group')
-                .find('label').text() + ':';
-        });
-
-        popup.find('.input-summary-value').text(function () {
-            const value = $('#' + $(this).data('input-target')).val();
-            return value.length > 0 ? value : '-';
-        });
-    });
-
-    $('.form-confirmation-popup .submit-btn').on('click', function () {
-        $(this).closest('.form-confirmation-popup').modal('hide');
-        $('#' + $(this).data('form-target')).submit();
-    });
-}
+// -------------------------------------- live validation ------------------------------------- //
 
 function update_validation_status(field, fieldCls, required, minLength, url) {
     const value = $(field).val();
@@ -206,4 +266,72 @@ function update_validation_status(field, fieldCls, required, minLength, url) {
             }
         }
     });
+}
+
+function submitButtonRefresh(form) {
+    if (form.find('.live-validation').filter(function () {
+        return ($(this)).find('input:not(:disabled):not(.is-valid)').length > 0;
+    }).length > 0)
+        form.find('.submit-btn').attr('disabled', true);
+    else
+        enableSubmitButton(form.find('.submit-btn'));
+}
+
+function enableSubmitButton(submitButton) {
+    if (submitButton.is(':disabled')) {
+        submitButton.attr('disabled', false);
+        submitButton.addClass('submit-enabled');
+
+        setTimeout(function () {
+            submitButton.removeClass('submit-enabled');
+        }, 300);
+    }
+}
+
+// ------------------------------------------ popups ------------------------------------------ //
+
+function renderConfirmationPopup(popup) {
+    popup.find('.input-summary-label').text(function () {
+        return $('#' + $(this).data('input-target')).closest('.input-group')
+            .find('label').text() + ':';
+    });
+
+    popup.find('.input-summary-value').text(function () {
+        const value = $('#' + $(this).data('input-target')).val();
+        return value.length > 0 ? value : '-';
+    });
+}
+
+function renderResponsePopup(popup, data) {
+    const message = popup.find('.popup-message');
+    if (message.data('render-message') === true)
+        message.text(data.message);
+    if (data['status'] === 'invalid')
+        renderValidationErrors(popup, data['errors']);
+}
+
+function renderValidationErrors(popup, errors) {
+    const form = popup.closest('.form-wrapper').find('form')
+    const messageBlock = popup.find('.popup-message-wrapper');
+    const errorsBlock = $('<div class="popup-errors-wrapper"></div>');
+
+    Object.entries(errors).forEach(([key, value]) => {
+        const errorDiv = $('<div class="popup-error mt-2"></div>');
+        let fieldLabel = form.find(`label[for="${key}"]`).text();
+
+        if (fieldLabel.length === 0)
+            fieldLabel = key;
+
+        errorDiv.append(`<b>${fieldLabel}:</b>`);
+
+        const nestedList = $('<ul class="mb-0"></ul>');
+        value.forEach((nestedValue) => {
+            nestedList.append(`<li>${nestedValue}</li>`);
+        });
+
+        errorDiv.append(nestedList);
+        errorsBlock.append(errorDiv);
+    });
+
+    messageBlock.after(errorsBlock);
 }
