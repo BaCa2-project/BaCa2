@@ -96,11 +96,13 @@ class BaCa2ModelForm(BaCa2Form):
                     **cls.handle_error(request, e)
                 )
 
+        validation_errors = cls(data=request.POST).errors
+
         return BaCa2ModelFormResponse(
             model=cls.MODEL,
             action=cls.ACTION,
             status=BaCa2FormResponse.Status.INVALID,
-            **cls.handle_invalid_request(request)
+            **cls.handle_invalid_request(request, validation_errors) | {'errors': validation_errors}
         )
 
     @classmethod
@@ -109,15 +111,29 @@ class BaCa2ModelForm(BaCa2Form):
         """
         Handles the POST request received by the view this form's data was posted to if the request
         is permissible and the form data is valid.
+
+        :param request: Request object.
+        :type request: HttpRequest
+        :return: Dictionary containing a success message and any additional data to be included in
+            the response.
+        :rtype: Dict[str, str]
         """
         raise NotImplementedError('This method has to be implemented by inheriting classes.')
 
     @classmethod
     @abstractmethod
-    def handle_invalid_request(cls, request) -> Dict[str, str]:
+    def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
         """
         Handles the POST request received by the view this form's data was posted to if the request
         is permissible but the form data is invalid.
+
+        :param request: Request object.
+        :type request: HttpRequest
+        :param errors: Dictionary containing information about the errors found in the form data.
+        :type errors: dict
+        :return: Dictionary containing a failure message and any additional data to be included in
+            the response.
+        :rtype: Dict[str, str]
         """
         raise NotImplementedError('This method has to be implemented by inheriting classes.')
 
@@ -127,15 +143,29 @@ class BaCa2ModelForm(BaCa2Form):
         """
         Handles the POST request received by the view this form's data was posted to if the request
         is impermissible.
+
+        :param request: Request object.
+        :type request: HttpRequest
+        :return: Dictionary containing a failure message and any additional data to be included in
+            the response.
+        :rtype: Dict[str, str]
         """
         raise NotImplementedError('This method has to be implemented by inheriting classes.')
 
     @classmethod
     @abstractmethod
-    def handle_error(cls, request, error) -> Dict[str, str]:
+    def handle_error(cls, request, error: Exception) -> Dict[str, str]:
         """
         Handles the POST request received by the view this form's data was posted to if the request
         resulted in an error unrelated to form validation or the user's permissions.
+
+        :param request: Request object.
+        :type request: HttpRequest
+        :param error: Error which occurred while processing the request.
+        :type error: Exception
+        :return: Dictionary containing a failure message and any additional data to be included in
+            the response.
+        :rtype: Dict[str, str]
         """
         raise NotImplementedError('This method has to be implemented by inheriting classes.')
 

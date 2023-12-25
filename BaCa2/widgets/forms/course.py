@@ -28,8 +28,10 @@ class CreateCourseForm(BaCa2ModelForm):
         max_length=Course._meta.get_field('name').max_length,
         required=True
     )
+
     #: New course's short name.
     short_name = CourseShortName()
+
     #: Subject code of the course in the USOS system.
     USOS_course_code = forms.CharField(
         label=_('USOS course code'),
@@ -37,6 +39,7 @@ class CreateCourseForm(BaCa2ModelForm):
         max_length=Course._meta.get_field('USOS_course_code').max_length,
         required=False
     )
+
     #: Term code of the course in the USOS system.
     USOS_term_code = forms.CharField(
         label=_('USOS term code'),
@@ -47,24 +50,43 @@ class CreateCourseForm(BaCa2ModelForm):
 
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
-        try:
-            Course.objects.create_course(
-                name=request.POST.get('name'),
-                short_name=request.POST.get('short_name'),
-                usos_course_code=request.POST.get('USOS_course_code'),
-                usos_term_code=request.POST.get('USOS_term_code')
-            )
-        except Exception as e:
-            return {'message': str(e)}
+        """
+        Creates a new :class:`Course` object based on the data provided in the request.
 
-        return {'message': _('Course created successfully')}
+        :param request: POST request containing the course data.
+        :type request: HttpRequest
+        :return: Dictionary containing a success message.
+        :rtype: Dict[str, str]
+        """
+        Course.objects.create_course(
+            name=request.POST.get('name'),
+            short_name=request.POST.get('short_name'),
+            usos_course_code=request.POST.get('USOS_course_code'),
+            usos_term_code=request.POST.get('USOS_term_code')
+        )
+        return {'message': _('Course ') + request.POST.get('name') + _(' created successfully')}
 
     @classmethod
-    def handle_invalid_request(cls, request) -> Dict[str, str]:
-        return {}
+    def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
+        """
+        Returns response message for a request containing invalid data.
+
+        :param request: POST request containing the course data.
+        :type request: HttpRequest
+        :param errors: Dictionary containing information about the errors found in the form data.
+        :type errors: dict
+        :return: Dictionary containing an error message with a list of validation errors.
+        :rtype: Dict[str, str]
+        """
+        return {'message': _('Course creation failed due to invalid data. Please correct the '
+                             'following errors:')}
 
     @classmethod
     def handle_impermissible_request(cls, request) -> Dict[str, str]:
+        return {}
+
+    @classmethod
+    def handle_error(cls, request, error) -> Dict[str, str]:
         return {}
 
 
@@ -134,7 +156,7 @@ class DeleteCourseForm(BaCa2ModelForm):
         return {'message': str(error)}
 
     @classmethod
-    def handle_invalid_request(cls, request) -> Dict[str, str]:
+    def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
         return {}
 
     @classmethod

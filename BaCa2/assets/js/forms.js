@@ -306,4 +306,32 @@ function renderResponsePopup(popup, data) {
     const message = popup.find('.popup-message');
     if (message.data('render-message') === true)
         message.text(data.message);
+    if (data['status'] === 'invalid')
+        renderValidationErrors(popup, data['errors']);
+}
+
+function renderValidationErrors(popup, errors) {
+    const form = popup.closest('.form-wrapper').find('form')
+    const messageBlock = popup.find('.popup-message-wrapper');
+    const errorsBlock = $('<div class="popup-errors-wrapper"></div>');
+
+    Object.entries(errors).forEach(([key, value]) => {
+        const errorDiv = $('<div class="popup-error mt-2"></div>');
+        let fieldLabel = form.find(`label[for="${key}"]`).text();
+
+        if (fieldLabel.length === 0)
+            fieldLabel = key;
+
+        errorDiv.append(`<b>${fieldLabel}:</b>`);
+
+        const nestedList = $('<ul class="mb-0"></ul>');
+        value.forEach((nestedValue) => {
+            nestedList.append(`<li>${nestedValue}</li>`);
+        });
+
+        errorDiv.append(nestedList);
+        errorsBlock.append(errorDiv);
+    });
+
+    messageBlock.after(errorsBlock);
 }

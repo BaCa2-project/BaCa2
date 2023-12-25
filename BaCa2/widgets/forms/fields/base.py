@@ -11,7 +11,7 @@ def get_field_validation_status(field_cls: str,
                                 min_length: int | bool = False) -> Dict[str, str or List[str]]:
     """
     Runs validators for a given field class and value and returns a dictionary containing the status
-    of the validation and a list of error messages if the validation failed.
+    of the validation and a list of error messages if the validation has failed.
 
     :param field_cls: Field class to be used for validation.
     :type field_cls: str
@@ -21,7 +21,6 @@ def get_field_validation_status(field_cls: str,
     :type required: bool
     :param min_length: Minimum length of the value, set to `False` if not defined.
     :type min_length: int | bool
-
     :return: Dictionary containing the status of the validation and a list of error messages if the
         validation failed.
     :rtype: Dict[str, str or List[str]]
