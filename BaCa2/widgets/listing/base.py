@@ -22,6 +22,8 @@ class TableWidget(Widget):
     def __init__(self,
                  data_source: TableDataSource,
                  cols: List[Column],
+                 title: str = '',
+                 display_title: bool = True,
                  allow_select: bool = False,
                  allow_delete: bool = False,
                  name: str = '',
@@ -36,6 +38,11 @@ class TableWidget(Widget):
             name = data_source.generate_table_widget_name()
 
         super().__init__(name)
+
+        if not title:
+            title = data_source.generate_table_widget_title()
+        self.title = title
+        self.display_title = display_title
 
         if not default_order_col:
             default_order_col = next(col.name for col in cols if getattr(col, 'sortable'))
@@ -62,15 +69,26 @@ class TableWidget(Widget):
         self.allow_delete = allow_delete
         self.delete_record_form_widget = delete_record_form_widget
 
+        if allow_select and allow_delete:
+            self.delete_button = True
+        else:
+            self.delete_button = False
+
         if stripe_rows:
             self.add_class('stripe')
 
+        self.refresh_button = refresh_button
         self.data_source = data_source
         self.cols = cols
         self.paging = paging
         self.refresh = refresh
         self.refresh_interval = refresh_interval * 1000
         self.default_order = 'asc' if default_order_asc else 'desc'
+
+        if self.delete_button or self.refresh_button:
+            self.table_buttons = True
+        else:
+            self.table_buttons = False
 
         try:
             self.default_order_col = next(index for index, col in enumerate(cols)
@@ -80,15 +98,20 @@ class TableWidget(Widget):
 
     def get_context(self) -> Dict[str, Any]:
         return super().get_context() | {
+            'title': self.title,
+            'display_title': self.display_title,
             'data_source_url': self.data_source.get_url(),
             'cols': [col.get_context() for col in self.cols],
             'cols_num': len(self.cols),
+            'table_buttons': self.table_buttons,
             'paging': self.paging.get_context() if self.paging else json.dumps(False),
             'refresh': json.dumps(self.refresh),
             'refresh_interval': self.refresh_interval,
+            'refresh_button': json.dumps(self.refresh_button),
             'default_order_col': self.default_order_col,
             'default_order': self.default_order,
             'allow_delete': self.allow_delete,
+            'delete_button': self.delete_button,
             'delete_record_form_widget': self.delete_record_form_widget.get_context()
             if self.delete_record_form_widget else None
         }

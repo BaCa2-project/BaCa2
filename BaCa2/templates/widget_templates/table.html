@@ -13,6 +13,39 @@
     </div>
     <div class="card">
         <div class="card-body">
+            <div class="row">
+                {% if table_widget.display_title %}
+                    <div class="col-auto">
+                        <h4 class="ms-3">{{ table_widget.title }}</h4>
+                    </div>
+                {% endif %}
+                {% if table_widget.table_buttons %}
+                    <div class="col">
+                        <div class="table-buttons row d-flex justify-content-end">
+                            {% if table_widget.refresh_button %}
+                                <div class="table-btn-wrapper col-auto">
+                                    <button class="table-refresh-btn btn btn-outline-light_muted"
+                                            type="button"
+                                            data-refresh-target="{{ table_widget.name }}">
+                                        <small>
+                                            <i class="bi bi-arrow-clockwise"></i>
+                                        </small>
+                                    </button>
+                                </div>
+                            {% endif %}
+                            {% if table_widget.delete_button %}
+                                <div class="table-btn-wrapper col-auto">
+                                    <button class="btn btn-outline-danger" type="button">
+                                        <small>
+                                            <i class="bi bi-trash3"></i>
+                                        </small>
+                                    </button>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
             <div class="table-responsive">
                 <table class="{{ table_widget.widget_class }}"
                        id="{{ table_widget.name }}"

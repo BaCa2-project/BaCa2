@@ -16,6 +16,10 @@ class TableDataSource(ABC):
     def generate_table_widget_name(self) -> str:
         raise NotImplementedError('This method has to be implemented by inheriting classes.')
 
+    @abstractmethod
+    def generate_table_widget_title(self) -> str:
+        raise NotImplementedError('This method has to be implemented by inheriting classes.')
+
 
 class ModelDataSource(TableDataSource):
     def __init__(self, model: model_cls) -> None:
@@ -26,6 +30,10 @@ class ModelDataSource(TableDataSource):
 
     def generate_table_widget_name(self) -> str:
         return f'{self.model._meta.model_name}_table_widget'
+
+    def generate_table_widget_title(self) -> str:
+        model_plural = self.model._meta.verbose_name_plural
+        return model_plural[0].upper() + model_plural[1:]
 
 
 class CourseModelDataSource(ModelDataSource):
