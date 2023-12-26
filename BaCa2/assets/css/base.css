@@ -651,9 +651,14 @@ form .card-body {
 .table-wrapper .table-widget-forms-wrapper form {
   display: none;
 }
-
-.row-selected td {
+.table-wrapper .table-buttons {
+  --bs-gutter-x: 0.5rem;
+}
+.table-wrapper .row-selected td {
   background-color: rgba(255, 255, 255, 0.03);
+}
+.table-wrapper td.delete i {
+  color: #FE2E63;
 }
 
 [data-bs-theme=light] .table-wrapper .record-method-link .icon-wrapper svg {

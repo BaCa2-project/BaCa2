@@ -293,4 +293,9 @@ function tablesSetup() {
             window.tableWidgets[`#${tableId}`].table.ajax.reload();
         });
     });
+
+    $('.table-refresh-btn').on('click', function () {
+        const tableId = $(this).data('refresh-target');
+        window.tableWidgets[`#${tableId}`].table.ajax.reload();
+    });
 }
