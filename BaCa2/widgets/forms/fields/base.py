@@ -1,9 +1,12 @@
 from typing import Any, Dict, List
+from abc import ABC
 
 from django.utils.translation import gettext_lazy as _
 
 from widgets.forms.fields.course import *
 
+
+# -------------------------------------- field validation -------------------------------------- #
 
 def get_field_validation_status(field_cls: str,
                                 value: Any,
@@ -64,19 +67,62 @@ def get_field_validation_status(field_cls: str,
         return {'status': 'ok'}
 
 
-class AlphanumericField(forms.CharField):
+# ----------------------------------- restricted char fields ----------------------------------- #
+
+class RestrictedCharField(forms.CharField, ABC):
     """
-    Form field which accepts only strings consisting of alphanumeric characters.
+    Base class for form fields which accept only strings consisting of a restricted set of
+    characters.
     """
 
+    #: List of characters accepted by the field.
+    ACCEPTED_CHARS = []
+
     def __init__(self, **kwargs) -> None:
+        if 'validators' in kwargs:
+            kwargs['validators'].append(self.validate_syntax)
+        else:
+            kwargs['validators'] = [self.validate_syntax]
+
         super().__init__(
-            validators=[AlphanumericField.validate_syntax],
             **kwargs
         )
 
-    @staticmethod
-    def validate_syntax(value: str) -> None:
+    @classmethod
+    def validate_syntax(cls, value: str) -> None:
+        """
+        Checks if the value contains only characters accepted by the field.
+
+        :param value: Value to be validated.
+        :type value: str
+        :raises: ValidationError if the value contains characters other than those accepted by the
+            field.
+        """
+        if any(c not in cls.ACCEPTED_CHARS for c in value):
+            raise forms.ValidationError(cls.syntax_validation_error_message())
+
+    @classmethod
+    def syntax_validation_error_message(cls) -> str:
+        """
+        Returns a validation error message for the field.
+
+        :return: Error message for the field.
+        :rtype: str
+        """
+        return (_('This field can only contain the following characters: ')
+                + f'{", ".join(cls.ACCEPTED_CHARS)}.')
+
+
+class AlphanumericField(RestrictedCharField):
+    """
+    Form field which accepts only strings consisting of alphanumeric characters.
+
+    See also:
+        - :class:`RestrictedCharField`
+    """
+
+    @classmethod
+    def validate_syntax(cls, value: str) -> None:
         """
         Checks if the value contains only alphanumeric characters.
 
@@ -85,9 +131,73 @@ class AlphanumericField(forms.CharField):
         :raises: ValidationError if the value contains characters other than alphanumeric
             characters.
         """
-        if any(not c.isalnum() for c in value):
-            raise forms.ValidationError(_('This field can only contain alphanumeric characters.'))
+        if any(not (c.isalnum() or c in cls.ACCEPTED_CHARS) for c in value):
+            raise forms.ValidationError(cls.syntax_validation_error_message())
 
+    @classmethod
+    def syntax_validation_error_message(cls) -> str:
+        """
+        Returns a validation error message for the field.
+
+        :return: Error message for the field.
+        :rtype: str
+        """
+        return _('This field can only contain alphanumeric characters.')
+
+
+class AlphanumericStringField(AlphanumericField):
+    """
+    Form field which accepts only strings consisting of alphanumeric characters and spaces.
+
+    See also:
+        - :class:`AlphanumericField`
+    """
+
+    ACCEPTED_CHARS = [' ']
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(
+            **kwargs,
+            validators=[AlphanumericStringField.validate_trailing_spaces,
+                        AlphanumericStringField.validate_double_spaces]
+        )
+
+    @staticmethod
+    def validate_trailing_spaces(value: str) -> None:
+        """
+        Checks if the value does not contain trailing spaces.
+
+        :param value: Value to be validated.
+        :type value: str
+        :raises: ValidationError if the value contains trailing spaces.
+        """
+        if value and (value[0] == ' ' or value[-1] == ' '):
+            raise forms.ValidationError(_('This field cannot contain trailing whitespaces.'))
+
+    @staticmethod
+    def validate_double_spaces(value: str) -> None:
+        """
+        Checks if the value does not contain double spaces.
+
+        :param value: Value to be validated.
+        :type value: str
+        :raises: ValidationError if the value contains double spaces.
+        """
+        if '  ' in value:
+            raise forms.ValidationError(_('This field cannot contain double spaces.'))
+
+    @classmethod
+    def syntax_validation_error_message(cls) -> str:
+        """
+        Returns a validation error message for the field.
+
+        :return: Error message for the field.
+        :rtype: str
+        """
+        return _('This field can only contain alphanumeric characters and spaces.')
+
+
+# ------------------------------------- table select field ------------------------------------- #
 
 class TableSelectField(forms.CharField):
     """
