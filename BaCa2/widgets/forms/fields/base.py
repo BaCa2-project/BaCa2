@@ -1,9 +1,16 @@
-from typing import Any, Dict, List
+from __future__ import annotations
+
+from typing import Any, Dict, List, TYPE_CHECKING
 from abc import ABC
 
 from django.utils.translation import gettext_lazy as _
 
 from widgets.forms.fields.course import *
+
+if TYPE_CHECKING:
+    from widgets.listing.base import TableWidget
+    from widgets.listing.columns import Column
+    from widgets.listing.data_sources import TableDataSource
 
 
 # -------------------------------------- field validation -------------------------------------- #
@@ -201,15 +208,16 @@ class AlphanumericStringField(AlphanumericField):
 
 class TableSelectField(forms.CharField):
     """
-    Form field used to store the IDs of the selected rows in a table widget. The field is hidden
-    and in its place the stored table widget is rendered. The field is updated live when records
-    are selected or deselected in the table widget.
+    Form field used to store IDs of records selected in a table widget. The field is hidden and in
+    its place the stored table widget is rendered. The field is updated live when records are
+    selected or deselected in the table widget.
+
+    See also:
+        - :class:`TableWidget`
+        - :class:`widgets.forms.base.TableWidget`
     """
 
-    class TableSelectFieldException(Exception):
-        """
-        Exception raised when an error occurs in the TableSelectField class.
-        """
+    def __init__(self, data_source: TableDataSource, cols: List[Column]) -> None:
         pass
 
     # TODO: Implement TableSelectField with new TableWidget

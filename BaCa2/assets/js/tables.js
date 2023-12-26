@@ -119,6 +119,7 @@ function initTable(
         cols,
         defaultOrder,
         defaultOrderCol,
+        searching,
         paging,
         refresh,
         refreshInterval,
@@ -129,7 +130,7 @@ function initTable(
 
     tableParams['ajax'] = dataSourceUrl;
     tableParams['order'] = [[defaultOrderCol, defaultOrder]];
-    tableParams['searching'] = false;
+    tableParams['searching'] = searching;
 
     const columns = [];
     cols.forEach(col => {columns.push({'data': col['name']})});
@@ -189,6 +190,7 @@ function createColumnDef (col, index) {
     const def = {
         'targets': [index],
         'orderable': JSON.parse(col['sortable']),
+        'searchable': JSON.parse(col['searchable']),
         'className': col['col_type']
     };
 
@@ -297,5 +299,20 @@ function tablesSetup() {
     $('.table-refresh-btn').on('click', function () {
         const tableId = $(this).data('refresh-target');
         window.tableWidgets[`#${tableId}`].table.ajax.reload();
+    });
+
+    $('.table-wrapper').each(function () {
+        const search = $(this).find('.dataTables_filter');
+
+        if (search.length === 0)
+            return;
+
+        const searchInput = search.find('input');
+        const searchWrapper = $(this).find('.table-util-header .table-search');
+        const tableId = $(this).find('table').attr('id');
+        searchInput.addClass('form-control').attr('placeholder', 'Search').attr('type', 'text');
+        searchInput.attr('id', `${tableId}_search`);
+        searchWrapper.append(searchInput);
+        search.remove();
     });
 }
