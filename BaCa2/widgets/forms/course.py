@@ -8,7 +8,7 @@ from widgets.forms.base import (FormWidget,
                                 FormElementGroup,
                                 BaCa2ModelForm,
                                 ModelFormPostTarget)
-from widgets.forms.fields import AlphanumericField
+from widgets.forms.fields import AlphanumericStringField
 from widgets.forms.fields.course import CourseShortName, USOSCode
 from widgets.popups.forms import SubmitConfirmationPopup
 
@@ -28,7 +28,7 @@ class CreateCourseForm(BaCa2ModelForm):
     ACTION = Course.BasicAction.ADD
 
     #: New course's name.
-    name = AlphanumericField(
+    name = AlphanumericStringField(
         label=_('Course name'),
         min_length=5,
         max_length=Course._meta.get_field('name').max_length,
