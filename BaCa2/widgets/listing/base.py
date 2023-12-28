@@ -24,6 +24,7 @@ class TableWidget(Widget):
                  cols: List[Column],
                  title: str = '',
                  display_title: bool = True,
+                 allow_global_search: bool = True,
                  allow_select: bool = False,
                  allow_delete: bool = False,
                  name: str = '',
@@ -77,6 +78,7 @@ class TableWidget(Widget):
         if stripe_rows:
             self.add_class('stripe')
 
+        self.allow_global_search = allow_global_search
         self.refresh_button = refresh_button
         self.data_source = data_source
         self.cols = cols
@@ -100,6 +102,7 @@ class TableWidget(Widget):
         return super().get_context() | {
             'title': self.title,
             'display_title': self.display_title,
+            'allow_global_search': json.dumps(self.allow_global_search),
             'data_source_url': self.data_source.get_url(),
             'cols': [col.get_context() for col in self.cols],
             'cols_num': len(self.cols),
