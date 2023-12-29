@@ -95,14 +95,14 @@ class TableWidget {
                 allSelected = false;
         });
 
-        if (allSelected) {
-            headerCheckbox.prop('checked', true);
-            headerCheckbox.prop('indeterminate', false);
-            headerCheckbox.data('state', 'on');
-        } else if (noneSelected) {
+        if (noneSelected) {
             headerCheckbox.prop('checked', false);
             headerCheckbox.prop('indeterminate', false);
             headerCheckbox.data('state', 'off');
+        } else if (allSelected) {
+            headerCheckbox.prop('checked', true);
+            headerCheckbox.prop('indeterminate', false);
+            headerCheckbox.data('state', 'on');
         } else {
             headerCheckbox.prop('checked', false);
             headerCheckbox.prop('indeterminate', true);
@@ -110,7 +110,7 @@ class TableWidget {
         }
     }
 
-    // ---------------------------------- row getter methods ---------------------------------- //
+    // ------------------------------------ getter methods ------------------------------------ //
 
     getRowsInOrder() {
         return this.table
@@ -132,6 +132,10 @@ class TableWidget {
 
     getRowIndex(row) {
         return this.table.row(row).index();
+    }
+
+    getColumnIndex(colHeader) {
+        return this.table.column(colHeader).index();
     }
 
     // ----------------------------------- row check methods ---------------------------------- //
@@ -163,6 +167,7 @@ function tablesSetup() {
 
     $('.table-wrapper').each(function () {
         globalSearchSetup($(this));
+        columnSearchSetup($(this));
     });
 }
 
@@ -191,6 +196,30 @@ function globalSearchSetup(tableWrapper) {
 }
 
 function globalSearchInputHandler(inputField, table, tableWidget) {
+    tableWidget.toggleSelectRows(tableWidget.getFilteredOutRows(), false);
+
+    if (inputField.val() === '')
+        table.removeClass('filtered');
+    else
+        table.addClass('filtered');
+
+    tableWidget.updateSelectHeader();
+}
+
+function columnSearchSetup(tableWrapper) {
+    const table = tableWrapper.find('table')
+    const tableWidget = window.tableWidgets[`#${table.attr('id')}`]
+
+    tableWrapper.find('.column-search').on('click', function (e) {
+        e.stopPropagation();
+    }).on('input', function () {
+        columnSearchInputHandler($(this), table, tableWidget)
+    });
+}
+
+function columnSearchInputHandler(inputField, table, tableWidget) {
+    tableWidget.table.column(inputField.closest('th')).search(inputField.val()).draw();
+
     tableWidget.toggleSelectRows(tableWidget.getFilteredOutRows(), false);
 
     if (inputField.val() === '')

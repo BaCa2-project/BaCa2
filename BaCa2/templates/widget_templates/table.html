@@ -14,9 +14,10 @@
     </div>
 
     <div class="card">
-        <div class="card-body">
 
-            <div class="table-util-header row">
+        {% if table_widget.display_util_header %}
+        <div class="table-util-header card-body">
+            <div class="row">
                 {% if table_widget.display_title %}
                     <div class="col-auto">
                         <h4 class="table-title ms-3">{{ table_widget.title }}</h4>
@@ -60,39 +61,55 @@
                     </div>
                 </div>
             </div>
+        </div>
 
+        <hr class="m-0">
+        {% endif %}
+
+        <div class="card-body">
             <div class="table-responsive">
                 <table class="{{ table_widget.widget_class }}"
                        id="{{ table_widget.name }}"
                        style="width:100%">
                     <thead>
-                    <tr>
-                        {% for col in table_widget.cols %}
-                            <th class="{{ col.col_type }}">
-                                {{ col.header }}
-                            </th>
-                        {% endfor %}
-                    </tr>
+                        <tr>
+                            {% for col in table_widget.cols %}
+                                <th class="{{ col.col_type }}
+                                               {% if col.sortable == "true" %}
+                                               pe-5
+                                               {% endif %}"
+                                    data-searchable="{{ col.searchable }}"
+                                    data-sortable="{{ col.sortable }}">
+                                    {% if col.searchable == "true" and table_widget.allow_column_search %}
+                                        <input type="text"
+                                               class="column-search form-control"
+                                               placeholder="{{ col.header }}">
+                                    {% else %}
+                                        {{ col.header }}
+                                    {% endif %}
+                                </th>
+                            {% endfor %}
+                        </tr>
                     </thead>
                 </table>
             </div>
-
         </div>
+
     </div>
 </div>
 
 
 <script type="text/javascript">
     initTable({
-        tableId: '{{ table_widget.name }}',
-        dataSourceUrl: '{{ table_widget.data_source_url }}',
-        cols: {{ table_widget.cols|safe }},
-        defaultOrder: '{{ table_widget.default_order }}',
-        defaultOrderCol: parseInt({{ table_widget.default_order_col }}),
-        searching: {{ table_widget.allow_global_search|safe }},
-        paging: {{ table_widget.paging|safe }},
-        refresh: {{ table_widget.refresh|safe }},
-        refreshInterval: parseInt({{ table_widget.refresh_interval }}),
-    });
+                  tableId: '{{ table_widget.name }}',
+                  dataSourceUrl: '{{ table_widget.data_source_url }}',
+                  cols: {{ table_widget.cols|safe }},
+                  defaultOrder: '{{ table_widget.default_order }}',
+                  defaultOrderCol: parseInt({{ table_widget.default_order_col }}),
+                  searching: {{ table_widget.allow_global_search|safe }},
+                  paging: {{ table_widget.paging|safe }},
+                  refresh: {{ table_widget.refresh|safe }},
+                  refreshInterval: parseInt({{ table_widget.refresh_interval }}),
+              });
 </script>
 
