@@ -25,6 +25,7 @@ class TableWidget(Widget):
                  title: str = '',
                  display_title: bool = True,
                  allow_global_search: bool = True,
+                 allow_column_search: bool = True,
                  allow_select: bool = False,
                  allow_delete: bool = False,
                  name: str = '',
@@ -79,6 +80,7 @@ class TableWidget(Widget):
             self.add_class('stripe')
 
         self.allow_global_search = allow_global_search
+        self.allow_column_search = allow_column_search
         self.refresh_button = refresh_button
         self.data_source = data_source
         self.cols = cols
@@ -101,8 +103,10 @@ class TableWidget(Widget):
     def get_context(self) -> Dict[str, Any]:
         return super().get_context() | {
             'title': self.title,
+            'display_util_header': self.display_util_header(),
             'display_title': self.display_title,
             'allow_global_search': json.dumps(self.allow_global_search),
+            'allow_column_search': self.allow_column_search,
             'data_source_url': self.data_source.get_url(),
             'cols': [col.get_context() for col in self.cols],
             'cols_num': len(self.cols),
@@ -118,6 +122,9 @@ class TableWidget(Widget):
             'delete_record_form_widget': self.delete_record_form_widget.get_context()
             if self.delete_record_form_widget else None
         }
+
+    def display_util_header(self) -> bool:
+        return self.display_title or self.table_buttons or self.allow_global_search
 
 
 class TableWidgetPaging:

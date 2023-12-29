@@ -639,60 +639,40 @@ form .card-body {
   background-color: #3e4042;
 }
 
-.table-icons-util {
-  display: none;
-}
-
-.table-wrapper .record-method-link {
-  display: flex;
-  width: fit-content;
-  height: fit-content;
-}
 .table-wrapper .table-widget-forms-wrapper form {
   display: none;
 }
 .table-wrapper .table-buttons {
   --bs-gutter-x: 0.5rem;
 }
-.table-wrapper .row-selected td {
-  background-color: rgba(255, 255, 255, 0.03);
+.table-wrapper .card {
+  overflow: hidden;
 }
-.table-wrapper td.delete i {
+
+[data-bs-theme=light] .table-wrapper .table-util-header {
+  background-color: #f8f9fa;
+}
+[data-bs-theme=light] .table-wrapper td.delete i {
+  color: gray;
+}
+[data-bs-theme=light] .table-wrapper td.delete:hover i {
   color: #FE2E63;
 }
-
-[data-bs-theme=light] .table-wrapper .record-method-link .icon-wrapper svg {
-  transition: stroke ease 0.5s;
-  stroke: gray;
-}
-[data-bs-theme=light] .table-wrapper .record-method-link .icon-wrapper.details-icon:hover svg {
-  stroke: #212529;
-}
-[data-bs-theme=light] .table-wrapper .record-method-link .icon-wrapper.edit-icon:hover svg {
-  stroke: #212529;
-}
-[data-bs-theme=light] .table-wrapper .record-method-link .icon-wrapper.delete-icon:hover svg {
-  stroke: #FE2E63;
-}
-[data-bs-theme=light] .table-wrapper .form-check {
-  width: fit-content;
+[data-bs-theme=light] .table-wrapper .row-selected td {
+  background-color: rgba(255, 255, 255, 0.03);
 }
 
-[data-bs-theme=dark] .table-wrapper .record-method-link .icon-wrapper svg {
-  transition: stroke ease 0.5s;
-  stroke: gray;
+[data-bs-theme=dark] .table-wrapper .table-util-header {
+  background-color: rgba(0, 0, 0, 0.3);
 }
-[data-bs-theme=dark] .table-wrapper .record-method-link .icon-wrapper.details-icon:hover svg {
-  stroke: #fff;
+[data-bs-theme=dark] .table-wrapper td.delete i {
+  color: gray;
 }
-[data-bs-theme=dark] .table-wrapper .record-method-link .icon-wrapper.edit-icon:hover svg {
-  stroke: #fff;
+[data-bs-theme=dark] .table-wrapper td.delete:hover i {
+  color: #FE2E63;
 }
-[data-bs-theme=dark] .table-wrapper .record-method-link .icon-wrapper.delete-icon:hover svg {
-  stroke: #FE2E63;
-}
-[data-bs-theme=dark] .table-wrapper .form-check {
-  width: fit-content;
+[data-bs-theme=dark] .table-wrapper .row-selected td {
+  background-color: rgba(255, 255, 255, 0.03);
 }
 
 .btn-outline-secondary:hover {
@@ -707,6 +687,11 @@ form .card-body {
 
 .btn-outline-danger:hover {
   background-color: rgba(254, 46, 99, 0.3);
+  color: white;
+}
+
+.btn-outline-light_muted:hover {
+  background-color: rgba(160, 160, 160, 0.3);
   color: white;
 }
 
