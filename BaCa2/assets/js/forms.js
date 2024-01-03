@@ -229,15 +229,15 @@ function resetHiddenFields(form) {
 
 // -------------------------------------- live validation ------------------------------------- //
 
-function update_validation_status(field, fieldCls, required, minLength, url) {
+function update_validation_status(field, formCls, minLength, url) {
     const value = $(field).val();
     $.ajax({
         url: url,
         data: {
-            'field_cls': fieldCls,
+            'formCls': formCls,
+            'fieldName': $(field).attr('name'),
             'value': value,
-            'required': required,
-            'min_length': minLength,
+            'minLength': minLength,
         },
         dataType: 'json',
         success: function (data) {

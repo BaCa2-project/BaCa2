@@ -1,77 +1,14 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, TYPE_CHECKING
+from typing import List, TYPE_CHECKING
 from abc import ABC
 
 from django.utils.translation import gettext_lazy as _
-
-from widgets.forms.fields.course import *
+from django import forms
 
 if TYPE_CHECKING:
-    from widgets.listing.base import TableWidget
     from widgets.listing.columns import Column
     from widgets.listing.data_sources import TableDataSource
-
-
-# -------------------------------------- field validation -------------------------------------- #
-
-def get_field_validation_status(field_cls: str,
-                                value: Any,
-                                required: bool = False,
-                                min_length: int | bool = False) -> Dict[str, str or List[str]]:
-    """
-    Runs validators for a given field class and value and returns a dictionary containing the status
-    of the validation and a list of error messages if the validation has failed.
-
-    :param field_cls: Field class to be used for validation.
-    :type field_cls: str
-    :param value: Value to be validated.
-    :type value: Any
-    :param required: Whether the field is required.
-    :type required: bool
-    :param min_length: Minimum length of the value, set to `False` if not defined.
-    :type min_length: int | bool
-    :return: Dictionary containing the status of the validation and a list of error messages if the
-        validation failed.
-    :rtype: Dict[str, str or List[str]]
-    """
-    if value is None:
-        value = ''
-    if required is None:
-        required = False
-    if min_length is None:
-        min_length = False
-
-    try:
-        field = eval(field_cls)()
-    except NameError:
-        field = (eval(f'forms.{field_cls}'))()
-
-    min_length = int(min_length) if min_length else False
-
-    if hasattr(field, 'run_validators') and callable(field.run_validators):
-        try:
-            field.run_validators(value)
-
-            if required and not value:
-                return {'status': 'error',
-                        'messages': [_('This field is required.')]}
-
-            if min_length and len(value) < min_length:
-                if min_length == 1:
-                    return {'status': 'error',
-                            'messages': [_('This field cannot be empty.')]}
-                else:
-                    return {'status': 'error',
-                            'messages': [_('This field must contain at least '
-                                           f'{min_length} characters.')]}
-
-            return {'status': 'ok'}
-        except forms.ValidationError as e:
-            return {'status': 'error',
-                    'messages': e.messages}
-    else:
-        return {'status': 'ok'}
 
 
 # ----------------------------------- restricted char fields ----------------------------------- #
@@ -90,6 +27,9 @@ class RestrictedCharField(forms.CharField, ABC):
             kwargs['validators'].append(self.validate_syntax)
         else:
             kwargs['validators'] = [self.validate_syntax]
+
+        if not kwargs.get('strip', False):
+            kwargs['strip'] = False
 
         super().__init__(
             **kwargs

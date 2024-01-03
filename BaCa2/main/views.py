@@ -15,7 +15,7 @@ from widgets.base import Widget
 from widgets.listing import (TableWidget, TableWidgetPaging, ModelDataSource)
 from widgets.listing.columns import TextColumn
 from widgets.forms import FormWidget
-from widgets.forms.fields import get_field_validation_status
+from widgets.forms.fields.validation import get_field_validation_status
 from widgets.navigation import (NavBar, SideNav)
 from widgets.forms.course import (CreateCourseForm, CreateCourseFormWidget, DeleteCourseForm)
 from BaCa2.choices import BasicPermissionType
@@ -450,17 +450,17 @@ class FieldValidationView(LoginRequiredMixin, View):
 
     @staticmethod
     def get(request, *args, **kwargs):
-        field_cls_name = request.GET.get('field_cls', None)
+        form_cls_name = request.GET.get('formCls', None)
 
-        if not field_cls_name:
+        if not form_cls_name:
             raise FieldValidationView.FieldClassException('No field class name provided.')
 
         return JsonResponse(
             get_field_validation_status(
-                field_cls=field_cls_name,
+                form_cls=form_cls_name,
+                field_name=normalize_string_to_python(request.GET.get('fieldName')),
                 value=normalize_string_to_python(request.GET.get('value')),
-                required=normalize_string_to_python(request.GET.get('required')),
-                min_length=normalize_string_to_python(request.GET.get('min_length'))
+                min_length=normalize_string_to_python(request.GET.get('minLength'))
             )
         )
 
