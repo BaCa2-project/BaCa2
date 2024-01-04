@@ -6,6 +6,12 @@ from abc import ABC
 from django.utils.translation import gettext_lazy as _
 from django import forms
 
+import widgets.forms
+from util.models import model_cls
+from util.models_registry import ModelsRegistry
+from main.models import Course
+from course.routing import InCourse
+
 if TYPE_CHECKING:
     from widgets.listing.columns import Column
     from widgets.listing.data_sources import TableDataSource
@@ -142,6 +148,211 @@ class AlphanumericStringField(AlphanumericField):
         :rtype: str
         """
         return _('This field can only contain alphanumeric characters and spaces.')
+
+
+# ---------------------------------------- array fields ---------------------------------------- #
+
+class CharArrayField(forms.CharField):
+    """
+    Form field used to store a comma-separated list of strings. If provided with a queryset, the
+    field will validate that all strings in the list are present in it. It can also receive a list
+    of item validators which will be used to validate each string in the list.
+
+    See also:
+        - :class:`IntegerArrayField`
+    """
+    def __init__(self,
+                 queryset: List[str] = None,
+                 item_validators: List[callable] = None,
+                 **kwargs) -> None:
+        """
+        :param queryset: List of strings which are accepted by the field. If not provided, all
+            strings are accepted.
+        :type queryset: List[str]
+        :param item_validators: List of validators which will be used to validate each string in
+            the list.
+        :type item_validators: List[callable]
+        :param kwargs: Additional keyword arguments for the field.
+        :type kwargs: dict
+        """
+        super().__init__(**kwargs)
+        self.queryset = queryset
+        self.item_validators = item_validators or []
+
+    def to_python(self, value: str) -> List[str]:
+        """
+        Converts the value to a list of strings.
+
+        :param value: Value to be converted.
+        :type value: str
+        :return: List of strings.
+        :rtype: List[str]
+        :raises: ValidationError if the method encounters a value, type or attribute error while
+            converting the value.
+        """
+        value = super().to_python(value)
+        if not value:
+            return []
+        try:
+            return value.split(',')
+        except (ValueError, TypeError, AttributeError):
+            raise forms.ValidationError(_('This field must be a comma-separated list of strings.'))
+
+    def validate(self, value: List[str]) -> None:
+        """
+        Validates the value by running all item validators on each string in the list and checking
+        if all strings are present in the queryset.
+
+        :param value: Value to be validated.
+        :type value: List[str]
+        :raises: ValidationError if the value does not pass validation.
+        """
+        super().validate(value)
+
+        for validator in self.item_validators:
+            for elem in value:
+                validator(elem)
+
+        if self.queryset and any(elem not in self.queryset for elem in value):
+            raise forms.ValidationError(self.queryset_validation_error_message())
+
+    def queryset_validation_error_message(self) -> str:
+        """
+        Returns a validation error message for the field when the value does not pass queryset
+        validation.
+
+        :return: Error message for the field.
+        :rtype: str
+        """
+        return _('This field must be a comma-separated list of strings from the following list: '
+                 f'{", ".join(self.queryset)}.')
+
+
+class IntegerArrayField(CharArrayField):
+    """
+    Form field used to store a comma-separated list of integers. If provided with a queryset, the
+    field will validate that all integers in the list are present in it. It can also receive a list
+    of item validators which will be used to validate each integer in the list.
+
+    See also:
+        - :class:`CharArrayField`
+        - :class:`ModelArrayField`
+    """
+    def __init__(self,
+                 queryset: List[int] = None,
+                 item_validators: List[callable] = None,
+                 **kwargs) -> None:
+        """
+        :param queryset: List of integers which are accepted by the field. If not provided, all
+            integers are accepted.
+        :type queryset: List[int]
+        :param item_validators: List of validators which will be used to validate each integer in
+            the list.
+        :type item_validators: List[callable]
+        :param kwargs: Additional keyword arguments for the field.
+        :type kwargs: dict
+        """
+        super().__init__(queryset, item_validators, **kwargs)
+
+    def to_python(self, value: str) -> List[int]:
+        """
+        Converts the value to a list of integers.
+
+        :param value: Value to be converted.
+        :type value: str
+        :return: List of integers.
+        :rtype: List[int]
+        :raises: ValidationError if the method encounters a value, type or overflow error while
+            converting the value.
+        """
+        try:
+            return [int(elem) for elem in super().to_python(value)]
+        except (ValueError, TypeError, OverflowError):
+            raise forms.ValidationError(_('This field must be a comma-separated list of integers.'))
+
+    def queryset_validation_error_message(self) -> str:
+        """
+        Returns a validation error message for the field when the value does not pass queryset
+        validation.
+
+        :return: Error message for the field.
+        :rtype: str
+        """
+        return _('This field must be a comma-separated list of integers from the following list: '
+                 f'{", ".join([str(elem) for elem in self.queryset])}.')
+
+
+class ModelArrayField(IntegerArrayField):
+    """
+    Form field used to store a comma-separated list of model instance IDs.
+
+    See also:
+        - :class:`IntegerArrayField`
+    """
+    def __init__(self,
+                 model: model_cls,
+                 item_validators: List[callable] = None,
+                 **kwargs) -> None:
+        """
+        :param model: Model which instance IDs are accepted by the field.
+        :type model: Type[models.Model]
+        :param item_validators: List of validators which will be used to validate each model
+            instance in the list.
+        :type item_validators: List[callable]
+        :param kwargs: Additional keyword arguments for the field.
+        :type kwargs: dict
+        """
+        super().__init__(item_validators=item_validators, **kwargs)
+        self.model = model
+
+    def __getattribute__(self, item):
+        """
+        Intercepts the `queryset` attribute access to dynamically generate the queryset of model
+        instance IDs.
+        """
+        if item == 'queryset':
+            return [instance.id for instance in self.model.objects.all()]
+        return super().__getattribute__(item)
+
+
+class CourseModelArrayField(IntegerArrayField):
+    """
+    Form field used to store a comma-separated list of model instance IDs for a course database
+    model class.
+
+    See also:
+        - :class:`ModelArrayField`
+    """
+    def __init__(self,
+                 model: model_cls,
+                 course: int | str | Course = None,
+                 item_validators: List[callable] = None,
+                 **kwargs) -> None:
+        """
+        :param model: Model which instance IDs are accepted by the field.
+        :type model: Type[models.Model]
+        :param course: Course to which the model instances belong. Can be specified as a course
+            instance, course ID or course short name.
+        :type course: int | str | Course
+        :param item_validators: List of validators which will be used to validate each model
+            instance in the list.
+        :type item_validators: List[callable]
+        :param kwargs: Additional keyword arguments for the field.
+        :type kwargs: dict
+        """
+        super().__init__(item_validators=item_validators, **kwargs)
+        self.course = ModelsRegistry.get_course(course)
+        self.model = model
+
+    def __getattribute__(self, item):
+        """
+        Intercepts the `queryset` attribute access to dynamically generate the queryset of model
+        instance IDs.
+        """
+        if item == 'queryset':
+            with InCourse(self.course.short_name):
+                return [instance.id for instance in self.model.objects.all()]
+        return super().__getattribute__(item)
 
 
 # ------------------------------------- table select field ------------------------------------- #
