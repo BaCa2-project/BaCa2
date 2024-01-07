@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Dict, Any
 import json
 
+from django.http import HttpRequest
+
 from widgets.base import Widget
 
 
@@ -10,6 +12,7 @@ class Column(Widget):
     def __init__(self,
                  name: str,
                  col_type: str,
+                 request: HttpRequest = None,
                  data_null: bool = False,
                  header: str | None = None,
                  searchable: bool = True,
@@ -21,7 +24,7 @@ class Column(Widget):
         if not auto_width and not width:
             raise self.WidgetParameterError('Must set column width when auto width is disabled.')
 
-        super().__init__(name)
+        super().__init__(name=name, request=request)
         if header is None:
             header = name
         self.header = header

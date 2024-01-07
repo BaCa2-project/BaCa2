@@ -18,7 +18,7 @@ class NavBar(Widget):
         :param request: Request object used to determine user's permissions and to generate links.
         :type request: HttpRequest
         """
-        super().__init__('navbar')
+        super().__init__(name='navbar', request=request)
         self.links = [
             {'name': 'Dashboard', 'url': reverse_lazy('main:dashboard')},
             {'name': 'Kursy', 'url': reverse_lazy('main:courses')},
@@ -42,11 +42,14 @@ class SideNav(Widget):
     """
 
     def __init__(self,
+                 request: HttpRequest,
                  collapsed: bool,
                  toggle_button: bool,
                  tabs: List[str],
                  sub_tabs: Dict[str, List[str]]) -> None:
         """
+        :param request: HTTP request object received by the view this side nav panel is rendered in.
+        :type request: HttpRequest
         :param collapsed: Whether the side navigation sub-tabs should be collapsed by default and
             expand only on hover/use (or when the toggle button is clicked).
         :type collapsed: bool
@@ -59,7 +62,7 @@ class SideNav(Widget):
             list of sub-tab names.
         :type sub_tabs: Dict[str, List[str]]
         """
-        super().__init__('sidenav')
+        super().__init__(name='sidenav', request=request)
         self.collapsed = collapsed
         self.toggle_button = {'on': toggle_button,
                               'state': collapsed,

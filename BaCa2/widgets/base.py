@@ -1,6 +1,8 @@
 from typing import Dict, Any
 from abc import ABC
 
+from django.http import HttpRequest
+
 
 class Widget(ABC):
     """
@@ -13,17 +15,20 @@ class Widget(ABC):
         """
         pass
 
-    def __init__(self, name: str, widget_class: str = "") -> None:
+    def __init__(self, name: str, request: HttpRequest, widget_class: str = "") -> None:
         """
         Initializes the widget with a name. Name is used to distinguish between widgets of the same
         type within a single HTML template.
 
         :param name: Name of the widget.
         :type name: str
+        :param request: HTTP request object received by the view this widget is rendered in.
+        :type request: HttpRequest
         :param widget_class: CSS class applied to the widget.
         :type widget_class: str
         """
         self.name = name
+        self.request = request
         self.widget_class = widget_class
 
     def add_class(self, widget_class: str) -> None:
