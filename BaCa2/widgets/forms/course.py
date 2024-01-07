@@ -123,8 +123,13 @@ class CreateCourseFormWidget(FormWidget):
         - :class:`CreateCourseForm`
     """
 
-    def __init__(self, form: CreateCourseForm = None, **kwargs) -> None:
+    def __init__(self,
+                 request,
+                 form: CreateCourseForm = None,
+                 **kwargs) -> None:
         """
+        :param request: HTTP request object received by the view this form widget is rendered in.
+        :type request: HttpRequest
         :param form: Form to be base the widget on. If not provided, a new form will be created.
         :type form: :class:`CreateCourseForm`
         :param kwargs: Additional keyword arguments to be passed to the :class:`FormWidget`
@@ -136,6 +141,7 @@ class CreateCourseFormWidget(FormWidget):
 
         super().__init__(
             name='create_course_form_widget',
+            request=request,
             form=form,
             post_target=ModelFormPostTarget(Course),
             button_text=_('Add course'),
@@ -244,8 +250,13 @@ class DeleteCourseFormWidget(FormWidget):
         - :class:`FormWidget`
         - :class:`DeleteCourseForm`
     """
-    def __init__(self, form: DeleteCourseForm = None, **kwargs) -> None:
+    def __init__(self,
+                 request,
+                 form: DeleteCourseForm = None,
+                 **kwargs) -> None:
         """
+        :param request: HTTP request object received by the view this form widget is rendered in.
+        :type request: HttpRequest
         :param form: Form to be base the widget on. If not provided, a new form will be created.
         :type form: :class:`DeleteCourseForm`
         :param kwargs: Additional keyword arguments to be passed to the :class:`FormWidget`
@@ -257,6 +268,7 @@ class DeleteCourseFormWidget(FormWidget):
 
         super().__init__(
             name='delete_course_form_widget',
+            request=request,
             form=form,
             post_target=ModelFormPostTarget(Course),
             button_text=_('Delete course'),

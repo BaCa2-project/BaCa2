@@ -301,6 +301,7 @@ class BaCa2LoginView(BaCa2ContextMixin, LoginView):
 
         self.add_widget(context, FormWidget(
             name='login_form',
+            request=self.request,
             form=self.get_form(),
             button_text='Zaloguj',
             display_field_errors=False,
@@ -355,17 +356,20 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        sidenav = SideNav(False, True,
-                          ['Users', 'Courses', 'Packages'],
-                          {'Users': ['New User', 'Users Table'],
-                           'Courses': ['New Course', 'Courses Table'],
-                           'Packages': ['New Package', 'Packages Table']})
+        sidenav = SideNav(request=self.request,
+                          collapsed=False,
+                          toggle_button=True,
+                          tabs=['Users', 'Courses', 'Packages'],
+                          sub_tabs={'Users': ['New User', 'Users Table'],
+                                    'Courses': ['New Course', 'Courses Table'],
+                                    'Packages': ['New Package', 'Packages Table']})
         self.add_widget(context, sidenav)
 
         if not self.has_widget(context, FormWidget, 'create_course_form_widget'):
-            self.add_widget(context, CreateCourseFormWidget())
+            self.add_widget(context, CreateCourseFormWidget(request=self.request))
 
         self.add_widget(context, TableWidget(
+            request=self.request,
             data_source=ModelDataSource(Course),
             cols=[
                 TextColumn('id', 'ID', True),
@@ -389,7 +393,10 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
                 )
                 return JsonResponse({'status': 'ok'})
             else:
-                kwargs['new_course_form_widget'] = CreateCourseFormWidget(form=form).get_context()
+                kwargs['new_course_form_widget'] = CreateCourseFormWidget(
+                    request=request,
+                    form=form
+                ).get_context()
                 return self.get(request, *args, **kwargs)
         else:
             return JsonResponse(
@@ -405,6 +412,7 @@ class DashboardView(BaCa2LoggedInView):
         context = super().get_context_data(**kwargs)
 
         self.add_widget(context, TableWidget(
+            request=self.request,
             data_source=ModelDataSource(Course),
             cols=[
                 TextColumn('id', 'ID', True),
@@ -457,6 +465,7 @@ class FieldValidationView(LoginRequiredMixin, View):
 
         return JsonResponse(
             get_field_validation_status(
+                request=request,
                 form_cls=form_cls_name,
                 field_name=normalize_string_to_python(request.GET.get('fieldName')),
                 value=normalize_string_to_python(request.GET.get('value')),

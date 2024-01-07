@@ -3,12 +3,13 @@ from __future__ import annotations
 import json
 from typing import (List, Dict, Any)
 
+from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
 
 from widgets.base import Widget
-from widgets.listing.columns import (Column, SelectColumn, DeleteColumn)
+from widgets.listing.columns import Column, SelectColumn, DeleteColumn
 from widgets.listing.data_sources import TableDataSource
-from widgets.forms import (BaCa2ModelForm, FormWidget)
+from widgets.forms import BaCa2ModelForm, FormWidget
 from widgets.popups.forms import SubmitConfirmationPopup
 from widgets.forms.course import DeleteCourseForm
 from main.models import Course
@@ -20,6 +21,7 @@ class TableWidget(Widget):
     }
 
     def __init__(self,
+                 request: HttpRequest,
                  data_source: TableDataSource,
                  cols: List[Column],
                  title: str = '',
@@ -39,7 +41,7 @@ class TableWidget(Widget):
         if not name:
             name = data_source.generate_table_widget_name()
 
-        super().__init__(name)
+        super().__init__(name=name, request=request)
 
         if not title:
             title = data_source.generate_table_widget_title()
@@ -61,6 +63,7 @@ class TableWidget(Widget):
                 raise ValueError(f'No delete form found for model {model}.')
 
             delete_record_form_widget = DeleteRecordFormWidget(
+                request=request,
                 form=TableWidget.delete_forms[model](),
                 post_url=data_source.get_url(),
                 name=f'{name}_delete_record_form'
@@ -79,11 +82,14 @@ class TableWidget(Widget):
         if stripe_rows:
             self.add_class('stripe')
 
+        for col in cols:
+            col.request = request
+        self.cols = cols
+
         self.allow_global_search = allow_global_search
         self.allow_column_search = allow_column_search
         self.refresh_button = refresh_button
         self.data_source = data_source
-        self.cols = cols
         self.paging = paging
         self.refresh = refresh
         self.refresh_interval = refresh_interval * 1000
@@ -154,8 +160,13 @@ class TableWidgetPaging:
 
 
 class DeleteRecordFormWidget(FormWidget):
-    def __init__(self, form: BaCa2ModelForm, post_url: str, name: str) -> None:
-        super().__init__(form=form,
+    def __init__(self,
+                 request: HttpRequest,
+                 form: BaCa2ModelForm,
+                 post_url: str,
+                 name: str) -> None:
+        super().__init__(request=request,
+                         form=form,
                          post_target=post_url,
                          name=name,
                          submit_confirmation_popup=SubmitConfirmationPopup(

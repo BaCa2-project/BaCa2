@@ -1,6 +1,8 @@
 from typing import Dict, Any
 from enum import Enum
 
+from django.http import HttpRequest
+
 from widgets.base import Widget
 
 
@@ -24,6 +26,7 @@ class PopupWidget(Widget):
     def __init__(self,
                  *,
                  name: str,
+                 request: HttpRequest,
                  title: str,
                  message: str,
                  widget_class: str = "",
@@ -31,6 +34,8 @@ class PopupWidget(Widget):
         """
         :param name: Name of the widget.
         :type name: str
+        :param request: HTTP request object received by the view this popup is rendered in.
+        :type request: HttpRequest
         :param title: Title of the popup.
         :type title: str
         :param message: Message of the popup.
@@ -40,7 +45,7 @@ class PopupWidget(Widget):
         :param size: Size of the popup.
         :type size: :class:`PopupWidget.PopupSize`
         """
-        super().__init__(name=name, widget_class=widget_class)
+        super().__init__(name=name, request=request, widget_class=widget_class)
         self.title = title
         self.message = message
         self.add_class(size.value)
