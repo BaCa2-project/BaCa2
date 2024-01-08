@@ -24,6 +24,7 @@ usosapi = { path = "lib/usosapi-python" }
 apscheduler = "^3.10.4"
 coverage = "^7.3.2"
 sphinx-rtd-theme = "^2.0.0"
+requests = "^2.31.0"
 
 
 [build-system]

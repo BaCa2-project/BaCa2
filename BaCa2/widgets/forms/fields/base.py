@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import List, TYPE_CHECKING
 from abc import ABC
 
+from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
 from django import forms
 
@@ -161,6 +162,7 @@ class CharArrayField(forms.CharField):
     See also:
         - :class:`IntegerArrayField`
     """
+
     def __init__(self,
                  queryset: List[str] = None,
                  item_validators: List[callable] = None,
@@ -238,6 +240,7 @@ class IntegerArrayField(CharArrayField):
         - :class:`CharArrayField`
         - :class:`ModelArrayField`
     """
+
     def __init__(self,
                  queryset: List[int] = None,
                  item_validators: List[callable] = None,
@@ -289,6 +292,7 @@ class ModelArrayField(IntegerArrayField):
     See also:
         - :class:`IntegerArrayField`
     """
+
     def __init__(self,
                  model: model_cls,
                  item_validators: List[callable] = None,
@@ -314,8 +318,18 @@ class ModelArrayField(IntegerArrayField):
             return [instance.id for instance in self.model.objects.all()]
         return super().__getattribute__(item)
 
+    def queryset_validation_error_message(self) -> str:
+        """
+        Returns a validation error message for the field when the value does not pass queryset
+        validation.
 
-class CourseModelArrayField(IntegerArrayField):
+        :return: Error message for the field.
+        :rtype: str
+        """
+        return _(f'This field must be a comma-separated list of {self.model.__name__} IDs')
+
+
+class CourseModelArrayField(ModelArrayField):
     """
     Form field used to store a comma-separated list of model instance IDs for a course database
     model class.
@@ -323,6 +337,7 @@ class CourseModelArrayField(IntegerArrayField):
     See also:
         - :class:`ModelArrayField`
     """
+
     def __init__(self,
                  model: model_cls,
                  course: int | str | Course = None,
@@ -340,9 +355,9 @@ class CourseModelArrayField(IntegerArrayField):
         :param kwargs: Additional keyword arguments for the field.
         :type kwargs: dict
         """
-        super().__init__(item_validators=item_validators, **kwargs)
+        super().__init__(model=model, item_validators=item_validators, **kwargs)
         self.course = ModelsRegistry.get_course(course)
-        self.model = model
+        self.widget.attrs.update({'data-special-type': 'table-select'})
 
     def __getattribute__(self, item):
         """
@@ -353,6 +368,38 @@ class CourseModelArrayField(IntegerArrayField):
             with InCourse(self.course.short_name):
                 return [instance.id for instance in self.model.objects.all()]
         return super().__getattribute__(item)
+
+
+class TableSelectField(IntegerArrayField):
+    def __init__(self,
+                 request: HttpRequest,
+                 data_source: TableDataSource,
+                 cols: List[Column],
+                 allow_column_search: bool = True,
+                 **kwargs) -> None:
+        from widgets.listing import TableWidget
+
+        super().__init__(**kwargs)
+        self.data_source = data_source
+        self.cols = cols
+        self.table_widget = TableWidget(
+            request=request,
+            data_source=data_source,
+            cols=cols,
+            allow_column_search=allow_column_search,
+            allow_select=True,
+        )
+
+
+class TestForm(forms.Form):
+    from course.models import Round
+
+    test = CourseModelArrayField(Round, course='mj_2023')
+
+
+class TestFormWidget(widgets.forms.FormWidget):
+    def __init__(self, request: HttpRequest):
+        super().__init__(request=request, form=TestForm(), name='test_form_widget')
 
 
 # ------------------------------------- table select field ------------------------------------- #
