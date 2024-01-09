@@ -124,7 +124,7 @@ class General(TestCase):
 
         cls.course = Course.objects.create_course(name=f'course1_{datetime.now().timestamp()}')
 
-        cls.pkg_instance = PackageInstance.create_from_name('dosko', '1')
+        cls.pkg_instance = PackageInstance.objects.create_package_instance('dosko', '1')
         cls.pkg_instance.save()
 
         cls.user = User.objects.create_user(password='user1',

@@ -642,6 +642,9 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+# Poetry
+poetry.lock
+
 # BaCa2 specyfic -------------------------------------------------------------------------------
 
 BaCa2/BaCa2/settings_local.py
