@@ -61,8 +61,7 @@
             $('#{{ field.name }}').on('input', function () {
                 update_validation_status(
                     this,
-                    '{{ form_widget.field_classes|get_item:field.name }}',
-                    '{{ form_widget.field_required|get_item:field.name }}',
+                    '{{ form_widget.form_cls }}',
                     '{{ form_widget.field_min_length|get_item:field.name }}',
                     '{% url 'main:field-validation' %}');
             });

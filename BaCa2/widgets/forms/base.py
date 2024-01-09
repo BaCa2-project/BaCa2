@@ -205,6 +205,7 @@ class FormWidget(Widget):
 
     def __init__(self,
                  *,
+                 request,
                  form: forms.Form,
                  post_target: FormPostTarget | str = None,
                  name: str = '',
@@ -221,6 +222,8 @@ class FormWidget(Widget):
                  submit_success_popup: SubmitSuccessPopup = SubmitSuccessPopup(),
                  submit_failure_popup: SubmitFailurePopup = SubmitFailurePopup()) -> None:
         """
+        :param request: HTTP request object received by the view this form widget is rendered in.
+        :type request: HttpRequest
         :param form: Form to be rendered.
         :type form: forms.Form
         :param post_target: Target URL for the form's POST request. If no target is specified, the
@@ -285,7 +288,7 @@ class FormWidget(Widget):
                 'Both submit success popup and submit failure popup must be specified or neither.'
             )
 
-        super().__init__(name)
+        super().__init__(name=name, request=request)
         self.form = form
         self.form_cls = form.__class__.__name__
         self.button_text = button_text
@@ -298,17 +301,20 @@ class FormWidget(Widget):
 
         if submit_confirmation_popup:
             submit_confirmation_popup.name = f'{self.name}_confirmation_popup'
+            submit_confirmation_popup.request = request
             submit_confirmation_popup = submit_confirmation_popup.get_context()
         self.submit_confirmation_popup = submit_confirmation_popup
 
         if submit_success_popup:
             self.show_response_popups = True
             submit_success_popup.name = f'{self.name}_success_popup'
+            submit_success_popup.request = request
             submit_success_popup = submit_success_popup.get_context()
         self.submit_success_popup = submit_success_popup
 
         if submit_failure_popup:
             submit_failure_popup.name = f'{self.name}_failure_popup'
+            submit_failure_popup.request = request
             submit_failure_popup = submit_failure_popup.get_context()
         self.submit_failure_popup = submit_failure_popup
 
@@ -324,6 +330,7 @@ class FormWidget(Widget):
                 continue
 
             for group in element_groups:
+                group.request = request
                 if group.field_in_group(field.name):
                     elements.append(group)
                     included_fields.update({field_name: True for field_name in group.fields()})
@@ -504,6 +511,7 @@ class FormElementGroup(Widget):
                  *,
                  elements: List[str | FormElementGroup],
                  name: str,
+                 request=None,
                  layout: FormElementsLayout = FormElementsLayout.VERTICAL,
                  toggleable: bool = False,
                  toggleable_params: Dict[str, str] = None,
@@ -514,6 +522,8 @@ class FormElementGroup(Widget):
         :type elements: List[str | :class:`FormElementGroup`]
         :param name: Name of the group.
         :type name: str
+        :param request: HTTP request object received by the parent form widget.
+        :type request: HttpRequest
         :param layout: Layout of the form elements in the group.
         :type layout: :class:`FormElementGroup.FormElementsLayout`
         :param toggleable: Determines whether the group should be toggleable.
@@ -526,7 +536,7 @@ class FormElementGroup(Widget):
         :param frame: Determines whether the group should be displayed in a frame.
         :type frame: bool
         """
-        super().__init__(name)
+        super().__init__(name=name, request=request)
         self.elements = elements
         self.toggleable = toggleable
         self.layout = layout.value
@@ -679,10 +689,10 @@ class BaCa2ModelFormResponse(BaCa2FormResponse):
         message = f'failed to perform {action.label} on {model_name}'
 
         if status == BaCa2FormResponse.Status.INVALID:
-            message += ' due to invalid form data'
+            message += ' due to invalid form data. Please correct the following errors:'
         elif status == BaCa2FormResponse.Status.IMPERMISSIBLE:
-            message += ' due to insufficient permissions'
+            message += ' due to insufficient permissions.'
         elif status == BaCa2FormResponse.Status.ERROR:
-            message += ' due to an error'
+            message += ' due an error.'
 
         return message

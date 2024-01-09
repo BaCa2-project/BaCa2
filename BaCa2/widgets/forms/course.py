@@ -4,13 +4,13 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from main.models import Course
-from widgets.forms.base import (BaCa2Form,
-                                FormWidget,
+from widgets.forms.base import (FormWidget,
                                 FormElementGroup,
                                 BaCa2ModelForm,
                                 ModelFormPostTarget)
+from widgets.forms.fields import AlphanumericStringField
+from widgets.forms.fields.course import CourseShortName, USOSCode
 from widgets.popups.forms import SubmitConfirmationPopup
-from widgets.forms.fields.course import CourseShortName
 
 
 # ---------------------------------------- create course --------------------------------------- #
@@ -28,7 +28,7 @@ class CreateCourseForm(BaCa2ModelForm):
     ACTION = Course.BasicAction.ADD
 
     #: New course's name.
-    name = forms.CharField(
+    name = AlphanumericStringField(
         label=_('Course name'),
         min_length=5,
         max_length=Course._meta.get_field('name').max_length,
@@ -39,17 +39,15 @@ class CreateCourseForm(BaCa2ModelForm):
     short_name = CourseShortName()
 
     #: Subject code of the course in the USOS system.
-    USOS_course_code = forms.CharField(
+    USOS_course_code = USOSCode(
         label=_('USOS course code'),
-        min_length=1,
         max_length=Course._meta.get_field('USOS_course_code').max_length,
         required=False
     )
 
     #: Term code of the course in the USOS system.
-    USOS_term_code = forms.CharField(
+    USOS_term_code = USOSCode(
         label=_('USOS term code'),
-        min_length=1,
         max_length=Course._meta.get_field('USOS_term_code').max_length,
         required=False
     )
@@ -125,8 +123,13 @@ class CreateCourseFormWidget(FormWidget):
         - :class:`CreateCourseForm`
     """
 
-    def __init__(self, form: CreateCourseForm = None, **kwargs) -> None:
+    def __init__(self,
+                 request,
+                 form: CreateCourseForm = None,
+                 **kwargs) -> None:
         """
+        :param request: HTTP request object received by the view this form widget is rendered in.
+        :type request: HttpRequest
         :param form: Form to be base the widget on. If not provided, a new form will be created.
         :type form: :class:`CreateCourseForm`
         :param kwargs: Additional keyword arguments to be passed to the :class:`FormWidget`
@@ -138,6 +141,7 @@ class CreateCourseFormWidget(FormWidget):
 
         super().__init__(
             name='create_course_form_widget',
+            request=request,
             form=form,
             post_target=ModelFormPostTarget(Course),
             button_text=_('Add course'),
@@ -246,8 +250,13 @@ class DeleteCourseFormWidget(FormWidget):
         - :class:`FormWidget`
         - :class:`DeleteCourseForm`
     """
-    def __init__(self, form: DeleteCourseForm = None, **kwargs) -> None:
+    def __init__(self,
+                 request,
+                 form: DeleteCourseForm = None,
+                 **kwargs) -> None:
         """
+        :param request: HTTP request object received by the view this form widget is rendered in.
+        :type request: HttpRequest
         :param form: Form to be base the widget on. If not provided, a new form will be created.
         :type form: :class:`DeleteCourseForm`
         :param kwargs: Additional keyword arguments to be passed to the :class:`FormWidget`
@@ -259,6 +268,7 @@ class DeleteCourseFormWidget(FormWidget):
 
         super().__init__(
             name='delete_course_form_widget',
+            request=request,
             form=form,
             post_target=ModelFormPostTarget(Course),
             button_text=_('Delete course'),
