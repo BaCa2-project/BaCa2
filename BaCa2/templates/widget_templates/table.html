@@ -1,6 +1,7 @@
 {% load custom_tags %}
 
 <div class="table-wrapper">
+
     <div class="table-widget-forms-wrapper">
         {% if table_widget.allow_delete %}
             <div class="table-widget-form delete-record-form"
@@ -11,7 +12,60 @@
             </div>
         {% endif %}
     </div>
+
     <div class="card">
+
+        {% if table_widget.display_util_header %}
+        <div class="table-util-header card-body">
+            <div class="row">
+                {% if table_widget.display_title %}
+                    <div class="col-auto">
+                        <h4 class="table-title ms-3">{{ table_widget.title }}</h4>
+                    </div>
+                {% endif %}
+                <div class="col">
+                    <div class="row justify-content-end">
+                        {% if table_widget.allow_global_search %}
+                            <div class="col-auto d-flex align-items-center">
+                                <div class="table-search">
+                                </div>
+                            </div>
+                        {% endif %}
+                        {% if table_widget.table_buttons %}
+                            <div class="col-auto">
+                                <div class="table-buttons row justify-content-end">
+                                    {% if table_widget.refresh_button %}
+                                        <div class="table-btn-wrapper col-auto">
+                                            <button class="table-refresh-btn btn
+                                                           btn-outline-light_muted"
+                                                    type="button"
+                                                    data-refresh-target="{{ table_widget.name }}">
+                                                <small>
+                                                    <i class="bi bi-arrow-clockwise"></i>
+                                                </small>
+                                            </button>
+                                        </div>
+                                    {% endif %}
+                                    {% if table_widget.delete_button %}
+                                        <div class="table-btn-wrapper col-auto">
+                                            <button class="btn btn-outline-danger" type="button">
+                                                <small>
+                                                    <i class="bi bi-trash3"></i>
+                                                </small>
+                                            </button>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr class="m-0">
+        {% endif %}
+
         <div class="card-body">
             <div class="table-responsive">
                 <table class="{{ table_widget.widget_class }}"
@@ -20,8 +74,19 @@
                     <thead>
                         <tr>
                             {% for col in table_widget.cols %}
-                                <th class="{{ col.col_type }}">
-                                    {{ col.header }}
+                                <th class="{{ col.col_type }}
+                                               {% if col.sortable == "true" %}
+                                               pe-5
+                                               {% endif %}"
+                                    data-searchable="{{ col.searchable }}"
+                                    data-sortable="{{ col.sortable }}">
+                                    {% if col.searchable == "true" and table_widget.allow_column_search %}
+                                        <input type="text"
+                                               class="column-search form-control"
+                                               placeholder="{{ col.header }}">
+                                    {% else %}
+                                        {{ col.header }}
+                                    {% endif %}
                                 </th>
                             {% endfor %}
                         </tr>
@@ -29,20 +94,22 @@
                 </table>
             </div>
         </div>
+
     </div>
 </div>
 
 
 <script type="text/javascript">
     initTable({
-        tableId: '{{ table_widget.name }}',
-        dataSourceUrl: '{{ table_widget.data_source_url }}',
-        cols: {{ table_widget.cols|safe }},
-        defaultOrder: '{{ table_widget.default_order }}',
-        defaultOrderCol: parseInt({{ table_widget.default_order_col }}),
-        paging: {{ table_widget.paging|safe }},
-        refresh: {{ table_widget.refresh|safe }},
-        refreshInterval: parseInt({{ table_widget.refresh_interval }}),
-    });
+                  tableId: '{{ table_widget.name }}',
+                  dataSourceUrl: '{{ table_widget.data_source_url }}',
+                  cols: {{ table_widget.cols|safe }},
+                  defaultOrder: '{{ table_widget.default_order }}',
+                  defaultOrderCol: parseInt({{ table_widget.default_order_col }}),
+                  searching: {{ table_widget.allow_global_search|safe }},
+                  paging: {{ table_widget.paging|safe }},
+                  refresh: {{ table_widget.refresh|safe }},
+                  refreshInterval: parseInt({{ table_widget.refresh_interval }}),
+              });
 </script>
 

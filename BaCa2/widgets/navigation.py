@@ -18,7 +18,7 @@ class NavBar(Widget):
         :param request: Request object used to determine user's permissions and to generate links.
         :type request: HttpRequest
         """
-        super().__init__('navbar')
+        super().__init__(name='navbar', request=request)
         self.links = [
             {'name': 'Dashboard', 'url': reverse_lazy('main:dashboard')},
             {'name': 'Kursy', 'url': reverse_lazy('main:courses')},
@@ -42,38 +42,41 @@ class SideNav(Widget):
     """
 
     def __init__(self,
+                 request: HttpRequest,
                  collapsed: bool,
                  toggle_button: bool,
-                 *args: str, **kwargs: List[str]) -> None:
+                 tabs: List[str],
+                 sub_tabs: Dict[str, List[str]]) -> None:
         """
+        :param request: HTTP request object received by the view this side nav panel is rendered in.
+        :type request: HttpRequest
         :param collapsed: Whether the side navigation sub-tabs should be collapsed by default and
-            expand only on hover/use or when the toggle button is clicked.
+            expand only on hover/use (or when the toggle button is clicked).
         :type collapsed: bool
         :param toggle_button: Whether the toggle button should be displayed. Toggle button is used
             to expand/collapse the side navigation sub-tabs.
         :type toggle_button: bool
-        :param args: Names of the tabs.
-        :type args: str
-        :param kwargs: Names of the sub-tabs. Each key is the name of the tab and the value is a
+        :param tabs: List of tab names.
+        :type tabs: List[str]
+        :param sub_tabs: Dictionary of sub-tabs. Each key is the name of the tab and the value is a
             list of sub-tab names.
-        :type kwargs: List[str]
+        :type sub_tabs: Dict[str, List[str]]
         """
-        super().__init__('sidenav')
+        super().__init__(name='sidenav', request=request)
         self.collapsed = collapsed
         self.toggle_button = {'on': toggle_button,
                               'state': collapsed,
                               'text_collapsed': _('Expand'),
                               'text_expanded': _('Collapse')}
-
         self.tabs = [
             {
                 'name': tab_name,
                 'data_id': SideNav.normalize_tab_name(tab_name) + '-tab',
                 'sub_tabs': [{'name': sub_tab_name,
                               'data_id': SideNav.normalize_tab_name(sub_tab_name) + '-tab'}
-                             for sub_tab_name in kwargs.get(tab_name, [])]
+                             for sub_tab_name in sub_tabs.get(tab_name, [])]
             }
-            for tab_name in args
+            for tab_name in tabs
         ]
 
     @staticmethod

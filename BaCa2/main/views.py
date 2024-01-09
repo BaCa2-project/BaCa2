@@ -15,7 +15,7 @@ from widgets.base import Widget
 from widgets.listing import (TableWidget, TableWidgetPaging, ModelDataSource)
 from widgets.listing.columns import TextColumn
 from widgets.forms import FormWidget
-from widgets.forms.fields import get_field_validation_status
+from widgets.forms.fields.validation import get_field_validation_status
 from widgets.navigation import (NavBar, SideNav)
 from widgets.forms.course import (CreateCourseForm, CreateCourseFormWidget, DeleteCourseForm)
 from BaCa2.choices import BasicPermissionType
@@ -301,6 +301,7 @@ class BaCa2LoginView(BaCa2ContextMixin, LoginView):
 
         self.add_widget(context, FormWidget(
             name='login_form',
+            request=self.request,
             form=self.get_form(),
             button_text='Zaloguj',
             display_field_errors=False,
@@ -355,17 +356,20 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        sidenav = SideNav(True, True,
-                          'Users', 'Courses', 'Packages',
-                          Courses=['New Course', 'Courses Table'],
-                          Users=['New User', 'Users Table'],
-                          Packages=['New Package', 'Packages Table'])
+        sidenav = SideNav(request=self.request,
+                          collapsed=False,
+                          toggle_button=True,
+                          tabs=['Users', 'Courses', 'Packages'],
+                          sub_tabs={'Users': ['New User', 'Users Table'],
+                                    'Courses': ['New Course', 'Courses Table'],
+                                    'Packages': ['New Package', 'Packages Table']})
         self.add_widget(context, sidenav)
 
         if not self.has_widget(context, FormWidget, 'create_course_form_widget'):
-            self.add_widget(context, CreateCourseFormWidget())
+            self.add_widget(context, CreateCourseFormWidget(request=self.request))
 
         self.add_widget(context, TableWidget(
+            request=self.request,
             data_source=ModelDataSource(Course),
             cols=[
                 TextColumn('id', 'ID', True),
@@ -389,7 +393,10 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
                 )
                 return JsonResponse({'status': 'ok'})
             else:
-                kwargs['new_course_form_widget'] = CreateCourseFormWidget(form=form).get_context()
+                kwargs['new_course_form_widget'] = CreateCourseFormWidget(
+                    request=request,
+                    form=form
+                ).get_context()
                 return self.get(request, *args, **kwargs)
         else:
             return JsonResponse(
@@ -405,6 +412,7 @@ class DashboardView(BaCa2LoggedInView):
         context = super().get_context_data(**kwargs)
 
         self.add_widget(context, TableWidget(
+            request=self.request,
             data_source=ModelDataSource(Course),
             cols=[
                 TextColumn('id', 'ID', True),
@@ -413,6 +421,9 @@ class DashboardView(BaCa2LoggedInView):
             allow_select=True,
             allow_delete=True,
         ))
+        from widgets.forms.fields.base import TestFormWidget
+
+        context['test_form'] = TestFormWidget(self.request).get_context()
 
         return context
 
@@ -450,17 +461,18 @@ class FieldValidationView(LoginRequiredMixin, View):
 
     @staticmethod
     def get(request, *args, **kwargs):
-        field_cls_name = request.GET.get('field_cls', None)
+        form_cls_name = request.GET.get('formCls', None)
 
-        if not field_cls_name:
+        if not form_cls_name:
             raise FieldValidationView.FieldClassException('No field class name provided.')
 
         return JsonResponse(
             get_field_validation_status(
-                field_cls=field_cls_name,
+                request=request,
+                form_cls=form_cls_name,
+                field_name=normalize_string_to_python(request.GET.get('fieldName')),
                 value=normalize_string_to_python(request.GET.get('value')),
-                required=normalize_string_to_python(request.GET.get('required')),
-                min_length=normalize_string_to_python(request.GET.get('min_length'))
+                min_length=normalize_string_to_python(request.GET.get('minLength'))
             )
         )
 

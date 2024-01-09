@@ -160,16 +160,15 @@ $side_nav_corner_radius: 6px;
 // ------------------------------------------ tables ------------------------------------------ //
 
 $table_default_variables: (
-    icon_color: $muted,
-    hover_icon_color_details: $dark,
-    hover_icon_color_edit: $dark,
-    hover_icon_color_delete: $baca2_pink,
+    delete_icon_color: $muted,
+    delete_icon_color_hover: $baca2_pink,
+    selected_row_bg_color: rgba(255, 255, 255, 0.03),
+    util_header_bg_color: $light,
 );
 $table_theme_variables: (
     light: (),
     dark: (
-        hover_icon_color_details: $white,
-        hover_icon_color_edit: $white,
+        util_header_bg_color: rgba(0, 0, 0, 0.3),
     )
 );
 

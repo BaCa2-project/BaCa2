@@ -1,5 +1,6 @@
 from typing import List, Dict, Any
 
+from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
 
 from widgets.base import Widget
@@ -20,6 +21,7 @@ class SubmitConfirmationPopup(PopupWidget):
                  title: str,
                  message: str,
                  name: str = '',
+                 request: HttpRequest = None,
                  confirm_button_text: str = _('Confirm'),
                  cancel_button_text: str = _('Cancel'),
                  input_summary: bool = False,
@@ -32,6 +34,9 @@ class SubmitConfirmationPopup(PopupWidget):
         :param name: Name of the widget. Will normally be automatically provided by a parent form
             widget.
         :type name: str
+        :param request: HTTP request object received by the view this popup is rendered in. Provided
+            by the parent form widget.
+        :type request: HttpRequest
         :param confirm_button_text: Text displayed on the submission confirmation button.
         :type confirm_button_text: str
         :param cancel_button_text: Text displayed on the submission cancellation button.
@@ -49,6 +54,7 @@ class SubmitConfirmationPopup(PopupWidget):
             )
 
         super().__init__(name=name,
+                         request=request,
                          title=title,
                          message=message,
                          widget_class="form-confirmation-popup",
@@ -81,6 +87,7 @@ class SubmitSuccessPopup(PopupWidget):
                  title: str = _('Success'),
                  message: str = '',
                  name: str = '',
+                 request: HttpRequest = None,
                  confirm_button_text: str = _('OK')) -> None:
         """
         :param title: Title of the popup. Defaults to "Success".
@@ -91,10 +98,14 @@ class SubmitSuccessPopup(PopupWidget):
         :param name: Name of the widget. Will normally be automatically provided by a parent form
             widget.
         :type name: str
+        :param request: HTTP request object received by the view this popup is rendered in. Provided
+            by the parent form widget.
+        :type request: HttpRequest
         :param confirm_button_text: Text displayed on the confirmation button. Defaults to "OK".
         :type confirm_button_text: str
         """
         super().__init__(name=name,
+                         request=request,
                          title=title,
                          message=message,
                          widget_class="form-success-popup",
@@ -121,6 +132,7 @@ class SubmitFailurePopup(PopupWidget):
                  title: str = _('Failure'),
                  message: str = '',
                  name: str = '',
+                 request: HttpRequest = None,
                  confirm_button_text: str = _('OK')) -> None:
         """
         :param title: Title of the popup. Defaults to "Failure".
@@ -131,10 +143,14 @@ class SubmitFailurePopup(PopupWidget):
         :param name: Name of the widget. Will normally be automatically provided by a parent form
             widget.
         :type name: str
+        :param request: HTTP request object received by the view this popup is rendered in. Provided
+            by the parent form widget.
+        :type request: HttpRequest
         :param confirm_button_text: Text displayed on the confirmation button. Defaults to "OK".
         :type confirm_button_text: str
         """
         super().__init__(name=name,
+                         request=request,
                          title=title,
                          message=message,
                          widget_class="form-failure-popup",

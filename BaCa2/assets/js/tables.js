@@ -1,3 +1,5 @@
+// ------------------------------------ table widget class ------------------------------------ //
+
 class TableWidget {
     constructor(tableId, table) {
         this.tableId = tableId;
@@ -5,6 +7,8 @@ class TableWidget {
         this.lastSelectedRow = null;
         this.lastDeselectedRow = null;
     }
+
+    // -------------------------------- record select methods --------------------------------- //
 
     toggleSelectRow(row, on) {
         if (on) {
@@ -16,6 +20,17 @@ class TableWidget {
             this.lastDeselectedRow = row;
             row.removeClass('row-selected');
         }
+    }
+
+    toggleSelectRows(rows, on) {
+        rows.each(function () {
+            $(this).find('.select-checkbox').prop('checked', on);
+
+            if (on)
+                $(this).addClass('row-selected');
+            else
+                $(this).removeClass('row-selected');
+        });
     }
 
     toggleSelectRange(row, on) {
@@ -53,7 +68,7 @@ class TableWidget {
     }
 
     toggleSelectAll(on) {
-        this.getCurrentPageRowsInOrder().each(function () {
+        this.getCurrentRowsInOrder().each(function () {
             $(this).find('.select-checkbox').prop('checked', on);
 
             if (on)
@@ -64,25 +79,30 @@ class TableWidget {
     }
 
     updateSelectHeader() {
-        const headerCheckbox = $(`#${this.tableId} .select-header-checkbox`);
+        const table = $(`#${this.tableId}`);
+        const headerCheckbox = table.find('.select-header-checkbox');
         let allSelected = true;
         let noneSelected = true;
+        let rows = this.getRowsInOrder();
 
-        this.getRowsInOrder().each(function () {
+        if (table.hasClass('filtered'))
+            rows = this.getCurrentRowsInOrder();
+
+        rows.each(function () {
             if ($(this).hasClass('row-selected'))
                 noneSelected = false;
             else
                 allSelected = false;
         });
 
-        if (allSelected) {
-            headerCheckbox.prop('checked', true);
-            headerCheckbox.prop('indeterminate', false);
-            headerCheckbox.data('state', 'on');
-        } else if (noneSelected) {
+        if (noneSelected) {
             headerCheckbox.prop('checked', false);
             headerCheckbox.prop('indeterminate', false);
             headerCheckbox.data('state', 'off');
+        } else if (allSelected) {
+            headerCheckbox.prop('checked', true);
+            headerCheckbox.prop('indeterminate', false);
+            headerCheckbox.data('state', 'on');
         } else {
             headerCheckbox.prop('checked', false);
             headerCheckbox.prop('indeterminate', true);
@@ -90,17 +110,35 @@ class TableWidget {
         }
     }
 
+    // ------------------------------------ getter methods ------------------------------------ //
+
     getRowsInOrder() {
-        return this.table.rows({ order: 'applied'}).nodes().to$();
+        return this.table
+                   .rows({order: 'applied'})
+                   .nodes().to$();
     }
 
-    getCurrentPageRowsInOrder() {
-        return this.table.rows({ order: 'applied', page: 'current' }).nodes().to$();
+    getCurrentRowsInOrder() {
+        return this.table
+                   .rows({order: 'applied', page: 'current', search: 'applied'})
+                   .nodes().to$();
+    }
+
+    getFilteredOutRows() {
+        return this.table
+                   .rows({search: 'removed'})
+                   .nodes().to$();
     }
 
     getRowIndex(row) {
         return this.table.row(row).index();
     }
+
+    getColumnIndex(colHeader) {
+        return this.table.column(colHeader).index();
+    }
+
+    // ----------------------------------- row check methods ---------------------------------- //
 
     hasLastSelectedRow() {
         return this.lastSelectedRow !== null;
@@ -112,6 +150,106 @@ class TableWidget {
 }
 
 
+// --------------------------------------- tables setup --------------------------------------- //
+
+function tablesSetup() {
+    $('th.select').each(function () {
+        renderSelectHeader($(this));
+    });
+
+    $('.delete-record-form').each(function () {
+        deleteRecordFormSetup($(this).find('form'), $(this).data('table-id'));
+    });
+
+    $('.table-refresh-btn').on('click', function () {
+        refreshButtonClickHandler($(this));
+    });
+
+    $('.table-wrapper').each(function () {
+        globalSearchSetup($(this));
+        columnSearchSetup($(this));
+    });
+}
+
+
+// --------------------------------------- table search --------------------------------------- //
+
+function globalSearchSetup(tableWrapper) {
+    const search = tableWrapper.find('.dataTables_filter');
+
+    if (search.length === 0)
+        return;
+
+    const searchInput = search.find('input');
+    const searchWrapper = tableWrapper.find('.table-util-header .table-search');
+    const table = tableWrapper.find('table')
+    const tableId = table.attr('id');
+    const tableWidget = window.tableWidgets[`#${tableId}`];
+
+    searchInput.addClass('form-control').attr('placeholder', 'Search').attr('type', 'text');
+    searchInput.attr('id', `${tableId}_search`);
+    searchInput.on('input', function () {
+        globalSearchInputHandler($(this), table, tableWidget);
+    });
+    searchWrapper.append(searchInput);
+    search.remove();
+}
+
+function globalSearchInputHandler(inputField, table, tableWidget) {
+    tableWidget.toggleSelectRows(tableWidget.getFilteredOutRows(), false);
+
+    if (inputField.val() === '')
+        table.removeClass('filtered');
+    else
+        table.addClass('filtered');
+
+    tableWidget.updateSelectHeader();
+}
+
+function columnSearchSetup(tableWrapper) {
+    const table = tableWrapper.find('table')
+    const tableWidget = window.tableWidgets[`#${table.attr('id')}`]
+
+    tableWrapper.find('.column-search').on('click', function (e) {
+        e.stopPropagation();
+    }).on('input', function () {
+        columnSearchInputHandler($(this), table, tableWidget)
+    });
+}
+
+function columnSearchInputHandler(inputField, table, tableWidget) {
+    tableWidget.table.column(inputField.closest('th')).search(inputField.val()).draw();
+
+    tableWidget.toggleSelectRows(tableWidget.getFilteredOutRows(), false);
+
+    if (inputField.val() === '')
+        table.removeClass('filtered');
+    else
+        table.addClass('filtered');
+
+    tableWidget.updateSelectHeader();
+}
+
+
+// --------------------------------------- table buttons -------------------------------------- //
+
+function refreshButtonClickHandler(button) {
+    const tableId = button.data('refresh-target');
+    window.tableWidgets[`#${tableId}`].table.ajax.reload();
+}
+
+
+// ---------------------------------------- table forms --------------------------------------- //
+
+function deleteRecordFormSetup(form, tableId) {
+    form.on('submit-success', function (e, data) {
+        window.tableWidgets[`#${tableId}`].table.ajax.reload();
+    });
+}
+
+
+// -------------------------------------- DataTables init ------------------------------------- //
+
 function initTable(
     {
         tableId,
@@ -119,6 +257,7 @@ function initTable(
         cols,
         defaultOrder,
         defaultOrderCol,
+        searching,
         paging,
         refresh,
         refreshInterval,
@@ -129,10 +268,12 @@ function initTable(
 
     tableParams['ajax'] = dataSourceUrl;
     tableParams['order'] = [[defaultOrderCol, defaultOrder]];
-    tableParams['searching'] = false;
+    tableParams['searching'] = searching;
 
     const columns = [];
-    cols.forEach(col => {columns.push({'data': col['name']})});
+    cols.forEach(col => {
+        columns.push({'data': col['name']})
+    });
     tableParams['columns'] = columns;
 
     if (paging) {
@@ -185,10 +326,11 @@ function initTable(
 }
 
 
-function createColumnDef (col, index) {
+function createColumnDef(col, index) {
     const def = {
         'targets': [index],
         'orderable': JSON.parse(col['sortable']),
+        'searchable': JSON.parse(col['searchable']),
         'className': col['col_type']
     };
 
@@ -214,7 +356,9 @@ function createColumnDef (col, index) {
 }
 
 
-function renderSelectField (data, type, row, meta) {
+// ------------------------------- special field render methods ------------------------------- //
+
+function renderSelectField(data, type, row, meta) {
     return $('<input>')
         .attr('type', 'checkbox')
         .attr('class', 'form-check-input select-checkbox')
@@ -226,7 +370,7 @@ function renderSelectField (data, type, row, meta) {
 }
 
 
-function renderDeleteField (data, type, row, meta) {
+function renderDeleteField(data, type, row, meta) {
     return $('<a>')
         .attr('href', '#')
         .attr('data-record-target', row['id'])
@@ -236,7 +380,7 @@ function renderDeleteField (data, type, row, meta) {
 }
 
 
-function renderSelectHeader (header) {
+function renderSelectHeader(header) {
     const checkbox = $('<input>')
         .attr('type', 'checkbox')
         .attr('class', 'form-check-input select-header-checkbox')
@@ -248,14 +392,24 @@ function renderSelectHeader (header) {
 }
 
 
-function selectHeaderClickHandler (e, checkbox) {
-    window.tableWidgets[`#${checkbox.closest('table').attr('id')}`].toggleSelectAll(
+function selectHeaderClickHandler(e, checkbox) {
+    const table = checkbox.closest('table')
+    const tableId = table.attr('id');
+    const tableWidget = window.tableWidgets[`#${tableId}`];
+
+    tableWidget.toggleSelectAll(
         checkbox.prop('checked')
     );
+
+    if (table.hasClass('filtered')) {
+        tableWidget.updateSelectHeader();
+    }
 }
 
 
-function selectCheckboxClickHandler (e, checkbox) {
+// ------------------------------- special field click handlers ------------------------------- //
+
+function selectCheckboxClickHandler(e, checkbox) {
     const table = window.tableWidgets[`#${checkbox.closest('table').attr('id')}`]
     const row = checkbox.closest('tr');
     const on = checkbox.prop('checked');
@@ -271,26 +425,11 @@ function selectCheckboxClickHandler (e, checkbox) {
 }
 
 
-function deleteButtonClickHandler (e, button) {
+function deleteButtonClickHandler(e, button) {
     const form = button.closest('.table-wrapper').find('.delete-record-form form');
     const input = form.find('input').filter(function () {
         return $(this).hasClass('model-id')
     });
     input.val(button.data('record-target'));
     form.find('.submit-btn').click();
-}
-
-function tablesSetup() {
-    $('th.select').each(function () {
-        renderSelectHeader($(this));
-    });
-
-    $('.delete-record-form').each(function () {
-        const form = $(this).find('form');
-        const tableId = $(this).data('table-id');
-
-        form.on('submit-success', function (e, data) {
-            window.tableWidgets[`#${tableId}`].table.ajax.reload();
-        });
-    });
 }

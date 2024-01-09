@@ -3,12 +3,13 @@ from __future__ import annotations
 import json
 from typing import (List, Dict, Any)
 
+from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
 
 from widgets.base import Widget
-from widgets.listing.columns import (Column, SelectColumn, DeleteColumn)
+from widgets.listing.columns import Column, SelectColumn, DeleteColumn
 from widgets.listing.data_sources import TableDataSource
-from widgets.forms import (BaCa2ModelForm, FormWidget)
+from widgets.forms import BaCa2ModelForm, FormWidget
 from widgets.popups.forms import SubmitConfirmationPopup
 from widgets.forms.course import DeleteCourseForm
 from main.models import Course
@@ -20,8 +21,13 @@ class TableWidget(Widget):
     }
 
     def __init__(self,
+                 request: HttpRequest,
                  data_source: TableDataSource,
                  cols: List[Column],
+                 title: str = '',
+                 display_title: bool = True,
+                 allow_global_search: bool = True,
+                 allow_column_search: bool = True,
                  allow_select: bool = False,
                  allow_delete: bool = False,
                  name: str = '',
@@ -35,7 +41,12 @@ class TableWidget(Widget):
         if not name:
             name = data_source.generate_table_widget_name()
 
-        super().__init__(name)
+        super().__init__(name=name, request=request)
+
+        if not title:
+            title = data_source.generate_table_widget_title()
+        self.title = title
+        self.display_title = display_title
 
         if not default_order_col:
             default_order_col = next(col.name for col in cols if getattr(col, 'sortable'))
@@ -52,6 +63,7 @@ class TableWidget(Widget):
                 raise ValueError(f'No delete form found for model {model}.')
 
             delete_record_form_widget = DeleteRecordFormWidget(
+                request=request,
                 form=TableWidget.delete_forms[model](),
                 post_url=data_source.get_url(),
                 name=f'{name}_delete_record_form'
@@ -62,15 +74,31 @@ class TableWidget(Widget):
         self.allow_delete = allow_delete
         self.delete_record_form_widget = delete_record_form_widget
 
+        if allow_select and allow_delete:
+            self.delete_button = True
+        else:
+            self.delete_button = False
+
         if stripe_rows:
             self.add_class('stripe')
 
-        self.data_source = data_source
+        for col in cols:
+            col.request = request
         self.cols = cols
+
+        self.allow_global_search = allow_global_search
+        self.allow_column_search = allow_column_search
+        self.refresh_button = refresh_button
+        self.data_source = data_source
         self.paging = paging
         self.refresh = refresh
         self.refresh_interval = refresh_interval * 1000
         self.default_order = 'asc' if default_order_asc else 'desc'
+
+        if self.delete_button or self.refresh_button:
+            self.table_buttons = True
+        else:
+            self.table_buttons = False
 
         try:
             self.default_order_col = next(index for index, col in enumerate(cols)
@@ -80,18 +108,29 @@ class TableWidget(Widget):
 
     def get_context(self) -> Dict[str, Any]:
         return super().get_context() | {
+            'title': self.title,
+            'display_util_header': self.display_util_header(),
+            'display_title': self.display_title,
+            'allow_global_search': json.dumps(self.allow_global_search),
+            'allow_column_search': self.allow_column_search,
             'data_source_url': self.data_source.get_url(),
             'cols': [col.get_context() for col in self.cols],
             'cols_num': len(self.cols),
+            'table_buttons': self.table_buttons,
             'paging': self.paging.get_context() if self.paging else json.dumps(False),
             'refresh': json.dumps(self.refresh),
             'refresh_interval': self.refresh_interval,
+            'refresh_button': json.dumps(self.refresh_button),
             'default_order_col': self.default_order_col,
             'default_order': self.default_order,
             'allow_delete': self.allow_delete,
+            'delete_button': self.delete_button,
             'delete_record_form_widget': self.delete_record_form_widget.get_context()
             if self.delete_record_form_widget else None
         }
+
+    def display_util_header(self) -> bool:
+        return self.display_title or self.table_buttons or self.allow_global_search
 
 
 class TableWidgetPaging:
@@ -121,8 +160,13 @@ class TableWidgetPaging:
 
 
 class DeleteRecordFormWidget(FormWidget):
-    def __init__(self, form: BaCa2ModelForm, post_url: str, name: str) -> None:
-        super().__init__(form=form,
+    def __init__(self,
+                 request: HttpRequest,
+                 form: BaCa2ModelForm,
+                 post_url: str,
+                 name: str) -> None:
+        super().__init__(request=request,
+                         form=form,
                          post_target=post_url,
                          name=name,
                          submit_confirmation_popup=SubmitConfirmationPopup(
