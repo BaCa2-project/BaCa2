@@ -13,6 +13,12 @@
     .card {
         overflow: hidden;
     }
+
+    .table-responsive[data-paging="false"] {
+        .dataTables_info {
+            display: none;
+        }
+    }
 }
 
 @each $theme, $map in $table_theme_variables {
