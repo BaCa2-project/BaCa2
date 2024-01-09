@@ -1,4 +1,8 @@
 @charset "UTF-8";
+:root {
+  --bs-form-valid-border-color: $red;
+}
+
 /*!
  * Bootstrap  v5.3.1 (https://getbootstrap.com/)
  * Copyright 2011-2023 The Bootstrap Authors

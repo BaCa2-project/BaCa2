@@ -130,6 +130,12 @@ class TableWidget {
         });
     }
 
+    getAllSelectedRows() {
+        return this.table.rows().nodes().to$().filter(function () {
+            return $(this).hasClass('row-selected');
+        });
+    }
+
     getFilteredOutRows() {
         return this.table
                    .rows({search: 'removed'})

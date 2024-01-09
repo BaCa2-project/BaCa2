@@ -3,11 +3,9 @@ from __future__ import annotations
 from typing import List, TYPE_CHECKING
 from abc import ABC
 
-from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
 from django import forms
 
-import widgets.forms
 from util.models import model_cls
 from util.models_registry import ModelsRegistry
 from main.models import Course
@@ -215,6 +213,10 @@ class CharArrayField(forms.CharField):
             for elem in value:
                 validator(elem)
 
+        for elem in value:
+            if not elem:
+                raise forms.ValidationError(_('This field cannot contain empty strings.'))
+
         if self.queryset and any(elem not in self.queryset for elem in value):
             raise forms.ValidationError(self.queryset_validation_error_message())
 
@@ -357,7 +359,6 @@ class CourseModelArrayField(ModelArrayField):
         """
         super().__init__(model=model, item_validators=item_validators, **kwargs)
         self.course = ModelsRegistry.get_course(course)
-        self.widget.attrs.update({'data-special-type': 'table-select'})
 
     def __getattribute__(self, item):
         """
@@ -365,103 +366,7 @@ class CourseModelArrayField(ModelArrayField):
         instance IDs.
         """
         if item == 'queryset':
+
             with InCourse(self.course.short_name):
                 return [instance.id for instance in self.model.objects.all()]
         return super().__getattribute__(item)
-
-
-class TableSelectField(IntegerArrayField):
-    def __init__(self,
-                 request: HttpRequest,
-                 data_source: TableDataSource,
-                 cols: List[Column],
-                 allow_column_search: bool = True,
-                 **kwargs) -> None:
-        from widgets.listing import TableWidget
-
-        super().__init__(**kwargs)
-        self.data_source = data_source
-        self.cols = cols
-        self.table_widget = TableWidget(
-            request=request,
-            data_source=data_source,
-            cols=cols,
-            allow_column_search=allow_column_search,
-            allow_select=True,
-        )
-
-
-class TestForm(forms.Form):
-    from course.models import Round
-
-    test = CourseModelArrayField(Round, course='mj_2023')
-
-
-class TestFormWidget(widgets.forms.FormWidget):
-    def __init__(self, request: HttpRequest):
-        super().__init__(request=request, form=TestForm(), name='test_form_widget')
-
-
-# ------------------------------------- table select field ------------------------------------- #
-
-class TableSelectField(forms.CharField):
-    """
-    Form field used to store IDs of records selected in a table widget. The field is hidden and in
-    its place the stored table widget is rendered. The field is updated live when records are
-    selected or deselected in the table widget.
-
-    See also:
-        - :class:`TableWidget`
-        - :class:`widgets.forms.base.TableWidget`
-    """
-
-    def __init__(self, data_source: TableDataSource, cols: List[Column]) -> None:
-        pass
-
-    # TODO: Implement TableSelectField with new TableWidget
-    """
-    def __init__(self, table_widget: TableWidget, **kwargs) -> None:
-        
-        :param table_widget: Table widget to use for record selection.
-        :type table_widget: TableWidget
-
-        :raises TableSelectFieldException: If the table widget does not have record selection
-        enabled.
-        
-        if not table_widget.has_record_method('select'):
-            raise TableSelectField.TableSelectFieldException(
-                'Table widget used in TableSelectField does not have '
-                'record selection enabled.'
-            )
-
-        super().__init__(
-            label=_('Selected rows IDs'),
-            widget=forms.HiddenInput(
-                attrs={'class': 'table-select-field', 'data-table-target': table_widget.table_id}
-            ),
-            initial='',
-            **kwargs
-        )
-        self.table_widget = table_widget.get_context()
-
-    @staticmethod
-    def get_target_list(form: forms.Form, field_name: str) -> List[int] | None:
-        
-        Get a list of ids of targeted model instances from a table select field of a form.
-
-        :param form: Form containing the table select field.
-        :type form: forms.Form
-        :param field_name: Name of the table select field.
-        :type field_name: str
-
-        :return: List of ids of targeted model instances or `None` if it was not provided in the
-            request
-        :rtype: List[int] | None
-        
-        targets: str = form.cleaned_data.get(field_name, None)
-
-        if not targets:
-            return None
-
-        return [int(target_id) for target_id in targets.split(',')]
-    """
