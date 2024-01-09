@@ -16,21 +16,37 @@ from main.models import Course
 
 
 class TableWidget(Widget):
+    """
+    Widget used to display a table of data. Constructor arguments define the table's properties
+    such as title, columns, data source, search options, etc.
+
+    The table widget is rendered with the help of the DataTables jQuery plugin using the
+    `templates/widget_templates/table.html` template.
+
+    See also:
+        - :class:`TableDataSource`
+        - :class:`Column`
+        - :class:`TableWidgetPaging`
+        - :class:`Widget`
+    """
+
+    #: Mapping of models to delete forms. Necessary for record deletion to work.
     delete_forms = {
         Course: DeleteCourseForm
     }
 
     def __init__(self,
-                 request: HttpRequest,
                  data_source: TableDataSource,
                  cols: List[Column],
+                 request: HttpRequest | None = None,
+                 name: str = '',
                  title: str = '',
                  display_title: bool = True,
                  allow_global_search: bool = True,
                  allow_column_search: bool = True,
                  allow_select: bool = False,
+                 deselect_on_filter: bool = True,
                  allow_delete: bool = False,
-                 name: str = '',
                  paging: TableWidgetPaging = None,
                  refresh_button: bool = False,
                  refresh: bool = False,
@@ -38,6 +54,54 @@ class TableWidget(Widget):
                  default_order_col: str = '',
                  default_order_asc: bool = True,
                  stripe_rows: bool = True) -> None:
+        """
+        :param data_source: The data source object used to generate the url from which the table
+            data is fetched via AJAX request.
+        :type data_source: :class:`TableDataSource`
+        :param cols: List of columns to be displayed in the table. Each column object defines the
+            column's properties such as name, header, searchability, etc.
+        :type cols: List[:class:`Column`]
+        :param request: The HTTP request object received by the view this table widget is rendered
+            in.
+        :type request: HttpRequest
+        :param name: The name of the table widget. If not set, the data source object is used to
+            generate a name. Names are used as the id of the table element.
+        :type name: str
+        :param title: The title of the table. If not set, the data source object is used to
+            generate a title. The title is displayed in the util header above the table.
+        :type title: str
+        :param display_title: Whether to display the title in the util header above the table.
+        :type display_title: bool
+        :param allow_global_search: Whether to display a global search field in the util header
+            above the table.
+        :type allow_global_search: bool
+        :param allow_column_search: Whether to display a search field for each searchable column.
+        :type allow_column_search: bool
+        :param allow_select: Whether to allow selecting rows in the table.
+        :type allow_select: bool
+        :param deselect_on_filter: Whether to deselect all selected filtered out rows when global
+            or column search is applied.
+        :type deselect_on_filter: bool
+        :param allow_delete: Whether to allow deleting records from the table.
+        :type allow_delete: bool
+        :param paging: Paging options for the table. If not set, paging is disabled.
+        :type paging: :class:`TableWidgetPaging`
+        :param refresh_button: Whether to display a refresh button in the util header above the
+            table. Refreshing the table will reload the data from the data source.
+        :type refresh_button: bool
+        :param refresh: Whether to automatically refresh the table data at a given interval.
+        :type refresh: bool
+        :param refresh_interval: The interval in seconds at which the table data is refreshed.
+        :type refresh_interval: int
+        :param default_order_col: The name of the column to use for default ordering. If not set,
+            the first column with sortable=True is used.
+        :type default_order_col: str
+        :param default_order_asc: Whether to use ascending or descending order for default
+            ordering. If not set, ascending order is used.
+        :type default_order_asc: bool
+        :param stripe_rows: Whether to stripe the table rows.
+        :type stripe_rows: bool
+        """
         if not name:
             name = data_source.generate_table_widget_name()
 
@@ -88,6 +152,7 @@ class TableWidget(Widget):
 
         self.allow_global_search = allow_global_search
         self.allow_column_search = allow_column_search
+        self.deselect_on_filter = deselect_on_filter
         self.refresh_button = refresh_button
         self.data_source = data_source
         self.paging = paging
@@ -113,6 +178,7 @@ class TableWidget(Widget):
             'display_title': self.display_title,
             'allow_global_search': json.dumps(self.allow_global_search),
             'allow_column_search': self.allow_column_search,
+            'deselect_on_filter': json.dumps(self.deselect_on_filter),
             'data_source_url': self.data_source.get_url(),
             'cols': [col.get_context() for col in self.cols],
             'cols_num': len(self.cols),
@@ -130,15 +196,41 @@ class TableWidget(Widget):
         }
 
     def display_util_header(self) -> bool:
+        """
+        Returns whether to display the util header above the table depending on the table's
+        properties.
+
+        :return: Whether to display the util header above the table.
+        :rtype: bool
+        """
         return self.display_title or self.table_buttons or self.allow_global_search
 
 
 class TableWidgetPaging:
+    """
+    Helper class for table widget used to define paging options.
+
+    See also:
+        - :class:`TableWidget`
+    """
     def __init__(self,
                  page_length: int = 10,
                  allow_length_change: bool = False,
                  length_change_options: List[int] = None,
                  deselect_on_page_change: bool = True) -> None:
+        """
+        :param page_length: The number of records to display per page.
+        :type page_length: int
+        :param allow_length_change: Whether to allow changing the number of records displayed per
+            page.
+        :type allow_length_change: bool
+        :param length_change_options: List of options for the number of records displayed per page.
+            If not set, the options are generated automatically based on the default page length.
+        :type length_change_options: List[int]
+        :param deselect_on_page_change: Whether to deselect all selected rows when changing the
+            page. Only relevant if the table allows selecting rows.
+        :type deselect_on_page_change: bool
+        """
         self.page_length = page_length
         self.allow_length_change = allow_length_change
         self.deselect_on_page_change = deselect_on_page_change
@@ -160,11 +252,31 @@ class TableWidgetPaging:
 
 
 class DeleteRecordFormWidget(FormWidget):
+    """
+    Form widget class used to render a delete record form of the table widget if it allows for
+    record deletion.
+
+    See also:
+        - :class:`TableWidget`
+        - :class:`FormWidget`
+    """
     def __init__(self,
                  request: HttpRequest,
                  form: BaCa2ModelForm,
                  post_url: str,
                  name: str) -> None:
+        """
+        :param request: The HTTP request object received by the view this form widget's parent
+            table widget is rendered in.
+        :type request: HttpRequest
+        :param form: The delete record form.
+        :type form: :class:`BaCa2ModelForm`
+        :param post_url: The url to which the form is posted. Should be the url of the model class
+            view from which the table widget receives its data.
+        :type post_url: str
+        :param name: The name of the delete record form widget.
+        :type name: str
+        """
         super().__init__(request=request,
                          form=form,
                          post_target=post_url,

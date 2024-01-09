@@ -124,6 +124,18 @@ class TableWidget {
                    .nodes().to$();
     }
 
+    getCurrentSelectedRows() {
+        return this.getCurrentRowsInOrder().filter(function () {
+            return $(this).hasClass('row-selected');
+        });
+    }
+
+    getAllSelectedRows() {
+        return this.table.rows().nodes().to$().filter(function () {
+            return $(this).hasClass('row-selected');
+        });
+    }
+
     getFilteredOutRows() {
         return this.table
                    .rows({search: 'removed'})
@@ -196,7 +208,8 @@ function globalSearchSetup(tableWrapper) {
 }
 
 function globalSearchInputHandler(inputField, table, tableWidget) {
-    tableWidget.toggleSelectRows(tableWidget.getFilteredOutRows(), false);
+    if (table.data('deselect-on-filter'))
+        tableWidget.toggleSelectRows(tableWidget.getFilteredOutRows(), false);
 
     if (inputField.val() === '')
         table.removeClass('filtered');
@@ -220,7 +233,8 @@ function columnSearchSetup(tableWrapper) {
 function columnSearchInputHandler(inputField, table, tableWidget) {
     tableWidget.table.column(inputField.closest('th')).search(inputField.val()).draw();
 
-    tableWidget.toggleSelectRows(tableWidget.getFilteredOutRows(), false);
+    if (table.data('deselect-on-filter'))
+        tableWidget.toggleSelectRows(tableWidget.getFilteredOutRows(), false);
 
     if (inputField.val() === '')
         table.removeClass('filtered');
