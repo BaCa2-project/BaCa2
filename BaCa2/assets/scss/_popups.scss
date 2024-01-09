@@ -1,0 +1,104 @@
+@import "baca2_variables";
+
+// --------------------------------- submit confirmation popup -------------------------------- //
+
+.form-confirmation-popup {
+    p.popup-message {
+        margin-bottom: 0;
+    }
+
+    .popup-summary {
+        margin-top: 1rem;
+    }
+}
+
+// ------------------------------ submit success & failure popups ----------------------------- //
+
+.form-success-popup .path {
+	stroke: $submit_success_color;
+}
+
+.form-failure-popup .path {
+	stroke: $submit_failure_color;
+}
+
+.form-success-popup, .form-failure-popup {
+	.modal-content {
+		svg {
+			width: 100px;
+		}
+
+		.path {
+			stroke-dasharray: 1000;
+			stroke-dashoffset: 0;
+
+			&.circle {
+				-webkit-animation: dash 0.9s ease-in-out;
+				animation: dash 0.9s ease-in-out;
+			}
+
+			&.line {
+				stroke-dashoffset: 1000;
+				-webkit-animation: dash 0.95s 0.35s ease-in-out forwards;
+				animation: dash 0.95s 0.35s ease-in-out forwards;
+			}
+
+			&.check {
+				stroke-dashoffset: -100;
+				-webkit-animation: dash-check 0.95s 0.35s ease-in-out forwards;
+				animation: dash-check 0.95s 0.35s ease-in-out forwards;
+			}
+		}
+	}
+}
+
+// ------------------------------- success & failure animations ------------------------------- //
+
+@-webkit-keyframes dash {
+	0% {
+		stroke-dashoffset: 1000;
+	}
+	100% {
+		stroke-dashoffset: 0;
+	}
+}
+@keyframes dash {
+	0% {
+		stroke-dashoffset: 1000;
+	}
+	100%{
+		stroke-dashoffset: 0;
+	}
+}
+@-webkit-keyframes dash {
+	0% {
+		stroke-dashoffset: 1000;
+	}
+	100% {
+		stroke-dashoffset: 0;
+	}
+}
+@keyframes dash {
+	0% {
+		stroke-dashoffset: 1000;
+	}
+	100% {
+		stroke-dashoffset: 0;
+	}
+}
+@-webkit-keyframes dash-check {
+	0% {
+		stroke-dashoffset: -100;
+	}
+	100% {
+		stroke-dashoffset: 900;
+	}
+}
+@keyframes dash-check {
+	0% {
+		stroke-dashoffset: -100;
+	}
+	100% {
+		stroke-dashoffset: 900;
+	}
+}

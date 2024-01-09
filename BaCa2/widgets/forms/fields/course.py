@@ -6,8 +6,8 @@ from main.models import Course
 
 class CourseShortName(forms.CharField):
     """
-    Custom form field for :py:class:`main.Course` short name. Its validators check if the course
-    code is unique and if it contains only alphanumeric characters and underscores.
+    Form field for :class:`main.Course` short name. Its validators check if the course code is
+    unique and if it contains only alphanumeric characters and underscores.
     """
 
     def __init__(self, **kwargs) -> None:
@@ -47,3 +47,29 @@ class CourseShortName(forms.CharField):
         if any(not (c.isalnum() or c == '_') for c in value):
             raise forms.ValidationError(_('Course code can only contain alphanumeric characters and'
                                           'underscores.'))
+
+
+class USOSCode(forms.CharField):
+    """
+    Form field for USOS subject and term codes of a course.
+    """
+    def __init__(self, **kwargs) -> None:
+        super().__init__(
+            min_length=1,
+            validators=[USOSCode.validate_syntax],
+            **kwargs
+        )
+
+    @staticmethod
+    def validate_syntax(value: str) -> None:
+        """
+        Checks if the USOS code contains only alphanumeric characters, hyphens and dots.
+
+        :param value: USOS code.
+        :type value: str
+        :raises: ValidationError if the USOS code contains characters other than alphanumeric
+            characters, hyphens and dots.
+        """
+        if any(not c.isalnum() and c not in ['-', '.'] for c in value):
+            raise forms.ValidationError(_('USOS code can only contain alphanumeric characters,'
+                                          'hyphens and dots.'))

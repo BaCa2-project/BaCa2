@@ -1,27 +1,77 @@
-from datetime import datetime, timedelta
-
-import json
-from http import server
 import cgi
-from time import sleep
-
-from django.core.files.uploadedfile import SimpleUploadedFile
-from threading import Thread
+from datetime import datetime, timedelta
+from http import server
+from threading import Thread, Lock
+from typing import Any
 
 from django.test import TestCase, Client
+from django.core.management import call_command
 
-from BaCa2.settings import BACA_PASSWORD
-from broker_api.broker_communication import BacaToBroker, BrokerToBaca
-from broker_api.models import BrokerSubmit
-from course.manager import create_course, delete_course
+from BaCa2.settings import SUBMITS_DIR, BROKER_PASSWORD, BACA_PASSWORD, BrokerRetryPolicy
+from broker_api.broker_communication import *
+from broker_api.views import *
 from course.models import Round, Task, Submit
 from course.routing import InCourse
 from main.models import Course, User
-from package.models import PackageSource, PackageInstance
-from BaCa2.settings import SUBMITS_DIR
+from package.models import PackageInstance
 
 
-class BacaApiHandler(server.BaseHTTPRequestHandler):
+class DelayedAction(dict):
+
+    INSTANCE = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls.INSTANCE is None:
+            cls.INSTANCE = super().__new__(cls)
+        return cls.INSTANCE
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.locks: dict[Any, Lock] = {}
+
+    def set_lock(self, key):
+        if key not in self.locks:
+            self.locks[key] = Lock()
+            self.locks[key].acquire()
+
+    def release_lock(self, key):
+        if key not in self.locks:
+            self.set_lock(key)
+        if self.locks[key].locked():
+            self.locks[key].release()
+
+    def put_func(self, key, func, *args, **kwargs):
+        self[key] = (func, args, kwargs)
+        self.release_lock(key)
+
+    def exec_func(self, key) -> Any:
+        func, args, kwargs = self[key]
+        del self[key]
+        return func(*args, **kwargs)
+
+    def wait_for(self, key, timeout=5):
+        tmp = self.locks[key].acquire(timeout=timeout)
+        if not tmp:
+            return False
+        self.locks[key].release()
+        del self.locks[key]
+        return True
+
+    def clear(self):
+        for key in self.locks:
+            if self.locks[key].locked():
+                self.locks[key].release()
+        self.locks.clear()
+        super().clear()
+
+
+def send(url, message):
+    cl = Client()
+    resp = cl.post(url, message, content_type='application/json')
+    return resp
+
+
+class DummyBrokerHandler(server.BaseHTTPRequestHandler):
 
     def do_POST(self):
         type_, pdict = cgi.parse_header(self.headers.get('content-type'))
@@ -36,7 +86,23 @@ class BacaApiHandler(server.BaseHTTPRequestHandler):
 
         try:
             content = BacaToBroker.parse(message)
-        except TypeError:  # TODO
+            if content.pass_hash != make_hash(BROKER_PASSWORD, content.submit_id):
+                out = BrokerToBacaError(
+                    make_hash(BACA_PASSWORD, content.submit_id),
+                    content.submit_id,
+                    "Error"
+                )
+                DelayedAction.INSTANCE.put_func(content.submit_id, send,
+                                                '/broker_api/error', json.dumps(out.serialize()))
+            else:
+                out = BrokerToBaca(
+                    pass_hash=make_hash(BACA_PASSWORD, content.submit_id),
+                    submit_id=content.submit_id,
+                    results={}
+                )
+                DelayedAction.INSTANCE.put_func(content.submit_id, send,
+                                                '/broker_api/result', json.dumps(out.serialize()))
+        except TypeError:
             self.send_response(400)
             self.end_headers()
             return
@@ -47,8 +113,6 @@ class BacaApiHandler(server.BaseHTTPRequestHandler):
 
 class General(TestCase):
     instance = None
-    server = None
-    thread = None
     course = None
     pkg_instance = None
     task = None
@@ -56,18 +120,17 @@ class General(TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.course = Course(name='course1', short_name='c1', db_name='course1_db')
-        cls.course.save()
-        create_course(cls.course.name)
+        DelayedAction()  # Initialize singleton
 
-        cls.pkg_instance = PackageInstance.create_from_name('dosko', '1')
+        cls.course = Course.objects.create_course(name=f'course1_{datetime.now().timestamp()}')
+
+        cls.pkg_instance = PackageInstance.objects.create_package_instance('dosko', '1')
         cls.pkg_instance.save()
 
-        cls.user = User.objects.create_user(username=f'user1_{datetime.now().timestamp()}',
-                                            password='user1',
+        cls.user = User.objects.create_user(password='user1',
                                             email=f'test{datetime.now().timestamp()}@test.pl')
 
-        with InCourse(cls.course.name):
+        with InCourse(cls.course.short_name):
             round_ = Round.objects.create(start_date=datetime.now(),
                                           deadline_date=datetime.now() + timedelta(days=1),
                                           reveal_date=datetime.now() + timedelta(days=2))
@@ -83,57 +146,173 @@ class General(TestCase):
 
     @classmethod
     def tearDownClass(cls) -> None:
-        delete_course(cls.course.name)
+        Course.objects.delete_course(cls.course)
+
+    def setUp(self) -> None:
+        self.server = server.HTTPServer(('127.0.0.1', 8180), DummyBrokerHandler)
+        self.thread = Thread(target=self.server.serve_forever)
+        self.thread.start()
+        DelayedAction.INSTANCE.clear()
 
     def tearDown(self) -> None:
-        if self.server is not None:
-            self.server.shutdown()
-            self.server.server_close()
-            self.thread.join()
-            self.server = None
-            self.thread = None
-
-    # def test_basic(self):
-    #     self.server = server.HTTPServer(('127.0.0.1', 8180), BacaApiHandler)
-    #     self.thread = Thread(target=self.server.serve_forever)
-    #     self.thread.start()
-    #
-    #     src_code = SUBMITS_DIR / '1234.cpp'
-    #
-    #     submit_id = None
-    #     with InCourse(self.course.name):
-    #         submit = Submit.create_new(source_code=src_code, task=self.task, usr=self.user)
-    #         submit.save()
-    #         submit_id = submit.pk
-    #
-    #     broker_submit = BrokerSubmit.send(self.course, submit_id, self.pkg_instance)
-    #     c = Client()
-    #     data = BrokerToBaca(
-    #         pass_hash=broker_submit.hash_password(BACA_PASSWORD),
-    #         submit_id=broker_submit.broker_id,
-    #         results={}
-    #     )
-    #     r = c.post(path=f'http://127.0.0.1:8000/broker_api/result/{broker_submit.broker_id}',
-    #                data=data.serialize(),
-    #                content_type='application/json')
-    #     broker_submit.refresh_from_db()
-    #     self.assertTrue(broker_submit.status == broker_submit.StatusEnum.CHECKED)
+        self.server.shutdown()
+        self.server.server_close()
+        self.thread.join()
 
     def test_broker_communication(self):
-        # this test requires running broker server on localhost:8180
-
         src_code = SUBMITS_DIR / '1234.cpp'
         src_code = src_code.absolute()
 
-        submit_id = None
-        with InCourse(self.course.name):
+        with InCourse(self.course.short_name):
             submit = Submit.create_new(source_code=src_code, task=self.task, usr=self.user)
             submit.pk = datetime.now().timestamp()
             submit.save()
             submit_id = submit.pk
+            DelayedAction.INSTANCE.set_lock(create_broker_submit_id(self.course.name, int(submit_id)))
+            broker_submit = BrokerSubmit.send(self.course, submit_id,
+                                              self.pkg_instance, broker_password=BROKER_PASSWORD)
 
-        broker_submit = BrokerSubmit.send(self.course, submit_id, self.pkg_instance)
+        self.assertTrue(DelayedAction.INSTANCE.wait_for(broker_submit.broker_id, 2))
+        self.assertEqual(200, DelayedAction.INSTANCE.exec_func(broker_submit.broker_id).status_code)
 
-        while broker_submit.status != BrokerSubmit.StatusEnum.SAVED:
-            sleep(1)
-            broker_submit.refresh_from_db()
+        broker_submit.refresh_from_db()
+        self.assertTrue(broker_submit.status == BrokerSubmit.StatusEnum.SAVED)
+
+    def test_broker_communication_error(self):
+        src_code = SUBMITS_DIR / '1234.cpp'
+        src_code = src_code.absolute()
+
+        with InCourse(self.course.short_name):
+            submit = Submit.create_new(source_code=src_code, task=self.task, usr=self.user)
+            submit.pk = 1
+            submit.save()
+            submit_id = submit.pk
+            DelayedAction.INSTANCE.set_lock(create_broker_submit_id(self.course.name, int(submit_id)))
+            broker_submit = BrokerSubmit.send(self.course, submit_id,
+                                              self.pkg_instance, broker_password='wrong')
+
+        self.assertTrue(DelayedAction.INSTANCE.wait_for(broker_submit.broker_id, 2))
+        self.assertEqual(200, DelayedAction.INSTANCE.exec_func(broker_submit.broker_id).status_code)
+
+        broker_submit.refresh_from_db()
+        self.assertTrue(broker_submit.status == BrokerSubmit.StatusEnum.ERROR)
+
+    def test_wrong_requests(self):
+        cl = Client()
+        self.assertEqual(404, cl.get('/broker_api/result').status_code)
+        self.assertEqual(404, cl.get('/broker_api/error').status_code)
+        self.assertEqual(400, cl.post('/broker_api/result', content_type='text/plain').status_code)
+        self.assertEqual(400, cl.post('/broker_api/error', content_type='text/plain').status_code)
+
+    def test_broker_no_communication(self):
+        src_code = SUBMITS_DIR / '1234.cpp'
+        src_code = src_code.absolute()
+
+        with InCourse(self.course.short_name):
+            submit = Submit.create_new(source_code=src_code, task=self.task, usr=self.user)
+            submit.pk = 1
+            submit.save()
+            submit_id = submit.pk
+            self.assertRaises(ConnectionError, BrokerSubmit.send, self.course, submit_id,
+                              self.pkg_instance, broker_url='http://127.0.0.1/wrong')
+
+        broker_submit = BrokerSubmit.objects.get(course=self.course, submit_id=submit_id)
+        self.assertEqual(broker_submit.status, BrokerSubmit.StatusEnum.ERROR)
+
+    def test_wrong_submit_id(self):
+        ret = send('/broker_api/result', json.dumps(BrokerToBaca(
+            pass_hash=make_hash(BACA_PASSWORD, 'wrong___12'),
+            submit_id='wrong___12',
+            results={}
+        ).serialize()))
+        self.assertEqual(403, ret.status_code)
+
+        ret = send('/broker_api/error', json.dumps(BrokerToBacaError(
+            pass_hash=make_hash(BACA_PASSWORD, 'wrong___12'),
+            submit_id='wrong___12',
+            error='error'
+        ).serialize()))
+        self.assertEqual(403, ret.status_code)
+
+    def test_wrong_password(self):
+        src_code = SUBMITS_DIR / '1234.cpp'
+        src_code = src_code.absolute()
+
+        with InCourse(self.course.short_name):
+            submit = Submit.create_new(source_code=src_code, task=self.task, usr=self.user)
+            submit.pk = 1
+            submit.save()
+            submit_id = submit.pk
+            DelayedAction.INSTANCE.set_lock(create_broker_submit_id(self.course.name, int(submit_id)))
+            broker_submit = BrokerSubmit.send(self.course, submit_id,
+                                              self.pkg_instance, broker_password='wrong')
+
+        ret = send('/broker_api/result', json.dumps(BrokerToBaca(
+            pass_hash=make_hash('wrong', broker_submit.broker_id),
+            submit_id=broker_submit.broker_id,
+            results={}
+        ).serialize()))
+        self.assertEqual(401, ret.status_code)
+
+    def test_deleteErrors(self):
+        for i in range(10):
+            BrokerSubmit.objects.create(course=self.course,
+                                        submit_id=i,
+                                        package_instance=self.pkg_instance,
+                                        status=BrokerSubmit.StatusEnum.ERROR,
+                                        update_date=datetime.now() - timedelta(BrokerRetryPolicy.deletion_timeout))
+        for i in range(10):
+            BrokerSubmit.objects.create(course=self.course,
+                                        submit_id=i,
+                                        package_instance=self.pkg_instance,
+                                        status=BrokerSubmit.StatusEnum.ERROR,
+                                        update_date=datetime.now())
+        self.assertEqual(20, BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.ERROR).count())
+        call_command('deleteErrors')
+        self.assertEqual(10, BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.ERROR).count())
+
+    def test_markExpired(self):
+        for i in range(10):
+            BrokerSubmit.objects.create(course=self.course,
+                                        submit_id=i,
+                                        package_instance=self.pkg_instance,
+                                        status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE,
+                                        update_date=datetime.now() - timedelta(BrokerRetryPolicy.expiration_timeout))
+        for i in range(10):
+            BrokerSubmit.objects.create(course=self.course,
+                                        submit_id=i,
+                                        package_instance=self.pkg_instance,
+                                        status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE,
+                                        update_date=datetime.now())
+        self.assertEqual(20, BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE).count())
+        call_command('markExpired')
+        self.assertEqual(10, BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.EXPIRED).count())
+
+    def test_resendToBroker(self):
+        for i in range(10):
+            src_code = SUBMITS_DIR / '1234.cpp'
+            src_code = src_code.absolute()
+
+            with InCourse(self.course.short_name):
+                submit = Submit.create_new(source_code=src_code, task=self.task, usr=self.user)
+                submit.pk = i
+                submit.save()
+                submit_id = submit.pk
+                BrokerSubmit.send(self.course, submit_id,
+                                  self.pkg_instance, broker_password=BROKER_PASSWORD)
+
+        call_command('resendToBroker')
+        self.assertEqual(10, BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE).count())
+        for i in range(BrokerRetryPolicy.resend_max_retries):
+            BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE, submit_id__gte=5).update(
+                                        status=BrokerSubmit.StatusEnum.EXPIRED)
+            call_command('resendToBroker')
+            self.assertEqual(10, BrokerSubmit.objects.filter(
+                status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE).count())
+            self.assertEqual(0, BrokerSubmit.objects.filter(
+                status=BrokerSubmit.StatusEnum.EXPIRED).count())
+        BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE, submit_id__gte=5).update(
+            status=BrokerSubmit.StatusEnum.EXPIRED)
+        call_command('resendToBroker')
+        self.assertEqual(5, BrokerSubmit.objects.filter(
+            status=BrokerSubmit.StatusEnum.ERROR).count())

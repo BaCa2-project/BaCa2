@@ -1,27 +1,24 @@
-BaCa2 technical documentation
-=============================
+Welcome to BaCa2's documentation!
+=================================
 
-**BaCa2** is automated checking system for programming tasks. Firstly
-developed for Jagiellonian University in Cracow, Poland. Main advantage of this system is
-either simplicity of usage and complexity of possible to be checked tasks.
-
-.. important::
-   This project is under active development. Documentation may be defective.
-
-.. toctree::
+..  toctree::
     :maxdepth: 2
+    :caption: Apps:
 
-    modules/description
-    usage
+    modules/apps/main/index
+    modules/apps/course/index
+    modules/apps/package/index
+    modules/apps/util/index
+    modules/app/broker_api/index
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Apps:
+..  toctree::
+    :maxdepth: 2
+    :caption: Widgets:
 
-   modules/main
-   modules/package
-   modules/course
-
+    modules/widgets/base
+    modules/widgets/navigation
+    modules/widgets/forms/index
+    modules/widgets/listing/index
 
 
 Indices and tables

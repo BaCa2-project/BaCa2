@@ -1,37 +1,44 @@
 @import "baca2_variables";
 @import "functions";
 
-.table-icons-util {
-    display: none;
-}
-
 .table-wrapper {
-    .record-method-link {
-        display: flex;
-        width: fit-content;
-        height: fit-content;
+    .table-widget-forms-wrapper form {
+        display: none;
+    }
+
+    .table-buttons {
+        --bs-gutter-x: 0.5rem;
+    }
+
+    .card {
+        overflow: hidden;
+    }
+
+    .table-responsive[data-paging="false"] {
+        .dataTables_info {
+            display: none;
+        }
     }
 }
 
 @each $theme, $map in $table_theme_variables {
     [data-bs-theme="#{$theme}"] .table-wrapper {
-        .record-method-link {
-            .icon-wrapper {
-                svg {
-                    transition: stroke ease 0.5s;
-                    stroke: safe_get($map, $table_default_variables, icon_color);
-                }
+        .table-util-header {
+            background-color: safe_get($map, $table_default_variables, util_header_bg_color);
+        }
 
-                @each $icon in [details, edit, delete] {
-                    &.#{$icon}-icon:hover svg {
-                        stroke: safe_get($map, $table_default_variables, hover_icon_color_#{$icon})
-                    }
-                }
+        td.delete {
+            i {
+                color: safe_get($map, $table_default_variables, delete_icon_color)
+            }
+
+            &:hover i {
+                color: safe_get($map, $table_default_variables, delete_icon_color_hover)
             }
         }
 
-        .form-check {
-            width: fit-content;
+        .row-selected td {
+            background-color: safe_get($map, $table_default_variables, selected_row_bg_color);
         }
     }
 }

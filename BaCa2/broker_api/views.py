@@ -8,21 +8,38 @@ from baca2PackageManager.broker_communication import *
 
 
 @csrf_exempt
-def handle_broker_result(request, broker_submit_id: str):
+def handle_broker_result(request):
     if request.method != 'POST':
-        return HttpResponse("Not found", 404)
+        return HttpResponse("Not found", status=404)
 
     if request.headers.get('content-type') != 'application/json':
-        return HttpResponse("Wrong argument", 400)
+        return HttpResponse("Wrong argument", status=400)
 
     try:
         data = BrokerToBaca.parse(json.loads(request.body))
-        BrokerSubmit.handle_result(broker_submit_id, data)
+        BrokerSubmit.handle_result(data)
+    except PermissionError as e:
+        return HttpResponse(str(e), status=401)
     except Exception as e:
-        return HttpResponse(str(e), 401)
+        return HttpResponse(str(e), status=403)
     else:
-        return HttpResponse("Good", 200)
+        return HttpResponse("Good", status=200)
 
 
-def handle_broker_status(request, course: str, submit_id: int):
-    ...
+@csrf_exempt
+def handle_broker_error(request):
+    if request.method != 'POST':
+        return HttpResponse("Not found", status=404)
+
+    if request.headers.get('content-type') != 'application/json':
+        return HttpResponse("Wrong argument", status=400)
+
+    try:
+        data = BrokerToBacaError.parse(json.loads(request.body))
+        BrokerSubmit.handle_error(data)
+    except PermissionError as e:
+        return HttpResponse(str(e), status=401)
+    except Exception as e:
+        return HttpResponse(str(e), status=403)
+    else:
+        return HttpResponse("Good", status=200)
