@@ -21,14 +21,15 @@ class TableWidget(Widget):
     }
 
     def __init__(self,
-                 request: HttpRequest,
                  data_source: TableDataSource,
                  cols: List[Column],
+                 request: HttpRequest | None = None,
                  title: str = '',
                  display_title: bool = True,
                  allow_global_search: bool = True,
                  allow_column_search: bool = True,
                  allow_select: bool = False,
+                 deselect_on_filter: bool = True,
                  allow_delete: bool = False,
                  name: str = '',
                  paging: TableWidgetPaging = None,
@@ -88,6 +89,7 @@ class TableWidget(Widget):
 
         self.allow_global_search = allow_global_search
         self.allow_column_search = allow_column_search
+        self.deselect_on_filter = deselect_on_filter
         self.refresh_button = refresh_button
         self.data_source = data_source
         self.paging = paging
@@ -113,6 +115,7 @@ class TableWidget(Widget):
             'display_title': self.display_title,
             'allow_global_search': json.dumps(self.allow_global_search),
             'allow_column_search': self.allow_column_search,
+            'deselect_on_filter': json.dumps(self.deselect_on_filter),
             'data_source_url': self.data_source.get_url(),
             'cols': [col.get_context() for col in self.cols],
             'cols_num': len(self.cols),
