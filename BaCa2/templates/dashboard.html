@@ -1,14 +1,5 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <div class="row">
-            {% with widgets.TableWidget.course_table_widget as table_widget %}
 
-            {% endwith %}
-    </div>
-    <div class="row">
-        {% with test_form as form_widget %}
-            {% include 'widget_templates/forms/default.html' %}
-        {% endwith %}
-    </div>
 {% endblock %}

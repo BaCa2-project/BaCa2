@@ -1,44 +1,45 @@
 from abc import ABC, abstractmethod
-from typing import (Dict, Any, Type)
 
-from django.views.generic.base import (TemplateView, RedirectView, View)
-from django.contrib.auth.mixins import (LoginRequiredMixin, UserPassesTestMixin)
+from django.views.generic.base import RedirectView, View
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout
-from django.http import (JsonResponse, HttpResponseRedirect)
+from django.http import JsonResponse, HttpResponseRedirect
 from django.urls import reverse_lazy
+from django.utils.translation import gettext_lazy as _
 
-from util.models import model_cls
-from util.views import normalize_string_to_python
-from main.models import (Course, User)
-from widgets.base import Widget
-from widgets.listing import (TableWidget, TableWidgetPaging, ModelDataSource)
-from widgets.listing.columns import TextColumn
-from widgets.forms import FormWidget
-from widgets.forms.fields.validation import get_field_validation_status
-from widgets.navigation import (NavBar, SideNav)
-from widgets.forms.course import (CreateCourseForm, CreateCourseFormWidget, DeleteCourseForm)
 from BaCa2.choices import BasicPermissionType
+from util.models import model_cls
+from main.models import Course, User
+from util.views import BaCa2ContextMixin, BaCa2LoggedInView
+from widgets.navigation import SideNav
+from widgets.forms import FormWidget
+from widgets.forms.base import BaCa2FormResponse, BaCa2ModelFormResponse
+from widgets.forms.course import CreateCourseForm, CreateCourseFormWidget, DeleteCourseForm
+from widgets.listing import TableWidget, TableWidgetPaging, ModelDataSource
+from widgets.listing.columns import TextColumn
 
+
+# ----------------------------------------- Model views ---------------------------------------- #
 
 class BaCa2ModelView(LoginRequiredMixin, View, ABC):
     """
-    Base class for all views used to manage models of given class from front-end. Provides methods
-    for retrieving model data and interfacing with model managers to create, update and delete
-    model instances. Implements simple logic for checking user permissions corresponding to the
-    actions before executing them. If an inheriting class extends or changes the list of supported
-    actions, it has to provide for each of them two corresponding methods, one for checking user
-    permissions and one for executing the action unless it overrides the :py:meth:`post` method.
+    Base class for all views used to manage models and retrieve their data from the front-end. GET
+    requests directed at this view are used to retrieve data while POST requests are handled in
+    accordance with the particular model form from which they originate.
 
-    The permission checking method has to have the following signature:
-    `test_<action>_permission(self, request, **kwargs) -> bool`
-    The action execution method has to have the following signature:
-    `<action>(self, request, **kwargs) -> JsonResponse`
+    The view itself does not interface with model managers directly outside of retrieving data.
+    Instead, it acts as an interface between POST requests and form classes which handle them.
+
+    see:
+        - :class:`widgets.forms.base.BaCa2ModelForm`
+        - :class:`widgets.forms.base.BaCa2ModelFormResponse`
     """
 
     class ModelViewException(Exception):
         """
-        Exception raised when model view-related error occurs.
+        Exception raised when an error related to retrieving data or handling POST requests in
+        a model view occurs.
         """
         pass
 
@@ -50,7 +51,6 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         Retrieves data of the instance(s) of the model class managed by the view if the requesting
         user has permission to access it. If the request kwargs contain a 'target' key, the method
         will return data of the instance of the model class with the id specified in the 'target'.
-        The data is gathered using the :py:meth:`get_data` method of the model class.
 
         :return: JSON response with the result of the action in the form of status and message
             strings (and data dictionary if the request is valid).
@@ -60,29 +60,33 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
             method needed to gather data.
         """
         if not self.test_view_permission(request, **kwargs):
-            return JsonResponse({'status': 'error', 'message': 'Permission denied.'})
+            return JsonResponse({'status': 'error', 'message': _('Permission denied.')})
 
         get_data_method = getattr(self.MODEL, 'get_data')
 
         if not get_data_method or not callable(get_data_method):
             raise BaCa2ModelView.ModelViewException(
                 f'Model class managed by the {self.__class__.__name__} view does not '
-                f'implement the `get_data` method needed to perform this action.')
+                f'implement the `get_data` method needed to perform this action.'
+            )
 
         if kwargs.get('target', None):
             try:
                 target = self.MODEL.objects.get(id=kwargs['target'])
             except self.MODEL.DoesNotExist:
-                return JsonResponse({'status': 'error', 'message': 'Target not found.'})
-            return JsonResponse({'status': 'ok',
-                                 'message': f'successfully retrieved data for a model instance '
-                                            f'with id = {kwargs["target"]}',
-                                 'data': [target.get_data()]})
+                return JsonResponse({'status': 'error', 'message': _('Target not found.')})
+
+            return JsonResponse(
+                {'status': 'ok',
+                 'message': _('Successfully retrieved target model data.'),
+                 'data': [target.get_data()]}
+            )
         else:
-            return JsonResponse({'status': 'ok',
-                                 'message': f'successfully retrieved data for all model instances',
-                                 'data': [instance.get_data() for instance in
-                                          self.MODEL.objects.all()]})
+            return JsonResponse(
+                {'status': 'ok',
+                 'message': _('Successfully retrieved data for all model instances'),
+                 'data': [instance.get_data() for instance in self.MODEL.objects.all()]}
+            )
 
     @abstractmethod
     def post(self, request, **kwargs) -> JsonResponse:
@@ -106,185 +110,74 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         """
         return request.user.has_basic_model_permissions(cls.MODEL, BasicPermissionType.VIEW)
 
+    @classmethod
+    def handle_unknown_form(cls, request, **kwargs) -> BaCa2ModelFormResponse:
+        """
+        Generates a JSON response returned when the post request contains an unknown form name.
+
+        :return: Error JSON response.
+        :rtype: :class:`BaCa2ModelFormResponse`
+        """
+        return BaCa2ModelFormResponse(
+            model=cls.MODEL,
+            action=request.POST.get('action', ''),
+            status=BaCa2FormResponse.Status.ERROR,
+            message=_(f'Unknown form: {request.POST.get("form_name")}')
+        )
+
 
 class CourseModelView(BaCa2ModelView):
+    """
+    View for managing courses and retrieving their data.
+
+    See:
+        - :class:`BaCa2ModelView`
+    """
+
     MODEL = Course
 
-    def post(self, request, **kwargs) -> JsonResponse:
+    def post(self, request, **kwargs) -> BaCa2ModelFormResponse:
+        """
+        Handles a POST request received from a course model form. The method calls on the
+        handle_post_request method of the form class used to generate the widget from which the
+        request originated.
+
+        :return: JSON response with the result of the action in the form of status and message
+            strings.
+        :rtype: :class:`BaCa2ModelFormResponse`
+        """
         if request.POST.get('form_name') == 'add_course_form':
             return CreateCourseForm.handle_post_request(request)
         if request.POST.get('form_name') == 'delete_course_form':
             return DeleteCourseForm.handle_post_request(request)
         else:
-            return JsonResponse({'status': 'w łeb się puknij głupolu co to ma kurwa być'})
+            return self.handle_unknown_form(request, **kwargs)
 
 
 class UserModelView(BaCa2ModelView):
+    """
+    View for managing users and retrieving their data.
+
+    See:
+        - :class:`BaCa2ModelView`
+    """
+
     MODEL = User
 
-
-class BaCa2ContextMixin:
-    """
-    Context mixin for all BaCa2 views used to establish shared context dictionary structure and
-    context gathering logic between different views. Provides a preliminary setup for the context
-    dictionary and a method for adding widgets to it. The :py:meth:`get_context_data` method of
-    this mixin calls on the :py:meth:`get_context_data` method of the other following ancestor in
-    the MRO chain and as such it should precede in the parent list of the view class any other mixin
-    or view which calls on that method.
-    """
-
-    class WidgetException(Exception):
+    def post(self, request, **kwargs) -> BaCa2ModelFormResponse:
         """
-        Exception raised when widget-related error occurs.
+        Handles a POST request received from a user model form. The method calls on the
+        handle_post_request method of the form class used to generate the widget from which the
+        request originated.
+
+        :return: JSON response with the result of the action in the form of status and message
+            strings.
+        :rtype: :class:`BaCa2ModelFormResponse`
         """
         pass
 
-    # List of all widget types used in BaCa2 views.
-    WIDGET_TYPES = [FormWidget, NavBar, SideNav, TableWidget]
-    # List of all widgets which are unique (i.e. there can only be one instance of each widget type
-    # can exist in the context dictionary).
-    UNIQUE_WIDGETS = [NavBar, SideNav]
-    # Default theme for users who are not logged in.
-    DEFAULT_THEME = 'dark'
 
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """
-        Returns a dictionary containing all the data required by the template to render the view.
-        Calls on the `get_context_data` method of the other following ancestor (should there be
-        one) in the MRO chain (As such, if this mixin precedes in the parent list of the view
-        class an ancestor view whose context gathering is also necessary, it is enough to call on
-        the `get_context_data` once through the super() method).
-
-        :param kwargs: Keyword arguments passed to the `get_context_data` method of the other
-            following ancestor in the MRO chain (should there be one).
-        :type kwargs: dict
-
-        :return: A dictionary containing data required by the template to render the view.
-        :rtype: Dict[str, Any]
-
-        :raises Exception: If no request object is found.
-        """
-        super_context = getattr(super(), 'get_context_data', None)
-        if super_context and callable(super_context):
-            context = super_context(**kwargs)
-        else:
-            context = {}
-
-        context['widgets'] = {widget_type.__name__: {} for widget_type in
-                              BaCa2ContextMixin.WIDGET_TYPES}
-
-        request = getattr(self, 'request', None)
-        if request:
-            if request.user.is_authenticated:
-                context['data_bs_theme'] = request.user.user_settings.theme
-                context['display_navbar'] = True
-                self.add_widget(context, NavBar(request))
-            else:
-                context['data_bs_theme'] = BaCa2ContextMixin.DEFAULT_THEME
-                context['display_navbar'] = False
-        else:
-            raise Exception('No request object found. Remember that BaCa2ContextMixin should only '
-                            'be used as a view mixin.')
-
-        return context
-
-    @staticmethod
-    def add_widget(context: Dict[str, Any], widget: Widget) -> None:
-        """
-        Add a widget to the context dictionary. The widget is added to its corresponding widget
-        type dictionary (in the `widgets` dictionary of the main context dict) under its name as a
-        key.
-
-        :param context: Context dictionary to which the widget is to be added.
-        :type context: Dict[str, Any]
-
-        :param widget: Widget to be added to the context dictionary.
-        :type widget: Widget
-
-        :raises WidgetException: If the widget type is not recognized or if it is unique and
-            already exists in the context dictionary.
-        """
-        if isinstance(widget, CreateCourseFormWidget):
-            x = 10
-        widget_type = BaCa2ContextMixin.get_type(type(widget))
-
-        if not widget_type:
-            raise BaCa2ContextMixin.WidgetException(f'Widget type not recognized: {widget_type}.')
-
-        if (BaCa2ContextMixin.has_widget_type(context, widget_type) and
-                widget_type in BaCa2ContextMixin.UNIQUE_WIDGETS):
-            raise BaCa2ContextMixin.WidgetException(f'Widget of type {widget_type} already '
-                                                    f'exists in the context dictionary.')
-
-        if widget_type == SideNav:
-            context['display_sidenav'] = True
-
-        context['widgets'][widget_type.__name__][widget.name] = widget.get_context()
-
-    @staticmethod
-    def has_widget_type(context: Dict[str, Any], widget_type: Type[Widget]) -> bool:
-        """
-        Checks if the context dictionary contains at least one widget of the specified type.
-
-        :param context: Context dictionary to check.
-        :type context: Dict[str, Any]
-        :param widget_type: Widget type to check for.
-        :type widget_type: Type[Widget]
-
-        :return: `True` if the context dictionary contains at least one widget of the specified
-            type, `False` otherwise.
-        :rtype: bool
-
-        :raises WidgetException: If the widget type is not recognized.
-        """
-        if widget_type not in BaCa2ContextMixin.WIDGET_TYPES:
-            widget_type = BaCa2ContextMixin.get_type(widget_type)
-        if not widget_type:
-            raise BaCa2ContextMixin.WidgetException(f'Widget type not recognized: {widget_type}.')
-        if context['widgets'][widget_type.__name__]:
-            return True
-        return False
-
-    @staticmethod
-    def has_widget(context: Dict[str, Any], widget_type: Type[Widget], widget_name: str) -> bool:
-        """
-        Checks if the context dictionary contains a widget of the specified type and name.
-
-        :param context: Context dictionary to check.
-        :type context: Dict[str, Any]
-        :param widget_type: Widget type to check for.
-        :type widget_type: Type[Widget]
-        :param widget_name: Widget name to check for.
-        :type widget_name: str
-
-        :return: `True` if the context dictionary contains a widget of the specified type and name,
-            `False` otherwise.
-        :rtype: bool
-
-        :raises WidgetException: If the widget type is not recognized.
-        """
-        if widget_type not in BaCa2ContextMixin.WIDGET_TYPES:
-            raise BaCa2ContextMixin.WidgetException(f'Widget type not recognized: {widget_type}.')
-        if context['widgets'][widget_type.__name__].get(widget_name, None):
-            return True
-        return False
-
-    @staticmethod
-    def get_type(widget_cls: Type[Widget]) -> Type[Widget] | None:
-        """
-        Returns the type of given widget class if it is recognized, `None` otherwise.
-
-        :param widget_cls: Widget class to check.
-        :type widget_cls: Type[Widget]
-
-        :return: Type of the widget class if recognized, `None` otherwise.
-        :rtype: Type[Widget] | None
-        """
-        for widget_type in BaCa2ContextMixin.WIDGET_TYPES:
-            if issubclass(widget_cls, widget_type):
-                return widget_type
-        return None
-
+# --------------------------------------- Authentication --------------------------------------- #
 
 class BaCa2LoginView(BaCa2ContextMixin, LoginView):
     """
@@ -327,21 +220,16 @@ class BaCa2LogoutView(RedirectView):
         return super().get(request, *args, **kwargs)
 
 
-class BaCa2LoggedInView(LoginRequiredMixin, BaCa2ContextMixin, TemplateView):
-    """
-    Base view for all views which require the user to be logged in. Inherits from BaCa2ContextMixin
-    providing a navbar widget and a preliminary setup for the context dictionary.
-    """
-
-    # Baca2LoggedInView is a base, abstract class and as such does not have a template. All
-    # subclasses should provide their own template.
-    template_name = None
+# ----------------------------------------- Admin view ----------------------------------------- #
 
 
 class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
     """
     Admin view for BaCa2 used to manage users, courses and packages. Can only be accessed by
     superusers.
+
+    See also:
+        - :class:`BaCa2LoggedInView`
     """
     template_name = 'admin.html'
 
@@ -382,99 +270,38 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
 
         return context
 
-    def post(self, request, *args, **kwargs):
-        if request.POST.get('form_name', None) == 'create_course_form':
-            form = CreateCourseForm(data=request.POST)
-
-            if form.is_valid():
-                Course.objects.create_course(
-                    name=form.cleaned_data['name'],
-                    short_name=form.cleaned_data.get('short_name', None),
-                )
-                return JsonResponse({'status': 'ok'})
-            else:
-                kwargs['new_course_form_widget'] = CreateCourseFormWidget(
-                    request=request,
-                    form=form
-                ).get_context()
-                return self.get(request, *args, **kwargs)
-        else:
-            return JsonResponse(
-                {'status': 'error, unknown form name',
-                 'form_name': request.POST.get('form_name', None)}
-            )
-
 
 class DashboardView(BaCa2LoggedInView):
+    """
+    Default home page view for BaCa2.
+
+    See also:
+        - :class:`BaCa2LoggedInView`
+    """
     template_name = 'dashboard.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
-        self.add_widget(context, TableWidget(
-            request=self.request,
-            data_source=ModelDataSource(Course),
-            cols=[
-                TextColumn('id', 'ID', True),
-                TextColumn('name', 'Name', True),
-            ],
-            allow_select=True,
-            allow_delete=True,
-        ))
-
         return context
 
 
 class CoursesView(BaCa2LoggedInView):
+    """
+    View displaying all courses available to the user.
+
+    See also:
+        - :class:`BaCa2LoggedInView`
+    """
     template_name = 'courses.html'
 
 
-class JsonView(LoginRequiredMixin, View):
-    @staticmethod
-    def get(request, *args, **kwargs):
-        if kwargs['model_name'] == 'course':
-            if kwargs['access_mode'] == 'user':
-                return JsonResponse(
-                    {'data': [course.get_data() for course in Course.objects.filter(
-                        usercourse__user=request.user
-                    )]}
-                )
-            elif kwargs['access_mode'] == 'admin':
-                if request.user.is_superuser:
-                    return JsonResponse(
-                        {'data': [course.get_data() for course in Course.objects.all()]}
-                    )
-                else:
-                    return JsonResponse({'status': 'error',
-                                         'message': 'Access denied.'})
+def change_theme(request) -> JsonResponse:
+    """
+    Placeholder functional view for changing the website theme.
 
-        return JsonResponse({'status': 'error',
-                             'message': 'Model name not recognized.'})
-
-
-class FieldValidationView(LoginRequiredMixin, View):
-    class FieldClassException(Exception):
-        pass
-
-    @staticmethod
-    def get(request, *args, **kwargs):
-        form_cls_name = request.GET.get('formCls', None)
-
-        if not form_cls_name:
-            raise FieldValidationView.FieldClassException('No field class name provided.')
-
-        return JsonResponse(
-            get_field_validation_status(
-                request=request,
-                form_cls=form_cls_name,
-                field_name=normalize_string_to_python(request.GET.get('fieldName')),
-                value=normalize_string_to_python(request.GET.get('value')),
-                min_length=normalize_string_to_python(request.GET.get('minLength'))
-            )
-        )
-
-
-def change_theme(request):
+    :return: JSON response with the result of the action in the form of status string.
+    :rtype: JsonResponse
+    """
     if request.method == 'POST':
         if request.user.is_authenticated:
             theme = request.POST.get('theme')
