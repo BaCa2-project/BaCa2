@@ -1,492 +1,395 @@
-from pathlib import Path
-from datetime import timedelta, datetime
-from time import sleep
-from typing import Iterable, List, Tuple, Dict
 from random import choice, randint
-from string import ascii_lowercase, ascii_uppercase
-from unittest import TestSuite, TextTestRunner
-from threading import Thread
+
+from django.core.exceptions import ValidationError
+from datetime import datetime, timedelta
 
 from django.test import TestCase
 from django.utils import timezone
-from django.core.files.uploadedfile import SimpleUploadedFile
+from parameterized import parameterized
 
-from BaCa2.choices import TaskJudgingMode, ResultStatus
-from BaCa2.tools import random_string
-from main.models import User
-from package.models import PackageInstance, PackageSource
+from BaCa2.choices import ResultStatus
+from package.models import PackageInstance
 from .models import *
-from .routing import InCourse
-from .manager import create_course, delete_course
+from main.models import Course, User
+from .routing import InCourse, OptionalInCourse
 
 
-def create_random_task(course_name: str,
-                       round_task: Round,
-                       package_instance: PackageInstance,
-                       task_name: str = None,
-                       judging_mode: TaskJudgingMode = None,
-                       points: float = None,
-                       tests: dict = None,
-                       time_offset: float = 0):
-    """
-    It creates a task with the given name, package, round, judging mode, points, tests and time offset.
-    Every optional, not provided argument will be randomized.
-
-    :param course_name: the name of the course to create the task in
-    :type course_name: str
-    :param round_task: the round in which the task will be created
-    :type round_task: Round
-    :param package_instance: package_instance that the task will be created in
-    :param task_name: the name of the task
-    :type task_name: str
-    :param judging_mode: judging mode for the task (selected from choices.TaskJudgingMode)
-    :type judging_mode: TaskJudgingMode
-    :param points: amount of points for the task
-    :type points: float
-    :param tests: dictionary of sets of test. Every set should contain weight and test list (as test names list).
-    :type tests: dict
-    :param time_offset: offset between instructions - used to simulate time changes in multithreading testing.
-    :type time_offset: float (optional)
-    :return: A task object
-    """
-    if task_name is None:
-        task_prefix = random_string(3, ascii_uppercase)
-        task_name = f"{task_prefix} task {task_prefix}{random_string(15, ascii_lowercase)}"
-
-    if judging_mode is None:
-        judging_mode = choice(list(TaskJudgingMode))
-
-    if points is None:
-        points = randint(1, 20)
-
-    if tests is None:
-        tests = {}
-        sets_amount = randint(1, 5)
-        for i in range(sets_amount):
-            set_name = f'set{i}'
-            tests[set_name] = {}
-            tests[set_name]['weight'] = (randint(1, 100) / 10)
-            tests[set_name]['test_list'] = [f"t{j}_{random_string(3, ascii_lowercase)}" for j in range(randint(1, 10))]
-
-    with InCourse(course_name):
-        new_task = Task.create_new(
-            task_name=task_name,
-            package_instance=package_instance,
-            round=round_task,
-            judging_mode=judging_mode,
-            points=points
-        )
-        sleep(time_offset)
-
-        for s in tests.keys():
-            new_set = TestSet.objects.create(
-                task=new_task,
-                short_name=s,
-                weight=tests[s]['weight']
+def create_rounds(course, amount):
+    with InCourse(course):
+        rounds = []
+        for i in range(amount):
+            new_round = Round.objects.create_round(
+                start_date=timezone.now() - timedelta(days=1),
+                deadline_date=timezone.now() + timedelta(days=2),
+                end_date=timezone.now() + timedelta(days=1),
             )
+            new_round.save()
+            rounds.append(new_round)
+    return rounds
 
-            for test_name in tests[s]['test_list']:
-                Test.objects.create(
-                    short_name=test_name,
-                    test_set=new_set
+
+def create_package_task(course, round_, pkg_name, commit, init_task: bool = True):
+    if not PackageInstance.objects.filter(package_source__name=pkg_name, commit=commit).exists():
+        pkg = PackageInstance.objects.create_source_and_instance(pkg_name, commit)
+    else:
+        pkg = PackageInstance.objects.get(package_source__name=pkg_name, commit=commit)
+    with InCourse(course):
+        task = Task.objects.create_task(
+            package_instance=pkg,
+            round_=round_,
+            task_name="Test task with package",
+            points=10,
+            initialise_task=init_task,
+        )
+        task.save()
+    return task
+
+
+def create_test_result(submit, test, status, course=None):
+    with OptionalInCourse(course):
+        result = Result.objects.create_result(
+            submit=submit,
+            test=test,
+            status=status,
+            time_real=0.5,
+            time_cpu=0.3,
+            runtime_memory=123,
+        )
+        result.save()
+    return result
+
+
+def create_task_results(course, submit, possible_results=(ResultStatus.OK,)):
+    unused_results = [r for r in possible_results]
+    with InCourse(course):
+        for task_set in submit.task.sets:
+            for test in task_set.tests:
+                if unused_results:
+                    result = create_test_result(submit, test, choice(unused_results))
+                    unused_results.remove(result.status)
+                else:
+                    create_test_result(submit, test, choice(possible_results))
+
+
+def create_submit(course, task, user, src_code):
+    with InCourse(course):
+        submit = Submit.objects.create_submit(
+            source_code=src_code,
+            task=task,
+            user=user,
+            auto_send=False,
+        )
+        submit.save()
+    return submit
+
+
+class RoundTest(TestCase):
+    course = None
+    pkg = None
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.course = Course.objects.create_course(
+            name='Test Course',
+            short_name='TC1',
+        )
+        cls.pkg = PackageInstance.objects.create_source_and_instance('dosko', '1')
+
+    @classmethod
+    def tearDownClass(cls):
+        Course.objects.delete_course(cls.course)
+        pkg_src = cls.pkg.package_source
+        cls.pkg.delete()
+        pkg_src.delete()
+
+    def tearDown(self):
+        with InCourse(self.course):
+            Round.objects.all().delete()
+
+    def test_01_create_round(self):
+        """
+        Test creating a round
+        """
+        with InCourse(self.course):
+            round1 = Round.objects.create_round(
+                start_date=datetime(2020, 1, 1, tzinfo=timezone.utc),
+                deadline_date=datetime(2020, 1, 2, tzinfo=timezone.utc),
+                name="Test 1"
+            )
+            round2 = Round.objects.create_round(
+                start_date=datetime(2020, 1, 3, tzinfo=timezone.utc),
+                deadline_date=datetime(2020, 1, 5, tzinfo=timezone.utc),
+                end_date=datetime(2020, 1, 4, tzinfo=timezone.utc),
+                reveal_date=datetime(2020, 1, 6, tzinfo=timezone.utc),
+                name="Test 2"
+            )
+            round1.save()
+            round2.save()
+
+        with InCourse(self.course):
+            self.assertEqual(Round.objects.count(), 2)
+            round_res = Round.objects.get(
+                start_date=datetime(2020, 1, 3, tzinfo=timezone.utc))
+            self.assertEqual(round_res.end_date,
+                             datetime(2020, 1, 4, tzinfo=timezone.utc))
+            self.assertEqual(round_res.reveal_date,
+                             datetime(2020, 1, 6, tzinfo=timezone.utc))
+            self.assertEqual(round_res.name, "Test 2")
+
+    def test_02_validate_round(self):
+        with InCourse(self.course):
+            with self.assertRaises(ValidationError):
+                Round.objects.create_round(
+                    start_date=datetime(2020, 1, 2, tzinfo=timezone.utc),
+                    deadline_date=datetime(2020, 1, 1, tzinfo=timezone.utc),
                 )
-                sleep(time_offset)
-    return new_task
+
+    def test_03_round_delete(self):
+        round_nb = 0
+        with InCourse(self.course):
+            new_round = Round.objects.create_round(
+                start_date=timezone.now() - timedelta(days=1),
+                deadline_date=timezone.now() + timedelta(days=2),
+                end_date=timezone.now() + timedelta(days=1),
+            )
+            new_round.save()
+            round_nb = new_round.pk
+            self.assertEqual(Round.objects.all().first(), new_round)
+        with InCourse(self.course):
+            Round.objects.delete_round(round_nb)
+            self.assertEqual(Round.objects.count(), 0)
+
+    def test_04_round_advanced_delete(self):
+        with InCourse(self.course):
+            round1 = Round.objects.create_round(
+                start_date=datetime(2021, 1, 1, tzinfo=timezone.utc),
+                deadline_date=datetime(2021, 1, 2, tzinfo=timezone.utc),
+            )
+
+            create_package_task(self.course, round1, 'dosko', '1', init_task=False)
+
+            self.assertEqual(Task.objects.count(), 1)
+            self.assertEqual(Task.objects.first().task_name, "Test task with package")
+
+            round1.delete()
+            self.assertEqual(Task.objects.count(), 0)
+
+    def test_05_is_open(self):
+        with InCourse(self.course):
+            round1 = Round.objects.create_round(
+                start_date=timezone.now() - timedelta(days=1),
+                deadline_date=timezone.now() + timedelta(days=1),
+            )
+            self.assertTrue(round1.is_open)
+            round1.delete()
+
+    def generic_round_with_2_tasks(self,
+                                   init_tasks=False) -> Round:
+        round_ = Round.objects.create_round(
+            start_date=timezone.now() - timedelta(days=1),
+            deadline_date=timezone.now() + timedelta(days=1),
+        )
+        Task.objects.create_task(
+            task_name='Test Task 1',
+            package_instance=self.pkg,
+            round_=round_,
+            points=5,
+            initialise_task=init_tasks
+        )
+        Task.objects.create_task(
+            task_name='Test Task 2',
+            package_instance=self.pkg,
+            round_=round_,
+            points=5,
+            initialise_task=init_tasks
+        )
+        return round_
+
+    def test_06_tasks_listing(self):
+        with InCourse(self.course):
+            round1 = self.generic_round_with_2_tasks()
+            self.assertEqual(len(round1.tasks), 2)
+            round1.delete()
+
+    def test_07_round_points(self):
+        with InCourse(self.course):
+            round1 = self.generic_round_with_2_tasks()
+            self.assertEqual(round1.round_points, 10)
+            round1.delete()
+
+    @parameterized.expand([(3,), (10,), (100,)])
+    def test_08_round_auto_name(self, amount):
+        rounds = create_rounds(self.course, amount)
+        with InCourse(self.course):
+            rounds_res = [r.name for r in Round.objects.all_rounds()]
+            self.assertEqual(len(rounds_res), amount)
+            for i, r in enumerate(rounds_res):
+                self.assertIn(f'Round {i + 1}', rounds_res)
 
 
-def create_random_submit(course_name: str,
-                         usr,
-                         parent_task: Task,
-                         submit_date: datetime = timezone.now(),
-                         allow_pending_status: bool = False,
-                         pass_chance: float = 0.5):
-    """
-    It creates a random submit for a given task.
-    Every optional, not provided argument will be randomized.
+class TaskTestMain(TestCase):
+    course = None
+    round1 = None
+    round2 = None
 
-    :param course_name: the name of the course to create the submit in
-    :type course_name: str
-    :param usr: The user who submitted the task
-    :param parent_task: the task to which the submit will be attached
-    :type parent_task: Task
-    :param submit_date: datetime of submit
-    :type submit_date: datetime
-    :param allow_pending_status: If True, the submit can have a pending status, defaults to False
-    :type allow_pending_status: bool (optional)
-    :param pass_chance: chance to generate passed test (test with status OK; default = 0.5)
-    :type pass_chance: float
-    """
+    @classmethod
+    def setUpTestData(cls):
+        cls.course = Course.objects.create_course(
+            name='Test Course',
+            short_name='TC2',
+        )
+        cls.round1 = create_rounds(cls.course, 1)[0]
+        cls.round2 = create_rounds(cls.course, 1)[0]
 
-    source_file = SimpleUploadedFile(f"course{course_name}_{parent_task.pk}_" +
-                                     f"{submit_date.strftime('%Y_%m_%d_%H%M%S')}.txt",
-                                     b"Test simple file upload.")
+    @classmethod
+    def tearDownClass(cls):
+        Course.objects.delete_course(cls.course)
 
-    allowed_statuses = list(ResultStatus)
-    allowed_statuses.remove(ResultStatus.OK)
-    if not allow_pending_status:
-        allowed_statuses.remove(ResultStatus.PND)
-    with InCourse(course_name):
-        new_submit = Submit.create_new(
-            submit_date=submit_date,
-            source_code=source_file,
-            task=parent_task,
-            usr=usr,
-            final_score=-1
+    def tearDown(self):
+        with InCourse(self.course):
+            Task.objects.all().delete()
+
+    def test_01_create_and_delete_task(self):
+        create_package_task(self.course, self.round1, 'dosko', '1', init_task=False)
+        with InCourse(self.course):
+            self.assertEqual(Task.objects.count(), 1)
+            self.assertEqual(Task.objects.get(
+                task_name='Test task with package').points, 10)
+
+    def test_02_create_package_task_no_init(self):
+        """
+        Creates a task with a package and then checks access to package instance
+        """
+        task = create_package_task(self.course, self.round1, 'dosko', '1', init_task=False)
+        with InCourse(self.course):
+            self.assertEqual(Task.objects.count(), 1)
+            self.assertEqual(task.package_instance.package_source.name, 'dosko')
+            self.assertEqual(task.package_instance.commit, '1')
+
+    def test_03_create_package_task_init(self):
+        task = create_package_task(self.course, self.round1, 'dosko', '1', init_task=True)
+        with InCourse(self.course):
+            pkg = task.package_instance.package
+            self.assertEqual(pkg['title'], 'Liczby Doskonałe')
+            self.assertEqual(len(task.sets), 4)
+            self.assertEqual(pkg.sets('set0')['name'], 'set0')
+            set0 = list(filter(lambda x: x.short_name == 'set0', task.sets))[0]
+            self.assertEqual(len(set0.tests), 2)
+            tests = [t.short_name for t in set0.tests]
+            self.assertIn('dosko0a', tests)
+            self.assertIn('dosko0b', tests)
+
+    def test_04_init_task_delete_without_results(self):
+        try:
+            self.test_03_create_package_task_init()
+        except AssertionError:
+            self.skipTest('Creation of package test is not working properly')
+        self.tearDown()
+
+        task = create_package_task(self.course, self.round2, 'dosko', '1', init_task=True)
+        with InCourse(self.course):
+            Task.objects.delete_task(task)
+            self.assertEqual(Task.objects.count(), 0, f'Tasks: {Task.objects.all()}')
+            self.assertEqual(TestSet.objects.count(), 0, f'TestSets: {TestSet.objects.all()}')
+            self.assertEqual(Test.objects.count(), 0, f'Tests: {Test.objects.all()}')
+
+
+class TestTaskWithResults(TestCase):
+    course = None
+    round_ = None
+    user = None
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.course = Course.objects.create_course(
+            name='Test Course',
+            short_name='TC3',
+        )
+        cls.round_ = create_rounds(cls.course, 1)[0]
+        cls.task1 = create_package_task(cls.course, cls.round_, 'dosko', '1', init_task=True)
+        cls.task2 = create_package_task(cls.course, cls.round_, 'dosko', '1', init_task=True)
+        cls.user = User.objects.create_user(
+            email='test@test.com',
+            password='test',
         )
 
-        tests = []
-        for s in parent_task.sets:
-            for t in s.tests:
-                tests.append(t)
+    @classmethod
+    def tearDownClass(cls):
+        Course.objects.delete_course(cls.course)
+        cls.user.delete()
 
-        for t in tests:
-            if (randint(0, 100000) / 100000) <= pass_chance:
-                status = ResultStatus.OK
+    def tearDown(self):
+        with InCourse(self.course):
+            Result.objects.all().delete()
+            Submit.objects.all().delete()
+
+    def test_01_add_result(self):
+        submit = create_submit(self.course, self.task1, self.user, '1234.cpp')
+        create_task_results(self.course, submit)
+        with InCourse(self.course):
+            self.assertEqual(Test.objects.filter(test_set__task=self.task1).count(),
+                             Result.objects.filter(submit__task=self.task1).count())
+            self.assertTrue(all(
+                [r.status == ResultStatus.OK for r in submit.results]
+            ))
+
+    @parameterized.expand([
+        ('all ok', (ResultStatus.OK,)),
+        ('ANS and TLE', (ResultStatus.ANS, ResultStatus.TLE,))])
+    def test_02_check_scoring(self, name, possible_results):
+        submit = create_submit(self.course, self.task1, self.user, '1234.cpp')
+        create_task_results(self.course, submit, possible_results)
+        with InCourse(self.course):
+            if name == 'all ok':
+                self.assertEqual(submit.score(), 1.0)
             else:
-                status = choice(allowed_statuses)
-            Result.objects.create(
-                test=t,
-                submit=new_submit,
-                status=status
-            )
+                self.assertEqual(submit.score(), 0)
 
+    @parameterized.expand([
+        ('best submit',),
+        ('last submit',),
+    ])
+    def test_03_check_scoring_with_multiple_submits(self, name):
+        submit1 = create_submit(self.course, self.task1, self.user, '1234.cpp')
+        submit2 = create_submit(self.course, self.task1, self.user, '1234.cpp')
+        create_task_results(self.course, submit1)
+        create_task_results(self.course, submit2, (ResultStatus.ANS,))
+        with InCourse(self.course):
+            if name == 'best submit':
+                best_submit = self.task1.best_submit(self.user)
+                self.assertEqual(best_submit.score(), 1.0)
+                self.assertEqual(best_submit, submit1)
+            if name == 'last submit':
+                last_submit = self.task1.last_submit(self.user)
+                self.assertEqual(last_submit.score(), 0)
+                self.assertEqual(last_submit, submit2)
 
-def create_simple_course(course_name: str,
-                         package_instances: Iterable[PackageInstance],
-                         sleep_intervals: float = 0,
-                         time_offset: float = 0,
-                         submits: Iterable[Dict[str, int]] = None,
-                         create_db: bool = True):
-    """
-    It creates a course with a round, a number of tasks, and a number of submits
-
-    :param course_name: the name of the course to create
-    :type course_name: str
-    :param package_instances: a list of package ids that will be used to create tasks
-    :type package_instances: Iterable[PackageInstance]
-    :param sleep_intervals: The time between each task creation, defaults to 0
-    :type sleep_intervals: float (optional)
-    :param time_offset: The time offset between the creation of the course and the creation of the first round,
-    defaults to 0
-    :type time_offset: float (optional)
-    :param submits: a list of dictionaries, each dictionary has at least two keys: usr and task.
-    Optionally can contain pass_chance and allow_pending_status (described in create_random_task function)
-    :type submits: Iterable[Dict[str, int]]
-    :param create_db: If you want to create a new course, set this to True.
-    If you want to fill an existing course, set this to False, defaults to True
-    :type create_db: bool (optional)
-    """
-    if create_db:
-        create_course(course_name)
-
-    if submits is None:
-        usr = None
-        usr = User.objects.last()
-        submits = ({'usr': usr, 'task': 1},)
-    sleep(time_offset)
-    with InCourse(course_name):
-        r = Round.objects.create(
-            start_date=timezone.now(),
-            end_date=timezone.now() + timedelta(days=10),
-            deadline_date=timezone.now() + timedelta(days=20),
-            reveal_date=timezone.now()
-        )
-
-        sleep(sleep_intervals)
-        course_tasks = []
-        for t in package_instances:
-            new_task = create_random_task(course_name, r, package_instance=t)
-            course_tasks.append(new_task)
-            sleep(sleep_intervals)
-
-        for submit in submits:
-            create_random_submit(
-                course_name=course_name,
-                usr=submit['usr'],
-                parent_task=course_tasks[submit['task'] - 1],
-                pass_chance=submit.get('pass_chance', 0.5),
-                allow_pending_status=submit.get('allow_pending_status', False)
-            )
-
-
-def submitter(course_name: str,
-              usr,
-              task: Task,
-              submit_amount: int = 100,
-              time_interval: float = 0.1,
-              allow_pending_status: bool = False,
-              pass_chance: float = 0.5):
-    for i in range(submit_amount):
-        create_random_submit(course_name, usr, task, allow_pending_status=allow_pending_status, pass_chance=pass_chance)
-        sleep(time_interval)
-
-
-# It creates a simple course, adds a random submit to it, and scores it
-class ASimpleTestCase(TestCase):
-    course_name = 'test_simple_course'
-    u1 = None
-    inst1 = None
-
-    @classmethod
-    def setUpClass(cls):
-        cls.u1 = User.objects.create_user(
-            'user6@gmail.com',
-            'user6',
-            'psswd',
-            first_name='first name',
-            last_name='last name'
-        )
-        inst_src = PackageSource.objects.create(name=f'course_testA')
-        cls.inst1 = PackageInstance.objects.create(package_source=inst_src, commit='ints1')
-        delete_course(cls.course_name)
-        create_simple_course(cls.course_name, create_db=True, package_instances=(cls.inst1, ))
-
-    @classmethod
-    def tearDownClass(cls):
-        delete_course(cls.course_name)
-        cls.u1.delete()
-        cls.inst1.delete()
-
-    def test_create_simple_course(self):
-        """
-        It checks that the course name is in the list of databases
-        """
-        from BaCa2.settings import DATABASES
-        self.assertIn(self.course_name, DATABASES.keys())
-
-    def test_simple_access(self):
-        """
-        Test that we can access the database.
-        """
-        with InCourse(self.course_name):
-            tasks = Task.objects.all()
-            self.assertTrue(len(tasks) > 0)
-
-    def test_add_random_submit(self):
-        """
-        It creates a random submit for a given task
-        """
-        with InCourse(self.course_name):
-            t = Task.objects.first()
-        create_random_submit(self.course_name, usr=self.u1, parent_task=t)
-        with InCourse(self.course_name):
-            sub = Submit.objects.last()
-            self.assertTrue(sub.task == t)
-            self.assertTrue(sub.final_score == -1)
-
-    def test_score_simple_solution(self):
-        """
-        It creates a random submit for the first task in the course, and then checks that the score of that submit is
-        between 0 and 1
-        """
-        with InCourse(self.course_name):
-            t = Task.objects.first()
-        create_random_submit(self.course_name, usr=self.u1, parent_task=t)
-
-        with InCourse(self.course_name):
-            sub = Submit.objects.last()
-            score = sub.score()
-            self.assertTrue(0 <= score <= 1)
-
-
-# It creates two courses, each with a different set of tasks and submits,
-# and then checks if the submits have the correct scores
-class BMultiThreadTest(TestCase):
-    course1 = 'sample_course2'
-    course2 = 'sample_course3'
-    u1 = u2 = u3 = u4 = None
-    i1 = i2 = i3 = i4 = i5 = None
-
-    @classmethod
-    def setUpClass(cls):
-        """
-        It creates two courses,
-        each with a different set of tasks and users, and each with a different
-        timeline
-
-        :param cls: the class object
-        """
-        cls.u1 = User.objects.create_user(
-            'user1@gmail.com',
-            'user1',
-            'psswd',
-            first_name='first name',
-            last_name='last name'
-        )
-        cls.u2 = User.objects.create_user(
-            'user2@gmail.com',
-            'user2',
-            'psswd',
-            first_name='first name',
-            last_name='last name'
-        )
-        cls.u3 = User.objects.create_user(
-            'user3@gmail.com',
-            'user3',
-            'psswd',
-            first_name='first name',
-            last_name='last name'
-        )
-        cls.u4 = User.objects.create_user(
-            'user4@gmail.com',
-            'user4',
-            'psswd',
-            first_name='first name',
-            last_name='last name'
-        )
-
-        inst_src = PackageSource.objects.create(name=f'course_testB')
-        cls.i1 = PackageInstance.objects.create(package_source=inst_src, commit='ints1')
-        cls.i2 = PackageInstance.objects.create(package_source=inst_src, commit='ints2')
-        cls.i3 = PackageInstance.objects.create(package_source=inst_src, commit='ints3')
-        cls.i4 = PackageInstance.objects.create(package_source=inst_src, commit='ints4')
-        cls.i5 = PackageInstance.objects.create(package_source=inst_src, commit='ints5')
-
-        delete_course(cls.course1)
-        delete_course(cls.course2)
-        create1 = Thread(target=create_simple_course, args=(cls.course1,),
-                         kwargs={
-                             'time_offset': 2,
-                             'sleep_intervals': 0.5,
-                             'package_instances': (cls.i1, cls.i2, cls.i3, cls.i4, cls.i5),
-                             'submits': [
-                                 {'usr': cls.u1, 'task': 1, 'pass_chance': 1},
-                                 {'usr': cls.u1, 'task': 2},
-                                 {'usr': cls.u2, 'task': 1},
-                                 {'usr': cls.u3, 'task': 3, 'pass_chance': 0},
-                                 {'usr': cls.u3, 'task': 1, 'pass_chance': 1},
-                                 {'usr': cls.u1, 'task': 1, 'pass_chance': 0},
-                             ]
-                         })
-        create2 = Thread(target=create_simple_course, args=(cls.course2,),
-                         kwargs={
-                             'time_offset': 1,
-                             'sleep_intervals': 0.3,
-                             'package_instances': (cls.i1, cls.i2, cls.i3),
-                             'submits': [
-                                 {'usr': cls.u3, 'task': 1, 'pass_chance': 1},
-                                 {'usr': cls.u3, 'task': 2},
-                                 {'usr': cls.u1, 'task': 1, 'pass_chance': 0},
-                                 {'usr': cls.u2, 'task': 2, 'pass_chance': 0},
-                                 {'usr': cls.u2, 'task': 1, 'pass_chance': 1},
-                                 {'usr': cls.u3, 'task': 1, 'pass_chance': 0},
-                             ]
-                         })
-
-        create1.start()
-        create2.start()
-        if create1.join() and create2.join():
-            pass
-
-    @classmethod
-    def tearDownClass(cls):
-        delete_course(cls.course1)
-        delete_course(cls.course2)
-        cls.u1.delete()
-        cls.u2.delete()
-        cls.u3.delete()
-        cls.u4.delete()
-
-        cls.i1.delete()
-        cls.i2.delete()
-        cls.i3.delete()
-        cls.i4.delete()
-        cls.i5.delete()
-
-    def test_tasks_amount(self):
-        """
-        It checks that the number of tasks in the database is correct
-        """
-        with InCourse(self.course1):
-            self.assertEqual(Task.objects.count(), 5)
-        with InCourse(self.course2):
-            self.assertEqual(Task.objects.count(), 3)
-
-    def test_usr1_submits_amount(self):
-        """
-        It checks that user 1 has submitted 3 times in course 1 and 1 time in course 2
-        """
-        with InCourse(self.course1):
-            self.assertEqual(Submit.objects.filter(usr=self.u1.pk).count(), 3)
-        with InCourse(self.course2):
-            self.assertEqual(Submit.objects.filter(usr=self.u1.pk).count(), 1)
-
-    def test_no_pending_score(self):
-        """
-        It checks that the score of all the submissions is not -1.
-        """
-        with InCourse(self.course1):
-            for s in Submit.objects.all():
-                self.assertNotEqual(s.score(), -1)
-        with InCourse(self.course2):
-            for s in Submit.objects.all():
-                self.assertNotEqual(s.score(), -1)
-
-    def test_usr1_score(self):
-        """
-        It tests that the score of the best submission of user 1 for task 1 in course 1 is 1, and that the
-        score of the best submission of user 1 for task 1 in course 2 is 0
-        """
-        self.test_no_pending_score()
-        with InCourse(self.course1):
-            t = Task.objects.filter(pk=1).first()
-            self.assertEqual(t.best_submit(usr=self.u1).score(), 1)
-
-            with InCourse(self.course2):
-                t = Task.objects.filter(pk=1).first()
-                self.assertEqual(t.best_submit(usr=self.u1).score(), 0)
-
-    def test_without_InCourse_call(self):
-        """
-        It tests that the
-        `Task` model is not accessible without calling `InCourse` first
-        """
-        from BaCa2.exceptions import RoutingError
-        with self.assertRaises((LookupError, RoutingError)):
-            Task.objects.count()
-
-    def two_submiters(self, submits, time_interval):
-        """
-        It creates two threads, one for each course, and each thread will submit a task for a certain amount of times,
-        with a certain time interval
-
-        :param submits: the amount of submits each submiter will make
-        :param time_interval: the time interval between two submits
-        """
-        with InCourse(self.course1):
-            t1 = Task.objects.filter(pk=4).first()
-            submiter1 = Thread(target=submitter, args=(self.course1, self.u4, t1), kwargs={
-                'submit_amount': submits,
-                'pass_chance': 0,
-                'time_interval': time_interval
-            })
-        with InCourse(self.course2):
-            t2 = Task.objects.filter(pk=3).first()
-            submiter2 = Thread(target=submitter, args=(self.course2, self.u4, t2), kwargs={
-                'submit_amount': submits,
-                'pass_chance': 1,
-                'time_interval': time_interval
-            })
-
-        submiter1.start()
-        submiter2.start()
-
-        if submiter1.join() and submiter2.join():
-            with InCourse(self.course1):
-                for s in Submit.objects.all():
-                    self.assertEqual(s.score(), 0)
-            with InCourse(self.course2):
-                for s in Submit.objects.all():
-                    self.assertEqual(s.score(), 1)
-
-    def test_two_submitters_A_small(self):
-        """
-        This function tests the case where two submitters submit a small number of jobs
-        """
-        self.two_submiters(50, 0.01)
-
-    def test_two_submitters_B_big(self):
-        """
-        This function tests the case where one submitter has a large number of submissions (without time interval)
-        """
-        self.two_submiters(200, 0)
+    @parameterized.expand([
+        ('best submit', 10),
+        ('last submit', 10),
+        ('best submit', 25),
+        ('last submit', 25),
+        ('best submit', 50),
+        ('last submit', 50),
+        ('best submit', 100),
+        ('last submit', 100),
+        # ('best submit', 500),
+        # ('last submit', 500),
+    ])
+    def test_04_multiple_submits(self, name, submits_amount):
+        best_s = randint(0, submits_amount - 2)
+        for i in range(submits_amount):
+            submit = create_submit(self.course, self.task1, self.user, '1234.cpp')
+            if i == best_s:
+                create_task_results(self.course, submit)
+            else:
+                create_task_results(self.course, submit,
+                                    (ResultStatus.OK, ResultStatus.ANS, ResultStatus.TLE))
+        with InCourse(self.course):
+            if name == 'best submit':
+                best_submit = self.task1.best_submit(self.user)
+                self.assertEqual(best_submit.score(), 1.0)
+            if name == 'last submit':
+                last_submit = self.task1.last_submit(self.user)
+                self.assertLess(last_submit.score(), 1)
+                self.assertGreater(last_submit.score(), 0)
