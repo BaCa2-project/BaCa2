@@ -67,9 +67,10 @@
         {% endif %}
 
         <div class="card-body">
-            <div class="table-responsive">
+            <div class="table-responsive" data-paging="{{ table_widget.paging }}">
                 <table class="{{ table_widget.widget_class }}"
                        id="{{ table_widget.name }}"
+                       data-deselect-on-filter="{{ table_widget.deselect_on_filter }}"
                        style="width:100%">
                     <thead>
                         <tr>

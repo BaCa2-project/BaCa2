@@ -11,8 +11,18 @@
     display: block;
 }
 
-form .card-body {
-    padding-bottom: 0;
+.table-select-field {
+    &.is-valid .table-wrapper .card {
+        --bs-card-border-color: var(--bs-form-valid-border-color);
+    }
+
+    &.is-invalid .table-wrapper .card {
+        --bs-card-border-color: var(--bs-form-invalid-border-color);
+    }
+}
+
+.table-select-input {
+    display: none;
 }
 
 .form-confirmation-popup {
