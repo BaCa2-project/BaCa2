@@ -7,6 +7,10 @@ html, body {
   display: none;
 }
 
+:root {
+  --bs-form-valid-border-color: $red;
+}
+
 .toggleable button {
   width: 35%;
   font-size: 0.85rem;
@@ -16,8 +20,15 @@ html, body {
   display: block;
 }
 
-form .card-body {
-  padding-bottom: 0;
+.table-select-field.is-valid .table-wrapper .card {
+  --bs-card-border-color: var(--bs-form-valid-border-color);
+}
+.table-select-field.is-invalid .table-wrapper .card {
+  --bs-card-border-color: var(--bs-form-invalid-border-color);
+}
+
+.table-select-input {
+  display: none;
 }
 
 .form-confirmation-popup .modal-header, .form-confirmation-popup .modal-body, .form-confirmation-popup .modal-footer {
@@ -40,6 +51,10 @@ form .card-body {
 .submit-btn.submit-enabled {
   background-color: #fe5882;
   transform: scale(1.01, 1.05);
+}
+
+:root {
+  --bs-form-valid-border-color: $red;
 }
 
 .logo-wrapper .logo-stroke {
@@ -150,6 +165,10 @@ form .card-body {
   height: 8rem;
 }
 
+:root {
+  --bs-form-valid-border-color: $red;
+}
+
 .nav-item .dropdown-toggle::after {
   display: none;
 }
@@ -258,6 +277,10 @@ form .card-body {
   transition: fill 0.5s;
 }
 
+:root {
+  --bs-form-valid-border-color: $red;
+}
+
 .card.card-s {
   width: 15rem;
 }
@@ -266,6 +289,10 @@ form .card-body {
 }
 .card.card-l {
   width: 40rem;
+}
+
+:root {
+  --bs-form-valid-border-color: $red;
 }
 
 .icon-wrapper {
@@ -397,6 +424,10 @@ form .card-body {
 
 .separator:not(:empty)::after {
   margin-left: 0.25em;
+}
+
+:root {
+  --bs-form-valid-border-color: $red;
 }
 
 .side-nav {
@@ -639,6 +670,10 @@ form .card-body {
   background-color: #3e4042;
 }
 
+:root {
+  --bs-form-valid-border-color: $red;
+}
+
 .table-wrapper .table-widget-forms-wrapper form {
   display: none;
 }
@@ -647,6 +682,9 @@ form .card-body {
 }
 .table-wrapper .card {
   overflow: hidden;
+}
+.table-wrapper .table-responsive[data-paging=false] .dataTables_info {
+  display: none;
 }
 
 [data-bs-theme=light] .table-wrapper .table-util-header {
@@ -675,6 +713,10 @@ form .card-body {
   background-color: rgba(255, 255, 255, 0.03);
 }
 
+:root {
+  --bs-form-valid-border-color: $red;
+}
+
 .btn-outline-secondary:hover {
   background-color: rgba(211, 202, 189, 0.3);
   color: white;
@@ -693,6 +735,10 @@ form .card-body {
 .btn-outline-light_muted:hover {
   background-color: rgba(160, 160, 160, 0.3);
   color: white;
+}
+
+:root {
+  --bs-form-valid-border-color: $red;
 }
 
 .form-confirmation-popup p.popup-message {

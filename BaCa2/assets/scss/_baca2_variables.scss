@@ -36,6 +36,12 @@ $baca2-theme-colors: (
 );
 $theme-colors: map-merge($baca2-theme-colors, $theme-colors);
 
+// ------------------------ bootstrap custom color properties overrides ----------------------- //
+
+:root {
+    --bs-form-valid-border-color: $red;
+}
+
 // ------------------------------------------- logo ------------------------------------------- //
 
 $logo_versions: horizontal, square, icon;

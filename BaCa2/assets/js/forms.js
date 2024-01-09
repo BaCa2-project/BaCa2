@@ -8,6 +8,7 @@ function formsSetup() {
     responsePopupsSetup();
     refreshButtonSetup();
     liveValidationSetup();
+    tableSelectFieldSetup();
 }
 
 function ajaxPostSetup() {
@@ -264,6 +265,8 @@ function update_validation_status(field, formCls, minLength, url) {
 
                 $(field).closest('form').find('.submit-btn').attr('disabled', true);
             }
+
+            $(field).trigger('validation-complete');
         }
     });
 }
@@ -334,4 +337,39 @@ function renderValidationErrors(popup, errors) {
     });
 
     messageBlock.after(errorsBlock);
+}
+
+// ------------------------------------ table select field ------------------------------------ //
+
+function tableSelectFieldSetup() {
+    $('.table-select-field').each(function () {
+        const tableSelectField = $(this);
+        const table = tableSelectField.find('table');
+        const input = tableSelectField.find('.input-group input');
+
+        table.DataTable().on('init.dt', function () {
+            table.find('.select').on('click', function () {
+                tableSelectFieldCheckboxClickHandler(tableSelectField, input)
+            });
+        });
+
+        input.on('validation-complete', function () {
+           if ($(this).hasClass('is-valid'))
+               tableSelectField.removeClass('is-invalid').addClass('is-valid');
+           else if ($(this).hasClass('is-invalid'))
+               tableSelectField.removeClass('is-valid').addClass('is-invalid');
+           else
+               tableSelectField.removeClass('is-valid').removeClass('is-invalid');
+        });
+    });
+}
+
+function tableSelectFieldCheckboxClickHandler(tableSelectField, input) {
+    const tableWidget = window.tableWidgets[`#${tableSelectField.find('table').attr('id')}`];
+    const ids = [];
+
+    for (const row of tableWidget.getAllSelectedRows())
+        ids.push($(row).data('record-id'));
+
+    input.val(ids.join(',')).trigger('input');
 }
