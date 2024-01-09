@@ -1,264 +1,449 @@
-function create_table(
+// ------------------------------------ table widget class ------------------------------------ //
+
+class TableWidget {
+    constructor(tableId, table) {
+        this.tableId = tableId;
+        this.table = table;
+        this.lastSelectedRow = null;
+        this.lastDeselectedRow = null;
+    }
+
+    // -------------------------------- record select methods --------------------------------- //
+
+    toggleSelectRow(row, on) {
+        if (on) {
+            this.lastSelectedRow = row;
+            this.lastDeselectedRow = null;
+            row.addClass('row-selected');
+        } else {
+            this.lastSelectedRow = null;
+            this.lastDeselectedRow = row;
+            row.removeClass('row-selected');
+        }
+    }
+
+    toggleSelectRows(rows, on) {
+        rows.each(function () {
+            $(this).find('.select-checkbox').prop('checked', on);
+
+            if (on)
+                $(this).addClass('row-selected');
+            else
+                $(this).removeClass('row-selected');
+        });
+    }
+
+    toggleSelectRange(row, on) {
+        const rows = this.getRowsInOrder();
+        const currentIndex = this.getRowIndex(row)
+        const lastIndex = on ?
+            this.getRowIndex(this.lastSelectedRow) :
+            this.getRowIndex(this.lastDeselectedRow);
+
+        let selecting = false;
+        let last = false;
+
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const index = this.getRowIndex(row);
+
+            if (index === currentIndex || index === lastIndex) {
+                if (selecting)
+                    last = true;
+                else
+                    selecting = true;
+            }
+
+            if (selecting) {
+                if (on)
+                    $(row).addClass('row-selected');
+                else
+                    $(row).removeClass('row-selected');
+                $(row).find('.select-checkbox').prop('checked', on);
+            }
+
+            if (last)
+                break;
+        }
+    }
+
+    toggleSelectAll(on) {
+        this.getCurrentRowsInOrder().each(function () {
+            $(this).find('.select-checkbox').prop('checked', on);
+
+            if (on)
+                $(this).addClass('row-selected');
+            else
+                $(this).removeClass('row-selected');
+        });
+    }
+
+    updateSelectHeader() {
+        const table = $(`#${this.tableId}`);
+        const headerCheckbox = table.find('.select-header-checkbox');
+        let allSelected = true;
+        let noneSelected = true;
+        let rows = this.getRowsInOrder();
+
+        if (table.hasClass('filtered'))
+            rows = this.getCurrentRowsInOrder();
+
+        rows.each(function () {
+            if ($(this).hasClass('row-selected'))
+                noneSelected = false;
+            else
+                allSelected = false;
+        });
+
+        if (noneSelected) {
+            headerCheckbox.prop('checked', false);
+            headerCheckbox.prop('indeterminate', false);
+            headerCheckbox.data('state', 'off');
+        } else if (allSelected) {
+            headerCheckbox.prop('checked', true);
+            headerCheckbox.prop('indeterminate', false);
+            headerCheckbox.data('state', 'on');
+        } else {
+            headerCheckbox.prop('checked', false);
+            headerCheckbox.prop('indeterminate', true);
+            headerCheckbox.data('state', 'indeterminate');
+        }
+    }
+
+    // ------------------------------------ getter methods ------------------------------------ //
+
+    getRowsInOrder() {
+        return this.table
+                   .rows({order: 'applied'})
+                   .nodes().to$();
+    }
+
+    getCurrentRowsInOrder() {
+        return this.table
+                   .rows({order: 'applied', page: 'current', search: 'applied'})
+                   .nodes().to$();
+    }
+
+    getCurrentSelectedRows() {
+        return this.getCurrentRowsInOrder().filter(function () {
+            return $(this).hasClass('row-selected');
+        });
+    }
+
+    getAllSelectedRows() {
+        return this.table.rows().nodes().to$().filter(function () {
+            return $(this).hasClass('row-selected');
+        });
+    }
+
+    getFilteredOutRows() {
+        return this.table
+                   .rows({search: 'removed'})
+                   .nodes().to$();
+    }
+
+    getRowIndex(row) {
+        return this.table.row(row).index();
+    }
+
+    getColumnIndex(colHeader) {
+        return this.table.column(colHeader).index();
+    }
+
+    // ----------------------------------- row check methods ---------------------------------- //
+
+    hasLastSelectedRow() {
+        return this.lastSelectedRow !== null;
+    }
+
+    hasLastDeselectedRow() {
+        return this.lastDeselectedRow !== null;
+    }
+}
+
+
+// --------------------------------------- tables setup --------------------------------------- //
+
+function tablesSetup() {
+    $('th.select').each(function () {
+        renderSelectHeader($(this));
+    });
+
+    $('.delete-record-form').each(function () {
+        deleteRecordFormSetup($(this).find('form'), $(this).data('table-id'));
+    });
+
+    $('.table-refresh-btn').on('click', function () {
+        refreshButtonClickHandler($(this));
+    });
+
+    $('.table-wrapper').each(function () {
+        globalSearchSetup($(this));
+        columnSearchSetup($(this));
+    });
+}
+
+
+// --------------------------------------- table search --------------------------------------- //
+
+function globalSearchSetup(tableWrapper) {
+    const search = tableWrapper.find('.dataTables_filter');
+
+    if (search.length === 0)
+        return;
+
+    const searchInput = search.find('input');
+    const searchWrapper = tableWrapper.find('.table-util-header .table-search');
+    const table = tableWrapper.find('table')
+    const tableId = table.attr('id');
+    const tableWidget = window.tableWidgets[`#${tableId}`];
+
+    searchInput.addClass('form-control').attr('placeholder', 'Search').attr('type', 'text');
+    searchInput.attr('id', `${tableId}_search`);
+    searchInput.on('input', function () {
+        globalSearchInputHandler($(this), table, tableWidget);
+    });
+    searchWrapper.append(searchInput);
+    search.remove();
+}
+
+function globalSearchInputHandler(inputField, table, tableWidget) {
+    if (table.data('deselect-on-filter'))
+        tableWidget.toggleSelectRows(tableWidget.getFilteredOutRows(), false);
+
+    if (inputField.val() === '')
+        table.removeClass('filtered');
+    else
+        table.addClass('filtered');
+
+    tableWidget.updateSelectHeader();
+}
+
+function columnSearchSetup(tableWrapper) {
+    const table = tableWrapper.find('table')
+    const tableWidget = window.tableWidgets[`#${table.attr('id')}`]
+
+    tableWrapper.find('.column-search').on('click', function (e) {
+        e.stopPropagation();
+    }).on('input', function () {
+        columnSearchInputHandler($(this), table, tableWidget)
+    });
+}
+
+function columnSearchInputHandler(inputField, table, tableWidget) {
+    tableWidget.table.column(inputField.closest('th')).search(inputField.val()).draw();
+
+    if (table.data('deselect-on-filter'))
+        tableWidget.toggleSelectRows(tableWidget.getFilteredOutRows(), false);
+
+    if (inputField.val() === '')
+        table.removeClass('filtered');
+    else
+        table.addClass('filtered');
+
+    tableWidget.updateSelectHeader();
+}
+
+
+// --------------------------------------- table buttons -------------------------------------- //
+
+function refreshButtonClickHandler(button) {
+    const tableId = button.data('refresh-target');
+    window.tableWidgets[`#${tableId}`].table.ajax.reload();
+}
+
+
+// ---------------------------------------- table forms --------------------------------------- //
+
+function deleteRecordFormSetup(form, tableId) {
+    form.on('submit-success', function (e, data) {
+        window.tableWidgets[`#${tableId}`].table.ajax.reload();
+    });
+}
+
+
+// -------------------------------------- DataTables init ------------------------------------- //
+
+function initTable(
     {
-        tables_dict,
-        table_id,
-        model_name,
-        access_mode,
+        tableId,
+        dataSourceUrl,
         cols,
-        default_order,
-        default_order_col,
+        defaultOrder,
+        defaultOrderCol,
+        searching,
         paging,
-        page_length,
-        length_change,
-        length_menu,
-        non_sortable_indexes,
-        record_methods,
         refresh,
-        refresh_interval,
+        refreshInterval,
     } = {}
 ) {
-    const table_params = {};
-    table_params['ajax'] = `/main/models/${model_name}`;
-    table_params['order'] = [[default_order_col, default_order]];
+    const tableParams = {};
+    const table = $(`#${tableId}`);
 
-    const cols_data = [];
-    for (let i = 0; i < cols.length; i++) {
-            cols_data.push({'data': cols[i]});
-        }
-    table_params['columns'] = cols_data;
+    tableParams['ajax'] = dataSourceUrl;
+    tableParams['order'] = [[defaultOrderCol, defaultOrder]];
+    tableParams['searching'] = searching;
+
+    const columns = [];
+    cols.forEach(col => {
+        columns.push({'data': col['name']})
+    });
+    tableParams['columns'] = columns;
 
     if (paging) {
-        table_params['pageLength'] = page_length;
+        tableParams['pageLength'] = paging['page_length'];
 
-        if (length_change) {
-            const length_menu_vals = [];
-            const length_menu_labels = [];
+        if (JSON.parse(paging['allow_length_change'])) {
+            const pagingMenuVals = [];
+            const pagingMenuLabels = [];
 
-            for (let length in length_menu) {
-                length_menu_vals.push(length);
+            paging['length_change_options'].forEach(option => {
+                pagingMenuVals.push(option);
+                pagingMenuLabels.push(option === -1 ? 'All' : `${option}`);
+            })
 
-                if (length !== -1) {
-                    length_menu_labels.push(`${length}`);
-                } else {
-                    length_menu_labels.push('All');
-                }
-            }
+            tableParams['lengthMenu'] = [pagingMenuVals, pagingMenuLabels];
+        } else
+            tableParams['lengthChange'] = false;
 
-            table_params['lengthMenu'] = [length_menu_vals, length_menu_labels];
-        } else {
-            table_params['lengthChange'] = false;
-        }
-    } else {
-        table_params['paging'] = false;
+        if (JSON.parse(paging['deselect_on_page_change']))
+            table.on('page.dt', function () {
+                const selectHeaderCheckbox = $(`#${tableId}`).find('th .select-header-checkbox');
+                window.tableWidgets[`#${tableId}`].toggleSelectAll(false);
+                selectHeaderCheckbox.prop('checked', false);
+                selectHeaderCheckbox.prop('indeterminate', false);
+            });
+    } else
+        tableParams['paging'] = false;
+
+    const columnDefs = [];
+    cols.forEach(col => columnDefs.push(createColumnDef(col, cols.indexOf(col))));
+    tableParams['columnDefs'] = columnDefs;
+
+    tableParams['rowCallback'] = function (row, data) {
+        $(row).attr('data-record-id', `${data.id}`);
     }
 
-    table_params['searching'] = false;
+    if (!window.tableWidgets)
+        window.tableWidgets = {};
 
-    const column_defs = [];
-    if (non_sortable_indexes.length > 0) {
-        column_defs.push({
-            'targets': non_sortable_indexes,
-            'orderable': false
-        });
-    }
-    if (record_methods['select']['on']) {
-        column_defs.push({
-            'targets': [record_methods['select']['col_index']],
-            'data': null,
-            'render': function (data, type, row, meta) {
-                return render_checkbox(`checkbox-${row.id}`, table_id);
-            }
-        });
-    }
-    if (record_methods['edit']['on']) {
-        column_defs.push({
-            'targets': [record_methods['edit']['col_index']],
-            'data': null,
-            'render': function (data, type, row, meta) {
-                return render_method_button('edit');
-            }
-        });
-    }
-    if (record_methods['delete']['on']) {
-        column_defs.push({
-            'targets': [record_methods['delete']['col_index']],
-            'data': null,
-            'render': function (data, type, row, meta) {
-                return render_method_button('delete');
-            }
-        });
-    }
-    table_params['columnDefs'] = column_defs;
-
-    tables_dict[table_id] = $(`#${table_id}`).DataTable(table_params);
+    window.tableWidgets[`#${tableId}`] = new TableWidget(
+        tableId,
+        table.DataTable(tableParams)
+    );
 
     if (refresh) {
-        setInterval(() => {
-            tables_dict[table_id].ajax.reload();
-        }, refresh_interval);
+        setInterval(function () {
+            window.tableWidgets[`#${tableId}`].table.ajax.reload();
+        }, refreshInterval);
     }
 }
 
-function render_checkbox (id, table_id) {
-    const checkbox = document.createElement('div');
-    $(checkbox).addClass('select-checkbox');
 
-    const checkbox_child = document.createElement('input');
-    $(checkbox_child).addClass('form-check-input');
-    $(checkbox_child).prop('type', 'checkbox');
-    $(checkbox_child).prop('id', id);
-    checkbox_child.setAttribute('onclick', `table_select(this, "${table_id}")`);
+function createColumnDef(col, index) {
+    const def = {
+        'targets': [index],
+        'orderable': JSON.parse(col['sortable']),
+        'searchable': JSON.parse(col['searchable']),
+        'className': col['col_type']
+    };
 
-    checkbox.appendChild(checkbox_child);
-    return checkbox.outerHTML;
-}
+    if (JSON.parse(col['data_null']))
+        def['data'] = null;
 
-function render_method_button (method) {
-    const button = document.createElement('a');
-    $(button).addClass('record-method-link');
-    button.innerHTML = $('.table-icons-util').find(`.${method}-icon`)[0].outerHTML
-    return button.outerHTML;
-}
+    if (!JSON.parse(col['auto_width'])) {
+        def['autoWidth'] = false;
+        def['width'] = col['width'];
+    } else
+        def['autoWidth'] = true;
 
-let shift_pressed = false;
-let ctrl_pressed = false;
-let last_selected_row = null;
-let last_deselected_row = null;
-
-$(document).ready(() => {
-    document.addEventListener("keydown", function (e) {
-        if (e.key === 'Shift') {
-            shift_pressed = true;
-        } else if (e.key === 'Control') {
-            ctrl_pressed = true;
-        }
-    })
-
-    document.addEventListener("keyup", function (e) {
-        if (e.key === 'Shift') {
-            shift_pressed = false;
-        } else if (e.key === 'Control') {
-            ctrl_pressed = false;
-        }
-    })
-})
-
-function table_select (current_checkbox, table_id) {
-    const toggled_row = $(current_checkbox).closest('tr');
-    const table = tables[table_id]
-
-    console.log(last_deselected_row);
-    console.log(last_selected_row);
-    console.log(shift_pressed);
-    console.log(ctrl_pressed);
-
-    if ($(current_checkbox).prop('checked')) {
-        if (shift_pressed && last_selected_row !== null) {
-            toggle_range(
-                table,
-                [table.row(toggled_row).index(), table.row(last_selected_row).index()]
-            )
-        }
-        last_selected_row = toggled_row;
-        last_deselected_row = null;
-    } else {
-        if (ctrl_pressed && last_deselected_row !== null) {
-            toggle_range(
-                table,
-                [table.row(toggled_row).index(), table.row(last_deselected_row).index()],
-                false
-            )
-        }
-        last_selected_row = null;
-        last_deselected_row = toggled_row
-    }
-    update_master_checkbox(table_id)
-}
-
-function toggle_range (table, range, on = true) {
-    const rows = table.rows({ order: 'applied' }).nodes().to$();
-    let selecting = false;
-    let last_index = false;
-
-    for (let i = 0; i < rows.length; i++) {
-        let row = rows[i];
-
-        if (table.row(row).index() === range[0] || table.row(row).index() === range[1]) {
-            if (selecting) {
-                last_index = true;
-            } else {
-                selecting = true;
-            }
-        }
-
-        if (selecting) {
-            let checkbox = $(row).find(".form-check-input");
-            if (on && !checkbox.prop('checked')) {
-                toggle_checkbox(checkbox);
-            } else if (!on && checkbox.prop('checked')) {
-                toggle_checkbox(checkbox);
-            }
-        }
-
-        if (last_index) {
+    switch (col['col_type']) {
+        case 'select':
+            def['render'] = renderSelectField;
             break;
-        }
+        case 'delete':
+            def['render'] = renderDeleteField;
+            break;
+    }
+
+    return def;
+}
+
+
+// ------------------------------- special field render methods ------------------------------- //
+
+function renderSelectField(data, type, row, meta) {
+    return $('<input>')
+        .attr('type', 'checkbox')
+        .attr('class', 'form-check-input select-checkbox')
+        .attr('data-record-target', row['id'])
+        .attr(
+            'onclick',
+            'selectCheckboxClickHandler(event, $(this))'
+        )[0].outerHTML;
+}
+
+
+function renderDeleteField(data, type, row, meta) {
+    return $('<a>')
+        .attr('href', '#')
+        .attr('data-record-target', row['id'])
+        .attr('onclick', 'deleteButtonClickHandler(event, $(this))')
+        .html('<i class="bi bi-x-lg"></i>')
+        [0].outerHTML;
+}
+
+
+function renderSelectHeader(header) {
+    const checkbox = $('<input>')
+        .attr('type', 'checkbox')
+        .attr('class', 'form-check-input select-header-checkbox')
+        .attr('data-state', 'off')
+        .on('click', function (e) {
+            selectHeaderClickHandler(e, $(this));
+        });
+    header.append(checkbox);
+}
+
+
+function selectHeaderClickHandler(e, checkbox) {
+    const table = checkbox.closest('table')
+    const tableId = table.attr('id');
+    const tableWidget = window.tableWidgets[`#${tableId}`];
+
+    tableWidget.toggleSelectAll(
+        checkbox.prop('checked')
+    );
+
+    if (table.hasClass('filtered')) {
+        tableWidget.updateSelectHeader();
     }
 }
 
-function toggle_all (checkbox, table_id) {
-    const table = tables[table_id];
-    const rows_indexes = table.rows({ order: 'applied' }).indexes().to$();
-    const range = [rows_indexes[0], rows_indexes[rows_indexes.length - 1]];
 
-    if ($(checkbox).data('state') === 'on') {
-        $(checkbox).prop({checked: false, indeterminate: false});
-        $(checkbox).data('state', 'off');
-        toggle_range(table, range, false);
-    } else {
-        $(checkbox).prop({checked: true, indeterminate: false});
-        $(checkbox).data('state', 'on');
-        toggle_range(table, range);
-    }
+// ------------------------------- special field click handlers ------------------------------- //
+
+function selectCheckboxClickHandler(e, checkbox) {
+    const table = window.tableWidgets[`#${checkbox.closest('table').attr('id')}`]
+    const row = checkbox.closest('tr');
+    const on = checkbox.prop('checked');
+
+    if (e.shiftKey && on && table.hasLastSelectedRow())
+        table.toggleSelectRange(row, on);
+    else if (e.ctrlKey && !on && table.hasLastDeselectedRow())
+        table.toggleSelectRange(row, on);
+    else
+        table.toggleSelectRow(row, on);
+
+    table.updateSelectHeader();
 }
 
-function update_master_checkbox (table_id) {
-    const master_checkbox = $(`#${table_id}`).find('.master-checkbox');
-    const table = tables[table_id];
-    const rows = table.rows().nodes().to$();
-    let all_selected = true;
-    let all_deselected = true;
 
-    for (let i = 0; i < rows.length; i++) {
-        let row = rows[i];
-        let checkbox = $(row).find(".form-check-input");
-
-        if (checkbox.prop('checked')) {
-            all_deselected = false;
-        } else {
-            all_selected = false;
-        }
-
-        if (!all_deselected && !all_selected) {
-            master_checkbox.prop({checked: false, indeterminate: true});
-            master_checkbox.data('state', 'indeterminate');
-            return;
-        }
-    }
-
-    if (all_selected) {
-        master_checkbox.prop({checked: true, indeterminate: false});
-        master_checkbox.data('state', 'on');
-    } else {
-        master_checkbox.prop({checked: false, indeterminate: false});
-        master_checkbox.data('state', 'off');
-    }
-}
-
-function toggle_checkbox (checkbox) {
-    if (checkbox.prop('checked')) {
-        checkbox.prop('checked', false);
-    } else {
-        checkbox.prop('checked', true);
-    }
+function deleteButtonClickHandler(e, button) {
+    const form = button.closest('.table-wrapper').find('.delete-record-form form');
+    const input = form.find('input').filter(function () {
+        return $(this).hasClass('model-id')
+    });
+    input.val(button.data('record-target'));
+    form.find('.submit-btn').click();
 }

@@ -1,10 +1,37 @@
-<div class="table-field-block mb-3">
-    {{ field }}
+{% load widget_tweaks %}
+{% load custom_tags %}
+
+<div class="input-block table-select-field mb-3">
+    <div class="input-group table-select-input
+                {% if form_widget.live_validation %}
+                live-validation
+                {% endif %}">
+        {% if form_widget.display_field_errors and form_widget.form.is_bound %}
+            {% if field.errors %}
+                {% render_field field class="form-control is-invalid" id=field.name placeholder="-" %}
+            {% else %}
+                {% render_field field class="form-control is-valid" id=field.name placeholder="-" %}
+            {% endif %}
+        {% else %}
+            {% render_field field class="form-control" id=field.name placeholder="-" %}
+        {% endif %}
+    </div>
     {% with field.field.table_widget as table_widget %}
         {% include 'widget_templates/table.html' %}
     {% endwith %}
     {% include 'widget_templates/forms/field_errors.html' %}
 </div>
-<script>
 
-</script>
+{% if form_widget.live_validation %}
+    <script>
+        $(document).ready(function () {
+            $('#{{ field.name }}').on('input', function () {
+                update_validation_status(
+                    this,
+                    '{{ form_widget.form_cls }}',
+                    '{{ form_widget.field_min_length|get_item:field.name }}',
+                    '{% url 'field-validation' %}');
+            });
+        });
+    </script>
+{% endif %}

@@ -24,7 +24,7 @@ course = Course(name='course1', short_name='c1', db_name='course1_db')
 course.save()
 create_course(course.name)
 
-pkg_instance = PackageInstance.create_from_name('dosko', '1')
+pkg_instance = PackageInstance.objects.create_package_instance('dosko', '1')
 pkg_instance.save()
 
 user = User.objects.create_user(username=f'user1_{datetime.now().timestamp()}',

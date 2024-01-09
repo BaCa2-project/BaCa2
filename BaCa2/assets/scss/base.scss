@@ -2,6 +2,10 @@ html, body {
     height: 100%;
 }
 
+#main-container {
+    display: none;
+}
+
 @import "forms";
 @import "baca2_logo";
 @import "navbar";
@@ -11,3 +15,6 @@ html, body {
 @import "separator";
 @import "side_nav";
 @import "table";
+@import "buttons";
+@import "popups";
+@import "../../../node_modules/bootstrap-icons/font/bootstrap-icons.scss";

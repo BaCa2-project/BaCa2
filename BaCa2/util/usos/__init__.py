@@ -1,14 +1,12 @@
-from BaCa2.settings import SECRETS, BASE_DIR
-import yaml
+from BaCa2.settings import (
+    BASE_DIR,
+    USOS_CONSUMER_KEY,
+    USOS_CONSUMER_SECRET,
+    USOS_GATEWAY,
+    USOS_SCOPES
+)
 
 from communicator import RegisterUSOS, USOS
 
-_USOS_CONFIG_DIR = BASE_DIR = BASE_DIR / 'usos_config.yaml'
-
-with open(_USOS_CONFIG_DIR) as config_file:
-    config = yaml.safe_load(config_file)
-
-USOS_GATEWAY = config.get('gateway')
-USOS_SCOPES = config.get('scopes')
-USOS_CONSUMER_KEY = SECRETS.get('usos_consumer_key')
-USOS_CONSUMER_SECRET = SECRETS.get('usos_consumer_secret')
+__all__ = ['RegisterUSOS', 'USOS', 'BASE_DIR', 'USOS_CONSUMER_KEY', 'USOS_CONSUMER_SECRET',
+           'USOS_GATEWAY', 'USOS_SCOPES']
