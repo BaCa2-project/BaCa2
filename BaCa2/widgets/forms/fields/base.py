@@ -366,7 +366,6 @@ class CourseModelArrayField(ModelArrayField):
         instance IDs.
         """
         if item == 'queryset':
-
             with InCourse(self.course.short_name):
                 return [instance.id for instance in self.model.objects.all()]
         return super().__getattribute__(item)
