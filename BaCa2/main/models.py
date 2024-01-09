@@ -1077,7 +1077,8 @@ class Course(models.Model):
     #: Deletes a round from the course using :py:meth:`course.models.Round.objects.delete_round`.
     delete_round = inside_course(Round.objects.delete_round)
 
-    #: Returns a QuerySet of all rounds in the course using :py:meth:`course.models.Round.objects.all_rounds`.
+    #: Returns a QuerySet of all rounds in the course using
+    #: :py:meth:`course.models.Round.objects.all_rounds`.
     rounds = inside_course(Round.objects.all_rounds)
 
     #: Getter for Round model
@@ -1096,7 +1097,8 @@ class Course(models.Model):
 
     # Submit actions ------------
 
-    #: Creates a new submit in the course using :py:meth:`course.models.Submit.objects.create_submit`.
+    #: Creates a new submit in the course using
+    #: :py:meth:`course.models.Submit.objects.create_submit`.
     create_submit = inside_course(Submit.objects.create_submit)
 
     #: Deletes a submit from the course using :py:meth:`course.models.Submit.objects.delete_submit`.
@@ -1537,11 +1539,12 @@ class User(AbstractBaseUser):
         """
         return self.has_course_permission(action.label, course)
 
-    def has_basic_course_model_permissions(self,
-                                           model: model_cls,
-                                           course: Course | str | int,
-                                           permissions: BasicPermissionType |
-                                                        List[BasicPermissionType] = 'all') -> bool:
+    def has_basic_course_model_permissions(
+            self,
+            model: model_cls,
+            course: Course | str | int,
+            permissions: BasicPermissionType | List[BasicPermissionType] = 'all'
+    ) -> bool:
         """
         Check whether a user possesses a specified permission/list of permissions for a given
         'course' database model. Does not check user-specific permissions or group-level

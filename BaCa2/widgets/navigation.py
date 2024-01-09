@@ -5,6 +5,8 @@ from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 
 from widgets.base import Widget
+from package.models import PackageInstance
+from BaCa2.choices import BasicPermissionType
 
 
 class NavBar(Widget):
@@ -19,14 +21,16 @@ class NavBar(Widget):
         :type request: HttpRequest
         """
         super().__init__(name='navbar', request=request)
+
         self.links = [
-            {'name': 'Dashboard', 'url': reverse_lazy('main:dashboard')},
-            {'name': 'Kursy', 'url': reverse_lazy('main:courses')},
-            {'name': 'Zadania', 'url': '#'},  # TODO: add url
+            {'name': _('Dashboard'), 'url': reverse_lazy('main:dashboard')},
+            {'name': _('Courses'), 'url': reverse_lazy('main:courses')},
+            {'name': _('Tasks'), 'url': '#'}
         ]
 
-        # TODO: add permission check
-        self.links.append({'name': _('Packages'), 'url': '#'})  # TODO: add url
+        if request.user.has_basic_model_permissions(model=PackageInstance,
+                                                    permissions=BasicPermissionType.VIEW):
+            self.links.append({'name': _('Packages'), 'url': '#'})
 
         if request.user.is_superuser:
             self.links.append({'name': _('Admin'), 'url': reverse_lazy('main:admin')})
