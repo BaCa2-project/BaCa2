@@ -3,11 +3,9 @@ from __future__ import annotations
 from typing import List, TYPE_CHECKING
 from abc import ABC
 
-from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
 from django import forms
 
-import widgets.forms
 from util.models import model_cls
 from util.models_registry import ModelsRegistry
 from main.models import Course
@@ -215,6 +213,10 @@ class CharArrayField(forms.CharField):
             for elem in value:
                 validator(elem)
 
+        for elem in value:
+            if not elem:
+                raise forms.ValidationError(_('This field cannot contain empty strings.'))
+
         if self.queryset and any(elem not in self.queryset for elem in value):
             raise forms.ValidationError(self.queryset_validation_error_message())
 
@@ -357,7 +359,6 @@ class CourseModelArrayField(ModelArrayField):
         """
         super().__init__(model=model, item_validators=item_validators, **kwargs)
         self.course = ModelsRegistry.get_course(course)
-        self.widget.attrs.update({'data-special-type': 'table-select'})
 
     def __getattribute__(self, item):
         """
@@ -365,41 +366,10 @@ class CourseModelArrayField(ModelArrayField):
         instance IDs.
         """
         if item == 'queryset':
+
             with InCourse(self.course.short_name):
                 return [instance.id for instance in self.model.objects.all()]
         return super().__getattribute__(item)
-
-
-class TableSelectField(IntegerArrayField):
-    def __init__(self,
-                 request: HttpRequest,
-                 data_source: TableDataSource,
-                 cols: List[Column],
-                 allow_column_search: bool = True,
-                 **kwargs) -> None:
-        from widgets.listing import TableWidget
-
-        super().__init__(**kwargs)
-        self.data_source = data_source
-        self.cols = cols
-        self.table_widget = TableWidget(
-            request=request,
-            data_source=data_source,
-            cols=cols,
-            allow_column_search=allow_column_search,
-            allow_select=True,
-        )
-
-
-class TestForm(forms.Form):
-    from course.models import Round
-
-    test = CourseModelArrayField(Round, course='mj_2023')
-
-
-class TestFormWidget(widgets.forms.FormWidget):
-    def __init__(self, request: HttpRequest):
-        super().__init__(request=request, form=TestForm(), name='test_form_widget')
 
 
 # ------------------------------------- table select field ------------------------------------- #

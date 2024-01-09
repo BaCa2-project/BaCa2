@@ -421,7 +421,7 @@ class DashboardView(BaCa2LoggedInView):
             allow_select=True,
             allow_delete=True,
         ))
-        from widgets.forms.fields.base import TestFormWidget
+        from widgets.forms.fields.table_select import TestFormWidget
 
         context['test_form'] = TestFormWidget(self.request).get_context()
 
