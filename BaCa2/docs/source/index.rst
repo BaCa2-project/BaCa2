@@ -6,6 +6,7 @@ Welcome to BaCa2's documentation!
     :caption: Overview:
 
     modules/overview/install
+    modules/overview/structure
 
 
 ..  toctree::

@@ -3,17 +3,17 @@ Installation guide
 
 .. note::
     This application is prepared to work with some kind of automated checker backend
-    (e.g. ` KOLEJKA <https://kolejka.matinf.uj.edu.pl/>`_) and broker to translate communication between them.
+    (e.g. `KOLEJKA <https://kolejka.matinf.uj.edu.pl/>`_) and broker to translate communication between them.
 
     Our app provides fully functional broker to work with KOLEJKA backend.
 
-Installation process
---------------------
+Development installation
+------------------------
 To install main django web app locally (for development purposes) follow this process:
 
 1. Install prerequisites:
 
-    a. Python 3.10 or newer & pip (`link to Python downloads <https://www.python.org/downloads/>`_)
+    a. Python 3.11 or newer & pip (`link to Python downloads <https://www.python.org/downloads/>`_)
     b. PostgreSQL 16 (`link to PostgreSQL downloads <https://www.postgresql.org/download/>`_)
 
 2. Install poetry (`about installing poetry <https://python-poetry.org/docs/#installation>`_)
