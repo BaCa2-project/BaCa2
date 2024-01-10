@@ -1,6 +1,13 @@
 Welcome to BaCa2's documentation!
 =================================
 
+.. toctree::
+    :maxdepth: 2
+    :caption: Overview:
+
+    modules/overview/install
+
+
 ..  toctree::
     :maxdepth: 2
     :caption: Apps:

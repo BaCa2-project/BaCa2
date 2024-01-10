@@ -384,9 +384,10 @@ class Task(models.Model, metaclass=ReadCourseMeta):
     @property
     def package_instance(self) -> PackageInstance:
         """
-        It returns the package instance associated with the current package instance
+        It returns the package instance associated with the current package instance.
 
         :return: A PackageInstance object.
+        :rtype: PackageInstance
         """
         from package.models import PackageInstance
         return PackageInstance.objects.get(pk=self.package_instance_id)
