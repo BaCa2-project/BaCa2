@@ -1307,12 +1307,7 @@ class User(AbstractBaseUser):
         :return: `True` if user has been assigned to the course, `False` otherwise.
         :rtype: bool
         """
-        if Group.objects.filter(
-                user=self,
-                groupcourse__course=ModelsRegistry.get_course(course)
-        ).exists():
-            return True
-        return False
+        return Role.objects.filter(user=self, course=ModelsRegistry.get_course(course)).exists()
 
     # ---------------------------------- Permission editing ----------------------------------- #
 

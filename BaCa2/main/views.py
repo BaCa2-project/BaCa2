@@ -10,8 +10,9 @@ from django.utils.translation import gettext_lazy as _
 
 from BaCa2.choices import BasicPermissionType
 from util.models import model_cls
-from main.models import Course, User
+from util.models_registry import ModelsRegistry
 from util.views import BaCa2ContextMixin, BaCa2LoggedInView
+from main.models import Course, User
 from widgets.navigation import SideNav
 from widgets.forms import FormWidget
 from widgets.forms.base import BaCa2FormResponse, BaCa2ModelFormResponse
@@ -70,9 +71,9 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
                 f'implement the `get_data` method needed to perform this action.'
             )
 
-        if kwargs.get('target', None):
+        if request.GET.get('target'):
             try:
-                target = self.MODEL.objects.get(id=kwargs['target'])
+                target = self.MODEL.objects.get(id=request.GET.get('target'))
             except self.MODEL.DoesNotExist:
                 return JsonResponse({'status': 'error', 'message': _('Target not found.')})
 
@@ -135,6 +136,42 @@ class CourseModelView(BaCa2ModelView):
     """
 
     MODEL = Course
+
+    def get(self, request, **kwargs) -> JsonResponse:
+        user = request.GET.get('user')
+
+        if not user:
+            return super().get(request, **kwargs)
+
+        user = ModelsRegistry.get_user(int(user))
+
+        if user != request.user:
+            return JsonResponse({'status': 'error',
+                                 'message': _('Permission denied. User id does not match.')})
+
+        if request.GET.get('target'):
+            try:
+                target = Course.objects.get(id=request.GET.get('target'))
+            except Course.DoesNotExist:
+                return JsonResponse({'status': 'error', 'message': _('Target not found.')})
+
+            if not user.can_access_course(target):
+                return JsonResponse({'status': 'error',
+                                     'message': _('User is not assigned to this course')})
+
+            return JsonResponse(
+                {'status': 'ok',
+                 'message': _('Successfully data for the specified course to which the user is '
+                              'assigned'),
+                 'data': [target.get_data()]}
+            )
+
+        return JsonResponse(
+            {'status': 'ok',
+             'message': _('Successfully retrieved data for all courses to which the user is '
+                          'assigned.'),
+             'data': [instance.get_data() for instance in user.get_courses()]}
+        )
 
     def post(self, request, **kwargs) -> BaCa2ModelFormResponse:
         """
