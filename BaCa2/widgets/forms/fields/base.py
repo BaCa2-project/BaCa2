@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, TYPE_CHECKING
+from typing import List
 from abc import ABC
 
 from django.utils.translation import gettext_lazy as _
@@ -10,10 +10,6 @@ from util.models import model_cls
 from util.models_registry import ModelsRegistry
 from main.models import Course
 from course.routing import InCourse
-
-if TYPE_CHECKING:
-    from widgets.listing.columns import Column
-    from widgets.listing.data_sources import TableDataSource
 
 
 # ----------------------------------- restricted char fields ----------------------------------- #
