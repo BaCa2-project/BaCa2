@@ -724,6 +724,9 @@ class Course(models.Model):
         :raises Course.CourseRoleError: If the role is the admin role or does not exist within the
             course.
         """
+        if role is None:
+            role = self.default_role
+
         if not self.role_exists(role):
             raise Course.CourseRoleError("Attempted to assign a user to a non-existent role")
 
@@ -1620,6 +1623,15 @@ class User(AbstractBaseUser):
         :rtype: List[Permission]
         """
         return ModelsRegistry.get_course(course).user_role(self).permissions.all()
+
+    # ------------------------------------- Other getters -------------------------------------- #
+
+    def get_courses(self) -> QuerySet[Course]:
+        """
+        :returns: QuerySet of all :class:`Course` objects the user is assigned to.
+        :rtype: List[:class:`Course`]
+        """
+        return Course.objects.filter(role_set__user=self)
 
     # --------------------------------------- Deletion ----------------------------------------- #
 
