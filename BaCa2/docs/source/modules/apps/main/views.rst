@@ -1,7 +1,7 @@
 .. module:: main.views
 
-Views module
-------------
+Views
+-----
 
 The Views module of ``main`` app contains abstract definition of project View (``BaCa2ModelView``) and definitions
 for other main views, related with models from ``main`` app. Also login and dashboard views are defined here.
