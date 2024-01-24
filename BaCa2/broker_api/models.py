@@ -196,7 +196,7 @@ class BrokerSubmit(models.Model):
 
         print('unpack results')
         with InCourse(course.short_name):
-            Result.unpack_results(submit_id, response)  # FIXME: Result.unpack_results() is not defined
+            Result.objects.unpack_results(submit_id, response)
             submit = Submit.objects.get(pk=submit_id)
             submit.score()
             print(submit)
