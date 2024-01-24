@@ -352,7 +352,7 @@ class Course(models.Model):
         blank=False
     )
     #: Short name of the course.
-    # Used to access the course's database with :py:class:`course.routing.InCourse`.
+    #: Used to access the course's database with :py:class:`course.routing.InCourse`.
     short_name = models.CharField(
         verbose_name=_("course short name"),
         max_length=40,
@@ -360,7 +360,7 @@ class Course(models.Model):
         blank=False
     )
     #: Subject code of the course in the USOS system.
-    # Used for automatic assignment of USOS registered users to the course
+    #: Used for automatic assignment of USOS registered users to the course
     USOS_course_code = models.CharField(
         verbose_name=_("Subject code"),
         max_length=20,
@@ -368,7 +368,7 @@ class Course(models.Model):
         null=True
     )
     #: Term code of the course in the USOS system.
-    # Used for automatic assignment of USOS registered users to the course
+    #: Used for automatic assignment of USOS registered users to the course
     USOS_term_code = models.CharField(
         verbose_name=_("Term code"),
         max_length=20,
@@ -388,7 +388,7 @@ class Course(models.Model):
         related_name='+'
     )
     #: The admin role for the course. The role has all permissions related to all course models.
-    # This group is automatically created during course creation.
+    #: This group is automatically created during course creation.
     admin_role = models.ForeignKey(
         verbose_name=_("admin role"),
         to='Role',
@@ -1189,7 +1189,7 @@ class User(AbstractBaseUser):
         ),
     )
     #: Groups the user belongs to. Groups are used to grant permissions to multiple users at once
-    # and to assign course access and roles to users.
+    #: and to assign course access and roles to users.
     groups = models.ManyToManyField(
         to=Group,
         verbose_name=_("groups"),
@@ -1210,7 +1210,7 @@ class User(AbstractBaseUser):
         related_name="user_set",
         related_query_name="user",
     )
-    # Permissions specifically granted to the user.
+    #: Permissions specifically granted to the user.
     user_permissions = models.ManyToManyField(
         to=Permission,
         verbose_name=_("user permissions"),
@@ -1223,11 +1223,11 @@ class User(AbstractBaseUser):
     # ------------------------------------ Django settings ------------------------------------- #
 
     #: Indicates which field should be considered as username.
-    # Required when replacing default Django User model.
+    #: Required when replacing default Django User model.
     USERNAME_FIELD = 'email'
 
     #: Indicates which field should be considered as email.
-    # Required when replacing default Django User model.
+    #: Required when replacing default Django User model.
     EMAIL_FIELD = 'email'
 
     #: Indicates which fields besides the USERNAME_FIELD are required when creating a User object.
