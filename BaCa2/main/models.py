@@ -18,8 +18,8 @@ from BaCa2.choices import (BasicPermissionType, PermissionCheck, ModelAction)
 from course.manager import (create_course as create_course_db, delete_course as delete_course_db)
 from course.routing import InCourse
 from util.models import (model_cls,
-                         get_model_permissions,
-                         replace_special_symbols)
+                         get_model_permissions)
+from util.other import replace_special_symbols
 from util.models_registry import ModelsRegistry
 
 
