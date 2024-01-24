@@ -25,16 +25,18 @@ class BrokerSubmit(models.Model):
         CHECKED = 2             # Submit was checked and results are saved
         SAVED = 3               # Results were saved
 
-    # foreign keys
+    #: course foreign key
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    #: package instance foreign key
     package_instance = models.ForeignKey(PackageInstance, on_delete=models.CASCADE)
+    #: submit id
     submit_id = models.BigIntegerField()
 
-    # status of this submit
+    #: status of this submit
     status = models.IntegerField(StatusEnum, default=StatusEnum.NEW)
-    # date of last status update
+    #: date of last status update
     update_date = models.DateTimeField(default=timezone.now)
-    # amount of times this submit was resent to broker
+    #: amount of times this submit was resent to broker
     retry_amount = models.IntegerField(default=0)
 
     @property
@@ -43,6 +45,7 @@ class BrokerSubmit(models.Model):
         Returns broker_id of this submit.
 
         :return: broker_id of this submit
+        :rtype: str
         """
         return brcom.create_broker_submit_id(self.course.name, int(self.submit_id))
 
@@ -51,18 +54,25 @@ class BrokerSubmit(models.Model):
         Hashes password with broker_id as salt.
 
         :param password: password to hash
+        :type password: str
+
         :return: hashed password
+        :rtype: str
         """
         return brcom.make_hash(password, self.broker_id)
 
-    def send_submit(self, url: str, password: str) -> (brcom.BacaToBroker, int):
+    def send_submit(self, url: str, password: str) -> tuple[brcom.BacaToBroker, int]:
         """
         Sends submit to broker.
 
         :param url: url of broker
+        :type url: str
         :param password: password for broker
+        :type password: str
+
         :return: tuple (message, status_code) where message is message sent to broker and status_code is an HTTP
-        status code or a negative number if an error occurred
+            status code or a negative number if an error occurred
+        :rtype: tuple[brcom.BacaToBroker, int]
         """
         message = brcom.BacaToBroker(
             pass_hash=self.hash_password(password),
@@ -91,11 +101,19 @@ class BrokerSubmit(models.Model):
         Creates new submit and sends it to broker.
 
         :param course: course of this submit
+        :type course: Course
         :param submit_id: id of this submit
+        :type submit_id: int
         :param package_instance: package instance of this submit
+        :type package_instance: PackageInstance
         :param broker_url: url of broker
+        :type broker_url: str
         :param broker_password: password for broker
+        :type broker_password: str
+
         :return: new submit
+        :rtype: BrokerSubmit
+
         :raises ConnectionError: if submit cannot be sent to broker
         """
         if cls.objects.filter(course=course, submit_id=submit_id).exists():
@@ -118,12 +136,14 @@ class BrokerSubmit(models.Model):
         new_submit.update_status(cls.StatusEnum.AWAITING_RESPONSE)
         return new_submit
 
-    def resend(self, broker_url: str = BROKER_URL, broker_password: str = BROKER_PASSWORD) -> None:
+    def resend(self, broker_url: str = BROKER_URL, broker_password: str = BROKER_PASSWORD):
         """
         Resends this submit to broker.
 
         :param broker_url: url of broker
+        :type broker_url: str
         :param broker_password: password for broker
+        :type broker_password: str
         """
         for _ in range(BrokerRetryPolicy.individual_max_retries):
             _, code = self.send_submit(broker_url, broker_password)
@@ -141,7 +161,11 @@ class BrokerSubmit(models.Model):
         Authenticates response from broker and returns the corresponding submit.
 
         :param response: response from broker
+        :type response: brcom.BrokerToBaca
+
         :return: submit corresponding to response
+        :rtype: BrokerSubmit
+
         :raises ValueError: if no submit with broker_id from response exists
         :raises PermissionError: if password in response is wrong
         """
@@ -156,11 +180,12 @@ class BrokerSubmit(models.Model):
         return broker_submit
 
     @classmethod
-    def handle_result(cls, response: brcom.BrokerToBaca) -> None:
+    def handle_result(cls, response: brcom.BrokerToBaca):
         """
         Handles result from broker and saves it to database.
 
         :param response: response from broker
+        :type response: brcom.BrokerToBaca
         """
         broker_submit = cls.authenticate(response)
         course_name, submit_id = brcom.split_broker_submit_id(response.submit_id)
@@ -171,7 +196,7 @@ class BrokerSubmit(models.Model):
 
         print('unpack results')
         with InCourse(course.short_name):
-            Result.unpack_results(submit_id, response)  # FIXME: Result.unpack_results() is not defined
+            Result.objects.unpack_results(submit_id, response)
             submit = Submit.objects.get(pk=submit_id)
             submit.score()
             print(submit)
@@ -180,11 +205,12 @@ class BrokerSubmit(models.Model):
         broker_submit.update_status(cls.StatusEnum.SAVED)
 
     @classmethod
-    def handle_error(cls, response: brcom.BrokerToBacaError) -> None:
+    def handle_error(cls, response: brcom.BrokerToBacaError):
         """
         Handles error from broker and sets status of corresponding submit to ERROR.
 
         :param response: response from broker
+        :type response: brcom.BrokerToBacaError
         """
         broker_submit = cls.authenticate(response)
         broker_submit.update_status(cls.StatusEnum.ERROR)
@@ -195,7 +221,7 @@ class BrokerSubmit(models.Model):
         Returns source code of this submit.
 
         :return: source code of this submit
-        """
+        """  # TODO: specify return type
         with InCourse(self.course.short_name):
             return Submit.objects.get(id=self.submit_id).source_code
 
@@ -205,6 +231,7 @@ class BrokerSubmit(models.Model):
         Updates status of this submit.
 
         :param new_status: new status of this submit
+        :type new_status: StatusEnum
         """
         self.status = new_status
         self.update_date = timezone.now()

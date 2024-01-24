@@ -19,7 +19,7 @@ from course.manager import (create_course as create_course_db, delete_course as 
 from course.routing import InCourse
 from util.models import (model_cls,
                          get_model_permissions)
-from util import replace_special_symbols
+from util.other import replace_special_symbols
 from util.models_registry import ModelsRegistry
 
 

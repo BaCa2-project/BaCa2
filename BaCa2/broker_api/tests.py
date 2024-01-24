@@ -123,7 +123,7 @@ class General(TestCase):
 
         cls.course = Course.objects.create_course(name=f'course1_{datetime.now().timestamp()}')
 
-        cls.pkg_instance = PackageInstance.objects.create_package_instance('dosko', '1')
+        cls.pkg_instance = PackageInstance.objects.create_source_and_instance('dosko', '1')
         cls.pkg_instance.save()
 
         cls.user = User.objects.create_user(password='user1',
@@ -135,10 +135,10 @@ class General(TestCase):
                                           reveal_date=datetime.now() + timedelta(days=2))
             round_.save()
 
-            cls.task = Task.new_class(
+            cls.task = Task.objects.create_task(
                 task_name="Liczby doskonałe",
                 package_instance=cls.pkg_instance,
-                round=round_,
+                round_=round_,
                 points=10,
             )
             cls.task.save()
@@ -163,7 +163,7 @@ class General(TestCase):
         src_code = src_code.absolute()
 
         with InCourse(self.course.short_name):
-            submit = Submit.new_class(source_code=src_code, task=self.task, usr=self.user)
+            submit = Submit.objects.create_submit(source_code=src_code, task=self.task, user=self.user)
             submit.pk = datetime.now().timestamp()
             submit.save()
             submit_id = submit.pk
@@ -182,7 +182,7 @@ class General(TestCase):
         src_code = src_code.absolute()
 
         with InCourse(self.course.short_name):
-            submit = Submit.create_new(source_code=src_code, task=self.task, usr=self.user)
+            submit = Submit.objects.create_submit(source_code=src_code, task=self.task, user=self.user)
             submit.pk = 1
             submit.save()
             submit_id = submit.pk
@@ -208,7 +208,7 @@ class General(TestCase):
         src_code = src_code.absolute()
 
         with InCourse(self.course.short_name):
-            submit = Submit.create_new(source_code=src_code, task=self.task, usr=self.user)
+            submit = Submit.objects.create_submit(source_code=src_code, task=self.task, user=self.user)
             submit.pk = 1
             submit.save()
             submit_id = submit.pk
@@ -238,7 +238,7 @@ class General(TestCase):
         src_code = src_code.absolute()
 
         with InCourse(self.course.short_name):
-            submit = Submit.create_new(source_code=src_code, task=self.task, usr=self.user)
+            submit = Submit.objects.create_submit(source_code=src_code, task=self.task, user=self.user)
             submit.pk = 1
             submit.save()
             submit_id = submit.pk
@@ -293,7 +293,7 @@ class General(TestCase):
             src_code = src_code.absolute()
 
             with InCourse(self.course.short_name):
-                submit = Submit.create_new(source_code=src_code, task=self.task, usr=self.user)
+                submit = Submit.objects.create_submit(source_code=src_code, task=self.task, user=self.user)
                 submit.pk = i
                 submit.save()
                 submit_id = submit.pk
