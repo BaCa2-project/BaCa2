@@ -47,26 +47,27 @@ class SideNav(Widget):
 
     def __init__(self,
                  request: HttpRequest,
-                 collapsed: bool,
-                 toggle_button: bool,
                  tabs: List[str],
-                 sub_tabs: Dict[str, List[str]]) -> None:
+                 sub_tabs: Dict[str, List[str]] = None,
+                 collapsed: bool = False,
+                 toggle_button: bool = False) -> None:
         """
         :param request: HTTP request object received by the view this side nav panel is rendered in.
         :type request: HttpRequest
+        :param tabs: List of tab names.
+        :type tabs: List[str]
+        :param sub_tabs: Dictionary of sub-tabs. Each key is the name of the tab and the value is a
+            list of sub-tab names.
+        :type sub_tabs: Dict[str, List[str]]
         :param collapsed: Whether the side navigation sub-tabs should be collapsed by default and
             expand only on hover/use (or when the toggle button is clicked).
         :type collapsed: bool
         :param toggle_button: Whether the toggle button should be displayed. Toggle button is used
             to expand/collapse the side navigation sub-tabs.
         :type toggle_button: bool
-        :param tabs: List of tab names.
-        :type tabs: List[str]
-        :param sub_tabs: Dictionary of sub-tabs. Each key is the name of the tab and the value is a
-            list of sub-tab names.
-        :type sub_tabs: Dict[str, List[str]]
         """
         super().__init__(name='sidenav', request=request)
+        sub_tabs = sub_tabs or {}
         self.collapsed = collapsed
         self.toggle_button = {'on': toggle_button,
                               'state': collapsed,
