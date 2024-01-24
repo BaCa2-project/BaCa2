@@ -458,15 +458,19 @@ class Course(models.Model):
         """
         return f"{self.short_name}__{self.name}"
 
-    def get_data(self) -> dict:
+    def get_data(self, user: User | str | int = None) -> dict:
         """
         Returns the contents of a Course object's fields as a dictionary. Used to send course data
         to the frontend.
 
-        :return: Dictionary containing the course's id, name and short name.
+        :param user: The user whose role within the course should be included in the returned
+            dictionary (if specified).
+        :type user: User | str | int
+        :return: Dictionary containing the course's id, name, short name, USOS codes and default
+            role (as well as the role of a given user if specified).
         :rtype: dict
         """
-        return {
+        result = {
             'id': self.id,
             'name': self.name,
             'short_name': self.short_name,
@@ -474,6 +478,9 @@ class Course(models.Model):
             'USOS_term_code': self.USOS_term_code,
             'default_role': f'{self.default_role}'
         }
+        if user:
+            result['user_role'] = f'{self.user_role(user).name}'
+        return result
 
     # -------------------------------------- Role getters -------------------------------------- #
 
@@ -1758,12 +1765,10 @@ class Role(models.Model):
 
     def __str__(self) -> str:
         """
-        Returns the string representation of the Role object.
-
         :return: :py:meth:`Course.__str__` representation of the course and the name of the role.
         :rtype: str
         """
-        return f'{self.name}_{self.course}'
+        return f'{self.name}'
 
     def has_permission(self, permission: Permission | str | int) -> bool:
         """
