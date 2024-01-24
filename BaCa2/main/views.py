@@ -302,6 +302,7 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
             ],
             allow_select=True,
             allow_delete=True,
+            delete_form=DeleteCourseForm(),
             paging=TableWidgetPaging(10, False),
         ))
 
