@@ -9,9 +9,8 @@ from widgets.forms.base import (FormWidget,
                                 BaCa2ModelForm,
                                 ModelFormPostTarget,
                                 CourseModelFormPostTarget)
-from widgets.forms.fields import AlphanumericStringField
 from widgets.forms.fields.table_select import TableSelectField
-from widgets.forms.fields.course import CourseShortName, USOSCode
+from widgets.forms.fields.course import CourseName, CourseShortName, USOSCode
 from widgets.popups.forms import SubmitConfirmationPopup
 from widgets.listing.data_sources import ModelDataSource
 from widgets.listing.columns import TextColumn
@@ -32,12 +31,7 @@ class CreateCourseForm(BaCa2ModelForm):
     ACTION = Course.BasicAction.ADD
 
     #: New course's name.
-    name = AlphanumericStringField(
-        label=_('Course name'),
-        min_length=5,
-        max_length=Course._meta.get_field('name').max_length,
-        required=True
-    )
+    name = CourseName(label=_('Course name'), required=True)
 
     #: New course's short name.
     short_name = CourseShortName()

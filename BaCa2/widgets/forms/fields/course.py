@@ -2,6 +2,32 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from main.models import Course
+from widgets.forms.fields import AlphanumericStringField
+
+
+class CourseName(AlphanumericStringField):
+    """
+    Form field for :class:`main.Course` name. Its validators check if the course name contains only
+    the allowed characters, no double spaces and no trailing or leading spaces.
+    """
+
+    ACCEPTED_CHARS = [' ', '-', '+', '.', '/', '(', ')', ',', ':', '#']
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(
+            min_length=5,
+            max_length=Course._meta.get_field('name').max_length,
+            **kwargs
+        )
+
+    @classmethod
+    def syntax_validation_error_message(cls) -> str:
+        """
+        :return: Error message for syntax validation.
+        :rtype: str
+        """
+        return _('Course name can only contain alphanumeric characters and the following special '
+                 + 'characters: ') + ' '.join(cls.ACCEPTED_CHARS)
 
 
 class CourseShortName(forms.CharField):
@@ -70,6 +96,6 @@ class USOSCode(forms.CharField):
         :raises: ValidationError if the USOS code contains characters other than alphanumeric
             characters, hyphens and dots.
         """
-        if any(not c.isalnum() and c not in ['-', '.', '/'] for c in value):
-            raise forms.ValidationError(_('USOS code can only contain alphanumeric characters,'
-                                          'hyphens, dots and slashes.'))
+        if any(not c.isalnum() and c not in ['-', '+', '.', '/'] for c in value):
+            raise forms.ValidationError(_('USOS code can only contain alphanumeric characters and '
+                                          + 'the following special characters: - + . /'))
