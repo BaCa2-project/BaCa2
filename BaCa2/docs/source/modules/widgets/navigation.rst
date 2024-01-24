@@ -1,7 +1,14 @@
-navigation module
------------------
+.. module:: widgets.navigation
 
-.. automodule:: widgets.navigation
-   :members:
-   :undoc-members:
-   :show-inheritance:
+Navigation
+----------
+
+Module containing widgets used for navigating the web application.
+
+.. autoclass:: NavBar
+    :members:
+    :private-members:
+
+.. autoclass:: SideNav
+    :members:
+    :private-members:

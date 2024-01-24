@@ -1,7 +1,10 @@
-base module
------------
+.. module:: widgets.base
 
-.. automodule:: widgets.base
+Base
+----
+
+Base module containing the abstract ``Widget`` class all other widgets inherit from.
+
+.. autoclass:: Widget
    :members:
-   :undoc-members:
-   :show-inheritance:
+   :private-members:
