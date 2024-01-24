@@ -9,6 +9,7 @@ from baca2PackageManager.broker_communication import *
 
 @csrf_exempt
 def handle_broker_result(request):
+    """Handles result sent by broker."""
     if request.method != 'POST':
         return HttpResponse("Not found", status=404)
 
@@ -28,6 +29,7 @@ def handle_broker_result(request):
 
 @csrf_exempt
 def handle_broker_error(request):
+    """Handles error sent by broker."""
     if request.method != 'POST':
         return HttpResponse("Not found", status=404)
 
