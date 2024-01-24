@@ -39,18 +39,6 @@ Additionally Django project provides an API for Broker communication (represente
 Main advantage over other services is unification of users database, along with remaining efficient with database
 resources usage.
 
-More about BaCa2 Django app
-'''''''''''''''''''''''''''
-
-.. toctree::
-    :maxdepth: 2
-
-    ../apps/main/index
-    ../apps/course/index
-    ../apps/package/index
-    ../apps/broker_api/index
-    ../apps/util/index
-
 BaCa2-broker
 ------------
 

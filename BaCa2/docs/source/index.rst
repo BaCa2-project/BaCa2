@@ -17,7 +17,7 @@ Welcome to BaCa2's documentation!
     modules/apps/course/index
     modules/apps/package/index
     modules/apps/util/index
-    modules/app/broker_api/index
+    modules/apps/broker_api/index
 
 ..  toctree::
     :maxdepth: 2
