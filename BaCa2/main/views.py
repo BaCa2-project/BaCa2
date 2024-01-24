@@ -1,131 +1,23 @@
-from abc import ABC, abstractmethod
-
-from django.views.generic.base import RedirectView, View
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.views.generic.base import RedirectView
+from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout
 from django.http import JsonResponse, HttpResponseRedirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 
-from BaCa2.choices import BasicPermissionType
-from util.models import model_cls
 from util.models_registry import ModelsRegistry
-from util.views import BaCa2ContextMixin, BaCa2LoggedInView
+from util.views import BaCa2ContextMixin, BaCa2LoggedInView, BaCa2ModelView
 from main.models import Course, User
 from widgets.navigation import SideNav
 from widgets.forms import FormWidget
-from widgets.forms.base import BaCa2FormResponse, BaCa2ModelFormResponse
+from widgets.forms.base import BaCa2ModelFormResponse
 from widgets.forms.course import CreateCourseForm, CreateCourseFormWidget, DeleteCourseForm
 from widgets.listing import TableWidget, TableWidgetPaging, ModelDataSource
 from widgets.listing.columns import TextColumn
 
 
 # ----------------------------------------- Model views ---------------------------------------- #
-
-class BaCa2ModelView(LoginRequiredMixin, View, ABC):
-    """
-    Base class for all views used to manage models and retrieve their data from the front-end. GET
-    requests directed at this view are used to retrieve data while POST requests are handled in
-    accordance with the particular model form from which they originate.
-
-    The view itself does not interface with model managers directly outside of retrieving data.
-    Instead, it acts as an interface between POST requests and form classes which handle them.
-
-    see:
-        - :class:`widgets.forms.base.BaCa2ModelForm`
-        - :class:`widgets.forms.base.BaCa2ModelFormResponse`
-    """
-
-    class ModelViewException(Exception):
-        """
-        Exception raised when an error related to retrieving data or handling POST requests in
-        a model view occurs.
-        """
-        pass
-
-    #: Model class which the view manages.
-    MODEL: model_cls = None
-
-    def get(self, request, **kwargs) -> JsonResponse:
-        """
-        Retrieves data of the instance(s) of the model class managed by the view if the requesting
-        user has permission to access it. If the request kwargs contain a 'target' key, the method
-        will return data of the instance of the model class with the id specified in the 'target'.
-
-        :return: JSON response with the result of the action in the form of status and message
-            strings (and data list if the request is valid).
-        :rtype: JsonResponse
-
-        :raises ModelViewException: If the model class managed by the view does not implement the
-            method needed to gather data.
-        """
-        if not self.test_view_permission(request, **kwargs):
-            return JsonResponse({'status': 'error', 'message': _('Permission denied.')})
-
-        get_data_method = getattr(self.MODEL, 'get_data')
-
-        if not get_data_method or not callable(get_data_method):
-            raise BaCa2ModelView.ModelViewException(
-                f'Model class managed by the {self.__class__.__name__} view does not '
-                f'implement the `get_data` method needed to perform this action.'
-            )
-
-        if request.GET.get('target'):
-            try:
-                target = self.MODEL.objects.get(id=request.GET.get('target'))
-            except self.MODEL.DoesNotExist:
-                return JsonResponse({'status': 'error', 'message': _('Target not found.')})
-
-            return JsonResponse(
-                {'status': 'ok',
-                 'message': _('Successfully retrieved target model data.'),
-                 'data': [target.get_data()]}
-            )
-        else:
-            return JsonResponse(
-                {'status': 'ok',
-                 'message': _('Successfully retrieved data for all model instances'),
-                 'data': [instance.get_data() for instance in self.MODEL.objects.all()]}
-            )
-
-    @abstractmethod
-    def post(self, request, **kwargs) -> JsonResponse:
-        """
-        Receives a post request from a model form and calls on its handle_post_request method to
-        validate and process the request.
-
-        :return: JSON response with the result of the action in the form of status and message
-            string
-        :rtype: JsonResponse
-        """
-        raise NotImplementedError('This method has to be implemented by inheriting classes.')
-
-    @classmethod
-    def test_view_permission(cls, request, **kwargs) -> bool:
-        """
-        Checks if the user has permission to view data of the model class managed by the view.
-
-        :return: `True` if the user has permission, `False` otherwise.
-        :rtype: bool
-        """
-        return request.user.has_basic_model_permissions(cls.MODEL, BasicPermissionType.VIEW)
-
-    @classmethod
-    def handle_unknown_form(cls, request, **kwargs) -> BaCa2ModelFormResponse:
-        """
-        Generates a JSON response returned when the post request contains an unknown form name.
-
-        :return: Error JSON response.
-        :rtype: :class:`BaCa2ModelFormResponse`
-        """
-        return BaCa2ModelFormResponse(
-            model=cls.MODEL,
-            action=request.POST.get('action', ''),
-            status=BaCa2FormResponse.Status.ERROR,
-            message=_(f'Unknown form: {request.POST.get("form_name")}')
-        )
-
 
 class CourseModelView(BaCa2ModelView):
     """
