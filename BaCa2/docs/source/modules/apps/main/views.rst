@@ -9,10 +9,6 @@ for other main views, related with models from ``main`` app. Also login and dash
 Model-related views
 """""""""""""""""""
 
-.. autoclass:: BaCa2ModelView
-    :members:
-    :private-members:
-
 .. autoclass:: UserModelView
     :members:
     :private-members:
