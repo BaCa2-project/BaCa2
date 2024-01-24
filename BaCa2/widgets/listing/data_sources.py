@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from main.models import Course
+from util import add_kwargs_to_url
 from util.models import model_cls
 from util.models_registry import ModelsRegistry
 
@@ -60,23 +61,27 @@ class ModelDataSource(TableDataSource):
         - :class:`CourseModelDataSource`
     """
 
-    def __init__(self, model: model_cls) -> None:
+    def __init__(self, model: model_cls, **kwargs) -> None:
         """
         :param model: The model class which instances should be used as data source for the table
             widget.
         :type model: Type[Model]
+        :param kwargs: Additional kwargs which should be passed to the data source url.
+        :type kwargs: dict
         """
         self.model = model
+        self.kwargs = kwargs
 
     def get_url(self) -> str:
         """
         Returns the url pointing to the model view of the model class used to generate the data
-        for the table widget.
+        for the table widget (including any additional kwargs passed to the constructor).
 
         :return: The data source url.
         :rtype: str
         """
-        return f'/{self.model._meta.app_label}/models/{self.model._meta.model_name}'
+        url = f'/{self.model._meta.app_label}/models/{self.model._meta.model_name}'
+        return add_kwargs_to_url(url, self.kwargs)
 
     def generate_table_widget_name(self) -> str:
         """
@@ -110,7 +115,7 @@ class CourseModelDataSource(ModelDataSource):
         - :class:`ModelDataSource`
     """
 
-    def __init__(self, model: model_cls, course: str | int | Course) -> None:
+    def __init__(self, model: model_cls, course: str | int | Course, **kwargs) -> None:
         """
         :param model: The model class which instances should be used as data source for the table
             widget.
@@ -118,18 +123,21 @@ class CourseModelDataSource(ModelDataSource):
         :param course: The course to which the model instances belong. Can be specified as the
             course short name, the course id or the course object.
         :type course: str | int | Course
+        :param kwargs: Additional kwargs which should be passed to the data source url.
+        :type kwargs: dict
         """
         if not isinstance(course, str):
             course = ModelsRegistry.get_course(course).short_name
         self.course = course
-        super().__init__(model)
+        super().__init__(model, **kwargs)
 
     def get_url(self) -> str:
         """
         Returns the url pointing to the course model view of the model class used to generate the
-        data for the table widget.
+        data for the table widget (including any additional kwargs passed to the constructor).
 
         :return: The data source url.
         :rtype: str
         """
-        return f'course/{self.course}/models/{self.model._meta.model_name}'
+        url = f'course/{self.course}/models/{self.model._meta.model_name}'
+        return add_kwargs_to_url(url, self.kwargs)

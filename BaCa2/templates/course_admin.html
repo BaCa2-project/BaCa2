@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class ="tab-wrapper" id="view-members-tab">
+        <div class="side-nav-tab">
+            {% with widgets.TableWidget.members_table_widget as table_widget %}
+                {% include "widget_templates/table.html" %}
+            {% endwith %}
+        </div>
+    </div>
+    <div class ="tab-wrapper" id="add-members-tab">
+        <div class="side-nav-tab">
+            {% with widgets.FormWidget.add_members_form_widget as form_widget %}
+                {% include "widget_templates/forms/default.html" %}
+            {% endwith %}
+        </div>
+    </div>
+    <div class="tab-wrapper" id="view-rounds-tab">
+        <div class="side-nav-tab">
+            View Rounds
+        </div>
+    </div>
+    <div class="tab-wrapper" id="add-round-tab">
+        <div class="side-nav-tab">
+            Add Round
+        </div>
+    </div>
+    <div class="tab-wrapper" id="view-tasks-tab">
+        <div class="side-nav-tab">
+            View Tasks
+        </div>
+    </div>
+    <div class="tab-wrapper" id="add-task-tab">
+        <div class="side-nav-tab">
+            Add Task
+        </div>
+    </div>
+    <div class="tab-wrapper" id="results-tab">
+        <div class="side-nav-tab">
+            Results
+        </div>
+    </div>
+{% endblock %}

@@ -11,8 +11,6 @@ from widgets.listing.columns import Column, SelectColumn, DeleteColumn
 from widgets.listing.data_sources import TableDataSource
 from widgets.forms import BaCa2ModelForm, FormWidget
 from widgets.popups.forms import SubmitConfirmationPopup
-from widgets.forms.course import DeleteCourseForm
-from main.models import Course
 
 
 class TableWidget(Widget):
@@ -30,11 +28,6 @@ class TableWidget(Widget):
         - :class:`Widget`
     """
 
-    #: Mapping of models to delete forms. Necessary for record deletion to work.
-    delete_forms = {
-        Course: DeleteCourseForm
-    }
-
     def __init__(self,
                  data_source: TableDataSource,
                  cols: List[Column],
@@ -47,13 +40,15 @@ class TableWidget(Widget):
                  allow_select: bool = False,
                  deselect_on_filter: bool = True,
                  allow_delete: bool = False,
+                 delete_form: BaCa2ModelForm = None,
                  paging: TableWidgetPaging = None,
                  refresh_button: bool = False,
                  refresh: bool = False,
                  refresh_interval: int = 30,
                  default_order_col: str = '',
                  default_order_asc: bool = True,
-                 stripe_rows: bool = True) -> None:
+                 stripe_rows: bool = True,
+                 highlight_rows_on_hover: bool = False) -> None:
         """
         :param data_source: The data source object used to generate the url from which the table
             data is fetched via AJAX request.
@@ -84,6 +79,9 @@ class TableWidget(Widget):
         :type deselect_on_filter: bool
         :param allow_delete: Whether to allow deleting records from the table.
         :type allow_delete: bool
+        :param delete_form: The form used to delete database records represented by the table rows.
+            Only relevant if allow_delete is True.
+        :type delete_form: :class:`BaCa2ModelForm`
         :param paging: Paging options for the table. If not set, paging is disabled.
         :type paging: :class:`TableWidgetPaging`
         :param refresh_button: Whether to display a refresh button in the util header above the
@@ -101,6 +99,8 @@ class TableWidget(Widget):
         :type default_order_asc: bool
         :param stripe_rows: Whether to stripe the table rows.
         :type stripe_rows: bool
+        :param highlight_rows_on_hover: Whether to highlight the table rows on mouse hover.
+        :type highlight_rows_on_hover: bool
         """
         if not name:
             name = data_source.generate_table_widget_name()
@@ -123,12 +123,12 @@ class TableWidget(Widget):
 
             if not model:
                 raise ValueError('Data source has to be a ModelDataSource to allow delete.')
-            if model not in TableWidget.delete_forms.keys():
-                raise ValueError(f'No delete form found for model {model}.')
+            if not delete_form:
+                raise ValueError('Delete form has to be set to allow delete.')
 
             delete_record_form_widget = DeleteRecordFormWidget(
                 request=request,
-                form=TableWidget.delete_forms[model](),
+                form=delete_form,
                 post_url=data_source.get_url(),
                 name=f'{name}_delete_record_form'
             )
@@ -145,6 +145,8 @@ class TableWidget(Widget):
 
         if stripe_rows:
             self.add_class('stripe')
+        if highlight_rows_on_hover:
+            self.add_class('row-hover')
 
         for col in cols:
             col.request = request

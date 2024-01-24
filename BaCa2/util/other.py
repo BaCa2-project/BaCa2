@@ -16,3 +16,20 @@ def normalize_string_to_python(string: str) -> str | bool | None:
         return True
     else:
         return string
+
+
+def add_kwargs_to_url(url: str, kwargs: dict) -> str:
+    """
+    Adds the given kwargs to the given url as query parameters.
+
+    :param url: The url to add the kwargs to
+    :type url: str
+    :param kwargs: The kwargs to add
+    :type kwargs: dict
+    :return: The url with the kwargs added
+    :rtype: str
+    """
+    if len(kwargs) == 0:
+        return url
+    else:
+        return url + '?' + '&'.join([f'{key}={value}' for key, value in kwargs.items()])

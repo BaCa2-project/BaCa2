@@ -458,15 +458,19 @@ class Course(models.Model):
         """
         return f"{self.short_name}__{self.name}"
 
-    def get_data(self) -> dict:
+    def get_data(self, user: User | str | int = None) -> dict:
         """
         Returns the contents of a Course object's fields as a dictionary. Used to send course data
         to the frontend.
 
-        :return: Dictionary containing the course's id, name and short name.
+        :param user: The user whose role within the course should be included in the returned
+            dictionary (if specified).
+        :type user: User | str | int
+        :return: Dictionary containing the course's id, name, short name, USOS codes and default
+            role (as well as the role of a given user if specified).
         :rtype: dict
         """
-        return {
+        result = {
             'id': self.id,
             'name': self.name,
             'short_name': self.short_name,
@@ -474,6 +478,9 @@ class Course(models.Model):
             'USOS_term_code': self.USOS_term_code,
             'default_role': f'{self.default_role}'
         }
+        if user:
+            result['user_role'] = f'{self.user_role(user).name}'
+        return result
 
     # -------------------------------------- Role getters -------------------------------------- #
 
@@ -724,6 +731,9 @@ class Course(models.Model):
         :raises Course.CourseRoleError: If the role is the admin role or does not exist within the
             course.
         """
+        if role is None:
+            role = self.default_role
+
         if not self.role_exists(role):
             raise Course.CourseRoleError("Attempted to assign a user to a non-existent role")
 
@@ -1247,15 +1257,18 @@ class User(AbstractBaseUser):
         """
         return self.email
 
-    def get_data(self) -> dict:
+    def get_data(self, course: Course | str | int = None) -> dict:
         """
         Returns the contents of a User object's fields as a dictionary. Used to send user data
         to the frontend.
 
-        :return: Dictionary containing the user's data
+        :param course: Course to return user's role in (if specified).
+        :type course: Course | str | int
+        :return: Dictionary containing the user's id, email, first name, last name, superuser
+            status, date of account creation and role in the course (if specified).
         :rtype: dict
         """
-        return {
+        result = {
             'id': self.id,
             'email': self.email,
             'first_name': self.first_name,
@@ -1263,6 +1276,9 @@ class User(AbstractBaseUser):
             'is_superuser': self.is_superuser,
             'date_joined': self.date_joined,
         }
+        if course is not None:
+            result['user_role'] = ModelsRegistry.get_course(course).user_role(self).name
+        return result
 
     # ------------------------------------ Auxiliary Checks ------------------------------------ #
 
@@ -1304,12 +1320,7 @@ class User(AbstractBaseUser):
         :return: `True` if user has been assigned to the course, `False` otherwise.
         :rtype: bool
         """
-        if Group.objects.filter(
-                user=self,
-                groupcourse__course=ModelsRegistry.get_course(course)
-        ).exists():
-            return True
-        return False
+        return Role.objects.filter(user=self, course=ModelsRegistry.get_course(course)).exists()
 
     # ---------------------------------- Permission editing ----------------------------------- #
 
@@ -1621,6 +1632,15 @@ class User(AbstractBaseUser):
         """
         return ModelsRegistry.get_course(course).user_role(self).permissions.all()
 
+    # ------------------------------------- Other getters -------------------------------------- #
+
+    def get_courses(self) -> QuerySet[Course]:
+        """
+        :returns: QuerySet of all :class:`Course` objects the user is assigned to.
+        :rtype: List[:class:`Course`]
+        """
+        return Course.objects.filter(role_set__user=self)
+
     # --------------------------------------- Deletion ----------------------------------------- #
 
     def delete(self, using=None, keep_parents=False):
@@ -1751,12 +1771,10 @@ class Role(models.Model):
 
     def __str__(self) -> str:
         """
-        Returns the string representation of the Role object.
-
         :return: :py:meth:`Course.__str__` representation of the course and the name of the role.
         :rtype: str
         """
-        return f'{self.name}_{self.course}'
+        return f'{self.name}'
 
     def has_permission(self, permission: Permission | str | int) -> bool:
         """

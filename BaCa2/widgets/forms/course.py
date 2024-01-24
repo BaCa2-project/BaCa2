@@ -3,14 +3,17 @@ from typing import Dict
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from main.models import Course
+from main.models import Course, User
 from widgets.forms.base import (FormWidget,
                                 FormElementGroup,
                                 BaCa2ModelForm,
-                                ModelFormPostTarget)
-from widgets.forms.fields import AlphanumericStringField
-from widgets.forms.fields.course import CourseShortName, USOSCode
+                                ModelFormPostTarget,
+                                CourseModelFormPostTarget)
+from widgets.forms.fields.table_select import TableSelectField
+from widgets.forms.fields.course import CourseName, CourseShortName, USOSCode
 from widgets.popups.forms import SubmitConfirmationPopup
+from widgets.listing.data_sources import ModelDataSource
+from widgets.listing.columns import TextColumn
 
 
 # ---------------------------------------- create course --------------------------------------- #
@@ -28,12 +31,7 @@ class CreateCourseForm(BaCa2ModelForm):
     ACTION = Course.BasicAction.ADD
 
     #: New course's name.
-    name = AlphanumericStringField(
-        label=_('Course name'),
-        min_length=5,
-        max_length=Course._meta.get_field('name').max_length,
-        required=True
-    )
+    name = CourseName(label=_('Course name'), required=True)
 
     #: New course's short name.
     short_name = CourseShortName()
@@ -250,6 +248,7 @@ class DeleteCourseFormWidget(FormWidget):
         - :class:`FormWidget`
         - :class:`DeleteCourseForm`
     """
+
     def __init__(self,
                  request,
                  form: DeleteCourseForm = None,
@@ -279,5 +278,56 @@ class DeleteCourseFormWidget(FormWidget):
                 ),
                 confirm_button_text=_('Delete course'),
             ),
+            **kwargs
+        )
+
+
+# ----------------------------------------- add members ---------------------------------------- #
+
+class AddMembersForm(BaCa2ModelForm):
+
+    MODEL = Course
+    ACTION = Course.CourseAction.ADD_MEMBER
+
+    users = TableSelectField(
+        label=_('Select users to add'),
+        data_source=ModelDataSource(model=User, **{'not_in_course': ''}),
+        cols=[TextColumn(name='first_name', header=_('First name')),
+              TextColumn(name='last_name', header=_('Last name')),
+              TextColumn(name='email', header=_('Email'))]
+    )
+
+    @classmethod
+    def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
+        pass
+
+    @classmethod
+    def handle_impermissible_request(cls, request) -> Dict[str, str]:
+        pass
+
+    @classmethod
+    def handle_error(cls, request, error: Exception) -> Dict[str, str]:
+        pass
+
+    @classmethod
+    def handle_valid_request(cls, request) -> Dict[str, str]:
+        pass
+
+
+class AddMembersFormWidget(FormWidget):
+    def __init__(self,
+                 request,
+                 course_id: int,
+                 form: AddMembersForm = None,
+                 **kwargs) -> None:
+        if not form:
+            form = AddMembersForm()
+
+        super().__init__(
+            name='add_members_form_widget',
+            request=request,
+            form=form,
+            post_target=CourseModelFormPostTarget(model=Course, course=course_id),
+            button_text=_('Add members'),
             **kwargs
         )
