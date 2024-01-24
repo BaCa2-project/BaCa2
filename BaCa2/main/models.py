@@ -1048,8 +1048,8 @@ class Course(models.Model):
         """
         Check whether a given user can be assigned to the course.\
 
-        :param user: The user to be validated. The user can be specified as either the user object,
-            its id or its email.
+        :param user: The user to be validated. The user can be specified as either the user object, its id or its email.
+        :type user: User | str | int
 
         :raises Course.CourseMemberError: If the user is already a member of the course.
         """
