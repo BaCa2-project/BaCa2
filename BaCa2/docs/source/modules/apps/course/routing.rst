@@ -1,13 +1,15 @@
+.. module:: course.routing
+
 Routing
 """""""
 
-.. autoclass:: course.routing.ContextCourseRouter
+.. autoclass:: ContextCourseRouter
     :members:
     :private-members: _get_context
     :inherited-members:
 
-.. autoclass:: course.routing.InCourse
+.. autoclass:: InCourse
     :members:
 
-.. autoclass:: course.routing.OptionalInCourse
+.. autoclass:: OptionalInCourse
     :members:

@@ -461,17 +461,6 @@ class PackageInstance(models.Model):
             # self delete instance
             super().delete(using, keep_parents)
 
-    # def share(self, user: User):
-    #     """
-    #     It creates a new instance of a package, and then creates a new PackageInstanceUser object
-    #     that links the new package instance to the user
-    #
-    #     :param user: The user to share the package with
-    #     :type user: User
-    #     """
-    #     new_instance = self.objects.make_package_instance_commit(self)
-    #     PackageInstanceUser.objects.create(user=user, package_instance=new_instance)
-
     @property
     def permitted_users(self) -> List[User]:
         """
