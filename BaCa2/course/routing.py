@@ -111,7 +111,7 @@ class InCourse:
         from course.routing import InCourse
 
         using InCourse('course123'):
-            Submit.create_new(...)
+            Submit.objects.create_submit(...)
 
     This code will create new submission inside of course ``course123``.
     """
@@ -159,9 +159,23 @@ class OptionalInCourse(InCourse):
             Submit.create_new(...)
 
     This code will create new submission inside of course ``course123``.
+
+    But this code:
+
+    .. code-block:: python
+
+            from course.routing import OptionalInCourse
+
+            using OptionalInCourse():
+                Submit.create_new(...)
+
+    will create new submission inside of course set by :py:class:`InCourse` context manager. If there is no context
+    database set, it will raise :py:class:`RoutingError`.
     """
 
     def __init__(self, course_or_none: int | str | Course | None):
+
+        #: Indicates if database alias was provided
         self.db_provided = course_or_none is not None
         if self.db_provided:
             super().__init__(course_or_none)
