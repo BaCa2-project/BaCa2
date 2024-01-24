@@ -1257,15 +1257,18 @@ class User(AbstractBaseUser):
         """
         return self.email
 
-    def get_data(self) -> dict:
+    def get_data(self, course: Course | str | int = None) -> dict:
         """
         Returns the contents of a User object's fields as a dictionary. Used to send user data
         to the frontend.
 
-        :return: Dictionary containing the user's data
+        :param course: Course to return user's role in (if specified).
+        :type course: Course | str | int
+        :return: Dictionary containing the user's id, email, first name, last name, superuser
+            status, date of account creation and role in the course (if specified).
         :rtype: dict
         """
-        return {
+        result = {
             'id': self.id,
             'email': self.email,
             'first_name': self.first_name,
@@ -1273,6 +1276,9 @@ class User(AbstractBaseUser):
             'is_superuser': self.is_superuser,
             'date_joined': self.date_joined,
         }
+        if course is not None:
+            result['user_role'] = ModelsRegistry.get_course(course).user_role(self).name
+        return result
 
     # ------------------------------------ Auxiliary Checks ------------------------------------ #
 
