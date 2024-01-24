@@ -1,3 +1,5 @@
+.. module:: main.views
+
 Views module
 ------------
 
@@ -7,50 +9,49 @@ for other main views, related with models from ``main`` app. Also login and dash
 Model-related views
 """""""""""""""""""
 
-.. autoclass:: main.views.BaCa2ModelView
+.. autoclass:: BaCa2ModelView
     :members:
     :private-members:
 
-.. autoclass:: main.views.UserModelView
+.. autoclass:: UserModelView
     :members:
     :private-members:
 
-.. autoclass:: main.views.CourseModelView
+.. autoclass:: CourseModelView
     :members:
     :private-members:
 
 Authentication views
 """"""""""""""""""""
 
-.. autoclass:: main.views.BaCa2LoginView
+.. autoclass:: BaCa2LoginView
     :members:
     :private-members:
 
-.. autoclass:: main.views.BaCa2LogoutView
+.. autoclass:: BaCa2LogoutView
     :members:
     :private-members:
 
 Admin views
 """""""""""
 
-.. autoclass:: main.views.AdminView
+.. autoclass:: AdminView
     :members:
     :private-members:
 
 Application views
 """""""""""""""""
 
-.. autoclass:: main.views.DashboardView
+.. autoclass:: DashboardView
     :members:
     :private-members:
 
-.. autoclass:: main.views.CoursesView
+.. autoclass:: CoursesView
     :members:
     :private-members:
 
 Management functions
 """"""""""""""""""""
 
-.. automodule:: main.views
-    :members: change_theme
+.. autofunction:: change_theme
 

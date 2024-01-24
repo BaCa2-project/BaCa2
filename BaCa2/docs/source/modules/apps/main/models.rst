@@ -1,3 +1,5 @@
+.. module:: main.models
+
 Models
 ======
 
@@ -10,49 +12,49 @@ Main models are divided into 3 groups:
 User related models
 """""""""""""""""""
 
-.. autoclass:: main.models.UserManager
+.. autoclass:: UserManager
     :members:
     :private-members:
 
-.. autoclass:: main.models.User
+.. autoclass:: User
     :members:
     :private-members:
 
-.. autoclass:: main.models.Settings
+.. autoclass:: Settings
     :members:
     :private-members:
 
 Permission management
 """""""""""""""""""""
 
-.. autoclass:: main.models.RoleManager
+.. autoclass:: RoleManager
     :members:
     :private-members:
 
-.. autoclass:: main.models.Role
+.. autoclass:: Role
     :members:
     :private-members:
 
-.. autoclass:: main.models.RolePresetManager
+.. autoclass:: RolePresetManager
     :members:
     :private-members:
 
-.. autoclass:: main.models.RolePreset
+.. autoclass:: RolePreset
     :members:
     :private-members:
 
-.. autoclass:: main.models.RolePresetUser
+.. autoclass:: RolePresetUser
     :members:
     :private-members:
 
 Course control models
 """""""""""""""""""""
 
-.. autoclass:: main.models.CourseManager
+.. autoclass:: CourseManager
     :members:
     :private-members:
 
-.. autoclass:: main.models.Course
+.. autoclass:: Course
     :members:
     :exclude-members: Round, Task, Submit
     :private-members:

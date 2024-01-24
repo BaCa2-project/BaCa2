@@ -1,54 +1,56 @@
+.. module:: course.models
+
 Models
 ------
 
-.. autoclass:: course.models.ReadCourseMeta
+.. autoclass:: ReadCourseMeta
     :members:
     :special-members: __new__
 
-.. autoclass:: course.models.RoundManager
+.. autoclass:: RoundManager
     :members:
     :private-members:
 
-.. autoclass:: course.models.Round
+.. autoclass:: Round
     :members:
     :private-members:
 
-.. autoclass:: course.models.TaskManager
+.. autoclass:: TaskManager
     :members:
     :private-members:
 
-.. autoclass:: course.models.Task
+.. autoclass:: Task
     :members:
     :private-members:
 
-.. autoclass:: course.models.TestSetManager
+.. autoclass:: TestSetManager
     :members:
     :private-members:
 
-.. autoclass:: course.models.TestSet
+.. autoclass:: TestSet
     :members:
     :private-members:
 
-.. autoclass:: course.models.TestManager
+.. autoclass:: TestManager
     :members:
     :private-members:
 
-.. autoclass:: course.models.Test
+.. autoclass:: Test
     :members:
     :private-members:
 
-.. autoclass:: course.models.SubmitManager
+.. autoclass:: SubmitManager
     :members:
     :private-members:
 
-.. autoclass:: course.models.Submit
+.. autoclass:: Submit
     :members:
     :private-members:
 
-.. autoclass:: course.models.ResultManager
+.. autoclass:: ResultManager
     :members:
     :private-members:
 
-.. autoclass:: course.models.Result
+.. autoclass:: Result
     :members:
     :private-members:
