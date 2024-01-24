@@ -311,9 +311,18 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
             request=self.request,
             data_source=ModelDataSource(Course),
             cols=[
-                TextColumn('name', 'Name', True),
-                TextColumn('USOS_course_code', 'Course code', True),
-                TextColumn('USOS_term_code', 'Term code', True),
+                TextColumn(name='id',
+                           header='ID',
+                           searchable=True,
+                           auto_width=False,
+                           width='4rem'),
+                TextColumn(name='name', header='Name', searchable=True),
+                TextColumn(name='USOS_course_code', header='Course code', searchable=True),
+                TextColumn(name='USOS_term_code',
+                           header='Term code',
+                           searchable=True,
+                           auto_width=False,
+                           width='8rem'),
             ],
             allow_select=True,
             allow_delete=True,
@@ -358,10 +367,11 @@ class CoursesView(BaCa2LoggedInView):
             data_source=ModelDataSource(Course, **url_kwargs),
             allow_column_search=True,
             cols=[
-                TextColumn('name', 'Name', True),
-                TextColumn('user_role', 'Your role', True),
-                TextColumn('USOS_term_code', 'Semester', True),
-            ]
+                TextColumn(name='name', header='Name', searchable=True),
+                TextColumn(name='user_role', header='Your role', searchable=True),
+                TextColumn(name='USOS_term_code', header='Semester', searchable=True),
+            ],
+            highlight_rows_on_hover=True,
         ))
         return context
 
