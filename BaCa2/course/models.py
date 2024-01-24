@@ -27,8 +27,19 @@ __all__ = ['Round', 'Task', 'TestSet', 'Test', 'Submit', 'Result']
 
 
 class ReadCourseMeta(ModelBase):
+    """
+    Metaclass providing automated database routing for all course objects.
+    If object was acquired from specific database, all operations are performed inside
+    of this database.
+    """
+
     def __new__(cls, name, bases, dct):
-        # Create a new class with the same name, bases, and dictionary
+        """
+        Creates new class with the same name, base and dictionary, but wraps all non-static,
+        non-class methods and properties with :py:meth`read_course_decorator`
+
+        *Special method signature from* ``django.db.models.base.ModelBase``
+        """
         new_class = super().__new__(cls, name, bases, dct)
 
         # Decorate all non-static, non-class methods with the hook method
@@ -37,13 +48,27 @@ class ReadCourseMeta(ModelBase):
                     not attr_name.startswith("_"),
                     not isinstance(attr_value, classmethod),
                     not isinstance(attr_value, staticmethod))):
+                decorated_meth = cls.read_course_decorator(attr_value, isinstance(attr_value, property))
+                decorated_meth.__doc__ = attr_value.__doc__
                 setattr(new_class,
                         attr_name,
-                        cls.read_course_decorator(attr_value, isinstance(attr_value, property)))
+                        decorated_meth)
         return new_class
 
     @staticmethod
-    def read_course_decorator(original_method, prop=False):
+    def read_course_decorator(original_method, prop: bool = False):
+        """
+        Decorator used to decode origin database from object. It wraps every operation inside
+        the object to be performed on meta-read database.
+
+        :param original_method: Original method to be wrapped
+        :param prop: Indicates if original method is a property.
+        :type prop: bool
+
+        :returns: Wrapped method
+
+        """
+
         def wrapper_method(self, *args, **kwargs):
             result = None
             if InCourse.is_defined():
