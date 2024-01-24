@@ -163,7 +163,7 @@ class General(TestCase):
         src_code = src_code.absolute()
 
         with InCourse(self.course.short_name):
-            submit = Submit.new_class(source_code=src_code, task=self.task, usr=self.user)
+            submit = Submit.objects.create_submit(source_code=src_code, task=self.task, usr=self.user)
             submit.pk = datetime.now().timestamp()
             submit.save()
             submit_id = submit.pk
@@ -182,7 +182,7 @@ class General(TestCase):
         src_code = src_code.absolute()
 
         with InCourse(self.course.short_name):
-            submit = Submit.create_new(source_code=src_code, task=self.task, usr=self.user)
+            submit = Submit.objects.create_submit(source_code=src_code, task=self.task, usr=self.user)
             submit.pk = 1
             submit.save()
             submit_id = submit.pk
@@ -208,7 +208,7 @@ class General(TestCase):
         src_code = src_code.absolute()
 
         with InCourse(self.course.short_name):
-            submit = Submit.create_new(source_code=src_code, task=self.task, usr=self.user)
+            submit = Submit.objects.create_submit(source_code=src_code, task=self.task, usr=self.user)
             submit.pk = 1
             submit.save()
             submit_id = submit.pk
@@ -238,7 +238,7 @@ class General(TestCase):
         src_code = src_code.absolute()
 
         with InCourse(self.course.short_name):
-            submit = Submit.create_new(source_code=src_code, task=self.task, usr=self.user)
+            submit = Submit.objects.create_submit(source_code=src_code, task=self.task, usr=self.user)
             submit.pk = 1
             submit.save()
             submit_id = submit.pk
@@ -293,7 +293,7 @@ class General(TestCase):
             src_code = src_code.absolute()
 
             with InCourse(self.course.short_name):
-                submit = Submit.create_new(source_code=src_code, task=self.task, usr=self.user)
+                submit = Submit.objects.create_submit(source_code=src_code, task=self.task, usr=self.user)
                 submit.pk = i
                 submit.save()
                 submit_id = submit.pk
