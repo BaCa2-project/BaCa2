@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from typing import List, Self, Any, TYPE_CHECKING
+from typing import List, Any, TYPE_CHECKING
 
 from django.db import models, transaction
 from django.db.models import Count, QuerySet
@@ -14,7 +14,7 @@ from BaCa2.choices import TaskJudgingMode, ResultStatus
 from BaCa2.exceptions import DataError
 from BaCa2.settings import SUBMITS_DIR
 from course.routing import OptionalInCourse, InCourse
-from baca2PackageManager import Package, TSet, TestF
+from baca2PackageManager import TSet, TestF
 from baca2PackageManager.broker_communication import BrokerToBaca
 
 from util.models_registry import ModelsRegistry
@@ -45,7 +45,6 @@ class ReadCourseMeta(ModelBase):
     @staticmethod
     def read_course_decorator(original_method, prop=False):
         def wrapper_method(self, *args, **kwargs):
-            result = None
             if InCourse.is_defined():
                 result = original_method(self, *args, **kwargs)
             else:
@@ -54,7 +53,6 @@ class ReadCourseMeta(ModelBase):
             return result
 
         def wrapper_property(self):
-            result = None
             if InCourse.is_defined():
                 result = original_method.fget(self)
             else:
@@ -166,8 +164,9 @@ class Round(models.Model, metaclass=ReadCourseMeta):
                        deadline_date: datetime,
                        end_date: datetime = None) -> None:
         """
-        If the end date is not None, then the end date must be greater than the start date and the deadline date must be
-        greater than the end date. If the end date is None, then the deadline date must be greater than the start date.
+        If the end date is not None, then the end date must be greater than the start date and the
+        deadline date must be greater than the end date. If the end date is None, then the
+        deadline date must be greater than the start date.
 
         :param start_date: The start date of the round.
         :type start_date: datetime
@@ -216,7 +215,8 @@ class Round(models.Model, metaclass=ReadCourseMeta):
     @property
     def round_points(self) -> float:
         """
-        It returns the amount of points that can be gained for completing all the tasks in the round.
+        It returns the amount of points that can be gained for completing all the tasks in the
+        round.
 
         :return: The amount of points that can be gained for completing all the tasks in the round.
         """
@@ -309,7 +309,8 @@ class TaskManager(models.Manager):
 
 class Task(models.Model, metaclass=ReadCourseMeta):
     """
-    It represents a task that user can submit a solution to. The task is judged and scored automatically
+    It represents a task that user can submit a solution to. The task is judged and scored
+    automatically
     """
 
     #: Pseudo-foreign key to package instance.
@@ -332,12 +333,14 @@ class Task(models.Model, metaclass=ReadCourseMeta):
     objects = TaskManager()
 
     def __str__(self):
-        return f"Task {self.pk}: {self.task_name}; Judging mode: {TaskJudgingMode[self.judging_mode].label};" \
-               f"Package: {self.package_instance}"
+        return (f"Task {self.pk}: {self.task_name}; "
+                f"Judging mode: {TaskJudgingMode[self.judging_mode].label}; "
+                f"Package: {self.package_instance}")
 
     def initialise_task(self) -> None:
         """
-        It initialises the task by creating a new instance of the Task class, and adding all task sets and tests to db.
+        It initialises the task by creating a new instance of the Task class, and adding all task
+        sets and tests to db.
 
         :return: None
         """
@@ -425,7 +428,8 @@ class Task(models.Model, metaclass=ReadCourseMeta):
 
     def last_submit(self, user: str | int | User, amount=1) -> Submit | List[Submit]:
         """
-        It returns the last submit of a user for a task or a list of 'amount' last submits to that task.
+        It returns the last submit of a user for a task or a list of 'amount' last submits to that
+        task.
 
         :param user: The user who submitted the task
         :type user: str | int | User
@@ -461,7 +465,8 @@ class Task(models.Model, metaclass=ReadCourseMeta):
     @classmethod
     def check_instance(cls, pkg_instance: PackageInstance, in_every_course: bool = True) -> bool:
         """
-        Check if a package instance exists in every course, optionally checking in context given course
+        Check if a package instance exists in every course, optionally checking in context given
+        course
 
         :param cls: the class of the model you're checking for
         :param pkg_instance: The PackageInstance object that you want to check for
@@ -552,8 +557,8 @@ class TestSetManager(models.Manager):
 
 class TestSet(models.Model, metaclass=ReadCourseMeta):
     """
-    Model groups single tests into a set of tests. Gives them a set name, and weight, used while calculating results for
-    whole task.
+    Model groups single tests into a set of tests. Gives them a set name, and weight, used while
+    calculating results for whole task.
     """
 
     #: Foreign key to task, with which tests set is associated.
@@ -567,7 +572,8 @@ class TestSet(models.Model, metaclass=ReadCourseMeta):
     objects = TestSetManager()
 
     def __str__(self):
-        return f"TestSet {self.pk}: Task/set: {self.task.task_name}/{self.short_name} (w: {self.weight})"
+        return (f"TestSet {self.pk}: Task/set: {self.task.task_name}/{self.short_name} "
+                f"(w: {self.weight})")
 
     @transaction.atomic
     def delete(self, using=None, keep_parents=False):
@@ -642,7 +648,8 @@ class Test(models.Model, metaclass=ReadCourseMeta):
     Single test. Primary object to be connected with students' results.
     """
 
-    #: Simple description what exactly is tested. Corresponds to py:class:`package.package_manage.TestF`.
+    #: Simple description what exactly is tested.
+    # Corresponds to py:class:`package.package_manage.TestF`.
     short_name = models.CharField(max_length=255)
     #: Foreign key to :py:class:`TestSet`.
     test_set = models.ForeignKey(TestSet, on_delete=models.CASCADE)
@@ -692,11 +699,13 @@ class SubmitManager(models.Manager):
         :type task: int | Task
         :param user: The user that you want to associate the submit with.
         :type user: str | int | User
-        :param submit_date: The date and time when the submit was created, defaults to now() (optional)
+        :param submit_date: The date and time when the submit was created, defaults to now()
+            (optional)
         :type submit_date: datetime
         :param final_score: The final score of the submit, defaults to -1 (optional)
         :type final_score: float
-        :param auto_send: If True, the submit will be sent to the broker, defaults to True (optional)
+        :param auto_send: If True, the submit will be sent to the broker, defaults to True
+            (optional)
         :type auto_send: bool
 
         :return: A new submit object.
@@ -756,7 +765,8 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
     #: Pseudo-foreign key to :py:class:`main.models.User` model (user), who submitted to the task.
     usr = models.BigIntegerField(validators=[SubmitManager.user_exists_validator])
-    #: Final score (as percent), gained by user's submission. Before solution check score is set to ``-1``.
+    #: Final score (as percent), gained by user's submission. Before solution check score is set
+    # to ``-1``.
     final_score = models.FloatField(default=-1)
 
     #: The manager for the Submit model.
@@ -821,7 +831,8 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         if rejudge:
             self.final_score = -1
 
-        # It's a cache. If the score was already calculated, it will be returned without recalculating.
+        # It's a cache. If the score was already calculated, it will be returned without
+        # recalculating.
         if self.final_score >= 0:
             return self.final_score
 
@@ -1007,8 +1018,8 @@ class Result(models.Model, metaclass=ReadCourseMeta):
     objects = ResultManager()
 
     def __str__(self):
-        return f"Result {self.pk}: Set[{self.test.test_set.short_name}] Test[{self.test.short_name}]; " \
-               f"Stat: {ResultStatus[self.status]}"
+        return (f"Result {self.pk}: Set[{self.test.test_set.short_name}] "
+                f"Test[{self.test.short_name}]; Stat: {ResultStatus[self.status]}")
 
     def delete(self, using=None, keep_parents=False, rejudge: bool = False):
         """
