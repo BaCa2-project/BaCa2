@@ -10,22 +10,12 @@ Course app is divided into 3 parts:
 2. Routing - defines ``ContextCourseRouter`` used to route requests to proper course database. Also defines ``InCourse`` and ``OptionalInCourse`` decorators, used to access course models.
 3. Models - defines ``Course`` models, which are used to store information about courses.
 
-Manager
-"""""""
+.. toctree::
+    :maxdepth: 2
+    :caption: Components:
 
-.. automodule:: course.manager
-    :members:
+    manager
+    routing
+    models
+    views
 
-Routing
-"""""""
-
-.. autoclass:: course.routing.ContextCourseRouter
-    :members:
-    :private-members: _get_context
-    :inherited-members:
-
-.. autoclass:: course.routing.InCourse
-    :members:
-
-.. autoclass:: course.routing.OptionalInCourse
-    :members:
