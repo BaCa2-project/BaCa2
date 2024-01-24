@@ -70,6 +70,6 @@ class USOSCode(forms.CharField):
         :raises: ValidationError if the USOS code contains characters other than alphanumeric
             characters, hyphens and dots.
         """
-        if any(not c.isalnum() and c not in ['-', '.'] for c in value):
+        if any(not c.isalnum() and c not in ['-', '.', '/'] for c in value):
             raise forms.ValidationError(_('USOS code can only contain alphanumeric characters,'
-                                          'hyphens and dots.'))
+                                          'hyphens, dots and slashes.'))

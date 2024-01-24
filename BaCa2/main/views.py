@@ -54,7 +54,7 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         will return data of the instance of the model class with the id specified in the 'target'.
 
         :return: JSON response with the result of the action in the form of status and message
-            strings (and data dictionary if the request is valid).
+            strings (and data list if the request is valid).
         :rtype: JsonResponse
 
         :raises ModelViewException: If the model class managed by the view does not implement the
@@ -138,6 +138,20 @@ class CourseModelView(BaCa2ModelView):
     MODEL = Course
 
     def get(self, request, **kwargs) -> JsonResponse:
+        """
+        Depending on the GET request parameters, the method retrieves data:
+            - of all courses if no parameters are specified (the user must have permission to view
+                courses),
+            - of a single course if the 'target' parameter is specified (the user must have
+                permission to view courses),
+            - of all courses to which the user is assigned if the 'user' parameter is specified
+            - of a single course to which the user is assigned if the 'user' and 'target'
+                parameters are specified
+
+        :return: JSON response with the result of the action in the form of status and message
+            strings (and data list if the request is valid).
+        :rtype: JsonResponse
+        """
         user = request.GET.get('user')
 
         if not user:
@@ -163,14 +177,14 @@ class CourseModelView(BaCa2ModelView):
                 {'status': 'ok',
                  'message': _('Successfully data for the specified course to which the user is '
                               'assigned'),
-                 'data': [target.get_data()]}
+                 'data': [target.get_data(user=user)]}
             )
 
         return JsonResponse(
             {'status': 'ok',
              'message': _('Successfully retrieved data for all courses to which the user is '
                           'assigned.'),
-             'data': [instance.get_data() for instance in user.get_courses()]}
+             'data': [instance.get_data(user=user) for instance in user.get_courses()]}
         )
 
     def post(self, request, **kwargs) -> BaCa2ModelFormResponse:
@@ -297,15 +311,19 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
             request=self.request,
             data_source=ModelDataSource(Course),
             cols=[
-                TextColumn('id', 'ID', True),
                 TextColumn('name', 'Name', True),
+                TextColumn('USOS_course_code', 'Course code', True),
+                TextColumn('USOS_term_code', 'Term code', True),
             ],
             allow_select=True,
             allow_delete=True,
-            paging=TableWidgetPaging(5, False),
+            paging=TableWidgetPaging(10, False),
         ))
 
         return context
+
+
+# ----------------------------------------- User views ----------------------------------------- #
 
 
 class DashboardView(BaCa2LoggedInView):
@@ -330,6 +348,25 @@ class CoursesView(BaCa2LoggedInView):
         - :class:`BaCa2LoggedInView`
     """
     template_name = 'courses.html'
+
+    def get_context_data(self, **kwargs):
+        url_kwargs = {'user': self.request.user.id}
+        context = super().get_context_data(**kwargs)
+        self.add_widget(context, TableWidget(
+            request=self.request,
+            title='Your courses',
+            data_source=ModelDataSource(Course, **url_kwargs),
+            allow_column_search=True,
+            cols=[
+                TextColumn('name', 'Name', True),
+                TextColumn('user_role', 'Your role', True),
+                TextColumn('USOS_term_code', 'Semester', True),
+            ]
+        ))
+        return context
+
+
+# ----------------------------------------- Util views ----------------------------------------- #
 
 
 def change_theme(request) -> JsonResponse:
