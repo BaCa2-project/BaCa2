@@ -27,6 +27,7 @@ Welcome to BaCa2's documentation!
     modules/widgets/navigation
     modules/widgets/forms/index
     modules/widgets/listing/index
+    modules/widgets/popups/index
 
 
 Indices and tables
