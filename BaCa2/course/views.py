@@ -1,11 +1,22 @@
 from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import redirect
 from django.contrib.auth.mixins import UserPassesTestMixin
+from django.utils.translation import gettext_lazy as _
 
+from main.models import User
 from util.views import BaCa2LoggedInView
 from util.models_registry import ModelsRegistry
 from widgets.navigation import SideNav
+from widgets.listing import TableWidget
+from widgets.listing.data_sources import ModelDataSource
+from widgets.listing.columns import TextColumn
+from widgets.forms.course import AddMembersFormWidget
 
+
+# ----------------------------------------- Model views ---------------------------------------- #
+
+
+# ----------------------------------------- User views ----------------------------------------- #
 
 class CourseView(BaCa2LoggedInView):
     """
@@ -25,8 +36,8 @@ class CourseView(BaCa2LoggedInView):
         if course.user_is_admin(request.user) or request.user.is_superuser:
             return redirect('course:course-admin', course_id=course.id)
         if not course.user_is_member(request.user):
-            return HttpResponseForbidden('You are neither a member of this course nor an admin.\n'
-                                         'You are not allowed to view this page.')
+            return HttpResponseForbidden(_('You are neither a member of this course nor an admin.\n'
+                                         'You are not allowed to view this page.'))
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs) -> dict:
@@ -59,4 +70,30 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
 
     def get_context_data(self, **kwargs) -> dict:
         context = super().get_context_data(**kwargs)
+        course_id = self.kwargs.get('course_id')
+
+        sidenav = SideNav(request=self.request,
+                          collapsed=False,
+                          toggle_button=True,
+                          tabs=['Members', 'Rounds', 'Tasks', 'Results'],
+                          sub_tabs={'Members': ['View members', 'Add members'],
+                                    'Rounds': ['View rounds', 'Add round'],
+                                    'Tasks': ['View tasks', 'Add task']})
+        self.add_widget(context, sidenav)
+
+        members_table = TableWidget(
+            name='members_table_widget',
+            request=self.request,
+            data_source=ModelDataSource(model=User, **{'course': course_id}),
+            cols=[TextColumn(name='first_name', header=_('First name')),
+                  TextColumn(name='last_name', header=_('Last name')),
+                  TextColumn(name='email', header=_('Email address')),
+                  TextColumn(name='user_role', header=_('Role'))],
+            title=_('Course members'),
+        )
+        self.add_widget(context, members_table)
+
+        add_members_form = AddMembersFormWidget(request=self.request, course_id=course_id)
+        self.add_widget(context, add_members_form)
+
         return context
