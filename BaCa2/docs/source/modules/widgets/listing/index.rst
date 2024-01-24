@@ -1,26 +1,12 @@
-listing package
-===============
+Listing
+=======
 
-base module
------------
+Package for all widget classes and components used to list and display data from the backend. The most important class of this package is ``base.TableWidget`` which is used to render data retrieved from a given source in table format.
 
-.. automodule:: widgets.listing.base
-   :members:
-   :undoc-members:
-   :show-inheritance:
+..  toctree::
+    :maxdepth: 2
+    :caption: Components:
 
-columns module
---------------
-
-.. automodule:: widgets.listing.columns
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-data sources module
--------------------
-
-.. automodule:: widgets.listing.data_sources
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    base
+    columns
+    data_sources
