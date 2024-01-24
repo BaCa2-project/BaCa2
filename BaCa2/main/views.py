@@ -1,3 +1,4 @@
+from django.db.models import QuerySet
 from django.views.generic.base import RedirectView
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib.auth.views import LoginView
@@ -120,12 +121,27 @@ class UserModelView(BaCa2ModelView):
                 requesting user must be an admin of the course or a superuser),
             - of a single user assigned to a course if the 'course' and 'target' parameters are
                 specified (the requesting user must be an admin of the course or a superuser)
+            - of all users not assigned to a course if the 'not_in_course' parameter is specified
+                (the requesting user must have permission to view users),
 
         :return: JSON response with the result of the action in the form of status and message
             strings (and data list if the request is valid).
         :rtype: JsonResponse
         """
         course = request.GET.get('course')
+        not_in_course = request.GET.get('not_in_course')
+
+        if not_in_course:
+            if not self.test_view_permission(request, **kwargs):
+                return JsonResponse({'status': 'error',
+                                     'message': _('Permission denied. You are not allowed to view '
+                                                  'users.')})
+            not_in_course = int(not_in_course)
+            return JsonResponse({
+                'status': 'ok',
+                'message': _('Successfully retrieved data for all users not assigned to a course.'),
+                'data': [user.get_data() for user in self._get_users_not_in_course(not_in_course)]
+            })
 
         if not course:
             return super().get(request, **kwargs)
@@ -161,6 +177,19 @@ class UserModelView(BaCa2ModelView):
                           'course.'),
              'data': [instance.get_data(course=course) for instance in course.members()]}
         )
+
+    @staticmethod
+    def _get_users_not_in_course(course_id: int) -> QuerySet[User]:
+        """
+        Returns a QuerySet of all users not assigned to a course.
+
+        :param course_id: ID of the course.
+        :type course_id: int
+        :return: QuerySet of all users not assigned to the course.
+        :rtype: QuerySet[:class:`User`]
+        """
+        course = ModelsRegistry.get_course(course_id)
+        return User.objects.exclude(id__in=course.members().values_list('id', flat=True))
 
     def post(self, request, **kwargs) -> BaCa2ModelFormResponse:
         """
