@@ -53,7 +53,8 @@ class TableWidget(Widget):
                  refresh_interval: int = 30,
                  default_order_col: str = '',
                  default_order_asc: bool = True,
-                 stripe_rows: bool = True) -> None:
+                 stripe_rows: bool = True,
+                 highlight_rows_on_hover: bool = False) -> None:
         """
         :param data_source: The data source object used to generate the url from which the table
             data is fetched via AJAX request.
@@ -101,6 +102,8 @@ class TableWidget(Widget):
         :type default_order_asc: bool
         :param stripe_rows: Whether to stripe the table rows.
         :type stripe_rows: bool
+        :param highlight_rows_on_hover: Whether to highlight the table rows on mouse hover.
+        :type highlight_rows_on_hover: bool
         """
         if not name:
             name = data_source.generate_table_widget_name()
@@ -145,6 +148,8 @@ class TableWidget(Widget):
 
         if stripe_rows:
             self.add_class('stripe')
+        if highlight_rows_on_hover:
+            self.add_class('row-hover')
 
         for col in cols:
             col.request = request
