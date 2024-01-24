@@ -109,21 +109,3 @@ def delete_populated_groups(groups: List[Group]) -> None:
 
     for group in groups:
         delete_populated_group(group)
-
-
-def replace_special_symbols(string: str, replacement: str = '_') -> str:
-    """
-    Replaces all special symbols in a string with a given replacement.
-
-    :param string: String to replace special symbols in.
-    :type string: str
-    :param replacement: Replacement for special symbols.
-    :type replacement: str
-
-    :return: String with special symbols replaced.
-    :rtype: str
-    """
-    for i in range(len(string)):
-        if not string[i].isalnum():
-            string = string[:i] + f'{replacement}' + string[i + 1:]
-    return string
