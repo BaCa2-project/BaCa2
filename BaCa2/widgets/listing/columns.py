@@ -92,6 +92,7 @@ class TextColumn(Column):
         - :class:`Column`
     """
     def __init__(self,
+                 *,
                  name: str,
                  header: str | None = None,
                  searchable: bool = True,

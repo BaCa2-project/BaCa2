@@ -697,7 +697,10 @@ html, body {
   color: #FE2E63;
 }
 [data-bs-theme=light] .table-wrapper .row-selected td {
-  background-color: rgba(255, 255, 255, 0.03);
+  background-color: rgba(0, 0, 0, 0.08);
+}
+[data-bs-theme=light] .table-wrapper .row-hover tr:hover td {
+  background-color: rgba(0, 0, 0, 0.08);
 }
 
 [data-bs-theme=dark] .table-wrapper .table-util-header {
@@ -710,6 +713,9 @@ html, body {
   color: #FE2E63;
 }
 [data-bs-theme=dark] .table-wrapper .row-selected td {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+[data-bs-theme=dark] .table-wrapper .row-hover tr:hover td {
   background-color: rgba(255, 255, 255, 0.03);
 }
 

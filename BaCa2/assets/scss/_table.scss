@@ -40,5 +40,9 @@
         .row-selected td {
             background-color: safe_get($map, $table_default_variables, selected_row_bg_color);
         }
+
+        .row-hover tr:hover td {
+            background-color: safe_get($map, $table_default_variables, row_bg_color_hover);
+        }
     }
 }
