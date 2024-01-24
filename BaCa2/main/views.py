@@ -32,13 +32,15 @@ class CourseModelView(BaCa2ModelView):
     def get(self, request, **kwargs) -> JsonResponse:
         """
         Depending on the GET request parameters, the method retrieves data:
-            - of all courses if no parameters are specified (the user must have permission to view
-                courses),
-            - of a single course if the 'target' parameter is specified (the user must have
+            - of all courses if no parameters are specified (the requesting user must have
                 permission to view courses),
+            - of a single course if the 'target' parameter is specified (the requesting user must
+                have permission to view courses),
             - of all courses to which the user is assigned if the 'user' parameter is specified
+                (the requesting user must be the same user or a superuser),
             - of a single course to which the user is assigned if the 'user' and 'target'
-                parameters are specified
+                parameters are specified (the requesting user must be the same user or a
+                superuser)
 
         :return: JSON response with the result of the action in the form of status and message
             strings (and data list if the request is valid).
@@ -51,7 +53,7 @@ class CourseModelView(BaCa2ModelView):
 
         user = ModelsRegistry.get_user(int(user))
 
-        if user != request.user:
+        if user != request.user and not request.user.is_superuser:
             return JsonResponse({'status': 'error',
                                  'message': _('Permission denied. User id does not match.')})
 
@@ -106,6 +108,59 @@ class UserModelView(BaCa2ModelView):
     """
 
     MODEL = User
+
+    def get(self, request, **kwargs) -> JsonResponse:
+        """
+        Depending on the GET request parameters, the method retrieves data:
+            - of all users if no parameters are specified (the requesting user must have permission
+                to view users),
+            - of a single user if the 'target' parameter is specified (the requesting user must
+                have permission to view users),
+            - of all users assigned to a course if the 'course' parameter is specified (the
+                requesting user must be an admin of the course or a superuser),
+            - of a single user assigned to a course if the 'course' and 'target' parameters are
+                specified (the requesting user must be an admin of the course or a superuser)
+
+        :return: JSON response with the result of the action in the form of status and message
+            strings (and data list if the request is valid).
+        :rtype: JsonResponse
+        """
+        course = request.GET.get('course')
+
+        if not course:
+            return super().get(request, **kwargs)
+
+        course = ModelsRegistry.get_course(int(course))
+
+        if not course.user_is_admin(request.user) and not request.user.is_superuser:
+            return JsonResponse({'status': 'error',
+                                 'message': _('Permission denied. You are not an admin of this '
+                                              'course or a superuser.')})
+
+        if request.GET.get('target'):
+            try:
+                target = User.objects.get(id=request.GET.get('target'))
+            except Course.DoesNotExist:
+                return JsonResponse({'status': 'error', 'message': _('Target not found.')})
+
+            if not course.user_is_member(target):
+                return JsonResponse({'status': 'error',
+                                     'message': _('User whose data you are trying to access is '
+                                                  'not a member of this course')})
+
+            return JsonResponse(
+                {'status': 'ok',
+                 'message': _('Successfully retrieved data for the specified user assigned to the '
+                              'specified course.'),
+                 'data': [target.get_data(course=course)]}
+            )
+
+        return JsonResponse(
+            {'status': 'ok',
+             'message': _('Successfully retrieved data for all users assigned to the specified '
+                          'course.'),
+             'data': [instance.get_data(course=course) for instance in course.members()]}
+        )
 
     def post(self, request, **kwargs) -> BaCa2ModelFormResponse:
         """
