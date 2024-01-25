@@ -274,7 +274,7 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
         sidenav = SideNav(request=self.request,
                           collapsed=False,
                           toggle_button=True,
-                          tabs=['Users', 'Courses', 'Packages'],
+                          tabs=['Courses', 'Users', 'Packages'],
                           sub_tabs={'Users': ['New User', 'Users Table'],
                                     'Courses': ['New Course', 'Courses Table'],
                                     'Packages': ['New Package', 'Packages Table']})
