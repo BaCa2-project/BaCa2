@@ -1,4 +1,4 @@
-broker api
+Broker API
 ==========
 
 ..  toctree::
@@ -7,4 +7,3 @@ broker api
 
     models
     views
-    management

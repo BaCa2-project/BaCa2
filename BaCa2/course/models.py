@@ -27,8 +27,19 @@ __all__ = ['Round', 'Task', 'TestSet', 'Test', 'Submit', 'Result']
 
 
 class ReadCourseMeta(ModelBase):
+    """
+    Metaclass providing automated database routing for all course objects.
+    If object was acquired from specific database, all operations are performed inside
+    of this database.
+    """
+
     def __new__(cls, name, bases, dct):
-        # Create a new class with the same name, bases, and dictionary
+        """
+        Creates new class with the same name, base and dictionary, but wraps all non-static,
+        non-class methods and properties with :py:meth`read_course_decorator`
+
+        *Special method signature from* ``django.db.models.base.ModelBase``
+        """
         new_class = super().__new__(cls, name, bases, dct)
 
         # Decorate all non-static, non-class methods with the hook method
@@ -37,13 +48,27 @@ class ReadCourseMeta(ModelBase):
                     not attr_name.startswith("_"),
                     not isinstance(attr_value, classmethod),
                     not isinstance(attr_value, staticmethod))):
+                decorated_meth = cls.read_course_decorator(attr_value, isinstance(attr_value, property))
+                decorated_meth.__doc__ = attr_value.__doc__
                 setattr(new_class,
                         attr_name,
-                        cls.read_course_decorator(attr_value, isinstance(attr_value, property)))
+                        decorated_meth)
         return new_class
 
     @staticmethod
-    def read_course_decorator(original_method, prop=False):
+    def read_course_decorator(original_method, prop: bool = False):
+        """
+        Decorator used to decode origin database from object. It wraps every operation inside
+        the object to be performed on meta-read database.
+
+        :param original_method: Original method to be wrapped
+        :param prop: Indicates if original method is a property.
+        :type prop: bool
+
+        :returns: Wrapped method
+
+        """
+
         def wrapper_method(self, *args, **kwargs):
             if InCourse.is_defined():
                 result = original_method(self, *args, **kwargs)
@@ -254,7 +279,7 @@ class TaskManager(models.Manager):
         :type judging_mode: TaskJudgingMode
         :param initialise_task: If True, the task will be initialised using data from
             PackageManager, otherwise sub-objects (tasks, sets & tests) won't be created
-        defaults to True (optional)
+            defaults to True (optional)
         :type initialise_task: bool
         :param course: The course that the task is in, if None - acquired from external definition
             (optional)
@@ -387,9 +412,10 @@ class Task(models.Model, metaclass=ReadCourseMeta):
     @property
     def package_instance(self) -> PackageInstance:
         """
-        It returns the package instance associated with the current package instance
+        It returns the package instance associated with the current package instance.
 
         :return: A PackageInstance object.
+        :rtype: PackageInstance
         """
         from package.models import PackageInstance
         return PackageInstance.objects.get(pk=self.package_instance_id)
@@ -436,7 +462,8 @@ class Task(models.Model, metaclass=ReadCourseMeta):
         :param amount: The amount of submits to return, defaults to 1 (optional)
         :type amount: int
 
-        :return: The last submit of a user for a task.
+        :return: The last submit of a user for a task or a list of 'amount' last submits to that task.
+        :rtype: Submit | List[Submit]
         """
         user = ModelsRegistry.get_user(user)
         self.refresh_user_submits(user)
@@ -454,7 +481,8 @@ class Task(models.Model, metaclass=ReadCourseMeta):
         :param amount: The amount of submits you want to get, defaults to 1 (optional)
         :type amount: int
 
-        :return: The best submit of a user for a task.
+        :return: The best submit of a user for a task or list of 'amount' best submits to that task.
+        :rtype: Submit | List[Submit]
         """
         user = ModelsRegistry.get_user(user)
         self.refresh_user_submits(user)
@@ -472,9 +500,11 @@ class Task(models.Model, metaclass=ReadCourseMeta):
         :param pkg_instance: The PackageInstance object that you want to check for
         :type pkg_instance: PackageInstance
         :param in_every_course: If True, the package instance must be in every course.
-        If False, it must be in at least one course, defaults to True
+            If False, it must be in at least one course, defaults to True
         :type in_every_course: bool (optional)
-        :return: A boolean value.
+
+        :return: True if package instance exists in every course, False otherwise.
+        :rtype: bool
         """
         if not in_every_course:
             return cls.objects.filter(package_instance_id=pkg_instance.pk).exists()
@@ -813,13 +843,13 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         """
         return list(Result.objects.filter(submit=self).all())
 
-    @transaction.atomic()
+    @transaction.atomic
     def score(self, rejudge: bool = False) -> float:
         """
         It calculates the score of *self* submit.
 
         :param rejudge: If True, the score will be recalculated even if it was already calculated
-        before, defaults to False (optional)
+            before, defaults to False (optional)
         :type rejudge: bool
 
         :return: The score of the submit.
