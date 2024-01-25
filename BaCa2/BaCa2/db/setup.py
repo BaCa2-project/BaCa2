@@ -14,7 +14,7 @@ CREATE ROLE root WITH
 	CONNECTION LIMIT -1
 	PASSWORD 'BaCa2root';
 GRANT postgres TO root WITH ADMIN OPTION;
-COMMENT ON ROLE root IS 'root db user for db managment purposes';
+COMMENT ON ROLE root IS 'root db user for db management purposes';
 '''
 
 DEFAULT_DB_HOST = 'localhost'

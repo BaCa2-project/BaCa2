@@ -1,6 +1,14 @@
 Welcome to BaCa2's documentation!
 =================================
 
+.. toctree::
+    :maxdepth: 2
+    :caption: Overview:
+
+    modules/overview/install
+    modules/overview/structure
+
+
 ..  toctree::
     :maxdepth: 2
     :caption: Apps:
@@ -9,7 +17,7 @@ Welcome to BaCa2's documentation!
     modules/apps/course/index
     modules/apps/package/index
     modules/apps/util/index
-    modules/app/broker_api/index
+    modules/apps/broker_api/index
 
 ..  toctree::
     :maxdepth: 2
@@ -19,6 +27,7 @@ Welcome to BaCa2's documentation!
     modules/widgets/navigation
     modules/widgets/forms/index
     modules/widgets/listing/index
+    modules/widgets/popups/index
 
 
 Indices and tables
