@@ -1,4 +1,4 @@
-views module
+views
 ------------
 
 .. automodule:: package.views
