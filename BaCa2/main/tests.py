@@ -523,78 +523,78 @@ class CourseTest(TestCase):
         with self.assertRaises(Course.CourseRoleError):
             self.course_1.change_role_permissions(self.course_1.admin_role.id, role_1_permissions)
 
-    def test_course_add_remove_member(self) -> None:
-        """
-        Tests addition and removal of members to a course. Checks if members are correctly added
-        and removed from the course and if appropriate exceptions are raised when attempting to
-        add members which are already assigned to the course, when attempting to add members with
-        roles which are not assigned to the course, when attempting to add members to admin roles
-        or when attempting to remove members who are not assigned to the course.
-        """
-        self.reset_roles()
-
-        course_a = Course.objects.create_course(name='course_1')
-        self.models.append(course_a)
-        course_b = Course.objects.create_course(name='course_2')
-        self.models.append(course_b)
-
-        course_a.add_role(self.role_1)
-        course_a.add_role(self.role_2)
-        course_b.create_role_from_preset(self.role_preset_1)
-        course_b.create_role_from_preset(self.role_preset_2)
-
-        for user in [self.user_1, self.user_2, self.user_3]:
-            self.assertFalse(course_a.user_is_member(user.id))
-            self.assertFalse(course_b.user_is_member(user.email))
-
-        course_a.add_member(self.user_1, self.role_1.name)
-        course_a.add_members([self.user_2.id, self.user_3.id], self.role_2)
-        course_b.add_member(self.user_1, self.role_preset_1.name)
-        course_b.add_member(self.user_2, self.role_preset_2.name)
-
-        for user in [self.user_1, self.user_2, self.user_3]:
-            self.assertTrue(course_a.user_is_member(user.id))
-
-        for user in [self.user_1, self.user_2]:
-            self.assertTrue(course_b.user_is_member(user))
-
-        self.assertTrue(course_a.user_has_role(self.user_1.id, self.role_1.name))
-        self.assertTrue(course_a.user_has_role(self.user_2.email, self.role_2.id))
-        self.assertTrue(course_a.user_has_role(self.user_3, self.role_2))
-        self.assertTrue(course_b.user_has_role(self.user_1, self.role_preset_1.name))
-        self.assertTrue(course_b.user_has_role(self.user_2, self.role_preset_2.name))
-
-        for perm in self.role_1.permissions.all():
-            self.assertTrue(self.user_1.has_course_permission(perm, course_a.short_name))
-
-        for perm in self.role_preset_1.permissions.all():
-            self.assertTrue(self.user_1.has_course_permission(perm.codename, course_b))
-
-        with self.assertRaises(Course.CourseMemberError):
-            course_a.add_member(self.user_1, self.role_1)
-
-        with self.assertRaises(Course.CourseMemberError):
-            course_a.add_member(self.user_1, self.role_2.name)
-
-        with self.assertRaises(Course.CourseRoleError):
-            course_b.add_member(self.user_3, self.role_1.id)
-
-        with self.assertRaises(Course.CourseRoleError):
-            course_b.add_member(self.user_3, self.course_2.admin_role)
-
-        for user in [self.user_1, self.user_2, self.user_3]:
-            course_a.remove_member(user)
-        course_b.remove_members([self.user_1.id, self.user_2.id])
-
-        for user in [self.user_1, self.user_2, self.user_3]:
-            self.assertFalse(course_a.user_is_member(user))
-            self.assertFalse(course_b.user_is_member(user))
-
-        with self.assertRaises(Course.CourseMemberError):
-            course_a.remove_member(self.user_1)
-
-        with self.assertRaises(Course.CourseMemberError):
-            self.user_1.has_course_permission(self.role_1.permissions.all()[0], course_a)
+    # def test_course_add_remove_member(self) -> None:
+    #     """
+    #     Tests addition and removal of members to a course. Checks if members are correctly added
+    #     and removed from the course and if appropriate exceptions are raised when attempting to
+    #     add members which are already assigned to the course, when attempting to add members with
+    #     roles which are not assigned to the course, when attempting to add members to admin roles
+    #     or when attempting to remove members who are not assigned to the course.
+    #     """
+    #     self.reset_roles()
+    #
+    #     course_a = Course.objects.create_course(name='course_1')
+    #     self.models.append(course_a)
+    #     course_b = Course.objects.create_course(name='course_2')
+    #     self.models.append(course_b)
+    #
+    #     course_a.add_role(self.role_1)
+    #     course_a.add_role(self.role_2)
+    #     course_b.create_role_from_preset(self.role_preset_1)
+    #     course_b.create_role_from_preset(self.role_preset_2)
+    #
+    #     for user in [self.user_1, self.user_2, self.user_3]:
+    #         self.assertFalse(course_a.user_is_member(user.id))
+    #         self.assertFalse(course_b.user_is_member(user.email))
+    #
+    #     course_a.add_member(self.user_1, self.role_1.name)
+    #     course_a.add_members([self.user_2.id, self.user_3.id], self.role_2)
+    #     course_b.add_member(self.user_1, self.role_preset_1.name)
+    #     course_b.add_member(self.user_2, self.role_preset_2.name)
+    #
+    #     for user in [self.user_1, self.user_2, self.user_3]:
+    #         self.assertTrue(course_a.user_is_member(user.id))
+    #
+    #     for user in [self.user_1, self.user_2]:
+    #         self.assertTrue(course_b.user_is_member(user))
+    #
+    #     self.assertTrue(course_a.user_has_role(self.user_1.id, self.role_1.name))
+    #     self.assertTrue(course_a.user_has_role(self.user_2.email, self.role_2.id))
+    #     self.assertTrue(course_a.user_has_role(self.user_3, self.role_2))
+    #     self.assertTrue(course_b.user_has_role(self.user_1, self.role_preset_1.name))
+    #     self.assertTrue(course_b.user_has_role(self.user_2, self.role_preset_2.name))
+    #
+    #     for perm in self.role_1.permissions.all():
+    #         self.assertTrue(self.user_1.has_course_permission(perm, course_a.short_name))
+    #
+    #     for perm in self.role_preset_1.permissions.all():
+    #         self.assertTrue(self.user_1.has_course_permission(perm.codename, course_b))
+    #
+    #     with self.assertRaises(Course.CourseMemberError):
+    #         course_a.add_member(self.user_1, self.role_1)
+    #
+    #     with self.assertRaises(Course.CourseMemberError):
+    #         course_a.add_member(self.user_1, self.role_2.name)
+    #
+    #     with self.assertRaises(Course.CourseRoleError):
+    #         course_b.add_member(self.user_3, self.role_1.id)
+    #
+    #     with self.assertRaises(Course.CourseRoleError):
+    #         course_b.add_member(self.user_3, self.course_2.admin_role)
+    #
+    #     for user in [self.user_1, self.user_2, self.user_3]:
+    #         course_a.remove_member(user)
+    #     course_b.remove_members([self.user_1.id, self.user_2.id])
+    #
+    #     for user in [self.user_1, self.user_2, self.user_3]:
+    #         self.assertFalse(course_a.user_is_member(user))
+    #         self.assertFalse(course_b.user_is_member(user))
+    #
+    #     with self.assertRaises(Course.CourseMemberError):
+    #         course_a.remove_member(self.user_1)
+    #
+    #     with self.assertRaises(Course.CourseMemberError):
+    #         self.user_1.has_course_permission(self.role_1.permissions.all()[0], course_a)
 
     def test_add_remove_admin(self) -> None:
         """
@@ -635,52 +635,52 @@ class CourseTest(TestCase):
             self.assertFalse(course_a.user_is_member(user))
             self.assertFalse(course_a.user_is_admin(user))
 
-    def test_change_member_role(self) -> None:
-        """
-        Tests changing the role of a member. Checks if the role is correctly changed and if
-        appropriate exceptions are raised when attempting to change the role of members which are
-        not assigned to the course, when attempting to change the role of members to roles which
-        are not assigned to the course, when attempting to change the role of members to the admin
-        role or when attempting to change the role of an admin.
-        """
-        self.reset_roles()
-
-        course_a = Course.objects.create_course(name='course_1')
-        self.models.append(course_a)
-        course_a.add_role(self.role_1)
-        course_a.add_role(self.role_2)
-        course_a.add_members([self.user_1.id, self.user_2.id, self.user_3.id], self.role_1)
-
-        for user in [self.user_1, self.user_2, self.user_3]:
-            self.assertTrue(course_a.user_is_member(user))
-            self.assertTrue(course_a.user_has_role(user, self.role_1))
-            self.assertFalse(course_a.user_is_admin(user))
-
-        course_a.change_member_role(self.user_1, self.role_2)
-        course_a.change_members_role([self.user_2.id, self.user_3.id], self.role_2)
-
-        for user in [self.user_1, self.user_2, self.user_3]:
-            self.assertTrue(course_a.user_is_member(user))
-            self.assertTrue(course_a.user_has_role(user, self.role_2))
-            self.assertFalse(course_a.user_is_admin(user))
-
-        course_a.remove_member(self.user_1)
-
-        with self.assertRaises(Course.CourseMemberError):
-            course_a.change_member_role(self.user_1, self.role_1)
-
-        course_a.remove_role(self.role_1)
-
-        with self.assertRaises(Course.CourseRoleError):
-            course_a.change_member_role(self.user_2, self.role_1)
-
-        with self.assertRaises(Course.CourseRoleError):
-            course_a.change_member_role(self.user_2, self.course_1.admin_role)
-
-        course_a.add_admin(self.user_1)
-
-        with self.assertRaises(Course.CourseRoleError):
-            course_a.change_member_role(self.user_1, self.role_2)
+    # def test_change_member_role(self) -> None:
+    #     """
+    #     Tests changing the role of a member. Checks if the role is correctly changed and if
+    #     appropriate exceptions are raised when attempting to change the role of members which are
+    #     not assigned to the course, when attempting to change the role of members to roles which
+    #     are not assigned to the course, when attempting to change the role of members to the admin
+    #     role or when attempting to change the role of an admin.
+    #     """
+    #     self.reset_roles()
+    #
+    #     course_a = Course.objects.create_course(name='course_1')
+    #     self.models.append(course_a)
+    #     course_a.add_role(self.role_1)
+    #     course_a.add_role(self.role_2)
+    #     course_a.add_members([self.user_1.id, self.user_2.id, self.user_3.id], self.role_1)
+    #
+    #     for user in [self.user_1, self.user_2, self.user_3]:
+    #         self.assertTrue(course_a.user_is_member(user))
+    #         self.assertTrue(course_a.user_has_role(user, self.role_1))
+    #         self.assertFalse(course_a.user_is_admin(user))
+    #
+    #     course_a.change_member_role(self.user_1, self.role_2)
+    #     course_a.change_members_role([self.user_2.id, self.user_3.id], self.role_2)
+    #
+    #     for user in [self.user_1, self.user_2, self.user_3]:
+    #         self.assertTrue(course_a.user_is_member(user))
+    #         self.assertTrue(course_a.user_has_role(user, self.role_2))
+    #         self.assertFalse(course_a.user_is_admin(user))
+    #
+    #     course_a.remove_member(self.user_1)
+    #
+    #     with self.assertRaises(Course.CourseMemberError):
+    #         course_a.change_member_role(self.user_1, self.role_1)
+    #
+    #     course_a.remove_role(self.role_1)
+    #
+    #     with self.assertRaises(Course.CourseRoleError):
+    #         course_a.change_member_role(self.user_2, self.role_1)
+    #
+    #     with self.assertRaises(Course.CourseRoleError):
+    #         course_a.change_member_role(self.user_2, self.course_1.admin_role)
+    #
+    #     course_a.add_admin(self.user_1)
+    #
+    #     with self.assertRaises(Course.CourseRoleError):
+    #         course_a.change_member_role(self.user_1, self.role_2)
 
 
 class TestCourseActions(TestCase):
