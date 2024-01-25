@@ -34,12 +34,12 @@ class BaCa2ContextMixin:
         """
         pass
 
-    # List of all widget types used in BaCa2 views.
+    #: List of all widget types used in BaCa2 views.
     WIDGET_TYPES = [FormWidget, NavBar, SideNav, TableWidget]
-    # List of all widgets which are unique (i.e. there can only be one instance of each widget type
-    # can exist in the context dictionary).
+    #: List of all widgets which are unique (i.e. there can only be one instance of each widget type
+    #: can exist in the context dictionary).
     UNIQUE_WIDGETS = [NavBar, SideNav]
-    # Default theme for users who are not logged in.
+    #: Default theme for users who are not logged in.
     DEFAULT_THEME = 'dark'
 
     def get_context_data(self, **kwargs) -> Dict[str, Any]:
@@ -185,8 +185,8 @@ class BaCa2LoggedInView(LoginRequiredMixin, BaCa2ContextMixin, TemplateView):
     providing a navbar widget and a preliminary setup for the context dictionary.
     """
 
-    # Baca2LoggedInView is a base, abstract class and as such does not have a template. All
-    # subclasses should provide their own template.
+    #: Baca2LoggedInView is a base, abstract class and as such does not have a template. All
+    #: subclasses should provide their own template.
     template_name = None
 
 
@@ -314,15 +314,14 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         """
         raise NotImplementedError('This method has to be implemented by inheriting classes.')
 
-    @classmethod
-    def test_view_permission(cls, request, **kwargs) -> bool:
+    def test_view_permission(self, request, **kwargs) -> bool:
         """
         Checks if the user has permission to view data of the model class managed by the view.
 
         :return: `True` if the user has permission, `False` otherwise.
         :rtype: bool
         """
-        return request.user.has_basic_model_permissions(cls.MODEL, BasicPermissionType.VIEW)
+        return request.user.has_basic_model_permissions(self.MODEL, BasicPermissionType.VIEW)
 
     @classmethod
     def handle_unknown_form(cls, request, **kwargs) -> BaCa2ModelFormResponse:
