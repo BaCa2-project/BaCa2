@@ -9,10 +9,10 @@ from django.utils.translation import gettext_lazy as _
 
 from util.models_registry import ModelsRegistry
 from util.views import BaCa2ContextMixin, BaCa2LoggedInView, BaCa2ModelView
+from util.responses import BaCa2ModelResponse
 from main.models import Course, User
 from widgets.navigation import SideNav
 from widgets.forms import FormWidget
-from widgets.forms.base import BaCa2ModelFormResponse
 from widgets.forms.course import CreateCourseForm, CreateCourseFormWidget, DeleteCourseForm
 from widgets.listing import TableWidget, TableWidgetPaging, ModelDataSource
 from widgets.listing.columns import TextColumn
@@ -82,7 +82,7 @@ class CourseModelView(BaCa2ModelView):
              'data': [instance.get_data(user=user) for instance in user.get_courses()]}
         )
 
-    def post(self, request, **kwargs) -> BaCa2ModelFormResponse:
+    def post(self, request, **kwargs) -> BaCa2ModelResponse:
         """
         Handles a POST request received from a course model form. The method calls on the
         handle_post_request method of the form class used to generate the widget from which the
@@ -90,7 +90,7 @@ class CourseModelView(BaCa2ModelView):
 
         :return: JSON response with the result of the action in the form of status and message
             strings.
-        :rtype: :class:`BaCa2ModelFormResponse`
+        :rtype: :class:`BaCa2ModelResponse`
         """
         if request.POST.get('form_name') == 'add_course_form':
             return CreateCourseForm.handle_post_request(request)
@@ -191,7 +191,7 @@ class UserModelView(BaCa2ModelView):
         course = ModelsRegistry.get_course(course_id)
         return User.objects.exclude(id__in=course.members().values_list('id', flat=True))
 
-    def post(self, request, **kwargs) -> BaCa2ModelFormResponse:
+    def post(self, request, **kwargs) -> BaCa2ModelResponse:
         """
         Handles a POST request received from a user model form. The method calls on the
         handle_post_request method of the form class used to generate the widget from which the
@@ -199,7 +199,7 @@ class UserModelView(BaCa2ModelView):
 
         :return: JSON response with the result of the action in the form of status and message
             strings.
-        :rtype: :class:`BaCa2ModelFormResponse`
+        :rtype: :class:`BaCa2ModelResponse`
         """
         pass
 

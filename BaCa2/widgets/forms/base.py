@@ -5,13 +5,13 @@ from enum import Enum
 from abc import ABC, abstractmethod
 
 from django import forms
-from django.http import JsonResponse
 from django.utils.translation import gettext_lazy as _
 
 from widgets.base import Widget
 from widgets.popups.forms import SubmitConfirmationPopup, SubmitSuccessPopup, SubmitFailurePopup
 from util.models import model_cls
 from util.models_registry import ModelsRegistry
+from util.responses import BaCa2JsonResponse, BaCa2ModelResponse
 from BaCa2.choices import ModelAction
 from main.models import Course
 
@@ -61,7 +61,7 @@ class BaCa2ModelForm(BaCa2Form):
                                   'action': self.ACTION.value}, **kwargs)
 
     @classmethod
-    def handle_post_request(cls, request) -> BaCa2ModelFormResponse:
+    def handle_post_request(cls, request) -> BaCa2ModelResponse:
         """
         Handles the POST request received by the view this form's data was posted to. Based on the
         user's permissions and the validity of the form data, returns a JSON response containing
@@ -70,38 +70,38 @@ class BaCa2ModelForm(BaCa2Form):
         :param request: Request object.
         :type request: HttpRequest
         :return: JSON response to the request.
-        :rtype: :class:`BaCa2ModelFormResponse`
+        :rtype: :class:`BaCa2ModelResponse`
         """
         if not cls.is_permissible(request):
-            return BaCa2ModelFormResponse(
+            return BaCa2ModelResponse(
                 model=cls.MODEL,
                 action=cls.ACTION,
-                status=BaCa2FormResponse.Status.IMPERMISSIBLE,
+                status=BaCa2JsonResponse.Status.IMPERMISSIBLE,
                 **cls.handle_impermissible_request(request)
             )
 
         if cls(data=request.POST).is_valid():
             try:
-                return BaCa2ModelFormResponse(
+                return BaCa2ModelResponse(
                     model=cls.MODEL,
                     action=cls.ACTION,
-                    status=BaCa2FormResponse.Status.SUCCESS,
+                    status=BaCa2JsonResponse.Status.SUCCESS,
                     **cls.handle_valid_request(request)
                 )
             except Exception as e:
-                return BaCa2ModelFormResponse(
+                return BaCa2ModelResponse(
                     model=cls.MODEL,
                     action=cls.ACTION,
-                    status=BaCa2FormResponse.Status.ERROR,
+                    status=BaCa2JsonResponse.Status.ERROR,
                     **cls.handle_error(request, e)
                 )
 
         validation_errors = cls(data=request.POST).errors
 
-        return BaCa2ModelFormResponse(
+        return BaCa2ModelResponse(
             model=cls.MODEL,
             action=cls.ACTION,
-            status=BaCa2FormResponse.Status.INVALID,
+            status=BaCa2JsonResponse.Status.INVALID,
             **cls.handle_invalid_request(request, validation_errors) | {'errors': validation_errors}
         )
 
@@ -592,107 +592,3 @@ class FormElementGroup(Widget):
             'toggleable_params': self.toggleable_params,
             'frame': self.frame
         }
-
-
-# --------------------------------------- form responses --------------------------------------- #
-
-class BaCa2FormResponse(JsonResponse):
-    """
-    Base class for all JSON responses returned as a result of an AJAX post request sent by a form
-    widget. Contains basic fields required to handle the response along with predefined values
-    for the status field.
-
-    See Also:
-        :class:`BaCa2Form`
-        :class:`FormWidget`
-    """
-
-    class Status(Enum):
-        """
-        Enum used to indicate the possible outcomes of an AJAX post request sent by a form widget.
-        Its values are used to determine the event triggered by the submit handling script upon
-        receiving the response.
-        """
-        #: Indicates that the request was successful.
-        SUCCESS = 'success'
-        #: Indicates that the request was unsuccessful due to invalid form data.
-        INVALID = 'invalid'
-        #: Indicates that the request was unsuccessful due to the user not having the permission to
-        #: perform the action specified by the form.
-        IMPERMISSIBLE = 'impermissible'
-        #: Indicates that the request was unsuccessful due to an error not related to form
-        #: validation or the user's permissions.
-        ERROR = 'error'
-
-    def __init__(self, status: Status, message: str = '', **kwargs: dict) -> None:
-        """
-        :param status: Status of the response.
-        :type status: :class:`BaCa2FormResponse.Status`
-        :param message: Message accompanying the response.
-        :type message: str
-        :param kwargs: Additional fields to be included in the response.
-        :type kwargs: dict
-        """
-        super().__init__({'status': status.value, 'message': message} | kwargs)
-
-
-class BaCa2ModelFormResponse(BaCa2FormResponse):
-    """
-    Base class for all JSON responses returned as a result of an AJAX post request sent by a model
-    form.
-
-    See Also:
-        :class:`BaCa2ModelForm`
-        :class:`BaCa2FormResponse`
-    """
-
-    def __init__(self,
-                 model: model_cls,
-                 action: ModelAction,
-                 status: BaCa2FormResponse.Status,
-                 message: str = '',
-                 **kwargs: dict) -> None:
-        """
-        :param status: Status of the response.
-        :type status: :class:`BaCa2FormResponse.Status`
-        :param message: Message accompanying the response. If no message is provided, a default
-            message will be generated based on the status of the response, the model and the action
-            performed.
-        :type message: str
-        :param kwargs: Additional fields to be included in the response.
-        :type kwargs: dict
-        """
-        if not message:
-            message = self.generate_response_message(status, model, action)
-        super().__init__(status, message, **kwargs)
-
-    @staticmethod
-    def generate_response_message(status, model, action) -> str:
-        """
-        Generates a response message based on the status of the response, the model and the action
-        performed.
-
-        :param status: Status of the response.
-        :type status: :class:`BaCa2FormResponse.Status`
-        :param model: Model class which instances the request pertains to.
-        :type model: Type[Model]
-        :param action: Action performed using the form data.
-        :type action: :class:`ModelAction`
-        :return: Response message.
-        :rtype: str
-        """
-        model_name = model._meta.verbose_name
-
-        if status == BaCa2FormResponse.Status.SUCCESS:
-            return f'successfully performed {action.label} on {model_name}'
-
-        message = f'failed to perform {action.label} on {model_name}'
-
-        if status == BaCa2FormResponse.Status.INVALID:
-            message += ' due to invalid form data. Please correct the following errors:'
-        elif status == BaCa2FormResponse.Status.IMPERMISSIBLE:
-            message += ' due to insufficient permissions.'
-        elif status == BaCa2FormResponse.Status.ERROR:
-            message += ' due an error.'
-
-        return message
