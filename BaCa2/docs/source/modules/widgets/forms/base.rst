@@ -41,14 +41,3 @@ Form post targets
 .. autoclass:: CourseModelFormPostTarget
    :members:
    :private-members:
-
-Form responses
-""""""""""""""
-
-.. autoclass:: BaCa2FormResponse
-   :members:
-   :private-members:
-
-.. autoclass:: BaCa2ModelFormResponse
-    :members:
-    :private-members:

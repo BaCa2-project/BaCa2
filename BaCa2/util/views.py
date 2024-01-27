@@ -12,7 +12,7 @@ from util import normalize_string_to_python
 from util.models import model_cls
 from widgets.base import Widget
 from widgets.forms import FormWidget
-from widgets.forms.base import BaCa2ModelFormResponse, BaCa2FormResponse
+from util.responses import BaCa2JsonResponse, BaCa2ModelResponse
 from widgets.forms.fields.validation import get_field_validation_status
 from widgets.listing import TableWidget
 from widgets.navigation import NavBar, SideNav
@@ -247,7 +247,7 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
 
     see:
         - :class:`widgets.forms.base.BaCa2ModelForm`
-        - :class:`widgets.forms.base.BaCa2ModelFormResponse`
+        - :class:`widgets.forms.base.BaCa2ModelResponse`
     """
 
     class ModelViewException(Exception):
@@ -324,16 +324,16 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         return request.user.has_basic_model_permissions(self.MODEL, BasicPermissionType.VIEW)
 
     @classmethod
-    def handle_unknown_form(cls, request, **kwargs) -> BaCa2ModelFormResponse:
+    def handle_unknown_form(cls, request, **kwargs) -> BaCa2ModelResponse:
         """
         Generates a JSON response returned when the post request contains an unknown form name.
 
         :return: Error JSON response.
-        :rtype: :class:`BaCa2ModelFormResponse`
+        :rtype: :class:`BaCa2ModelResponse`
         """
-        return BaCa2ModelFormResponse(
+        return BaCa2ModelResponse(
             model=cls.MODEL,
             action=request.POST.get('action', ''),
-            status=BaCa2FormResponse.Status.ERROR,
+            status=BaCa2JsonResponse.Status.ERROR,
             message=_(f'Unknown form: {request.POST.get("form_name")}')
         )
