@@ -1,17 +1,15 @@
 from abc import ABC
 
-from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
+from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import redirect
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.utils.translation import gettext_lazy as _
 
-from BaCa2.choices import BasicPermissionType
-from main.models import User
+from main.views import UserModelView
 from util.views import BaCa2LoggedInView, BaCa2ModelView
 from util.models_registry import ModelsRegistry
 from widgets.navigation import SideNav
 from widgets.listing import TableWidget
-from widgets.listing.data_sources import ModelDataSource
 from widgets.listing.columns import TextColumn
 from widgets.forms.course import AddMembersFormWidget
 
@@ -19,60 +17,7 @@ from widgets.forms.course import AddMembersFormWidget
 # ----------------------------------------- Model views ---------------------------------------- #
 
 class CourseModelView(BaCa2ModelView, ABC):
-    def get(self, request, **kwargs) -> JsonResponse:
-        """
-        Retrieves data of the instance(s) of the model class managed by the view if the requesting
-        user has permission to access it. If the request kwargs contain a 'target' key, the method
-        will return data of the instance of the model class with the id specified in the 'target'.
-
-        :return: JSON response with the result of the action in the form of status and message
-            strings (and data list if the request is valid).
-        :rtype: JsonResponse
-
-        :raises ModelViewException: If the model class managed by the view does not implement the
-            method needed to gather data.
-        """
-        if not self.test_view_permission(request, **kwargs):
-            return JsonResponse({'status': 'error', 'message': _('Permission denied.')})
-
-        get_data_method = getattr(self.MODEL, 'get_data')
-
-        if not get_data_method or not callable(get_data_method):
-            raise BaCa2ModelView.ModelViewException(
-                f'Model class managed by the {self.__class__.__name__} view does not '
-                f'implement the `get_data` method needed to perform this action.'
-            )
-
-        if request.GET.get('target'):
-            try:
-                target = self.MODEL.objects.get(id=request.GET.get('target'))
-            except self.MODEL.DoesNotExist:
-                return JsonResponse({'status': 'error', 'message': _('Target not found.')})
-
-            return JsonResponse(
-                {'status': 'ok',
-                 'message': _('Successfully retrieved target model data.'),
-                 'data': [target.get_data()]}
-            )
-        else:
-            return JsonResponse(
-                {'status': 'ok',
-                 'message': _('Successfully retrieved data for all model instances'),
-                 'data': [instance.get_data() for instance in self.MODEL.objects.all()]}
-            )
-
-    def test_view_permission(self, request, **kwargs) -> bool:
-        """
-        Checks if the user is authorized to view the data of the model class managed by the view.
-
-        :return: `True` if the user has the view permission for this model or is an admin of the
-            course this view belongs to, `False` otherwise.
-        :rtype: bool
-        """
-        course = ModelsRegistry.get_course(self.kwargs.get('course_id'))
-        if course.user_is_admin(request.user):
-            return True
-        return super().test_view_permission(request, **kwargs)
+    ...
 
 
 # ----------------------------------------- User views ----------------------------------------- #
@@ -143,7 +88,7 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
         members_table = TableWidget(
             name='members_table_widget',
             request=self.request,
-            data_source=ModelDataSource(model=User, **{'course': course_id}),
+            data_source_url=UserModelView.get_url(),  # TODO: exclude course members
             cols=[TextColumn(name='first_name', header=_('First name')),
                   TextColumn(name='last_name', header=_('Last name')),
                   TextColumn(name='email', header=_('Email address')),

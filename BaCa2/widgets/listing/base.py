@@ -8,7 +8,6 @@ from django.utils.translation import gettext_lazy as _
 
 from widgets.base import Widget
 from widgets.listing.columns import Column, SelectColumn, DeleteColumn
-from widgets.listing.data_sources import TableDataSource
 from widgets.forms import BaCa2ModelForm, FormWidget
 from widgets.popups.forms import SubmitConfirmationPopup
 
@@ -16,23 +15,27 @@ from widgets.popups.forms import SubmitConfirmationPopup
 class TableWidget(Widget):
     """
     Widget used to display a table of data. Constructor arguments define the table's properties
-    such as title, columns, data source, search options, etc.
+    such as title, columns, data source url, search options, etc.
 
     The table widget is rendered with the help of the DataTables jQuery plugin using the
     `templates/widget_templates/table.html` template.
 
+    All table widgets use AJAX get requests to fetch the table data from the data source url.
+    The data source url should return a JSON object containing a 'data' key with a list of
+    dictionaries representing table rows. The keys of the dictionaries should correspond to the
+    names of the table columns.
+
     See also:
-        - :class:`TableDataSource`
         - :class:`Column`
         - :class:`TableWidgetPaging`
         - :class:`Widget`
     """
 
     def __init__(self,
-                 data_source: TableDataSource,
+                 name: str,
+                 data_source_url: str,
                  cols: List[Column],
                  request: HttpRequest | None = None,
-                 name: str = '',
                  title: str = '',
                  display_title: bool = True,
                  allow_global_search: bool = True,
@@ -50,20 +53,22 @@ class TableWidget(Widget):
                  stripe_rows: bool = True,
                  highlight_rows_on_hover: bool = False) -> None:
         """
-        :param data_source: The data source object used to generate the url from which the table
-            data is fetched via AJAX request.
-        :type data_source: :class:`TableDataSource`
+        :param name: The name of the table widget. Names are used as ids for the HTML <table>
+            elements of the rendered table widgets.
+        :type name: str
+        :param data_source_url: The url from which the table data is fetched via AJAX get request.
+        The url should return a JSON object containing a 'data' key with a list of dictionaries
+        representing table rows. The keys of the dictionaries should correspond to the names of
+        the table columns.
+        :type data_source_url: str
         :param cols: List of columns to be displayed in the table. Each column object defines the
             column's properties such as name, header, searchability, etc.
         :type cols: List[:class:`Column`]
         :param request: The HTTP request object received by the view this table widget is rendered
             in.
         :type request: HttpRequest
-        :param name: The name of the table widget. If not set, the data source object is used to
-            generate a name. Names are used as the id of the table element.
-        :type name: str
-        :param title: The title of the table. If not set, the data source object is used to
-            generate a title. The title is displayed in the util header above the table.
+        :param title: The title of the table. The title is displayed in the util header above the
+            table if display_title is True.
         :type title: str
         :param display_title: Whether to display the title in the util header above the table.
         :type display_title: bool
@@ -102,13 +107,11 @@ class TableWidget(Widget):
         :param highlight_rows_on_hover: Whether to highlight the table rows on mouse hover.
         :type highlight_rows_on_hover: bool
         """
-        if not name:
-            name = data_source.generate_table_widget_name()
-
         super().__init__(name=name, request=request)
 
-        if not title:
-            title = data_source.generate_table_widget_title()
+        if display_title and not title:
+            raise Widget.WidgetParameterError('Title must be set if display_title is True.')
+
         self.title = title
         self.display_title = display_title
 
@@ -119,17 +122,14 @@ class TableWidget(Widget):
             cols.insert(0, SelectColumn())
 
         if allow_delete:
-            model = getattr(data_source, 'model', None)
-
-            if not model:
-                raise ValueError('Data source has to be a ModelDataSource to allow delete.')
             if not delete_form:
-                raise ValueError('Delete form has to be set to allow delete.')
+                raise Widget.WidgetParameterError('Delete form must be set if allow_delete is '
+                                                  'True.')
 
             delete_record_form_widget = DeleteRecordFormWidget(
                 request=request,
                 form=delete_form,
-                post_url=data_source.get_url(),
+                post_url=data_source_url,
                 name=f'{name}_delete_record_form'
             )
             cols.append(DeleteColumn())
@@ -156,7 +156,7 @@ class TableWidget(Widget):
         self.allow_column_search = allow_column_search
         self.deselect_on_filter = deselect_on_filter
         self.refresh_button = refresh_button
-        self.data_source = data_source
+        self.data_source_url = data_source_url
         self.paging = paging
         self.refresh = refresh
         self.refresh_interval = refresh_interval * 1000
@@ -171,7 +171,8 @@ class TableWidget(Widget):
             self.default_order_col = next(index for index, col in enumerate(cols)
                                           if getattr(col, 'name') == default_order_col)
         except StopIteration:
-            raise ValueError(f'Column {default_order_col} not found in table {name}')
+            raise Widget.WidgetParameterError(f'Column {default_order_col} not found in table '
+                                              f'{name}')
 
     def get_context(self) -> Dict[str, Any]:
         return super().get_context() | {
@@ -181,7 +182,7 @@ class TableWidget(Widget):
             'allow_global_search': json.dumps(self.allow_global_search),
             'allow_column_search': self.allow_column_search,
             'deselect_on_filter': json.dumps(self.deselect_on_filter),
-            'data_source_url': self.data_source.get_url(),
+            'data_source_url': self.data_source_url,
             'cols': [col.get_context() for col in self.cols],
             'cols_num': len(self.cols),
             'table_buttons': self.table_buttons,

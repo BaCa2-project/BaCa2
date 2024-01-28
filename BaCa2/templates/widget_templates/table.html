@@ -103,7 +103,7 @@
 <script type="text/javascript">
     initTable({
                   tableId: '{{ table_widget.name }}',
-                  dataSourceUrl: '{{ table_widget.data_source_url }}',
+                  dataSourceUrl: '{{ table_widget.data_source_url|safe }}',
                   cols: {{ table_widget.cols|safe }},
                   defaultOrder: '{{ table_widget.default_order }}',
                   defaultOrderCol: parseInt({{ table_widget.default_order_col }}),
