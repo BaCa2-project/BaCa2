@@ -4,7 +4,6 @@ from typing import List
 
 from widgets.forms.fields import IntegerArrayField
 from widgets.listing.columns import Column
-from widgets.listing.data_sources import TableDataSource
 
 
 class TableSelectField(IntegerArrayField):
@@ -17,15 +16,18 @@ class TableSelectField(IntegerArrayField):
     """
     def __init__(self,
                  label: str,
-                 data_source: TableDataSource,
+                 table_widget_name: str,
+                 data_source_url: str,
                  cols: List[Column],
                  allow_column_search: bool = True,
                  **kwargs) -> None:
         """
         :param label: The label of the field. Will appear as the title of the table widget.
         :type label: str
-        :param data_source: The data source for the table widget.
-        :type data_source: TableDataSource
+        :param table_widget_name: The name of the table widget used by this field.
+        :type table_widget_name: str
+        :param data_source: The data source url for the table widget.
+        :type data_source: str
         :param cols: The columns to display in the table widget.
         :type cols: List[Column]
         :param allow_column_search: Whether to display separate search fields for each searchable
@@ -39,14 +41,14 @@ class TableSelectField(IntegerArrayField):
 
         super().__init__(**kwargs)
         self.widget.attrs.update({'class': 'table-select-field'})
-        self.data_source = data_source
+        self.data_source_url = data_source_url
         table_widget = TableWidget(
+            name=table_widget_name,
             title=label,
-            data_source=data_source,
+            data_source_url=data_source_url,
             cols=cols,
             allow_column_search=allow_column_search,
             allow_select=True,
             deselect_on_filter=False,
         )
-        table_widget.name = 'field_' + table_widget.name
         self.table_widget = table_widget.get_context()
