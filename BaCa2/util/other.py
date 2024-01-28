@@ -1,7 +1,7 @@
-def normalize_string_to_python(string: str) -> str | bool | None:
+def normalize_string_to_python(string: str) -> str | bool | int | None:
     """
     Converts a string to None, False or True if the value matches python or javascript literals
-    for those keywords. Otherwise, the string is returned unchanged.
+    for those keywords. If the string is a number, it is converted to an int.
 
     :param string: The string to convert
     :type string: str
@@ -14,6 +14,8 @@ def normalize_string_to_python(string: str) -> str | bool | None:
         return False
     elif string == 'True' or string == 'true':
         return True
+    elif string.isdigit():
+        return int(string)
     else:
         return string
 
@@ -32,7 +34,10 @@ def add_kwargs_to_url(url: str, kwargs: dict) -> str:
     if len(kwargs) == 0:
         return url
     else:
-        return url + '?' + '&'.join([f'{key}={value}' for key, value in kwargs.items()])
+        kwargs = '&'.join([f'{key}={value}' for key, value in kwargs.items()])
+        if '?' in url:
+            return url + '&' + kwargs
+        return url + '?' + kwargs
 
 
 def replace_special_symbols(string: str, replacement: str = '_') -> str:

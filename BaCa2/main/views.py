@@ -168,6 +168,7 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
 
         self.add_widget(context, TableWidget(
             name='courses_table_widget',
+            title='Courses',
             request=self.request,
             data_source_url=CourseModelView.get_url(),
             cols=[
@@ -220,16 +221,20 @@ class CoursesView(BaCa2LoggedInView):
     template_name = 'courses.html'
 
     def get_context_data(self, **kwargs):
+        user_id = self.request.user.id
         context = super().get_context_data(**kwargs)
         self.add_widget(context, TableWidget(
             name='courses_table_widget',
             request=self.request,
             title='Your courses',
-            data_source_url=CourseModelView.get_url(),  # TODO: Filter courses by user
+            data_source_url=CourseModelView.get_url(mode=BaCa2ModelView.GetMode.FILTER,
+                                                    query_params={'role_set__user': user_id},
+                                                    serialize_kwargs={'user': user_id}),
             allow_column_search=True,
             cols=[
                 TextColumn(name='name', header='Name', searchable=True),
                 TextColumn(name='USOS_term_code', header='Semester', searchable=True),
+                TextColumn(name='user_role', header='Your role', searchable=True),
             ],
             highlight_rows_on_hover=True,
         ))
