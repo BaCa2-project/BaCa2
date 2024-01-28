@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Type
 from enum import Enum
+from urllib.parse import urlencode, parse_qs
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
@@ -299,7 +300,10 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
                 f'Query parameters must be specified when using {mode} get mode.'
             )
 
-        url_kwargs = {'mode': mode.value} | (query_params or {})
+        query_params = query_params or {}
+        query_params = urlencode(query_params)
+
+        url_kwargs = {'mode': mode.value} | {'query_params': query_params} | kwargs
         return add_kwargs_to_url(url, url_kwargs)
 
     def get(self, request, *args, **kwargs) -> BaCa2ModelResponse:
@@ -344,7 +348,8 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
                 message=_('Failed to retrieve data for model instances due to missing target.')
             )
 
-        query_params = self.get_query_params(get_params)
+        query_params = parse_qs(get_params.get('query_params'))
+        query_params = {key: value[0] for key, value in query_params.items()}
 
         if mode == self.GetMode.ALL.value:
             return self.get_all(query_params, request, **kwargs)
@@ -358,24 +363,6 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
             message=_('Failed to retrieve data for model instances due to invalid get mode '
                       'parameter.')
         )
-
-    @staticmethod
-    def get_query_params(get_params: dict) -> dict:
-        """
-        Parses the get url parameters and returns a dictionary containing only the parameters
-        to be used when constructing the retrieved query set.
-
-        If inheriting classes expect additional parameters to be present in the url, they should
-        override this method and remove those parameters from the returned dictionary.
-
-        :param get_params: Dictionary containing all the parameters present in the url.
-        :type get_params: dict
-        """
-        query_params = get_params.copy()
-        query_params.pop('mode')
-        if '_' in query_params:
-            query_params.pop('_')
-        return query_params
 
     def get_all(self, query_params, request, **kwargs) -> BaCa2ModelResponse:
         """
