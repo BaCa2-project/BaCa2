@@ -19,13 +19,6 @@ class ResultStatus(models.TextChoices):
     INT = 'INT', _('Internal error')
 
 
-class BasicPermissionType(models.TextChoices):
-    ADD = 'ADD', 'add'
-    DEL = 'DEL', 'delete'
-    EDIT = 'EDIT', 'change'
-    VIEW = 'VIEW', 'view'
-
-
 class PermissionCheck(models.TextChoices):
     INDV = 'individual', _('Individual Permissions')
     GRP = 'group', _('Group-level Permissions')
@@ -34,3 +27,10 @@ class PermissionCheck(models.TextChoices):
 
 class ModelAction(models.TextChoices):
     pass
+
+
+class BasicModelAction(ModelAction):
+    ADD = 'ADD', 'add'
+    DEL = 'DEL', 'delete'
+    EDIT = 'EDIT', 'change'
+    VIEW = 'VIEW', 'view'
