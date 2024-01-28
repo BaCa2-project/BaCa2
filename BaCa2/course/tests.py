@@ -2,6 +2,7 @@ from random import choice, randint
 
 from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta
+import datetime as dt_raw
 
 from django.test import TestCase
 from django.utils import timezone
@@ -112,15 +113,15 @@ class RoundTest(TestCase):
         """
         with InCourse(self.course):
             round1 = Round.objects.create_round(
-                start_date=datetime(2020, 1, 1, tzinfo=timezone.utc),
-                deadline_date=datetime(2020, 1, 2, tzinfo=timezone.utc),
+                start_date=datetime(2020, 1, 1),
+                deadline_date=datetime(2020, 1, 2),
                 name="Test 1"
             )
             round2 = Round.objects.create_round(
-                start_date=datetime(2020, 1, 3, tzinfo=timezone.utc),
-                deadline_date=datetime(2020, 1, 5, tzinfo=timezone.utc),
-                end_date=datetime(2020, 1, 4, tzinfo=timezone.utc),
-                reveal_date=datetime(2020, 1, 6, tzinfo=timezone.utc),
+                start_date=datetime(2020, 1, 3, tzinfo=dt_raw.timezone.utc),
+                deadline_date=datetime(2020, 1, 5, tzinfo=dt_raw.timezone.utc),
+                end_date=datetime(2020, 1, 4, tzinfo=dt_raw.timezone.utc),
+                reveal_date=datetime(2020, 1, 6, tzinfo=dt_raw.timezone.utc),
                 name="Test 2"
             )
             round1.save()
@@ -129,19 +130,19 @@ class RoundTest(TestCase):
         with InCourse(self.course):
             self.assertEqual(Round.objects.count(), 2)
             round_res = Round.objects.get(
-                start_date=datetime(2020, 1, 3, tzinfo=timezone.utc))
+                start_date=datetime(2020, 1, 3, tzinfo=dt_raw.timezone.utc))
             self.assertEqual(round_res.end_date,
-                             datetime(2020, 1, 4, tzinfo=timezone.utc))
+                             datetime(2020, 1, 4, tzinfo=dt_raw.timezone.utc))
             self.assertEqual(round_res.reveal_date,
-                             datetime(2020, 1, 6, tzinfo=timezone.utc))
+                             datetime(2020, 1, 6, tzinfo=dt_raw.timezone.utc))
             self.assertEqual(round_res.name, "Test 2")
 
     def test_02_validate_round(self):
         with InCourse(self.course):
             with self.assertRaises(ValidationError):
                 Round.objects.create_round(
-                    start_date=datetime(2020, 1, 2, tzinfo=timezone.utc),
-                    deadline_date=datetime(2020, 1, 1, tzinfo=timezone.utc),
+                    start_date=datetime(2020, 1, 2),
+                    deadline_date=datetime(2020, 1, 1),
                 )
 
     def test_03_round_delete(self):
@@ -162,8 +163,8 @@ class RoundTest(TestCase):
     def test_04_round_advanced_delete(self):
         with InCourse(self.course):
             round1 = Round.objects.create_round(
-                start_date=datetime(2021, 1, 1, tzinfo=timezone.utc),
-                deadline_date=datetime(2021, 1, 2, tzinfo=timezone.utc),
+                start_date=datetime(2021, 1, 1),
+                deadline_date=datetime(2021, 1, 2),
             )
 
             create_package_task(self.course, round1, 'dosko', '1', init_task=False)
