@@ -1,3 +1,5 @@
+from typing import List
+
 from django.views.generic.base import RedirectView
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib.auth.views import LoginView
@@ -27,16 +29,42 @@ class CourseModelView(BaCa2ModelView):
 
     MODEL = Course
 
-    def check_get_filtered_permission(self, query_params, query, request, **kwargs) -> bool:
+    def check_get_filtered_permission(self,
+                                      query_params: dict,
+                                      query_result: List[Course],
+                                      request,
+                                      **kwargs) -> bool:
+        """
+        :param query_params: Query parameters used to filter the retrieved query set.
+        :type query_params: dict
+        :param query_result: Query set retrieved using the query parameters evaluate to a list.
+        :type query_result: List[Course]
+        :param request: HTTP request received by the view.
+        :type request: HttpRequest
+        :return: `True` if the user has permission to view all courses or if the user is a member of
+            every course retrieved by the query, `False` otherwise.
+        :rtype: bool
+        """
         if self.check_get_all_permission(request, **kwargs):
             return True
-        for course in query:
+        for course in query_result:
             if not course.user_is_member(request.user):
                 return False
         return True
 
-    def check_get_excluded_permission(self, query_params, query, request, **kwargs) -> bool:
-        return self.check_get_filtered_permission(query_params, query, request, **kwargs)
+    def check_get_excluded_permission(self, query_params, query_result, request, **kwargs) -> bool:
+        """
+        :param query_params: Query parameters used to filter the retrieved query set.
+        :type query_params: dict
+        :param query_result: Query set retrieved using the query parameters evaluate to a list.
+        :type query_result: List[Course]
+        :param request: HTTP request received by the view.
+        :type request: HttpRequest
+        :return: `True` if the user has permission to view all courses or if the user is a member of
+            every course retrieved by the query, `False` otherwise.
+        :rtype: bool
+        """
+        return self.check_get_filtered_permission(query_params, query_result, request, **kwargs)
 
     def post(self, request, **kwargs) -> BaCa2ModelResponse:
         """
@@ -66,13 +94,38 @@ class UserModelView(BaCa2ModelView):
 
     MODEL = User
 
-    def check_get_filtered_permission(self, query_params, query, request, **kwargs) -> bool:
-        raise NotImplementedError()
-        # TODO: Implement check_get_filtered_permission
+    def check_get_filtered_permission(self, query_params, query_result, request, **kwargs) -> bool:
+        """
+        :param query_params: Query parameters used to filter the retrieved query set.
+        :type query_params: dict
+        :param query_result: Query set retrieved using the query parameters evaluate to a list.
+        :type query_result: List[User]
+        :param request: HTTP request received by the view.
+        :type request: HttpRequest
+        :return: `True` if the user has permission to view all users, is a course admin or if
+            the only user retrieved by the query is the requesting user, `False` otherwise.
+        :rtype: bool
+        """
+        if self.check_get_all_permission(request, **kwargs):
+            return True
+        if request.user.is_course_admin():
+            return True
+        if len(query_result) == 1 and query_result[0] == request.user:
+            return True
 
-    def check_get_excluded_permission(self, query_params, query, request, **kwargs) -> bool:
-        raise NotImplementedError()
-        # TODO: Implement check_get_excluded_permission
+    def check_get_excluded_permission(self, query_params, query_result, request, **kwargs) -> bool:
+        """
+        :param query_params: Query parameters used to filter the retrieved query set.
+        :type query_params: dict
+        :param query_result: Query set retrieved using the query parameters evaluate to a list.
+        :type query_result: List[User]
+        :param request: HTTP request received by the view.
+        :type request: HttpRequest
+        :return: `True` if the user has permission to view all users, is a course admin or if
+            the only user retrieved by the query is the requesting user, `False` otherwise.
+        :rtype: bool
+        """
+        return self.check_get_filtered_permission(query_params, query_result, request, **kwargs)
 
     def post(self, request, **kwargs) -> BaCa2ModelResponse:
         """

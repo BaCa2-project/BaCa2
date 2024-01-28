@@ -1322,6 +1322,18 @@ class User(AbstractBaseUser):
         """
         return Role.objects.filter(user=self, course=ModelsRegistry.get_course(course)).exists()
 
+    def is_course_admin(self) -> bool:
+        """
+        :return: `True` if the user is assigned to the admin role in at least one course, `False`
+            otherwise.
+        :rtype: bool
+        """
+        courses = self.get_courses()
+        for course in courses:
+            if course.user_is_admin(self):
+                return True
+        return False
+
     # ---------------------------------- Permission editing ----------------------------------- #
 
     @transaction.atomic
