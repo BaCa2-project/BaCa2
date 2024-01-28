@@ -1,20 +1,17 @@
-from django.db.models import QuerySet
 from django.views.generic.base import RedirectView
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout
 from django.http import JsonResponse, HttpResponseRedirect
 from django.urls import reverse_lazy
-from django.utils.translation import gettext_lazy as _
 
-from util.models_registry import ModelsRegistry
 from util.views import BaCa2ContextMixin, BaCa2LoggedInView, BaCa2ModelView
 from util.responses import BaCa2ModelResponse
 from main.models import Course, User
 from widgets.navigation import SideNav
 from widgets.forms import FormWidget
 from widgets.forms.course import CreateCourseForm, CreateCourseFormWidget, DeleteCourseForm
-from widgets.listing import TableWidget, TableWidgetPaging, ModelDataSource
+from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.columns import TextColumn
 
 
@@ -30,57 +27,16 @@ class CourseModelView(BaCa2ModelView):
 
     MODEL = Course
 
-    def get(self, request, **kwargs) -> JsonResponse:
-        """
-        Depending on the GET request parameters, the method retrieves data:
-            - of all courses if no parameters are specified (the requesting user must have
-                permission to view courses),
-            - of a single course if the 'target' parameter is specified (the requesting user must
-                have permission to view courses),
-            - of all courses to which the user is assigned if the 'user' parameter is specified
-                (the requesting user must be the same user or a superuser),
-            - of a single course to which the user is assigned if the 'user' and 'target'
-                parameters are specified (the requesting user must be the same user or a
-                superuser)
+    def check_get_filtered_permission(self, query_params, query, request, **kwargs) -> bool:
+        if self.check_get_all_permission(request, **kwargs):
+            return True
+        for course in query:
+            if not course.user_is_member(request.user):
+                return False
+        return True
 
-        :return: JSON response with the result of the action in the form of status and message
-            strings (and data list if the request is valid).
-        :rtype: JsonResponse
-        """
-        user = request.GET.get('user')
-
-        if not user:
-            return super().get(request, **kwargs)
-
-        user = ModelsRegistry.get_user(int(user))
-
-        if user != request.user and not request.user.is_superuser:
-            return JsonResponse({'status': 'error',
-                                 'message': _('Permission denied. User id does not match.')})
-
-        if request.GET.get('target'):
-            try:
-                target = Course.objects.get(id=request.GET.get('target'))
-            except Course.DoesNotExist:
-                return JsonResponse({'status': 'error', 'message': _('Target not found.')})
-
-            if not user.can_access_course(target):
-                return JsonResponse({'status': 'error',
-                                     'message': _('User is not assigned to this course')})
-
-            return JsonResponse(
-                {'status': 'ok',
-                 'message': _('Successfully data for the specified course to which the user is '
-                              'assigned'),
-                 'data': [target.get_data(user=user)]}
-            )
-
-        return JsonResponse(
-            {'status': 'ok',
-             'message': _('Successfully retrieved data for all courses to which the user is '
-                          'assigned.'),
-             'data': [instance.get_data(user=user) for instance in user.get_courses()]}
-        )
+    def check_get_excluded_permission(self, query_params, query, request, **kwargs) -> bool:
+        return self.check_get_filtered_permission(query_params, query, request, **kwargs)
 
     def post(self, request, **kwargs) -> BaCa2ModelResponse:
         """
@@ -110,86 +66,13 @@ class UserModelView(BaCa2ModelView):
 
     MODEL = User
 
-    def get(self, request, **kwargs) -> JsonResponse:
-        """
-        Depending on the GET request parameters, the method retrieves data:
-            - of all users if no parameters are specified (the requesting user must have permission
-                to view users),
-            - of a single user if the 'target' parameter is specified (the requesting user must
-                have permission to view users),
-            - of all users assigned to a course if the 'course' parameter is specified (the
-                requesting user must be an admin of the course or a superuser),
-            - of a single user assigned to a course if the 'course' and 'target' parameters are
-                specified (the requesting user must be an admin of the course or a superuser)
-            - of all users not assigned to a course if the 'not_in_course' parameter is specified
-                (the requesting user must have permission to view users),
+    def check_get_filtered_permission(self, query_params, query, request, **kwargs) -> bool:
+        raise NotImplementedError()
+        # TODO: Implement check_get_filtered_permission
 
-        :return: JSON response with the result of the action in the form of status and message
-            strings (and data list if the request is valid).
-        :rtype: JsonResponse
-        """
-        course = request.GET.get('course')
-        not_in_course = request.GET.get('not_in_course')
-
-        if not_in_course:
-            if not self.test_view_permission(request, **kwargs):
-                return JsonResponse({'status': 'error',
-                                     'message': _('Permission denied. You are not allowed to view '
-                                                  'users.')})
-            not_in_course = int(not_in_course)
-            return JsonResponse({
-                'status': 'ok',
-                'message': _('Successfully retrieved data for all users not assigned to a course.'),
-                'data': [user.get_data() for user in self._get_users_not_in_course(not_in_course)]
-            })
-
-        if not course:
-            return super().get(request, **kwargs)
-
-        course = ModelsRegistry.get_course(int(course))
-
-        if not course.user_is_admin(request.user) and not request.user.is_superuser:
-            return JsonResponse({'status': 'error',
-                                 'message': _('Permission denied. You are not an admin of this '
-                                              'course or a superuser.')})
-
-        if request.GET.get('target'):
-            try:
-                target = User.objects.get(id=request.GET.get('target'))
-            except Course.DoesNotExist:
-                return JsonResponse({'status': 'error', 'message': _('Target not found.')})
-
-            if not course.user_is_member(target):
-                return JsonResponse({'status': 'error',
-                                     'message': _('User whose data you are trying to access is '
-                                                  'not a member of this course')})
-
-            return JsonResponse(
-                {'status': 'ok',
-                 'message': _('Successfully retrieved data for the specified user assigned to the '
-                              'specified course.'),
-                 'data': [target.get_data(course=course)]}
-            )
-
-        return JsonResponse(
-            {'status': 'ok',
-             'message': _('Successfully retrieved data for all users assigned to the specified '
-                          'course.'),
-             'data': [instance.get_data(course=course) for instance in course.members()]}
-        )
-
-    @staticmethod
-    def _get_users_not_in_course(course_id: int) -> QuerySet[User]:
-        """
-        Returns a QuerySet of all users not assigned to a course.
-
-        :param course_id: ID of the course.
-        :type course_id: int
-        :return: QuerySet of all users not assigned to the course.
-        :rtype: QuerySet[:class:`User`]
-        """
-        course = ModelsRegistry.get_course(course_id)
-        return User.objects.exclude(id__in=course.members().values_list('id', flat=True))
+    def check_get_excluded_permission(self, query_params, query, request, **kwargs) -> bool:
+        raise NotImplementedError()
+        # TODO: Implement check_get_excluded_permission
 
     def post(self, request, **kwargs) -> BaCa2ModelResponse:
         """
@@ -284,8 +167,9 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
             self.add_widget(context, CreateCourseFormWidget(request=self.request))
 
         self.add_widget(context, TableWidget(
+            name='courses_table_widget',
             request=self.request,
-            data_source=ModelDataSource(Course),
+            data_source_url=CourseModelView.get_url(),
             cols=[
                 TextColumn(name='id',
                            header='ID',
@@ -336,16 +220,15 @@ class CoursesView(BaCa2LoggedInView):
     template_name = 'courses.html'
 
     def get_context_data(self, **kwargs):
-        url_kwargs = {'user': self.request.user.id}
         context = super().get_context_data(**kwargs)
         self.add_widget(context, TableWidget(
+            name='courses_table_widget',
             request=self.request,
             title='Your courses',
-            data_source=ModelDataSource(Course, **url_kwargs),
+            data_source_url=CourseModelView.get_url(),  # TODO: Filter courses by user
             allow_column_search=True,
             cols=[
                 TextColumn(name='name', header='Name', searchable=True),
-                TextColumn(name='user_role', header='Your role', searchable=True),
                 TextColumn(name='USOS_term_code', header='Semester', searchable=True),
             ],
             highlight_rows_on_hover=True,

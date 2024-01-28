@@ -6,7 +6,7 @@ from django.utils.translation import gettext_lazy as _
 
 from widgets.base import Widget
 from package.models import PackageInstance
-from BaCa2.choices import BasicPermissionType
+from BaCa2.choices import BasicModelAction
 
 
 class NavBar(Widget):
@@ -29,7 +29,7 @@ class NavBar(Widget):
         ]
 
         if request.user.has_basic_model_permissions(model=PackageInstance,
-                                                    permissions=BasicPermissionType.VIEW):
+                                                    permissions=BasicModelAction.VIEW):
             self.links.append({'name': _('Packages'), 'url': '#'})
 
         if request.user.is_superuser:

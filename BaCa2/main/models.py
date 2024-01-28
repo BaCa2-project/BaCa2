@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import (List, Type, Any, Callable)
+from typing import List, Type, Any, Callable
 
 from django.contrib.auth.models import (AbstractBaseUser,
                                         PermissionsMixin,
@@ -9,16 +9,15 @@ from django.contrib.auth.models import (AbstractBaseUser,
                                         Permission,
                                         ContentType)
 from django.core.exceptions import ValidationError
-from django.db import (models, transaction)
+from django.db import models, transaction
 from django.db.models.query import QuerySet
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from BaCa2.choices import (BasicPermissionType, PermissionCheck, ModelAction)
-from course.manager import (create_course as create_course_db, delete_course as delete_course_db)
+from BaCa2.choices import BasicModelAction, PermissionCheck, ModelAction
+from course.manager import create_course as create_course_db, delete_course as delete_course_db
 from course.routing import InCourse
-from util.models import (model_cls,
-                         get_model_permissions)
+from util.models import model_cls, get_model_permissions
 from util.other import replace_special_symbols
 from util.models_registry import ModelsRegistry
 
@@ -1046,9 +1045,10 @@ class Course(models.Model):
 
     def _validate_new_member(self, user: str | int | User) -> None:
         """
-        Check whether a given user can be assigned to the course.\
+        Check whether a given user can be assigned to the course.
 
-        :param user: The user to be validated. The user can be specified as either the user object, its id or its email.
+        :param user: The user to be validated. The user can be specified as either the user object,
+            its id or its email.
         :type user: User | str | int
 
         :raises Course.CourseMemberError: If the user is already a member of the course.
@@ -1466,12 +1466,12 @@ class User(AbstractBaseUser):
             return self.has_group_permission(action.label)
         raise ValueError(f'Invalid permission check type: {permission_check}')
 
-    def has_basic_model_permissions(self,
-                                    model: model_cls,
-                                    permissions: BasicPermissionType | List[BasicPermissionType]
-                                    = 'all',
-                                    permission_check: PermissionCheck
-                                    = PermissionCheck.GEN) -> bool:
+    def has_basic_model_permissions(
+            self,
+            model: model_cls,
+            permissions: BasicModelAction | List[BasicModelAction] = 'all',
+            permission_check: PermissionCheck = PermissionCheck.GEN
+    ) -> bool:
         """
         Check whether a user possesses a specified basic permission/list of basic permissions for a
         given 'default' database model. Depending on the type of permission check specified, the
@@ -1485,9 +1485,9 @@ class User(AbstractBaseUser):
         :param model: The model to check permissions for.
         :type model: Type[models.Model]
         :param permissions: Permissions to check for the given model. Permissions can be given as a
-            BasicPermissionTypes object/List of objects, the default option 'all' checks all basic
-            permissions related to the model.
-        :type permissions: BasicPermissionType or List[BasicPermissionTypes]
+            BasicPermissionAction object/List of objects. The default option 'all' checks all basic
+            action permissions related to the model.
+        :type permissions: BasicModelAction or List[BasicPermissionTypes]
         :param permission_check: Type of permission check to perform.
         :type permission_check: PermissionCheck
 
@@ -1554,7 +1554,7 @@ class User(AbstractBaseUser):
             self,
             model: model_cls,
             course: Course | str | int,
-            permissions: BasicPermissionType | List[BasicPermissionType] = 'all'
+            permissions: BasicModelAction | List[BasicModelAction] = 'all'
     ) -> bool:
         """
         Check whether a user possesses a specified permission/list of permissions for a given
@@ -1568,9 +1568,9 @@ class User(AbstractBaseUser):
             Course object, its short name or its id.
         :type course: Course | str | int
         :param permissions: Permissions to check for the given model. Permissions can be given as a
-            PermissionTypes object/List of objects, the default option 'all' checks all permissions
-            related to the model.
-        :type permissions: BasicPermissionType or List[PermissionTypes]
+            basicModelAction object/List of objects. The default option 'all' checks all basic
+            action permissions related to the model.
+        :type permissions: BasicModelAction or List[PermissionTypes]
 
         :returns: `True` if the user possesses the specified permission/s for the given model or
             is a superuser, `False` otherwise.
