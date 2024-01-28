@@ -639,6 +639,8 @@ dmypy.json
 # pytype static type analyzer
 .pytype/
 
+poetry.lock
+
 # Cython debug symbols
 cython_debug/
 
