@@ -3,17 +3,14 @@ from typing import Dict
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from main.models import Course, User
+from main.models import Course
 from widgets.forms.base import (FormWidget,
                                 FormElementGroup,
                                 BaCa2ModelForm,
                                 ModelFormPostTarget,
                                 CourseModelFormPostTarget)
-from widgets.forms.fields.table_select import TableSelectField
 from widgets.forms.fields.course import CourseName, CourseShortName, USOSCode
 from widgets.popups.forms import SubmitConfirmationPopup
-from widgets.listing.data_sources import ModelDataSource
-from widgets.listing.columns import TextColumn
 
 
 # ---------------------------------------- create course --------------------------------------- #
@@ -288,14 +285,6 @@ class AddMembersForm(BaCa2ModelForm):
 
     MODEL = Course
     ACTION = Course.CourseAction.ADD_MEMBER
-
-    users = TableSelectField(
-        label=_('Select users to add'),
-        data_source=ModelDataSource(model=User, **{'not_in_course': ''}),
-        cols=[TextColumn(name='first_name', header=_('First name')),
-              TextColumn(name='last_name', header=_('Last name')),
-              TextColumn(name='email', header=_('Email'))]
-    )
 
     @classmethod
     def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
