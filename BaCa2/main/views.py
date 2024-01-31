@@ -16,6 +16,13 @@ from widgets.forms.course import CreateCourseForm, CreateCourseFormWidget, Delet
 from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.columns import TextColumn
 
+# temporary redirect view
+from django.shortcuts import redirect
+
+
+def login_redirect(request):
+    return redirect('/login')
+
 
 # ----------------------------------------- Model views ---------------------------------------- #
 
