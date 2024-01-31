@@ -2,16 +2,14 @@ from django.contrib import admin
 from django.urls import path, include
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
-from main.views import BaCa2LoginView, BaCa2LogoutView, login_redirect
+from main.views import BaCa2LoginView, BaCa2LogoutView, LoginRedirectView
 from util.views import FieldValidationView
 
 urlpatterns = [
     path('baca/', admin.site.urls),
 
-    # temporary redirect to login view
-    path('', login_redirect),
-
     # ------------------------------------- Authentication ------------------------------------- #
+    path('', LoginRedirectView.as_view(), name='login-redirect'),
     path('login/', BaCa2LoginView.as_view(), name='login'),
     path('logout/', BaCa2LogoutView.as_view(), name='logout'),
 
