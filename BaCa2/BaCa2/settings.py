@@ -259,30 +259,74 @@ for d in _auto_create_dirs:
 
 # LOGGING SETTINGS --------------------------------------------------------------------
 
+LOGS_DIR = BASE_DIR / 'logs'
+
+FORMATTERS = {
+    'simple': {
+        'format': '{levelname} {asctime} {name} {module} {filename} {funcName} {lineno} {message}',
+        'style': '{',
+    },
+    'verbose': {
+        'format': '{levelname} {asctime} {name} {threadName} {thread} {process} {module} {filename}'
+                  ' {funcName} {lineno} {message}',
+        'style': '{',
+    },
+}
+
+HANDLERS = {
+    'console': {
+        'class': 'logging.StreamHandler',
+        'formatter': 'simple',
+        'level': 'DEBUG',
+    },
+    'info': {
+        'class': 'logging.handlers.RotatingFileHandler',
+        'formatter': 'verbose',
+        'level': 'INFO',
+        'filename': str(LOGS_DIR / 'info.log'),
+        'mode': 'a',
+        'encoding': 'utf-8',
+        'backupCount': 5,
+        'maxBytes': 1024 * 1024 * 5,
+    },
+    'error': {
+        'class': 'logging.handlers.RotatingFileHandler',
+        'formatter': 'verbose',
+        'level': 'ERROR',
+        'filename': str(LOGS_DIR / 'error.log'),
+        'mode': 'a',
+        'encoding': 'utf-8',
+        'backupCount': 5,
+        'maxBytes': 1024 * 1024 * 5,
+    },
+}
+
+LOGGERS = {
+    'django': {
+        'handlers': ['console', 'info'],
+        'level': 'INFO',
+    },
+    'django.request': {
+        'handlers': ['error'],
+        'level': 'INFO',
+        'propagate': True,
+    },
+    'django.server': {
+        'handlers': ['error'],
+        'level': 'INFO',
+        'propagate': True,
+    },
+    'django.template': {
+        'handlers': ['error'],
+        'level': 'DEBUG',
+        'propagate': False,
+    },
+}
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'formatters': {
-        'standard': {
-            'format': '%(asctime)s %(levelname)s %(name)s %(message)s'
-        }
-    },
-    'handlers': {
-        'console': {
-            'level': 'INFO',
-            'class': 'logging.StreamHandler',
-            'formatter': 'standard',
-            'filters': [],
-        }
-    },
-    'loggers': {
-        loger_name: {
-            'level': 'INFO',
-            'propagate': True,
-        } for loger_name in ('broker_api', 'course', 'package', 'util', 'main', 'django')
-    },
-    'root': {
-        'level': 'DEBUG',
-        'handlers': ['console'],
-    },
+    'formatters': FORMATTERS,
+    'handlers': HANDLERS,
+    'loggers': LOGGERS,
 }
