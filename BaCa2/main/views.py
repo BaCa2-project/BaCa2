@@ -16,13 +16,6 @@ from widgets.forms.course import CreateCourseForm, CreateCourseFormWidget, Delet
 from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.columns import TextColumn
 
-# temporary redirect view
-from django.shortcuts import redirect
-
-
-def login_redirect(request):
-    return redirect('/login')
-
 
 # ----------------------------------------- Model views ---------------------------------------- #
 
@@ -148,6 +141,15 @@ class UserModelView(BaCa2ModelView):
 
 
 # --------------------------------------- Authentication --------------------------------------- #
+
+class LoginRedirectView(RedirectView):
+    """
+    Redirects to BaCa2 login page.
+    """
+
+    # Redirect target.
+    url = reverse_lazy('login')
+
 
 class BaCa2LoginView(BaCa2ContextMixin, LoginView):
     """
