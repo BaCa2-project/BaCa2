@@ -28,6 +28,9 @@ requests = "^2.31.0"
 mozilla-django-oidc = "^4.0.0"
 
 
+[tool.poetry.group.dev.dependencies]
+colorlog = "^6.8.2"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
