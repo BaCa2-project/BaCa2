@@ -1,6 +1,7 @@
 from typing import List
+import logging
 
-from django.views.generic.base import RedirectView
+from django.views.generic.base import RedirectView, View
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout
@@ -15,6 +16,9 @@ from widgets.forms import FormWidget
 from widgets.forms.course import CreateCourseForm, CreateCourseFormWidget, DeleteCourseForm
 from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.columns import TextColumn
+
+
+logger = logging.getLogger(__name__)
 
 
 # ----------------------------------------- Model views ---------------------------------------- #
@@ -190,6 +194,12 @@ class BaCa2LogoutView(RedirectView):
         """
         logout(request)
         return super().get(request, *args, **kwargs)
+
+
+class UJLogin(View):
+    @staticmethod
+    def post(request, *args, **kwargs) -> None:
+        logger.debug(f'{request.POST}')
 
 
 # ----------------------------------------- Admin view ----------------------------------------- #
