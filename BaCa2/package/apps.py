@@ -1,5 +1,5 @@
 from django.apps import AppConfig
-from BaCa2.settings import PACKAGES
+from core.settings import PACKAGES
 from baca2PackageManager import Package
 
 

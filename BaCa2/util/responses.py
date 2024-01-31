@@ -4,7 +4,7 @@ from enum import Enum
 
 from django.http import JsonResponse
 
-from BaCa2.choices import ModelAction
+from core.choices import ModelAction
 from util.models import model_cls
 
 

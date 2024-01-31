@@ -1,4 +1,4 @@
-from BaCa2.settings import (
+from core.settings import (
     BASE_DIR,
     USOS_CONSUMER_KEY,
     USOS_CONSUMER_SECRET,

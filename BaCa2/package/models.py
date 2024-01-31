@@ -5,10 +5,10 @@ from typing import Self, List
 from django.db import models
 from main.models import User
 from baca2PackageManager.validators import isStr
-from BaCa2.settings import BASE_DIR
+from core.settings import BASE_DIR
 # from course.models import Task
 from pathlib import Path
-from BaCa2.settings import PACKAGES, PACKAGES_DIR
+from core.settings import PACKAGES, PACKAGES_DIR
 from baca2PackageManager import Package
 
 from django.utils import timezone

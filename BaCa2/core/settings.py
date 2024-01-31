@@ -1,5 +1,5 @@
 """
-Django settings for BaCa2 project.
+Django settings for core project.
 """
 
 import os
@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Dict
 from dotenv import load_dotenv
 
-from BaCa2.db.setup import DEFAULT_DB_SETTINGS
+from core.db.setup import DEFAULT_DB_SETTINGS
 import baca2PackageManager as pkg
 
 load_dotenv()
@@ -102,8 +102,8 @@ TEMPLATES = [
 ]
 
 # MODULES LOCATION DEFINITIONS -------------------------------------------------------
-ROOT_URLCONF = 'BaCa2.urls'
-WSGI_APPLICATION = 'BaCa2.wsgi.application'
+ROOT_URLCONF = 'core.urls'
+WSGI_APPLICATION = 'core.wsgi.application'
 
 
 # LOCALIZATION SETTINGS ---------------------------------------------------------------
@@ -160,7 +160,7 @@ SITE_ID = 1
 
 # STATIC FILES SETTINGS ---------------------------------------------------------------
 STATIC_URL = '/static/'
-STATIC_ROOT = "/home/zyndram/BaCa2/static/"
+STATIC_ROOT = "/home/zyndram/core/static/"
 STATICFILES_DIRS = (
     Path.joinpath(BASE_DIR, 'assets'),
 )

@@ -6,7 +6,7 @@ from django.utils import timezone
 import requests
 import baca2PackageManager.broker_communication as brcom
 
-from BaCa2.settings import BROKER_PASSWORD, BACA_PASSWORD, BROKER_URL, BrokerRetryPolicy
+from core.settings import BROKER_PASSWORD, BACA_PASSWORD, BROKER_URL, BrokerRetryPolicy
 from main.models import Course
 from package.models import PackageInstance
 from course.routing import InCourse

@@ -5,7 +5,7 @@ from django.test import TestCase
 from .models import *
 from main.models import User
 from course.routing import InCourse
-from BaCa2.settings import PACKAGES, PACKAGES_DIR
+from core.settings import PACKAGES, PACKAGES_DIR
 from parameterized import parameterized
 
 

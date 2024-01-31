@@ -5,7 +5,7 @@ from django.db import models
 from django.db.models.query import QuerySet
 from django.contrib.auth.models import (Permission, ContentType, Group)
 
-from BaCa2.choices import BasicModelAction
+from core.choices import BasicModelAction
 
 model_cls = TypeVar("model_cls", bound=Type[models.Model])
 

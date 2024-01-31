@@ -3,8 +3,8 @@ import logging
 import psycopg2
 from threading import Lock
 
-from BaCa2.db.setup import DEFAULT_DB_SETTINGS
-from BaCa2.exceptions import NewDBError
+from core.db.setup import DEFAULT_DB_SETTINGS
+from core.exceptions import NewDBError
 
 log = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ def _raw_root_connection():
     It creates a raw connection to the database server as the root user
     :return: A connection to the postgres database.
     """
-    from BaCa2.db.setup import ADMIN_DB_USER, DEFAULT_DB_HOST
+    from core.db.setup import ADMIN_DB_USER, DEFAULT_DB_HOST
     conn = psycopg2.connect(
         database='postgres',
         user=ADMIN_DB_USER['user'],
@@ -42,7 +42,7 @@ def createDB(db_name: str, verbose: bool=False, **db_kwargs):
 
     db_key = db_name
     db_name += '_db'
-    from BaCa2.settings import DATABASES, SETTINGS_DIR
+    from core.settings import DATABASES, SETTINGS_DIR
 
     if db_key in DATABASES.keys():
         log.error(f"DB {db_name} already exists.")
@@ -113,7 +113,7 @@ def migrateAll():
     """
     It loops through all the databases in the settings file and runs the migrateDB function on each one.
     """
-    from BaCa2.settings import DATABASES
+    from core.settings import DATABASES
     log.info(f"Migrating all databases.")
     for db in DATABASES.keys():
         if db != 'default':
@@ -140,7 +140,7 @@ def deleteDB(db_name: str, verbose: bool=False):
     :param verbose: if True, prints out what's happening, defaults to False
     :type verbose: bool (optional)
     """
-    from BaCa2.settings import DATABASES, BASE_DIR
+    from core.settings import DATABASES, BASE_DIR
 
     log.info(f'Attempting to delete DB {db_name}')
 
@@ -156,7 +156,7 @@ def deleteDB(db_name: str, verbose: bool=False):
     if verbose:
         print(f"Deleted {db_name} from settings.DATABASES.")
 
-    with open(BASE_DIR / "BaCa2/db/ext_databases.py", 'r') as f:
+    with open(BASE_DIR / "core/db/ext_databases.py", 'r') as f:
         db_setts = f.read().split('\n\n')
 
     for i, sett in enumerate(db_setts):
@@ -165,7 +165,7 @@ def deleteDB(db_name: str, verbose: bool=False):
             db_setts.pop(i)
             break
 
-    with open(BASE_DIR / "BaCa2/db/ext_databases.py", 'w') as f:
+    with open(BASE_DIR / "core/db/ext_databases.py", 'w') as f:
         f.write('\n\n'.join(db_setts))
 
     if verbose:

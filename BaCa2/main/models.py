@@ -14,7 +14,7 @@ from django.db.models.query import QuerySet
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from BaCa2.choices import BasicModelAction, PermissionCheck, ModelAction
+from core.choices import BasicModelAction, PermissionCheck, ModelAction
 from course.manager import create_course as create_course_db, delete_course as delete_course_db
 from course.routing import InCourse
 from util.models import model_cls, get_model_permissions

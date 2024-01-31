@@ -648,7 +648,7 @@ poetry.lock
 
 # BaCa2 specyfic -------------------------------------------------------------------------------
 
-BaCa2/BaCa2/settings_local.py
+BaCa2/core/settings_local.py
 
 Baca2/submits/
 

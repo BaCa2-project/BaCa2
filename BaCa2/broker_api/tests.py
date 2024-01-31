@@ -7,7 +7,7 @@ from typing import Any
 from django.test import TestCase, Client
 from django.core.management import call_command
 
-from BaCa2.settings import SUBMITS_DIR, BROKER_PASSWORD, BACA_PASSWORD, BrokerRetryPolicy
+from core.settings import SUBMITS_DIR, BROKER_PASSWORD, BACA_PASSWORD, BrokerRetryPolicy
 from broker_api.views import *
 from course.models import Round, Task, Submit
 from course.routing import InCourse

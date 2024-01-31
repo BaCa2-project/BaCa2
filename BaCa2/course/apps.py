@@ -11,5 +11,5 @@ class CourseConfig(AppConfig):
         """
         It migrates all the tables in the database when app is loaded.
         """
-        from BaCa2.db.creator import migrateAll
+        from core.db.creator import migrateAll
         migrateAll()
