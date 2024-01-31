@@ -10,9 +10,9 @@ from django.core.exceptions import ValidationError
 from django.utils.timezone import now
 from django.db.models.base import ModelBase
 
-from BaCa2.choices import TaskJudgingMode, ResultStatus
-from BaCa2.exceptions import DataError
-from BaCa2.settings import SUBMITS_DIR
+from core.choices import TaskJudgingMode, ResultStatus
+from core.exceptions import DataError
+from core.settings import SUBMITS_DIR
 from course.routing import OptionalInCourse, InCourse
 from baca2PackageManager import TSet, TestF
 from baca2PackageManager.broker_communication import BrokerToBaca
@@ -345,7 +345,7 @@ class Task(models.Model, metaclass=ReadCourseMeta):
     task_name = models.CharField(max_length=1023)
     #: Foreign key to round, which task is assigned to.
     round = models.ForeignKey(Round, on_delete=models.CASCADE)
-    #: Judging mode as choice from BaCa2.choices.TaskJudgingMode (enum-type choice)
+    #: Judging mode as choice from core.choices.TaskJudgingMode (enum-type choice)
     judging_mode = models.CharField(
         max_length=3,
         choices=TaskJudgingMode.choices,
@@ -1031,7 +1031,7 @@ class Result(models.Model, metaclass=ReadCourseMeta):
     test = models.ForeignKey(Test, on_delete=models.CASCADE)
     #: :py:class:`Submit` model this test is connected to.
     submit = models.ForeignKey(Submit, on_delete=models.CASCADE)
-    #: Status result. Described as one of choices from :py:class:`BaCa2.choices.ResultStatus`
+    #: Status result. Described as one of choices from :py:class:`core.choices.ResultStatus`
     status = models.CharField(
         max_length=3,
         choices=ResultStatus.choices,

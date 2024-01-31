@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from BaCa2.settings import BrokerRetryPolicy
+from core.settings import BrokerRetryPolicy
 from broker_api.models import BrokerSubmit
 
 

@@ -8,7 +8,7 @@ from django.test import TestCase
 from django.utils import timezone
 from parameterized import parameterized
 
-from BaCa2.choices import ResultStatus
+from core.choices import ResultStatus
 from package.models import PackageInstance
 from .models import *
 from main.models import Course, User

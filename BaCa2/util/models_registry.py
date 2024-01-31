@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from main.models import (User, Course, Role, RolePreset)
     from course.models import (Round, Task, Submit, Test, TestSet)
     from package.models import PackageSource, PackageInstance
-    from BaCa2.choices import TaskJudgingMode
+    from core.choices import TaskJudgingMode
 
 
 class ModelsRegistry:
@@ -568,7 +568,7 @@ class ModelsRegistry:
         :return: TaskJudgingMode model instance.
         :rtype: TaskJudgingMode
         """
-        from BaCa2.choices import TaskJudgingMode
+        from core.choices import TaskJudgingMode
 
         if isinstance(judging_mode, str):
             judging_mode = judging_mode.upper()
@@ -656,7 +656,7 @@ class ModelsRegistry:
         :param src: Path to the source code file or its name.
         :return: Path to the source code file.
         """
-        from BaCa2.settings import SUBMITS_DIR
+        from core.settings import SUBMITS_DIR
         if isinstance(src, str):
             path = Path(src)
             path = path.absolute()
@@ -683,7 +683,7 @@ class ModelsRegistry:
         :return: ResultStatus model instance.
         :rtype: ResultStatus
         """
-        from BaCa2.choices import ResultStatus
+        from core.choices import ResultStatus
 
         if isinstance(status, str):
             status = status.upper()

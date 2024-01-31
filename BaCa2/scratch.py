@@ -4,7 +4,7 @@ import os
 import django
 
 # sys.path.insert(0, os.path.abspath('.'))
-os.environ['DJANGO_SETTINGS_MODULE'] = 'BaCa2.settings'
+os.environ['DJANGO_SETTINGS_MODULE'] = 'core.settings'
 django.setup()
 
 from time import sleep
@@ -17,7 +17,7 @@ from course.models import Round, Task, Submit
 from course.routing import InCourse
 from main.models import Course, User
 from package.models import PackageInstance
-from BaCa2.settings import SUBMITS_DIR
+from core.settings import SUBMITS_DIR
 
 
 course = Course(name='course1', short_name='c1', db_name='course1_db')

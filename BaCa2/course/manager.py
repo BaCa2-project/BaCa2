@@ -1,6 +1,6 @@
 from time import sleep
 
-from BaCa2.db.creator import createDB, migrateDB, deleteDB
+from core.db.creator import createDB, migrateDB, deleteDB
 import logging
 
 

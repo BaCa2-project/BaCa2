@@ -9,7 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views import View
 from django.views.generic import TemplateView
 
-from BaCa2.choices import BasicModelAction
+from core.choices import BasicModelAction
 from util import (normalize_string_to_python,
                   add_kwargs_to_url,
                   decode_url_to_dict,

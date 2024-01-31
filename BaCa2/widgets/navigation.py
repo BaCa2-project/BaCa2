@@ -6,7 +6,7 @@ from django.utils.translation import gettext_lazy as _
 
 from widgets.base import Widget
 from package.models import PackageInstance
-from BaCa2.choices import BasicModelAction
+from core.choices import BasicModelAction
 
 
 class NavBar(Widget):

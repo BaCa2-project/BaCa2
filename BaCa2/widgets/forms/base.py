@@ -12,7 +12,7 @@ from widgets.popups.forms import SubmitConfirmationPopup, SubmitSuccessPopup, Su
 from util.models import model_cls
 from util.models_registry import ModelsRegistry
 from util.responses import BaCa2JsonResponse, BaCa2ModelResponse
-from BaCa2.choices import ModelAction
+from core.choices import ModelAction
 from main.models import Course
 
 

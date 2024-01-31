@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-from BaCa2.settings import currentDB
+from core.settings import currentDB
 
 if TYPE_CHECKING:
     from main.models import Course
@@ -67,8 +67,8 @@ class ContextCourseRouter(SimpleCourseRouter):
         if model._meta.app_label != "course":
             return 'default'
 
-        from BaCa2.settings import DATABASES
-        from BaCa2.exceptions import RoutingError
+        from core.settings import DATABASES
+        from core.exceptions import RoutingError
 
         try:
             db = currentDB.get()
