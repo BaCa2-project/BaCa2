@@ -639,13 +639,12 @@ dmypy.json
 # pytype static type analyzer
 .pytype/
 
-poetry.lock
-
 # Cython debug symbols
 cython_debug/
 
 # Poetry
 poetry.lock
+/poetry.lock
 
 # BaCa2 specyfic -------------------------------------------------------------------------------
 

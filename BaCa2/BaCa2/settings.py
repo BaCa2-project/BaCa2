@@ -35,7 +35,6 @@ DEBUG = os.getenv('DEBUG')
 
 ALLOWED_HOSTS = [
     '0.0.0.0',
-    '0.0.0.0',
     '127.0.0.1',
     'localhost',
     os.getenv('HOST_IP'),
@@ -57,17 +56,12 @@ CSRF_TRUSTED_ORIGINS = [
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
+    'mozilla_django_oidc',  # login uj required
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
-
-    'allauth',  # https://github.com/pennersr/django-allauth
-    'allauth.account',
-    'allauth.socialaccount',
-
-    # "corsheaders",
 
     'django_extensions',  # https://github.com/django-extensions/django-extensions
     'dbbackup',  # https://github.com/jazzband/django-dbbackup
@@ -85,13 +79,11 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    # "corsheaders.middleware.CorsMiddleware",
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'allauth.account.middleware.AccountMiddleware',  # required by allauth
 ]
 
 TEMPLATES = [
@@ -102,7 +94,6 @@ TEMPLATES = [
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
-                'django.template.context_processors.request',  # required by allauth
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
@@ -113,16 +104,6 @@ TEMPLATES = [
 # MODULES LOCATION DEFINITIONS -------------------------------------------------------
 ROOT_URLCONF = 'BaCa2.urls'
 WSGI_APPLICATION = 'BaCa2.wsgi.application'
-
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:8000",
-#     "http://127.0.0.1:8000",
-#     "https://baca2.ii.uj.edu.pl:8000",
-# ]
-
-# CORS_ALLOWED_ORIGINS = ['*']
-#
-# CORS_ALLOW_CREDENTIALS = True
 
 
 # LOCALIZATION SETTINGS ---------------------------------------------------------------
@@ -168,12 +149,14 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 AUTHENTICATION_BACKENDS = [
+    # Login UJ
+    'mozilla_django_oidc.auth.OIDCAuthenticationBackend',
     # Custom authentication backend
     'BaCa2.auth_backend.BaCa2AuthBackend'
 ]
 
 AUTH_USER_MODEL = 'main.User'
-SITE_ID = 1  # allauth required
+SITE_ID = 1
 
 # STATIC FILES SETTINGS ---------------------------------------------------------------
 STATIC_URL = '/static/'
