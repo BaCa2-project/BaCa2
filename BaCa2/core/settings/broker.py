@@ -3,8 +3,8 @@ import os
 BROKER_URL = os.getenv('BROKER_URL')
 BROKER_TIMEOUT = 600  # seconds
 
-SUBMITS_DIR = BASE_DIR / 'submits'  # type: ignore # noqa: F821
-_auto_create_dirs.add_dir(SUBMITS_DIR)  # type: ignore # noqa: F821
+SUBMITS_DIR = BASE_DIR / 'submits'  # noqa: F821
+_auto_create_dirs.add_dir(SUBMITS_DIR)  # noqa: F821
 
 # Passwords for protecting communication channels between the broker and BaCa2.
 # PASSWORDS HAVE TO DIFFERENT IN ORDER TO BE EFFECTIVE

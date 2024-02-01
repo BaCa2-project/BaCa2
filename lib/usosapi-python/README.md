@@ -1,7 +1,7 @@
 Usosapi module
 ==============
 
-This module is created to help Python developers use USOS API 
+This module is created to help Python developers use USOS API
 without the need of learning how to use any OAuth libraries.
 
 Requirements

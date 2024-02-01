@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from core.settings import currentDB
@@ -14,7 +15,7 @@ class SimpleCourseRouter:
 
     @staticmethod
     def _test_course_db(model, **hints):
-        if model._meta.app_label == "course":
+        if model._meta.app_label == 'course':
             return 'test_course'
 
     def db_for_read(self, model, **hints):
@@ -25,8 +26,8 @@ class SimpleCourseRouter:
 
     def allow_relation(self, obj1, obj2, **hints):
         """
-        If the two objects are in the same database, or if the second object is in the default database, then allow the
-        relationship
+        If the two objects are in the same database, or if the second object is in the default
+        database, then allow the relationship
 
         :param obj1: The first object in the relation
         :param obj2: The object that is being created
@@ -59,16 +60,17 @@ class ContextCourseRouter(SimpleCourseRouter):
     @staticmethod
     def _get_context(model, **hints):
         """
-        It returns the name of the database to use for a given model. It gets it from context manager.
+        It returns the name of the database to use for a given model. It gets it from context
+        manager.
 
         :param model: The model class that is being queried
         :return: The name of the database to use.
         """
-        if model._meta.app_label != "course":
+        if model._meta.app_label != 'course':
             return 'default'
 
-        from core.settings import DATABASES
         from core.exceptions import RoutingError
+        from core.settings import DATABASES
 
         try:
             db = currentDB.get()
@@ -169,8 +171,8 @@ class OptionalInCourse(InCourse):
             using OptionalInCourse():
                 Submit.create_new(...)
 
-    will create new submission inside of course set by :py:class:`InCourse` context manager. If there is no context
-    database set, it will raise :py:class:`RoutingError`.
+    will create new submission inside of course set by :py:class:`InCourse` context manager. If
+    there is no context database set, it will raise :py:class:`RoutingError`.
     """
 
     def __init__(self, course_or_none: int | str | Course | None):

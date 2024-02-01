@@ -1,5 +1,6 @@
-import yaml
 from random import choice
+
+import yaml
 
 
 def random_string(length: int, array):

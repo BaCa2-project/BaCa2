@@ -1,7 +1,5 @@
-from core.db.creator import createDB, migrateDB, deleteDB
+from core.db.creator import createDB, deleteDB, migrateDB
 
-
-# log = logging.
 
 def create_course(course_name: str):
     """

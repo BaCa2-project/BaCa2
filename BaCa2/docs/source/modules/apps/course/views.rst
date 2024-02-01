@@ -12,4 +12,3 @@ Course views are defined as dependant on the ``InCourse`` context. These views c
 .. autoclass:: CourseAdmin
     :members:
     :private-members:
-

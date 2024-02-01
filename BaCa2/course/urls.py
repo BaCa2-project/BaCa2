@@ -1,5 +1,6 @@
 from django.urls import path
-from .views import CourseView, CourseAdmin
+
+from .views import CourseAdmin, CourseView
 
 app_name = 'course'
 

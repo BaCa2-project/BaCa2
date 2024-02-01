@@ -1,6 +1,7 @@
 from django.apps import AppConfig
-from core.settings import PACKAGES
+
 from baca2PackageManager import Package
+from core.settings import PACKAGES
 
 
 class PackageConfig(AppConfig):

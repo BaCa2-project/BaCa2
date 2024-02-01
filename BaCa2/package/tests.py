@@ -1,9 +1,11 @@
 import shutil
-from django.test import TestCase
-from parameterized import parameterized
 
 from django.conf import settings
+from django.test import TestCase
+
 from main.models import User
+from parameterized import parameterized
+
 from .models import *
 
 

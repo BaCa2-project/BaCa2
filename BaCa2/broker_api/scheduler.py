@@ -1,9 +1,9 @@
 """Contains the scheduler for the broker_api app."""
 
-from apscheduler.schedulers.background import BackgroundScheduler
-from django.core.management import call_command
 from django.conf import settings
+from django.core.management import call_command
 
+from apscheduler.schedulers.background import BackgroundScheduler
 
 scheduler = BackgroundScheduler()
 

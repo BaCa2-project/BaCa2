@@ -1,16 +1,15 @@
 from time import sleep
 
+from django.conf import settings
 from django.db import models, transaction
 from django.utils import timezone
 
-import requests
 import baca2PackageManager.broker_communication as brcom
-
-from django.conf import settings
+import requests
+from course.models import Result, Submit
+from course.routing import InCourse
 from main.models import Course
 from package.models import PackageInstance
-from course.routing import InCourse
-from course.models import Submit, Result
 
 
 class BrokerSubmit(models.Model):
@@ -176,9 +175,9 @@ class BrokerSubmit(models.Model):
         broker_submit = cls.objects.filter(course__name=course_name, submit_id=submit_id).first()
         print(f'{broker_submit=}')
         if broker_submit is None:
-            raise ValueError(f"No submit with broker_id {response.submit_id} exists.")
+            raise ValueError(f'No submit with broker_id {response.submit_id} exists.')
         if response.pass_hash != broker_submit.hash_password(settings.BACA_PASSWORD):
-            raise PermissionError("Wrong password.")
+            raise PermissionError('Wrong password.')
         return broker_submit
 
     @classmethod

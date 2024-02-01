@@ -1,5 +1,6 @@
+from typing import Any, Dict, Iterable
+
 import usosapi
-from typing import Iterable, Any, Dict
 
 from . import *
 
@@ -47,8 +48,9 @@ class USOS:
                                                'titles',
                                                'student_number')) -> Dict[str, Any]:
         """
-        It gets user data from USOS API. If user_id is None, it gets data of the user who is logged in. Fields are
-        specified in the fields parameter. If fields is None, it gets only ``id``, ``first_name`` and ``last_name``.
+        It gets user data from USOS API. If user_id is None, it gets data of the user who is
+        logged in. Fields are specified in the fields parameter. If fields is None, it gets only
+        ``id``, ``first_name`` and ``last_name``.
 
         Possible fields are described in the `USOS API documentation
         <https://apps.usos.uj.edu.pl/developers/api/services/users/#user>`_.
@@ -71,8 +73,9 @@ class USOS:
 
     def get_user_courses(self):
         """
-        It gets courses of the user. If user_id is None, it gets courses of the user who is logged in.
-        It gets only active courses by default, but you can change it by setting active_terms_only to False.
+        It gets courses of the user. If user_id is None, it gets courses of the user who is
+        logged in. It gets only active courses by default, but you can change it by setting
+        active_terms_only to False.
 
         :param user_id: USOS user id (if None, it gets courses of the user who is logged in)
         :param active_terms_only: if True, it gets only active courses

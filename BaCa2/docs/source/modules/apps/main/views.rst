@@ -50,4 +50,3 @@ Management functions
 """"""""""""""""""""
 
 .. autofunction:: change_theme
-
