@@ -30,6 +30,9 @@ mozilla-django-oidc = "^4.0.0"
 colorlog = "^6.8.2"
 django-split-settings = "^1.2.0"
 
+[tool.poetry.group.dev.dependencies]
+flake8 = "^7.0.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

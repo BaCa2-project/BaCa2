@@ -1,7 +1,4 @@
-from time import sleep
-
 from core.db.creator import createDB, migrateDB, deleteDB
-import logging
 
 
 # log = logging.

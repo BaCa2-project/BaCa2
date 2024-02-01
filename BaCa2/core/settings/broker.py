@@ -33,3 +33,6 @@ class BrokerRetryPolicy:
 
     # Auto start broker daemons
     auto_start = True
+
+
+BROKER_RETRY_POLICY = BrokerRetryPolicy()

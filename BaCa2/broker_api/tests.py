@@ -1,13 +1,14 @@
 import cgi
 from datetime import datetime, timedelta
 from http import server
+
+from django.conf import settings
 from threading import Thread, Lock
 from typing import Any
 
 from django.test import TestCase, Client
 from django.core.management import call_command
 
-from core.settings import SUBMITS_DIR, BROKER_PASSWORD, BACA_PASSWORD, BrokerRetryPolicy
 from broker_api.views import *
 from course.models import Round, Task, Submit
 from course.routing import InCourse
@@ -16,7 +17,6 @@ from package.models import PackageInstance
 
 
 class DelayedAction(dict):
-
     INSTANCE = None
 
     def __new__(cls, *args, **kwargs):
@@ -85,9 +85,9 @@ class DummyBrokerHandler(server.BaseHTTPRequestHandler):
 
         try:
             content = BacaToBroker.parse(message)
-            if content.pass_hash != make_hash(BROKER_PASSWORD, content.submit_id):
+            if content.pass_hash != make_hash(settings.BROKER_PASSWORD, content.submit_id):
                 out = BrokerToBacaError(
-                    make_hash(BACA_PASSWORD, content.submit_id),
+                    make_hash(settings.BACA_PASSWORD, content.submit_id),
                     content.submit_id,
                     "Error"
                 )
@@ -95,7 +95,7 @@ class DummyBrokerHandler(server.BaseHTTPRequestHandler):
                                                 '/broker_api/error', json.dumps(out.serialize()))
             else:
                 out = BrokerToBaca(
-                    pass_hash=make_hash(BACA_PASSWORD, content.submit_id),
+                    pass_hash=make_hash(settings.BACA_PASSWORD, content.submit_id),
                     submit_id=content.submit_id,
                     results={}
                 )
@@ -159,39 +159,47 @@ class General(TestCase):
         self.thread.join()
 
     def test_broker_communication(self):
-        src_code = SUBMITS_DIR / '1234.cpp'
+        src_code = settings.SUBMITS_DIR / '1234.cpp'
         src_code = src_code.absolute()
 
         with InCourse(self.course.short_name):
-            submit = Submit.objects.create_submit(source_code=src_code, task=self.task, user=self.user)
+            submit = Submit.objects.create_submit(source_code=src_code, task=self.task,
+                                                  user=self.user)
             submit.pk = datetime.now().timestamp()
             submit.save()
             submit_id = submit.pk
-            DelayedAction.INSTANCE.set_lock(create_broker_submit_id(self.course.name, int(submit_id)))
-            broker_submit = BrokerSubmit.send(self.course, submit_id,
-                                              self.pkg_instance, broker_password=BROKER_PASSWORD)
+            DelayedAction.INSTANCE.set_lock(
+                create_broker_submit_id(self.course.name, int(submit_id)))
+            broker_submit = BrokerSubmit.send(self.course,
+                                              submit_id,
+                                              self.pkg_instance,
+                                              broker_password=settings.BROKER_PASSWORD)
 
         self.assertTrue(DelayedAction.INSTANCE.wait_for(broker_submit.broker_id, 2))
-        self.assertEqual(200, DelayedAction.INSTANCE.exec_func(broker_submit.broker_id).status_code)
+        self.assertEqual(200,
+                         DelayedAction.INSTANCE.exec_func(broker_submit.broker_id).status_code)
 
         broker_submit.refresh_from_db()
         self.assertTrue(broker_submit.status == BrokerSubmit.StatusEnum.SAVED)
 
     def test_broker_communication_error(self):
-        src_code = SUBMITS_DIR / '1234.cpp'
+        src_code = settings.SUBMITS_DIR / '1234.cpp'
         src_code = src_code.absolute()
 
         with InCourse(self.course.short_name):
-            submit = Submit.objects.create_submit(source_code=src_code, task=self.task, user=self.user)
+            submit = Submit.objects.create_submit(source_code=src_code, task=self.task,
+                                                  user=self.user)
             submit.pk = 1
             submit.save()
             submit_id = submit.pk
-            DelayedAction.INSTANCE.set_lock(create_broker_submit_id(self.course.name, int(submit_id)))
+            DelayedAction.INSTANCE.set_lock(
+                create_broker_submit_id(self.course.name, int(submit_id)))
             broker_submit = BrokerSubmit.send(self.course, submit_id,
                                               self.pkg_instance, broker_password='wrong')
 
         self.assertTrue(DelayedAction.INSTANCE.wait_for(broker_submit.broker_id, 2))
-        self.assertEqual(200, DelayedAction.INSTANCE.exec_func(broker_submit.broker_id).status_code)
+        self.assertEqual(200,
+                         DelayedAction.INSTANCE.exec_func(broker_submit.broker_id).status_code)
 
         broker_submit.refresh_from_db()
         self.assertTrue(broker_submit.status == BrokerSubmit.StatusEnum.ERROR)
@@ -200,15 +208,18 @@ class General(TestCase):
         cl = Client()
         self.assertEqual(404, cl.get('/broker_api/result').status_code)
         self.assertEqual(404, cl.get('/broker_api/error').status_code)
-        self.assertEqual(400, cl.post('/broker_api/result', content_type='text/plain').status_code)
-        self.assertEqual(400, cl.post('/broker_api/error', content_type='text/plain').status_code)
+        self.assertEqual(400, cl.post('/broker_api/result',
+                                      content_type='text/plain').status_code)
+        self.assertEqual(400, cl.post('/broker_api/error',
+                                      content_type='text/plain').status_code)
 
     def test_broker_no_communication(self):
-        src_code = SUBMITS_DIR / '1234.cpp'
+        src_code = settings.SUBMITS_DIR / '1234.cpp'
         src_code = src_code.absolute()
 
         with InCourse(self.course.short_name):
-            submit = Submit.objects.create_submit(source_code=src_code, task=self.task, user=self.user)
+            submit = Submit.objects.create_submit(source_code=src_code, task=self.task,
+                                                  user=self.user)
             submit.pk = 1
             submit.save()
             submit_id = submit.pk
@@ -220,29 +231,31 @@ class General(TestCase):
 
     def test_wrong_submit_id(self):
         ret = send('/broker_api/result', json.dumps(BrokerToBaca(
-            pass_hash=make_hash(BACA_PASSWORD, 'wrong___12'),
+            pass_hash=make_hash(settings.BACA_PASSWORD, 'wrong___12'),
             submit_id='wrong___12',
             results={}
         ).serialize()))
         self.assertEqual(403, ret.status_code)
 
         ret = send('/broker_api/error', json.dumps(BrokerToBacaError(
-            pass_hash=make_hash(BACA_PASSWORD, 'wrong___12'),
+            pass_hash=make_hash(settings.BACA_PASSWORD, 'wrong___12'),
             submit_id='wrong___12',
             error='error'
         ).serialize()))
         self.assertEqual(403, ret.status_code)
 
     def test_wrong_password(self):
-        src_code = SUBMITS_DIR / '1234.cpp'
+        src_code = settings.SUBMITS_DIR / '1234.cpp'
         src_code = src_code.absolute()
 
         with InCourse(self.course.short_name):
-            submit = Submit.objects.create_submit(source_code=src_code, task=self.task, user=self.user)
+            submit = Submit.objects.create_submit(source_code=src_code, task=self.task,
+                                                  user=self.user)
             submit.pk = 1
             submit.save()
             submit_id = submit.pk
-            DelayedAction.INSTANCE.set_lock(create_broker_submit_id(self.course.name, int(submit_id)))
+            DelayedAction.INSTANCE.set_lock(
+                create_broker_submit_id(self.course.name, int(submit_id)))
             broker_submit = BrokerSubmit.send(self.course, submit_id,
                                               self.pkg_instance, broker_password='wrong')
 
@@ -259,16 +272,19 @@ class General(TestCase):
                                         submit_id=i,
                                         package_instance=self.pkg_instance,
                                         status=BrokerSubmit.StatusEnum.ERROR,
-                                        update_date=datetime.now() - timedelta(BrokerRetryPolicy.deletion_timeout))
+                                        update_date=datetime.now() - timedelta(
+                                            settings.BROKER_RETRY_POLICY.deletion_timeout))
         for i in range(10):
             BrokerSubmit.objects.create(course=self.course,
                                         submit_id=i,
                                         package_instance=self.pkg_instance,
                                         status=BrokerSubmit.StatusEnum.ERROR,
                                         update_date=datetime.now())
-        self.assertEqual(20, BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.ERROR).count())
+        self.assertEqual(20,
+                         BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.ERROR).count())
         call_command('deleteErrors')
-        self.assertEqual(10, BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.ERROR).count())
+        self.assertEqual(10,
+                         BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.ERROR).count())
 
     def test_markExpired(self):
         for i in range(10):
@@ -276,41 +292,48 @@ class General(TestCase):
                                         submit_id=i,
                                         package_instance=self.pkg_instance,
                                         status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE,
-                                        update_date=datetime.now() - timedelta(BrokerRetryPolicy.expiration_timeout))
+                                        update_date=datetime.now() - timedelta(
+                                            settings.BROKER_RETRY_POLICY.expiration_timeout))
         for i in range(10):
             BrokerSubmit.objects.create(course=self.course,
                                         submit_id=i,
                                         package_instance=self.pkg_instance,
                                         status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE,
                                         update_date=datetime.now())
-        self.assertEqual(20, BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE).count())
+        self.assertEqual(20, BrokerSubmit.objects.filter(
+            status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE).count())
         call_command('markExpired')
-        self.assertEqual(10, BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.EXPIRED).count())
+        self.assertEqual(10, BrokerSubmit.objects.filter(
+            status=BrokerSubmit.StatusEnum.EXPIRED).count())
 
     def test_resendToBroker(self):
         for i in range(10):
-            src_code = SUBMITS_DIR / '1234.cpp'
+            src_code = settings.SUBMITS_DIR / '1234.cpp'
             src_code = src_code.absolute()
 
             with InCourse(self.course.short_name):
-                submit = Submit.objects.create_submit(source_code=src_code, task=self.task, user=self.user)
+                submit = Submit.objects.create_submit(source_code=src_code, task=self.task,
+                                                      user=self.user)
                 submit.pk = i
                 submit.save()
                 submit_id = submit.pk
                 BrokerSubmit.send(self.course, submit_id,
-                                  self.pkg_instance, broker_password=BROKER_PASSWORD)
+                                  self.pkg_instance, broker_password=settings.BROKER_PASSWORD)
 
         call_command('resendToBroker')
-        self.assertEqual(10, BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE).count())
-        for i in range(BrokerRetryPolicy.resend_max_retries):
-            BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE, submit_id__gte=5).update(
-                                        status=BrokerSubmit.StatusEnum.EXPIRED)
+        self.assertEqual(10, BrokerSubmit.objects.filter(
+            status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE).count())
+        for i in range(settings.BROKER_RETRY_POLICY.resend_max_retries):
+            BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE,
+                                        submit_id__gte=5).update(
+                status=BrokerSubmit.StatusEnum.EXPIRED)
             call_command('resendToBroker')
             self.assertEqual(10, BrokerSubmit.objects.filter(
                 status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE).count())
             self.assertEqual(0, BrokerSubmit.objects.filter(
                 status=BrokerSubmit.StatusEnum.EXPIRED).count())
-        BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE, submit_id__gte=5).update(
+        BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE,
+                                    submit_id__gte=5).update(
             status=BrokerSubmit.StatusEnum.EXPIRED)
         call_command('resendToBroker')
         self.assertEqual(5, BrokerSubmit.objects.filter(

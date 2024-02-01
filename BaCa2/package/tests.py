@@ -1,12 +1,10 @@
 import shutil
-
 from django.test import TestCase
-
-from .models import *
-from main.models import User
-from course.routing import InCourse
-from core.settings import PACKAGES, PACKAGES_DIR
 from parameterized import parameterized
+
+from django.conf import settings
+from main.models import User
+from .models import *
 
 
 class TestPackage(TestCase):
@@ -17,7 +15,7 @@ class TestPackage(TestCase):
     def setUpTestData(cls):
         cls.user = User.objects.create_user('test@test.com', 'test')
         cls.user2 = User.objects.create_user('test2@test.com', 'test')
-        cls.zip_file = PACKAGES_DIR / 'test_pkg.zip'
+        cls.zip_file = settings.PACKAGES_DIR / 'test_pkg.zip'
 
     def tearDown(self):
         PackageInstance.objects.all().delete()
@@ -30,7 +28,7 @@ class TestPackage(TestCase):
             usr = self.user
         pkg = PackageInstance.objects.create_source_and_instance('dosko', '1', creator=usr)
         self.assertIsInstance(pkg.package, Package)
-        self.assertIn(pkg.key, PACKAGES.keys())
+        self.assertIn(pkg.key, settings.PACKAGES.keys())
         self.assertEqual(pkg.package['title'], 'Liczby Doskonałe')
 
         if usr:
@@ -62,7 +60,7 @@ class TestPackage(TestCase):
                     copy_permissions=False,
                 )
             self.assertIsInstance(new_pkg.package, Package)
-            self.assertIn(new_pkg.key, PACKAGES.keys())
+            self.assertIn(new_pkg.key, settings.PACKAGES.keys())
             self.assertEqual(new_pkg.package['title'], 'Liczby Doskonałe')
             self.assertNotEqual(new_pkg.key, pkg.key)
             self.assertNotEqual(new_pkg.path, pkg.path)
@@ -98,7 +96,7 @@ class TestPackage(TestCase):
             PackageInstance.objects.delete_package_instance(new_pkg, delete_files=True)
             self.assertFalse(path.exists())
             with self.assertRaises(PackageInstance.DoesNotExist):
-                deleted = PackageInstance.objects.get(pk=pk)
+                PackageInstance.objects.get(pk=pk)
             if users:
                 users_assigned = PackageInstanceUser.objects.filter(package_instance_id=pk).count()
                 self.assertEqual(users_assigned, 0)
@@ -130,7 +128,7 @@ class TestPackage(TestCase):
                 creator=usr
             )
             self.assertIsInstance(pkg.package, Package)
-            self.assertIn(pkg.key, PACKAGES.keys())
+            self.assertIn(pkg.key, settings.PACKAGES.keys())
             self.assertEqual(pkg.package['title'], 'zip test pkg')
             self.assertEqual(pkg.package['points'], 123)
             if usr and from_instance:
@@ -169,7 +167,7 @@ class TestPackage(TestCase):
             )
             self.assertIsInstance(pkg_src, PackageSource)
             pkg = pkg_src.instances.first()
-            self.assertIn(pkg.key, PACKAGES.keys())
+            self.assertIn(pkg.key, settings.PACKAGES.keys())
             self.assertEqual(pkg.package['title'], 'zip test pkg')
             self.assertEqual(pkg.package['points'], 123)
             if usr:

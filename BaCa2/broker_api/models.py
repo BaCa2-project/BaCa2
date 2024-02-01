@@ -6,7 +6,7 @@ from django.utils import timezone
 import requests
 import baca2PackageManager.broker_communication as brcom
 
-from core.settings import BROKER_PASSWORD, BACA_PASSWORD, BROKER_URL, BrokerRetryPolicy
+from django.conf import settings
 from main.models import Course
 from package.models import PackageInstance
 from course.routing import InCourse
@@ -18,12 +18,12 @@ class BrokerSubmit(models.Model):
 
     class StatusEnum(models.IntegerChoices):
         """Enum for submit status."""
-        ERROR = -2              # Error while sending or receiving submit
-        EXPIRED = -1            # Submit was not checked in time
-        NEW = 0                 # Submit was created
-        AWAITING_RESPONSE = 1   # Submit was sent to broker and is awaiting response
-        CHECKED = 2             # Submit was checked and results are saved
-        SAVED = 3               # Results were saved
+        ERROR = -2  # Error while sending or receiving submit
+        EXPIRED = -1  # Submit was not checked in time
+        NEW = 0  # Submit was created
+        AWAITING_RESPONSE = 1  # Submit was sent to broker and is awaiting response
+        CHECKED = 2  # Submit was checked and results are saved
+        SAVED = 3  # Results were saved
 
     #: course foreign key
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
@@ -70,8 +70,8 @@ class BrokerSubmit(models.Model):
         :param password: password for broker
         :type password: str
 
-        :return: tuple (message, status_code) where message is message sent to broker and status_code is an HTTP
-            status code or a negative number if an error occurred
+        :return: tuple (message, status_code) where message is message sent to broker and
+            status_code is an HTTP status code or a negative number if an error occurred
         :rtype: tuple[brcom.BacaToBroker, int]
         """
         message = brcom.BacaToBroker(
@@ -95,8 +95,8 @@ class BrokerSubmit(models.Model):
              course: Course,
              submit_id: int,
              package_instance: PackageInstance,
-             broker_url: str = BROKER_URL,
-             broker_password: str = BROKER_PASSWORD) -> 'BrokerSubmit':
+             broker_url: str = settings.BROKER_URL,
+             broker_password: str = settings.BROKER_PASSWORD) -> 'BrokerSubmit':
         """
         Creates new submit and sends it to broker.
 
@@ -125,18 +125,20 @@ class BrokerSubmit(models.Model):
         )
         new_submit.save()
         code = -100
-        for _ in range(BrokerRetryPolicy.individual_max_retries):
+        for _ in range(settings.BROKER_RETRY_POLICY.individual_max_retries):
             _, code = cls.send_submit(new_submit, broker_url, broker_password)
             if code == 200:
                 break
-            sleep(BrokerRetryPolicy.individual_submit_retry_interval)
+            sleep(settings.BROKER_RETRY_POLICY.individual_submit_retry_interval)
         else:
             new_submit.update_status(cls.StatusEnum.ERROR)
             raise ConnectionError(f'Cannot sent message to broker (error code: {code})')
         new_submit.update_status(cls.StatusEnum.AWAITING_RESPONSE)
         return new_submit
 
-    def resend(self, broker_url: str = BROKER_URL, broker_password: str = BROKER_PASSWORD):
+    def resend(self,
+               broker_url: str = settings.BROKER_URL,
+               broker_password: str = settings.BROKER_PASSWORD):
         """
         Resends this submit to broker.
 
@@ -145,13 +147,13 @@ class BrokerSubmit(models.Model):
         :param broker_password: password for broker
         :type broker_password: str
         """
-        for _ in range(BrokerRetryPolicy.individual_max_retries):
+        for _ in range(settings.BROKER_RETRY_POLICY.individual_max_retries):
             _, code = self.send_submit(broker_url, broker_password)
             if code == 200:
                 self.retry_amount += 1
                 self.update_status(self.StatusEnum.AWAITING_RESPONSE)
                 break
-            sleep(BrokerRetryPolicy.individual_submit_retry_interval)
+            sleep(settings.BROKER_RETRY_POLICY.individual_submit_retry_interval)
         else:
             self.update_status(self.StatusEnum.ERROR)
 
@@ -175,7 +177,7 @@ class BrokerSubmit(models.Model):
         print(f'{broker_submit=}')
         if broker_submit is None:
             raise ValueError(f"No submit with broker_id {response.submit_id} exists.")
-        if response.pass_hash != broker_submit.hash_password(BACA_PASSWORD):
+        if response.pass_hash != broker_submit.hash_password(settings.BACA_PASSWORD):
             raise PermissionError("Wrong password.")
         return broker_submit
 
