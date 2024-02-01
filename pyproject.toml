@@ -28,6 +28,7 @@ requests = "^2.31.0"
 mozilla-django-oidc = "^4.0.0"
 
 colorlog = "^6.8.2"
+django-split-settings = "^1.2.0"
 
 [build-system]
 requires = ["poetry-core"]

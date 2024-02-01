@@ -42,7 +42,7 @@ def createDB(db_name: str, verbose: bool=False, **db_kwargs):
 
     db_key = db_name
     db_name += '_db'
-    from core.settings import DATABASES, SETTINGS_DIR
+    from core.settings import DATABASES, DB_SETTINGS_DIR
 
     if db_key in DATABASES.keys():
         log.error(f"DB {db_name} already exists.")
@@ -83,7 +83,7 @@ DATABASES['{db_key}'] = {'{'}
 {'}'}
 
 '''
-    with open(SETTINGS_DIR / 'db/ext_databases.py', 'a') as f:
+    with open(DB_SETTINGS_DIR / 'ext_databases.py', 'a') as f:
         f.write(new_db_save)
     if verbose:
         print("Settings saved to file.")
