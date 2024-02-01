@@ -36,6 +36,7 @@ include(
     'usos.py',
     'logging.py',
     optional(str(LOCAL_SETTINGS_PATH)),
+    'envvars.py',
 )
 
 _auto_create_dirs.create()
