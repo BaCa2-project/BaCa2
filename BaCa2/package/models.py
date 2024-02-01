@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from django.core.exceptions import ValidationError
-from django.db import models, transaction
-from django.utils import timezone
 from pathlib import Path
 from typing import List
 
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.db import models, transaction
+from django.utils import timezone
+
 from baca2PackageManager import Package
 from baca2PackageManager.validators import isStr
-from django.conf import settings
 from main.models import User
 from util.models_registry import ModelsRegistry
 
@@ -31,9 +32,9 @@ class PackageSourceManager(models.Manager):
             return name
 
         i = 1
-        while self.model.exists(f"{name}{i}"):
+        while self.model.exists(f'{name}{i}'):
             i += 1
-        return f"{name}{i}"
+        return f'{name}{i}'
 
     @transaction.atomic
     def create_package_source(self, name: str) -> PackageSource:
@@ -108,7 +109,7 @@ class PackageSource(models.Model):
     objects = PackageSourceManager()
 
     def __str__(self):
-        return f"Package {self.pk}: {self.name}"
+        return f'Package {self.pk}: {self.name}'
 
     @property
     def path(self) -> Path:
@@ -203,7 +204,7 @@ class PackageInstanceUser(models.Model):
     objects = PackageInstanceUserManager()
 
     def __str__(self):
-        return f"PackageInstanceUser {self.pk}: \n{self.user}\n{self.package_instance}"
+        return f'PackageInstanceUser {self.pk}: \n{self.user}\n{self.package_instance}'
 
 
 class PackageInstanceManager(models.Manager):
@@ -381,7 +382,7 @@ class PackageInstance(models.Model):
     objects = PackageInstanceManager()
 
     def __str__(self):
-        return f"PackageInstance {self.pk}: \n{self.package_source}\n{self.commit}"
+        return f'PackageInstance {self.pk}: \n{self.package_source}\n{self.commit}'
 
     @classmethod
     def commit_msg(cls, pkg: PackageSource, commit: str) -> str:
@@ -395,7 +396,7 @@ class PackageInstance(models.Model):
 
         :return: The name of the package source and the commit.
         """
-        return f"{pkg.name}.{commit}"
+        return f'{pkg.name}.{commit}'
 
     @property
     def key(self) -> str:

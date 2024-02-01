@@ -19,4 +19,3 @@ migrate:
 
 .PHONY: update-all
 update-all: update migrations migrate;
-

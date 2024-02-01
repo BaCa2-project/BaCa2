@@ -1,5 +1,5 @@
-from typing import Dict, Any
 from enum import Enum
+from typing import Any, Dict
 
 from django.http import HttpRequest
 
@@ -18,10 +18,10 @@ class PopupWidget(Widget):
         """
         Enum representing the possible sizes of a popup. Values are CSS Bootstrap classes.
         """
-        SMALL = "modal-sm"
-        MEDIUM = ""
-        LARGE = "modal-lg"
-        EXTRA_LARGE = "modal-xl"
+        SMALL = 'modal-sm'
+        MEDIUM = ''
+        LARGE = 'modal-lg'
+        EXTRA_LARGE = 'modal-xl'
 
     def __init__(self,
                  *,
@@ -29,7 +29,7 @@ class PopupWidget(Widget):
                  request: HttpRequest,
                  title: str,
                  message: str,
-                 widget_class: str = "",
+                 widget_class: str = '',
                  size: PopupSize = PopupSize.MEDIUM) -> None:
         """
         :param name: Name of the widget.

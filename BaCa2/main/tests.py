@@ -3,9 +3,9 @@ from django.db import transaction
 from django.test import TestCase
 from django.utils import timezone
 
-from course.models import Round, Task, Submit
+from course.models import Round, Submit, Task
 from course.routing import InCourse
-from main.models import (User, Course, Role, RolePreset)
+from main.models import Course, Role, RolePreset, User
 from package.models import PackageInstance
 
 

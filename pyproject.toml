@@ -31,7 +31,13 @@ colorlog = "^6.8.2"
 django-split-settings = "^1.2.0"
 
 [tool.poetry.group.dev.dependencies]
-flake8 = "^7.0.0"
+pre-commit = "^3.6.0"
+
+[tool.isort]
+multi_line_output = 3
+line_length = 100
+known_django="django"
+sections="FUTURE,STDLIB,DJANGO,FIRSTPARTY,THIRDPARTY,LOCALFOLDER"
 
 [build-system]
 requires = ["poetry-core"]

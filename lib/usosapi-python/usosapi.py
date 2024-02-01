@@ -4,17 +4,18 @@ This package is part of the USOS API project.
 https://apps.usos.edu.pl/developers/
 """
 import hashlib
+import logging
 import os
 import os.path
-import tempfile
-import urllib.request
-import shutil
-import rauth
-import warnings
 import re
-import requests.exceptions
-import logging
+import shutil
+import tempfile
 import time
+import urllib.request
+import warnings
+
+import rauth
+import requests.exceptions
 
 VERSION = '1.0.0'
 
@@ -126,7 +127,7 @@ class USOSAPIConnection():
         params = {'oauth_callback': 'oob', 'scopes': SCOPES}
         token_tuple = self._service.get_request_token(params=params)
         self._request_token, self._request_token_secret = token_tuple
-        _LOGGER.info("New request token generated: {}".format(token_tuple[0]))
+        _LOGGER.info('New request token generated: {}'.format(token_tuple[0]))
         return
 
     def is_anonymous(self) -> bool:
@@ -241,7 +242,7 @@ class USOSAPIConnection():
 
         if not self.is_authorized():
             self._authorized_session = None
-            _LOGGER.info("Access token {} is invalid.".format(access_token))
+            _LOGGER.info('Access token {} is invalid.'.format(access_token))
             return False
 
         _LOGGER.info('New access token ({}) and secret ({}) '
@@ -281,9 +282,9 @@ class USOSAPIConnection():
                     raise USOSAPIException('HTTP 400: Bad request: ' + msg)
                 raise e
 
-        _LOGGER.info("{} ({}) {:f}s".format(service, repr(kwargs),
+        _LOGGER.info('{} ({}) {:f}s'.format(service, repr(kwargs),
                                             ex_time))
-        _LOGGER.debug("{} ({}) -> {}".format(response.url, repr(kwargs),
+        _LOGGER.debug('{} ({}) -> {}'.format(response.url, repr(kwargs),
                                              response.text))
 
         return response.json()

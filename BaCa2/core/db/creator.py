@@ -1,8 +1,7 @@
 import logging
-
-import psycopg2
 from threading import Lock
 
+import psycopg2
 from core.db.setup import DEFAULT_DB_SETTINGS
 from core.exceptions import NewDBError
 
@@ -45,34 +44,34 @@ def createDB(db_name: str, verbose: bool = False, **db_kwargs):
     from django.conf import settings
 
     if db_key in settings.DATABASES.keys():
-        log.error(f"DB {db_name} already exists.")
-        raise NewDBError(f"DB {db_name} already exists.")
+        log.error(f'DB {db_name} already exists.')
+        raise NewDBError(f'DB {db_name} already exists.')
 
     _db_root_access.acquire()
     if verbose:
-        print("Creating connection...")
+        print('Creating connection...')
     conn = _raw_root_connection()
     cursor = conn.cursor()
 
-    drop_if_exist = f'''DROP DATABASE IF EXISTS {db_name};'''
-    sql = f''' CREATE DATABASE {db_name}; '''
+    drop_if_exist = f'DROP DATABASE IF EXISTS {db_name};'
+    sql = f' CREATE DATABASE {db_name}; '
 
     cursor.execute(drop_if_exist)
     cursor.execute(sql)
     if verbose:
-        print(f"DB {db_name} created.")
+        print(f'DB {db_name} created.')
 
     conn.close()
-    log.info(f"DB {db_name} created successfully.")
+    log.info(f'DB {db_name} created successfully.')
 
     new_db = DEFAULT_DB_SETTINGS | db_kwargs | {'NAME': db_name}
     settings.DATABASES[db_key] = new_db
     # from django.db import connections
     # connections.configure_settings(None)
     if verbose:
-        print("Connection created.")
+        print('Connection created.')
 
-    new_db_save = f'''
+    new_db_save = f"""
 DATABASES['{db_key}'] = {'{'}
     'ENGINE': '{new_db['ENGINE']}',
     'NAME': '{new_db['NAME']}',
@@ -82,17 +81,17 @@ DATABASES['{db_key}'] = {'{'}
     'PORT': '{new_db['PORT']}'
 {'}'}
 
-'''
+"""
     with open(settings.DB_SETTINGS_DIR / 'ext_databases.py', 'a') as f:
         f.write(new_db_save)
     if verbose:
-        print("Settings saved to file.")
+        print('Settings saved to file.')
 
     # migrateDB(db_name)
 
     _db_root_access.release()
 
-    log.info(f"DB {db_name} settings saved to ext_databases.")
+    log.info(f'DB {db_name} settings saved to ext_databases.')
 
 
 def migrateDB(db_name: str):
@@ -103,15 +102,17 @@ def migrateDB(db_name: str):
     :type db_name: str
     """
     from django.core.management import call_command
+
     # call_command('makemigrations')
 
     call_command('migrate', database=db_name, interactive=False, skip_checks=True)
-    log.info(f"Migration for DB {db_name} applied.")
+    log.info(f'Migration for DB {db_name} applied.')
 
 
 def migrateAll():
     """
-    It loops through all the databases in the settings file and runs the migrateDB function on each one.
+    It loops through all the databases in the settings file and runs the migrateDB function on
+    each one.
     """
     from django.conf import settings
     log.info('Migrating all databases.')
@@ -121,11 +122,11 @@ def migrateAll():
     log.info('All databases migrated.')
 
 
-CLOSE_ALL_DB_CONNECTIONS = '''SELECT pg_terminate_backend(pg_stat_activity.pid)
+CLOSE_ALL_DB_CONNECTIONS = """SELECT pg_terminate_backend(pg_stat_activity.pid)
 FROM pg_stat_activity
 WHERE pg_stat_activity.datname = '%s'
   AND pid <> pg_backend_pid();
-'''
+"""
 
 
 def deleteDB(db_name: str, verbose: bool = False):
@@ -147,43 +148,43 @@ def deleteDB(db_name: str, verbose: bool = False):
 
     _db_root_access.acquire()
 
-    log.info(f"Deleting DB {db_name} from settings.DATABASES.")
+    log.info(f'Deleting DB {db_name} from settings.DATABASES.')
     try:
         settings.DATABASES.pop(db_name)
     except KeyError:
-        log.info(f"Database {db_name} not found in settings.DATABASES.")
-    db_alias = f"{db_name}_db"
+        log.info(f'Database {db_name} not found in settings.DATABASES.')
+    db_alias = f'{db_name}_db'
 
     if verbose:
-        print(f"Deleted {db_name} from settings.DATABASES.")
+        print(f'Deleted {db_name} from settings.DATABASES.')
 
-    with open(settings.BASE_DIR / "core/db/ext_databases.py", 'r') as f:
+    with open(settings.BASE_DIR / 'core/db/ext_databases.py', 'r') as f:
         db_setts = f.read().split('\n\n')
 
     for i, sett in enumerate(db_setts):
         if sett.find(f"DATABASES['{db_name}']") != -1:
-            log.info(f"Deleting DB {db_name} from ext_databases.py")
+            log.info(f'Deleting DB {db_name} from ext_databases.py')
             db_setts.pop(i)
             break
 
-    with open(settings.BASE_DIR / "core/db/ext_databases.py", 'w') as f:
+    with open(settings.BASE_DIR / 'core/db/ext_databases.py', 'w') as f:
         f.write('\n\n'.join(db_setts))
 
     if verbose:
-        print(f"Deleted {db_name} settings from ext_databases.py")
+        print(f'Deleted {db_name} settings from ext_databases.py')
 
     conn = _raw_root_connection()
     cursor = conn.cursor()
 
     cursor.execute(CLOSE_ALL_DB_CONNECTIONS % db_alias)
     if verbose:
-        print("All DB connections closed")
+        print('All DB connections closed')
 
-    sql = f''' DROP DATABASE IF EXISTS {db_alias}; '''
+    sql = f' DROP DATABASE IF EXISTS {db_alias}; '
     if verbose:
-        print(f"DB {db_alias} dropped.")
+        print(f'DB {db_alias} dropped.')
     cursor.execute(sql)
     conn.close()
-    log.info(f"DB {db_name} successfully deleted.")
+    log.info(f'DB {db_name} successfully deleted.')
 
     _db_root_access.release()

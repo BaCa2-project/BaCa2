@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-from typing import List
 from abc import ABC
+from typing import List
 
-from django.utils.translation import gettext_lazy as _
 from django import forms
+from django.utils.translation import gettext_lazy as _
 
+from course.routing import InCourse
+from main.models import Course
 from util.models import model_cls
 from util.models_registry import ModelsRegistry
-from main.models import Course
-from course.routing import InCourse
-
 
 # ----------------------------------- restricted char fields ----------------------------------- #
 

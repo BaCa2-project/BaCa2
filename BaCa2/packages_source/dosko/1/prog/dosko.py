@@ -9,11 +9,10 @@ def sumadziel(n):
 def main():
     n = int(input())
     if n == sumadziel(n):
-        print("TAK")
+        print('TAK')
     else:
-        print("NIE")
+        print('NIE')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
-    

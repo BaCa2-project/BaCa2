@@ -1,20 +1,19 @@
 from __future__ import annotations
 
-from typing import (Dict, List, Any)
-from enum import Enum
 from abc import ABC, abstractmethod
+from enum import Enum
+from typing import Any, Dict, List
 
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from widgets.base import Widget
-from widgets.popups.forms import SubmitConfirmationPopup, SubmitSuccessPopup, SubmitFailurePopup
+from core.choices import ModelAction
+from main.models import Course
 from util.models import model_cls
 from util.models_registry import ModelsRegistry
 from util.responses import BaCa2JsonResponse, BaCa2ModelResponse
-from core.choices import ModelAction
-from main.models import Course
-
+from widgets.base import Widget
+from widgets.popups.forms import SubmitConfirmationPopup, SubmitFailurePopup, SubmitSuccessPopup
 
 # -------------------------------------- base form classes ------------------------------------- #
 
@@ -209,7 +208,7 @@ class FormWidget(Widget):
                  form: forms.Form,
                  post_target: FormPostTarget | str = None,
                  name: str = '',
-                 button_text: str = _('Submit'),
+                 button_text: str = None,
                  refresh_button: bool = True,
                  display_non_field_validation: bool = True,
                  display_field_errors: bool = True,
@@ -219,8 +218,8 @@ class FormWidget(Widget):
                  toggleable_params: Dict[str, Dict[str, str]] = None,
                  live_validation: bool = True,
                  submit_confirmation_popup: SubmitConfirmationPopup = None,
-                 submit_success_popup: SubmitSuccessPopup = SubmitSuccessPopup(),
-                 submit_failure_popup: SubmitFailurePopup = SubmitFailurePopup()) -> None:
+                 submit_success_popup: SubmitSuccessPopup = None,
+                 submit_failure_popup: SubmitFailurePopup = None) -> None:
         """
         :param request: HTTP request object received by the view this form widget is rendered in.
         :type request: HttpRequest
@@ -273,6 +272,13 @@ class FormWidget(Widget):
             widget does not have a name. If submit success popup or submit failure popup is
             specified without the other.
         """
+        if button_text is None:
+            button_text = _('Submit')
+        if submit_success_popup is None:
+            submit_success_popup = SubmitSuccessPopup()
+        if submit_failure_popup is None:
+            submit_failure_popup = SubmitFailurePopup()
+
         if not name:
             form_name = getattr(form, 'form_name', False)
             if form_name:

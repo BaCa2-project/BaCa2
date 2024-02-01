@@ -1,22 +1,21 @@
-from typing import List
 import logging
+from typing import List
 
-from django.views.generic.base import RedirectView, View
+from django.contrib.auth import logout
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib.auth.views import LoginView
-from django.contrib.auth import logout
-from django.http import JsonResponse, HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse_lazy
+from django.views.generic.base import RedirectView, View
 
-from util.views import BaCa2ContextMixin, BaCa2LoggedInView, BaCa2ModelView
-from util.responses import BaCa2ModelResponse
 from main.models import Course, User
-from widgets.navigation import SideNav
+from util.responses import BaCa2ModelResponse
+from util.views import BaCa2ContextMixin, BaCa2LoggedInView, BaCa2ModelView
 from widgets.forms import FormWidget
 from widgets.forms.course import CreateCourseForm, CreateCourseFormWidget, DeleteCourseForm
 from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.columns import TextColumn
-
+from widgets.navigation import SideNav
 
 logger = logging.getLogger(__name__)
 

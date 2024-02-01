@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 
 import django
 
@@ -7,18 +7,16 @@ import django
 os.environ['DJANGO_SETTINGS_MODULE'] = 'core.settings'
 django.setup()
 
+from datetime import datetime, timedelta
 from time import sleep
 
-from datetime import datetime, timedelta
-
 from broker_api.models import BrokerSubmit
+from core.settings import SUBMITS_DIR
 from course.manager import create_course, delete_course
-from course.models import Round, Task, Submit
+from course.models import Round, Submit, Task
 from course.routing import InCourse
 from main.models import Course, User
 from package.models import PackageInstance
-from core.settings import SUBMITS_DIR
-
 
 course = Course(name='course1', short_name='c1', db_name='course1_db')
 course.save()
@@ -38,7 +36,7 @@ with InCourse(course.name):
     round.save()
 
     task = Task.create_new(
-        task_name="Liczby doskonałe",
+        task_name='Liczby doskonałe',
         package_instance=pkg_instance,
         round=round,
         points=10,

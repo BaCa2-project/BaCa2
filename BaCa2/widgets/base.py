@@ -1,21 +1,22 @@
-from typing import Dict, Any
 from abc import ABC
+from typing import Any, Dict
 
 from django.http import HttpRequest
 
 
-class Widget(ABC):
+class Widget(ABC):  # noqa: B024
     """
     Base abstract class from which all widgets inherit. Contains any shared logic and methods which
     all widgets have to implement.
     """
+
     class WidgetParameterError(Exception):
         """
         Exception raised when a widget receives an invalid parameter or combination of parameters.
         """
         pass
 
-    def __init__(self, name: str, request: HttpRequest, widget_class: str = "") -> None:
+    def __init__(self, name: str, request: HttpRequest, widget_class: str = '') -> None:
         """
         Initializes the widget with a name. Name is used to distinguish between widgets of the same
         type within a single HTML template.
@@ -38,7 +39,7 @@ class Widget(ABC):
         :param widget_class: CSS class to add.
         :type widget_class: str
         """
-        self.widget_class += " " + widget_class
+        self.widget_class += ' ' + widget_class
 
     def get_context(self) -> Dict[str, Any]:
         """

@@ -1,16 +1,15 @@
 import cgi
 from datetime import datetime, timedelta
 from http import server
-
-from django.conf import settings
-from threading import Thread, Lock
+from threading import Lock, Thread
 from typing import Any
 
-from django.test import TestCase, Client
+from django.conf import settings
 from django.core.management import call_command
+from django.test import Client, TestCase
 
 from broker_api.views import *
-from course.models import Round, Task, Submit
+from course.models import Round, Submit, Task
 from course.routing import InCourse
 from main.models import Course, User
 from package.models import PackageInstance
@@ -89,7 +88,7 @@ class DummyBrokerHandler(server.BaseHTTPRequestHandler):
                 out = BrokerToBacaError(
                     make_hash(settings.BACA_PASSWORD, content.submit_id),
                     content.submit_id,
-                    "Error"
+                    'Error'
                 )
                 DelayedAction.INSTANCE.put_func(content.submit_id, send,
                                                 '/broker_api/error', json.dumps(out.serialize()))
@@ -136,7 +135,7 @@ class General(TestCase):
             round_.save()
 
             cls.task = Task.objects.create_task(
-                task_name="Liczby doskonałe",
+                task_name='Liczby doskonałe',
                 package_instance=cls.pkg_instance,
                 round_=round_,
                 points=10,
@@ -323,7 +322,7 @@ class General(TestCase):
         call_command('resendToBroker')
         self.assertEqual(10, BrokerSubmit.objects.filter(
             status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE).count())
-        for i in range(settings.BROKER_RETRY_POLICY.resend_max_retries):
+        for _ in range(settings.BROKER_RETRY_POLICY.resend_max_retries):
             BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE,
                                         submit_id__gte=5).update(
                 status=BrokerSubmit.StatusEnum.EXPIRED)

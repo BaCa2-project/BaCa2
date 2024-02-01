@@ -1,6 +1,6 @@
 from django.contrib import admin
-from django.urls import path, include
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+from django.urls import include, path
 
 from main.views import BaCa2LoginView, BaCa2LogoutView, LoginRedirectView, UJLogin
 from util.views import FieldValidationView

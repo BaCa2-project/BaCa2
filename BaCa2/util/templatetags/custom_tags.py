@@ -1,8 +1,7 @@
-from typing import Any
 import importlib
+from typing import Any
 
 from django import template
-
 
 register = template.Library()
 

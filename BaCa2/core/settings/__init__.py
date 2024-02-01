@@ -1,10 +1,9 @@
 import os
-
 from pathlib import Path
-from split_settings.tools import include, optional
-from dotenv import load_dotenv
 
 from core.tools.path_creator import PathCreator
+from dotenv import load_dotenv
+from split_settings.tools import include, optional
 
 load_dotenv()
 

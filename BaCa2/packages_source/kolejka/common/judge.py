@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # vim:ts=4:sts=4:sw=4:expandtab
-import os, sys
+import os
+import sys
+
 if __name__ == '__main__':
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'kolejka-judge'))
     from kolejka.judge import main
@@ -8,6 +10,7 @@ if __name__ == '__main__':
 from kolejka.judge.commands import *
 from kolejka.judge.parse import *
 from kolejka.judge.tasks import *
+
 
 def judge(args):
     tool_time = parse_time('60s')

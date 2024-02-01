@@ -1,7 +1,5 @@
 import shutil
-
 from abc import ABC, abstractmethod
-
 from pathlib import Path
 
 
@@ -59,7 +57,8 @@ class PathCreator:
             if not self._path.path.exists():
                 raise FileNotFoundError(f'Path {self._path} does not exist')
             if not self.type_check():
-                raise FileNotFoundError(f'Path {self._path} exists but is not a {self._path.__class__.__name__}')
+                raise FileNotFoundError(f'Path {self._path} exists but is not '
+                                        f'a {self._path.__class__.__name__}')
 
     def __init__(self):
         self._auto_create_dirs = []

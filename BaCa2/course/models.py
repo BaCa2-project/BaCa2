@@ -2,25 +2,24 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from typing import List, Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, List
 
+from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import Count
-from django.core.exceptions import ValidationError
-from django.utils.timezone import now
 from django.db.models.base import ModelBase
-from django.conf import settings
+from django.utils.timezone import now
 
-from core.choices import TaskJudgingMode, ResultStatus
-from core.exceptions import DataError
-from course.routing import OptionalInCourse, InCourse
-from baca2PackageManager import TSet, TestF
+from baca2PackageManager import TestF, TSet
 from baca2PackageManager.broker_communication import BrokerToBaca
-
+from core.choices import ResultStatus, TaskJudgingMode
+from core.exceptions import DataError
+from course.routing import InCourse, OptionalInCourse
 from util.models_registry import ModelsRegistry
 
 if TYPE_CHECKING:
-    from main.models import User, Course
+    from main.models import Course, User
     from package.models import PackageInstance
 
 __all__ = ['Round', 'Task', 'TestSet', 'Test', 'Submit', 'Result']
@@ -45,7 +44,7 @@ class ReadCourseMeta(ModelBase):
         # Decorate all non-static, non-class methods with the hook method
         for attr_name, attr_value in dct.items():
             if all(((callable(attr_value) or isinstance(attr_value, property)),
-                    not attr_name.startswith("_"),
+                    not attr_name.startswith('_'),
                     not isinstance(attr_value, classmethod),
                     not isinstance(attr_value, staticmethod))):
                 decorated_meth = cls.read_course_decorator(attr_value,
@@ -204,7 +203,7 @@ class Round(models.Model, metaclass=ReadCourseMeta):
         :raise ValidationError: If validation is not successful.
         """
         if end_date is not None and (end_date <= start_date or deadline_date < end_date):
-            raise ValidationError("Round: End date out of bounds of start date and deadline.")
+            raise ValidationError('Round: End date out of bounds of start date and deadline.')
         elif deadline_date <= start_date:
             raise ValidationError("Round: Start date can't be later then deadline.")
 
@@ -249,7 +248,7 @@ class Round(models.Model, metaclass=ReadCourseMeta):
         return sum(task.points for task in self.tasks)
 
     def __str__(self):
-        return f"Round {self.pk}"
+        return f'Round {self.pk}'
 
 
 class TaskManager(models.Manager):
@@ -345,7 +344,7 @@ class Task(models.Model, metaclass=ReadCourseMeta):
     #: Represents displayed task name
     task_name = models.CharField(max_length=1023)
     #: Foreign key to round, which task is assigned to.
-    round = models.ForeignKey(Round, on_delete=models.CASCADE)
+    round = models.ForeignKey(Round, on_delete=models.CASCADE)  # noqa: A003
     #: Judging mode as choice from core.choices.TaskJudgingMode (enum-type choice)
     judging_mode = models.CharField(
         max_length=3,
@@ -359,9 +358,9 @@ class Task(models.Model, metaclass=ReadCourseMeta):
     objects = TaskManager()
 
     def __str__(self):
-        return (f"Task {self.pk}: {self.task_name}; "
-                f"Judging mode: {TaskJudgingMode[self.judging_mode].label}; "
-                f"Package: {self.package_instance}")
+        return (f'Task {self.pk}: {self.task_name}; '
+                f'Judging mode: {TaskJudgingMode[self.judging_mode].label}; '
+                f'Package: {self.package_instance}')
 
     def initialise_task(self) -> None:
         """
@@ -463,7 +462,8 @@ class Task(models.Model, metaclass=ReadCourseMeta):
         :param amount: The amount of submits to return, defaults to 1 (optional)
         :type amount: int
 
-        :return: The last submit of a user for a task or a list of 'amount' last submits to that task.
+        :return: The last submit of a user for a task or a list of 'amount' last submits to that
+            task.
         :rtype: Submit | List[Submit]
         """
         user = ModelsRegistry.get_user(user)
@@ -511,8 +511,9 @@ class Task(models.Model, metaclass=ReadCourseMeta):
             return cls.objects.filter(package_instance_id=pkg_instance.pk).exists()
 
         # check in every course
-        from .routing import InCourse
         from main.models import Course
+
+        from .routing import InCourse
         courses = Course.objects.all()
         for course in courses:
             with InCourse(course):
@@ -543,7 +544,7 @@ class TestSetManager(models.Manager):
         task = ModelsRegistry.get_task(task)
         sets = task.sets
         if sets.filter(short_name=short_name).exists():
-            raise ValidationError(f"TestSet: Test set with short name {short_name} already exists.")
+            raise ValidationError(f'TestSet: Test set with short name {short_name} already exists.')
 
         new_test_set = self.model(short_name=short_name,
                                   weight=weight,
@@ -603,8 +604,8 @@ class TestSet(models.Model, metaclass=ReadCourseMeta):
     objects = TestSetManager()
 
     def __str__(self):
-        return (f"TestSet {self.pk}: Task/set: {self.task.task_name}/{self.short_name} "
-                f"(w: {self.weight})")
+        return (f'TestSet {self.pk}: Task/set: {self.task.task_name}/{self.short_name} '
+                f'(w: {self.weight})')
 
     @transaction.atomic
     def delete(self, using=None, keep_parents=False):
@@ -689,8 +690,8 @@ class Test(models.Model, metaclass=ReadCourseMeta):
     objects = TestManager()
 
     def __str__(self):
-        return f"Test {self.pk}: Test/set/task: " \
-               f"{self.short_name}/{self.test_set.short_name}/{self.test_set.task.task_name}"
+        return f'Test {self.pk}: Test/set/task: ' \
+               f'{self.short_name}/{self.test_set.short_name}/{self.test_set.task.task_name}'
 
     @property
     def associated_results(self) -> List[Result]:
@@ -718,7 +719,7 @@ class SubmitManager(models.Manager):
                       source_code: str | Path,
                       task: int | Task,
                       user: str | int | User,
-                      submit_date: datetime = now(),
+                      submit_date: datetime = None,
                       final_score: float = -1,
                       auto_send: bool = True) -> Submit:
         """
@@ -831,7 +832,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         return User.objects.get(pk=self.usr)
 
     def __str__(self):
-        return f"Submit {self.pk}: User: {self.user}; Task: {self.task.task_name}; " \
+        return f'Submit {self.pk}: User: {self.user}; Task: {self.task.task_name}; ' \
                f"Score: {self.final_score if self.final_score > -1 else 'PENDING'}"
 
     @property
@@ -904,7 +905,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         judging_mode = self.task.judging_mode
         for test_set, s in results_aggregated.items():
             if s['SUM'] > s['MAX']:
-                raise DataError(f"Submit ({self}): More test results, then test assigned to task")
+                raise DataError(f'Submit ({self}): More test results, then test assigned to task')
             if s['SUM'] < s['MAX']:
                 return -1
 
@@ -1049,8 +1050,8 @@ class Result(models.Model, metaclass=ReadCourseMeta):
     objects = ResultManager()
 
     def __str__(self):
-        return (f"Result {self.pk}: Set[{self.test.test_set.short_name}] "
-                f"Test[{self.test.short_name}]; Stat: {ResultStatus[self.status]}")
+        return (f'Result {self.pk}: Set[{self.test.test_set.short_name}] '
+                f'Test[{self.test.short_name}]; Stat: {ResultStatus[self.status]}')
 
     def delete(self, using=None, keep_parents=False, rejudge: bool = False):
         """

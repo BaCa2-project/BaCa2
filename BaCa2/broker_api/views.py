@@ -3,8 +3,9 @@ import json
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import BrokerSubmit
 from baca2PackageManager.broker_communication import *
+
+from .models import BrokerSubmit
 
 
 @csrf_exempt
@@ -25,14 +26,15 @@ def handle_broker_result(request):
 
     :param request: The HTTP request received from the broker.
     :type request: django.http.HttpRequest
-    :return: An HTTP response. The status code of the response depends on the processing of the request.
+    :return: An HTTP response. The status code of the response depends on the processing of
+        the request.
     :rtype: django.http.HttpResponse
     """
     if request.method != 'POST':
-        return HttpResponse("Not found", status=404)
+        return HttpResponse('Not found', status=404)
 
     if request.headers.get('content-type') != 'application/json':
-        return HttpResponse("Wrong argument", status=400)
+        return HttpResponse('Wrong argument', status=400)
 
     try:
         data = BrokerToBaca.parse(json.loads(request.body))
@@ -42,7 +44,7 @@ def handle_broker_result(request):
     except Exception as e:
         return HttpResponse(str(e), status=403)
     else:
-        return HttpResponse("Good", status=200)
+        return HttpResponse('Good', status=200)
 
 
 @csrf_exempt
@@ -63,15 +65,16 @@ def handle_broker_error(request):
 
     :param request: The HTTP request received from the broker.
     :type request: django.http.HttpRequest
-    :return: An HTTP response. The status code of the response depends on the processing of the request.
+    :return: An HTTP response. The status code of the response depends on the processing
+        of the request.
 
     :rtype: django.http.HttpResponse
     """
     if request.method != 'POST':
-        return HttpResponse("Not found", status=404)
+        return HttpResponse('Not found', status=404)
 
     if request.headers.get('content-type') != 'application/json':
-        return HttpResponse("Wrong argument", status=400)
+        return HttpResponse('Wrong argument', status=400)
 
     try:
         data = BrokerToBacaError.parse(json.loads(request.body))
@@ -81,4 +84,4 @@ def handle_broker_error(request):
     except Exception as e:
         return HttpResponse(str(e), status=403)
     else:
-        return HttpResponse("Good", status=200)
+        return HttpResponse('Good', status=200)

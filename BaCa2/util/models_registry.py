@@ -1,19 +1,19 @@
 from __future__ import annotations
 
 from pathlib import Path
-
-from typing import (TYPE_CHECKING, List)
+from typing import TYPE_CHECKING, List
 
 from django.db.models import QuerySet
 
 from course.routing import OptionalInCourse
 
 if TYPE_CHECKING:
-    from django.contrib.auth.models import (Group, Permission)
-    from main.models import (User, Course, Role, RolePreset)
-    from course.models import (Round, Task, Submit, Test, TestSet)
-    from package.models import PackageSource, PackageInstance
+    from django.contrib.auth.models import Group, Permission
+
     from core.choices import TaskJudgingMode
+    from course.models import Round, Submit, Task, Test, TestSet
+    from main.models import Course, Role, RolePreset, User
+    from package.models import PackageInstance, PackageSource
 
 
 class ModelsRegistry:
