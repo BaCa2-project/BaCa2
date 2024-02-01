@@ -19,8 +19,7 @@ load_dotenv()
 _auto_create_dirs = []
 
 # BASE PATH DEFINITIONS -------------------------------------------------------------
-BASE_DIR = Path(__file__).resolve().parent.parent
-SETTINGS_DIR = Path(__file__).resolve().parent
+
 PACKAGES_DIR = BASE_DIR / 'packages_source'
 SUBMITS_DIR = BASE_DIR / 'submits'
 DB_BACKUP_DIR = BASE_DIR / 'backup'
