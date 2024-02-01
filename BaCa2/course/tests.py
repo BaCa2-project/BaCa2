@@ -220,7 +220,7 @@ class RoundTest(TestCase):
 
     @parameterized.expand([(3,), (10,), (100,)])
     def test_08_round_auto_name(self, amount):
-        rounds = create_rounds(self.course, amount)
+        create_rounds(self.course, amount)
         with InCourse(self.course):
             rounds_res = [r.name for r in Round.objects.all_rounds()]
             self.assertEqual(len(rounds_res), amount)

@@ -5,14 +5,14 @@ from pathlib import Path
 from typing import List, Any, TYPE_CHECKING
 
 from django.db import models, transaction
-from django.db.models import Count, QuerySet
+from django.db.models import Count
 from django.core.exceptions import ValidationError
 from django.utils.timezone import now
 from django.db.models.base import ModelBase
+from django.conf import settings
 
 from core.choices import TaskJudgingMode, ResultStatus
 from core.exceptions import DataError
-from core.settings import SUBMITS_DIR
 from course.routing import OptionalInCourse, InCourse
 from baca2PackageManager import TSet, TestF
 from baca2PackageManager.broker_communication import BrokerToBaca
@@ -48,7 +48,8 @@ class ReadCourseMeta(ModelBase):
                     not attr_name.startswith("_"),
                     not isinstance(attr_value, classmethod),
                     not isinstance(attr_value, staticmethod))):
-                decorated_meth = cls.read_course_decorator(attr_value, isinstance(attr_value, property))
+                decorated_meth = cls.read_course_decorator(attr_value,
+                                                           isinstance(attr_value, property))
                 decorated_meth.__doc__ = attr_value.__doc__
                 setattr(new_class,
                         attr_name,
@@ -790,7 +791,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
     #: Datetime when submit took place.
     submit_date = models.DateTimeField(auto_now_add=True)
     #: Field submitted to the task
-    source_code = models.FilePathField(path=SUBMITS_DIR, allow_files=True, null=True)
+    source_code = models.FilePathField(path=settings.SUBMITS_DIR, allow_files=True, null=True)
     #: :py:class:`Task` model, to which submit is assigned.
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
     #: Pseudo-foreign key to :py:class:`main.models.User` model (user), who submitted to the task.
@@ -914,8 +915,8 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
                 results_aggregated[test_set]['score'] = float(s.get('OK', 0) == s['SUM'])
             else:
                 raise NotImplementedError(
-                    f"Submit ({self}): Task {self.task.pk} has judging mode " +
-                    f"which is not implemented.")
+                    f'Submit ({self}): Task {self.task.pk} has judging mode ' +
+                    'which is not implemented.')
 
         # It's calculating the score of a submit, as weighted average of sets scores.
         final_score = 0

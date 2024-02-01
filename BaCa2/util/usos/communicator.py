@@ -1,7 +1,7 @@
-from typing import List, Iterable, Any, Dict
+import usosapi
+from typing import Iterable, Any, Dict
 
 from . import *
-import usosapi
 
 
 class RegisterUSOS:
@@ -83,4 +83,3 @@ class USOS:
         courses = self.connection.get('services/courses/user')
 
         return courses
-

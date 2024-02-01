@@ -38,8 +38,8 @@ class SimpleCourseRouter:
 
     def allow_migrate(self, db, app_label, model_name=None, **hints):
         """
-        If the database is 'default' and the app_label is 'course', or if the database is not 'default' and the app_label is
-        not 'course', then return True
+        If the database is 'default' and the app_label is 'course', or if the database
+        is not 'default' and the app_label is not 'course', then return True
 
         :param db: The alias of the database that is being used
         :param app_label: The name of the application that contains the model
@@ -74,7 +74,7 @@ class ContextCourseRouter(SimpleCourseRouter):
             db = currentDB.get()
         except LookupError:
             raise RoutingError(
-                f"No DB chosen. Remember to use 'with InCourse', while accessing course instance.")
+                "No DB chosen. Remember to use 'with InCourse', while accessing course instance.")
         if db not in DATABASES.keys():
             raise RoutingError(f"Can't access course DB {db}. Check the name in 'with InCourse'")
 
