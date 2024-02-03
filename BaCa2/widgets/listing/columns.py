@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from typing import Dict, Any
 import json
+from typing import Any, Dict
 
 from django.http import HttpRequest
 

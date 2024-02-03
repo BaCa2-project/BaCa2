@@ -1,10 +1,13 @@
 from django.urls import path
-from .views import (CourseModelView,
-                    UserModelView,
-                    DashboardView,
-                    CoursesView,
-                    AdminView,
-                    change_theme)
+
+from .views import (
+    AdminView,
+    CourseModelView,
+    CoursesView,
+    DashboardView,
+    UserModelView,
+    change_theme
+)
 
 app_name = 'main'
 

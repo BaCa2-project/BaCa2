@@ -1,19 +1,19 @@
 from __future__ import annotations
 
 from pathlib import Path
-
-from typing import (TYPE_CHECKING, List)
+from typing import TYPE_CHECKING, List
 
 from django.db.models import QuerySet
 
 from course.routing import OptionalInCourse
 
 if TYPE_CHECKING:
-    from django.contrib.auth.models import (Group, Permission)
-    from main.models import (User, Course, Role, RolePreset)
-    from course.models import (Round, Task, Submit, Test, TestSet)
-    from package.models import PackageSource, PackageInstance
-    from BaCa2.choices import TaskJudgingMode
+    from django.contrib.auth.models import Group, Permission
+
+    from core.choices import TaskJudgingMode
+    from course.models import Round, Submit, Task, Test, TestSet
+    from main.models import Course, Role, RolePreset, User
+    from package.models import PackageInstance, PackageSource
 
 
 class ModelsRegistry:
@@ -568,7 +568,7 @@ class ModelsRegistry:
         :return: TaskJudgingMode model instance.
         :rtype: TaskJudgingMode
         """
-        from BaCa2.choices import TaskJudgingMode
+        from core.choices import TaskJudgingMode
 
         if isinstance(judging_mode, str):
             judging_mode = judging_mode.upper()
@@ -656,7 +656,7 @@ class ModelsRegistry:
         :param src: Path to the source code file or its name.
         :return: Path to the source code file.
         """
-        from BaCa2.settings import SUBMITS_DIR
+        from core.settings import SUBMITS_DIR
         if isinstance(src, str):
             path = Path(src)
             path = path.absolute()
@@ -683,7 +683,7 @@ class ModelsRegistry:
         :return: ResultStatus model instance.
         :rtype: ResultStatus
         """
-        from BaCa2.choices import ResultStatus
+        from core.choices import ResultStatus
 
         if isinstance(status, str):
             status = status.upper()

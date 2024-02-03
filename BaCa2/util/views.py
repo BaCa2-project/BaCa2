@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Type, List
 from enum import Enum
+from typing import Any, Dict, List, Type
 
 import django.db.models
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -9,15 +9,17 @@ from django.utils.translation import gettext_lazy as _
 from django.views import View
 from django.views.generic import TemplateView
 
-from BaCa2.choices import BasicModelAction
-from util import (normalize_string_to_python,
-                  add_kwargs_to_url,
-                  decode_url_to_dict,
-                  encode_dict_to_url)
+from core.choices import BasicModelAction
+from util import (
+    add_kwargs_to_url,
+    decode_url_to_dict,
+    encode_dict_to_url,
+    normalize_string_to_python
+)
 from util.models import model_cls
+from util.responses import BaCa2JsonResponse, BaCa2ModelResponse
 from widgets.base import Widget
 from widgets.forms import FormWidget
-from util.responses import BaCa2JsonResponse, BaCa2ModelResponse
 from widgets.forms.fields.validation import get_field_validation_status
 from widgets.listing import TableWidget
 from widgets.navigation import NavBar, SideNav
@@ -109,8 +111,8 @@ class BaCa2ContextMixin:
         if not widget_type:
             raise BaCa2ContextMixin.WidgetException(f'Widget type not recognized: {widget_type}.')
 
-        if (BaCa2ContextMixin.has_widget_type(context, widget_type) and
-                widget_type in BaCa2ContextMixin.UNIQUE_WIDGETS):
+        if all((BaCa2ContextMixin.has_widget_type(context, widget_type),
+                widget_type in BaCa2ContextMixin.UNIQUE_WIDGETS)):
             raise BaCa2ContextMixin.WidgetException(f'Widget of type {widget_type} already '
                                                     f'exists in the context dictionary.')
 

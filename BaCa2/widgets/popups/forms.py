@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
@@ -22,8 +22,8 @@ class SubmitConfirmationPopup(PopupWidget):
                  message: str,
                  name: str = '',
                  request: HttpRequest = None,
-                 confirm_button_text: str = _('Confirm'),
-                 cancel_button_text: str = _('Cancel'),
+                 confirm_button_text: str = None,
+                 cancel_button_text: str = None,
                  input_summary: bool = False,
                  input_summary_fields: List[str] = None) -> None:
         """
@@ -48,16 +48,21 @@ class SubmitConfirmationPopup(PopupWidget):
         :raises Widget.WidgetParameterError: If input summary is enabled without specifying input
             summary fields.
         """
+        if confirm_button_text is None:
+            confirm_button_text = _('Confirm')
+        if cancel_button_text is None:
+            cancel_button_text = _('Cancel')
+
         if input_summary and not input_summary_fields:
             raise Widget.WidgetParameterError(
-                "Cannot use input summary without specifying input summary fields."
+                'Cannot use input summary without specifying input summary fields.'
             )
 
         super().__init__(name=name,
                          request=request,
                          title=title,
                          message=message,
-                         widget_class="form-confirmation-popup",
+                         widget_class='form-confirmation-popup',
                          size=PopupWidget.PopupSize.MEDIUM)
         self.confirm_button_text = confirm_button_text
         self.cancel_button_text = cancel_button_text
@@ -84,11 +89,11 @@ class SubmitSuccessPopup(PopupWidget):
     """
 
     def __init__(self,
-                 title: str = _('Success'),
+                 title: str = None,
                  message: str = '',
                  name: str = '',
                  request: HttpRequest = None,
-                 confirm_button_text: str = _('OK')) -> None:
+                 confirm_button_text: str = None) -> None:
         """
         :param title: Title of the popup. Defaults to "Success".
         :type title: str
@@ -104,11 +109,16 @@ class SubmitSuccessPopup(PopupWidget):
         :param confirm_button_text: Text displayed on the confirmation button. Defaults to "OK".
         :type confirm_button_text: str
         """
+        if title is None:
+            title = _('Success')
+        if confirm_button_text is None:
+            confirm_button_text = _('OK')
+
         super().__init__(name=name,
                          request=request,
                          title=title,
                          message=message,
-                         widget_class="form-success-popup",
+                         widget_class='form-success-popup',
                          size=PopupWidget.PopupSize.SMALL)
         self.confirm_button_text = confirm_button_text
 
@@ -129,11 +139,11 @@ class SubmitFailurePopup(PopupWidget):
     """
 
     def __init__(self,
-                 title: str = _('Failure'),
+                 title: str = None,
                  message: str = '',
                  name: str = '',
                  request: HttpRequest = None,
-                 confirm_button_text: str = _('OK')) -> None:
+                 confirm_button_text: str = None) -> None:
         """
         :param title: Title of the popup. Defaults to "Failure".
         :type title: str
@@ -149,11 +159,16 @@ class SubmitFailurePopup(PopupWidget):
         :param confirm_button_text: Text displayed on the confirmation button. Defaults to "OK".
         :type confirm_button_text: str
         """
+        if title is None:
+            title = _('Failure')
+        if confirm_button_text is None:
+            confirm_button_text = _('OK')
+
         super().__init__(name=name,
                          request=request,
                          title=title,
                          message=message,
-                         widget_class="form-failure-popup",
+                         widget_class='form-failure-popup',
                          size=PopupWidget.PopupSize.SMALL)
         self.confirm_button_text = confirm_button_text
 

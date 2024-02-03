@@ -9,4 +9,3 @@ and helps handling responses.
 .. autoclass:: BrokerSubmit
     :members:
     :private-members:
-

@@ -1,12 +1,11 @@
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.test import TestCase
 from django.utils import timezone
-from django.core.exceptions import ValidationError
-from parameterized import parameterized
 
-from course.models import Round, Task, Submit
+from course.models import Round, Submit, Task
 from course.routing import InCourse
-from main.models import (User, Course, Role, RolePreset)
+from main.models import Course, Role, RolePreset, User
 from package.models import PackageInstance
 
 
@@ -294,7 +293,7 @@ class CourseTest(TestCase):
 
         self.assertTrue(Course.objects.get(short_name=f'adp_{curr_year}') == course1)
         self.assertTrue(Course.objects.get(short_name=f'adp_{curr_year}_2') == course2)
-        self.assertTrue(Course.objects.get(short_name=f'wmi_ii_zwpia_s__23_24z') == course3)
+        self.assertTrue(Course.objects.get(short_name='wmi_ii_zwpia_s__23_24z') == course3)
 
         with self.assertRaises(ValidationError):
             Course.objects.create_course(
@@ -795,5 +794,7 @@ class TestCourseActions(TestCase):
         self.assertEqual(len(t.submits()), 1)
         self.course_1.delete_submit(s.pk)
         self.assertEqual(len(t.submits()), 0)
+
+
 class UserTest(TestCase):
     pass

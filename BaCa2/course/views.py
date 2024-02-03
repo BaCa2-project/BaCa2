@@ -1,18 +1,17 @@
 from abc import ABC
 
+from django.contrib.auth.mixins import UserPassesTestMixin
 from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import redirect
-from django.contrib.auth.mixins import UserPassesTestMixin
 from django.utils.translation import gettext_lazy as _
 
 from main.views import UserModelView
-from util.views import BaCa2LoggedInView, BaCa2ModelView
 from util.models_registry import ModelsRegistry
-from widgets.navigation import SideNav
+from util.views import BaCa2LoggedInView, BaCa2ModelView
+from widgets.forms.course import AddMembersFormWidget
 from widgets.listing import TableWidget
 from widgets.listing.columns import TextColumn
-from widgets.forms.course import AddMembersFormWidget
-
+from widgets.navigation import SideNav
 
 # ----------------------------------------- Model views ---------------------------------------- #
 
@@ -41,7 +40,7 @@ class CourseView(BaCa2LoggedInView):
             return redirect('course:course-admin', course_id=course.id)
         if not course.user_is_member(request.user):
             return HttpResponseForbidden(_('You are neither a member of this course nor an admin.\n'
-                                         'You are not allowed to view this page.'))
+                                           'You are not allowed to view this page.'))
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs) -> dict:

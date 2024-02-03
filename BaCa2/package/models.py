@@ -1,20 +1,16 @@
 from __future__ import annotations
 
-from typing import Self, List
-
-from django.db import models
-from main.models import User
-from baca2PackageManager.validators import isStr
-from BaCa2.settings import BASE_DIR
-# from course.models import Task
 from pathlib import Path
-from BaCa2.settings import PACKAGES, PACKAGES_DIR
-from baca2PackageManager import Package
+from typing import List
 
-from django.utils import timezone
-from django.db import transaction
+from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.db import models, transaction
+from django.utils import timezone
 
+from baca2PackageManager import Package
+from baca2PackageManager.validators import isStr
+from main.models import User
 from util.models_registry import ModelsRegistry
 
 
@@ -36,9 +32,9 @@ class PackageSourceManager(models.Manager):
             return name
 
         i = 1
-        while self.model.exists(f"{name}{i}"):
+        while self.model.exists(f'{name}{i}'):
             i += 1
-        return f"{name}{i}"
+        return f'{name}{i}'
 
     @transaction.atomic
     def create_package_source(self, name: str) -> PackageSource:
@@ -105,7 +101,7 @@ class PackageSource(models.Model):
     PackageSource is a source for packages instances
     """
     #: path to the main source
-    MAIN_SOURCE = PACKAGES_DIR  # TODO
+    MAIN_SOURCE = settings.PACKAGES_DIR
     #: name of the package
     name = models.CharField(max_length=511, validators=[isStr])
 
@@ -113,7 +109,7 @@ class PackageSource(models.Model):
     objects = PackageSourceManager()
 
     def __str__(self):
-        return f"Package {self.pk}: {self.name}"
+        return f'Package {self.pk}: {self.name}'
 
     @property
     def path(self) -> Path:
@@ -141,9 +137,9 @@ class PackageInstanceUserManager(models.Manager):
 
     @transaction.atomic
     def create_package_instance_user(
-            self,
-            user: int | str | User,
-            package_instance: int | str | PackageInstance
+        self,
+        user: int | str | User,
+        package_instance: int | str | PackageInstance
     ) -> PackageInstanceUser:
         """
         Create a new package instance user from the given user and package instance
@@ -208,7 +204,7 @@ class PackageInstanceUser(models.Model):
     objects = PackageInstanceUserManager()
 
     def __str__(self):
-        return f"PackageInstanceUser {self.pk}: \n{self.user}\n{self.package_instance}"
+        return f'PackageInstanceUser {self.pk}: \n{self.user}\n{self.package_instance}'
 
 
 class PackageInstanceManager(models.Manager):
@@ -235,8 +231,9 @@ class PackageInstanceManager(models.Manager):
         """
         package_source = ModelsRegistry.get_package_source(package_source)
         package_instance = self.model(package_source=package_source, commit=commit)
-        PACKAGES[PackageInstance.commit_msg(package_source, commit)] = Package(package_source.path,
-                                                                               commit)
+        settings.PACKAGES[PackageInstance.commit_msg(package_source, commit)] = Package(
+            package_source.path,
+            commit)
         package_instance.save()
         if creator:
             PackageInstanceUser.objects.create_package_instance_user(creator, package_instance)
@@ -287,7 +284,7 @@ class PackageInstanceManager(models.Manager):
         new_package.check_package()
 
         commit_msg = PackageInstance.commit_msg(package_instance.package_source, new_commit)
-        PACKAGES[commit_msg] = new_package
+        settings.PACKAGES[commit_msg] = new_package
 
         new_instance = self.model(
             package_source=package_instance.package_source,
@@ -348,7 +345,7 @@ class PackageInstanceManager(models.Manager):
         commit_name = f'from_zip_{timezone.now().timestamp()}'
         pkg = Package.create_from_zip(package_source.path, commit_name, zip_file, overwrite)
         package_instance = self.model(package_source=package_source, commit=commit_name)
-        PACKAGES[PackageInstance.commit_msg(package_source, commit_name)] = pkg
+        settings.PACKAGES[PackageInstance.commit_msg(package_source, commit_name)] = pkg
         package_instance.save()
         if permissions_from_instance:
             permissions_from_instance = ModelsRegistry.get_package_instance(
@@ -385,7 +382,7 @@ class PackageInstance(models.Model):
     objects = PackageInstanceManager()
 
     def __str__(self):
-        return f"PackageInstance {self.pk}: \n{self.package_source}\n{self.commit}"
+        return f'PackageInstance {self.pk}: \n{self.package_source}\n{self.commit}'
 
     @classmethod
     def commit_msg(cls, pkg: PackageSource, commit: str) -> str:
@@ -399,7 +396,7 @@ class PackageInstance(models.Model):
 
         :return: The name of the package source and the commit.
         """
-        return f"{pkg.name}.{commit}"
+        return f'{pkg.name}.{commit}'
 
     @property
     def key(self) -> str:
@@ -418,7 +415,7 @@ class PackageInstance(models.Model):
         :return: The package object.
         """
         package_id = self.key
-        return PACKAGES.get(package_id)
+        return settings.PACKAGES.get(package_id)
 
     @property
     def path(self) -> Path:
@@ -457,7 +454,7 @@ class PackageInstance(models.Model):
             # deleting instance in source directory
             if delete_files:
                 self.package.delete()
-            PACKAGES.pop(self.key)
+            settings.PACKAGES.pop(self.key)
             # self delete instance
             super().delete(using, keep_parents)
 

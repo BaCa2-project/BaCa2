@@ -639,24 +639,23 @@ dmypy.json
 # pytype static type analyzer
 .pytype/
 
-poetry.lock
-
 # Cython debug symbols
 cython_debug/
 
 # Poetry
 poetry.lock
+/poetry.lock
 
 # BaCa2 specyfic -------------------------------------------------------------------------------
 
-BaCa2/BaCa2/settings_local.py
+BaCa2/core/settings_local.py
 
 Baca2/submits/
 
 secrets.yaml
 
-ext_databases.py
-
 **/migrations/*
 migrations
 !migrations/__init__.py
+
+db.cache

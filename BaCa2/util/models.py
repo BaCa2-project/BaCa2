@@ -1,13 +1,13 @@
-from typing import Type, TypeVar, Union, List, Dict
 from importlib import import_module
+from typing import Dict, List, Type, TypeVar, Union
 
+from django.contrib.auth.models import ContentType, Group, Permission
 from django.db import models
 from django.db.models.query import QuerySet
-from django.contrib.auth.models import (Permission, ContentType, Group)
 
-from BaCa2.choices import BasicModelAction
+from core.choices import BasicModelAction
 
-model_cls = TypeVar("model_cls", bound=Type[models.Model])
+model_cls = TypeVar('model_cls', bound=Type[models.Model])
 
 
 def get_all_permissions_for_model(model: model_cls) -> Union[QuerySet, List[Permission]]:
