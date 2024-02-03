@@ -36,7 +36,7 @@ class DB:
         if 'NAME' not in db_dict:
             raise ValueError('DB name not found in dictionary.')
         db_name = db_dict.pop('NAME')
-        return cls(db_name, **db_dict)
+        return cls(db_name, key_is_name=True, **db_dict)
 
     def to_dict(self) -> dict:
         return self.settings.copy()
@@ -174,19 +174,25 @@ class DBManager:
                 with self.cache_lock:
                     self.save_cache(with_locks=False)
 
-    def migrate_db(self, db_name: str) -> None:
+    def migrate_db(self, db_name: str, migrate_all: bool = False) -> None:
         """
         It migrates the database to the latest version, using django management command
         (``migrate``).
 
         :param db_name: The name of the database to migrate.
         :type db_name: str
+        :param migrate_all: Should be set to True if method is called from ``migrate_all`` method.
+        :type migrate_all: bool
         """
         from django.core.management import call_command
 
-        with self.databases_access_lock:
+        if migrate_all:
             if db_name not in self.databases:
                 raise ValueError(f'DB {db_name} does not exist or not registered properly.')
+        else:
+            with self.databases_access_lock:
+                if db_name not in self.databases:
+                    raise ValueError(f'DB {db_name} does not exist or not registered properly.')
         call_command('migrate', database=db_name, interactive=False, skip_checks=True)
 
     def migrate_all(self):
@@ -196,7 +202,7 @@ class DBManager:
         with self.databases_access_lock:
             for db_key in self.databases.keys():
                 if db_key != 'default':
-                    self.migrate_db(db_key)
+                    self.migrate_db(db_key, migrate_all=True)
 
     def delete_db(self, db_name: str) -> None:
         """
