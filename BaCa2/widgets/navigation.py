@@ -1,12 +1,12 @@
-from typing import (Any, Dict, List)
+from typing import Any, Dict, List
 
 from django.http.request import HttpRequest
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 
-from widgets.base import Widget
+from core.choices import BasicModelAction
 from package.models import PackageInstance
-from BaCa2.choices import BasicModelAction
+from widgets.base import Widget
 
 
 class NavBar(Widget):

@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import json
-from typing import (List, Dict, Any)
+from typing import Any, Dict, List
 
 from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
 
 from widgets.base import Widget
-from widgets.listing.columns import Column, SelectColumn, DeleteColumn
 from widgets.forms import BaCa2ModelForm, FormWidget
+from widgets.listing.columns import Column, DeleteColumn, SelectColumn
 from widgets.popups.forms import SubmitConfirmationPopup
 
 
@@ -285,6 +285,6 @@ class DeleteRecordFormWidget(FormWidget):
                          post_target=post_url,
                          name=name,
                          submit_confirmation_popup=SubmitConfirmationPopup(
-                             title=_("Confirm record deletion"),
-                             message=_("Are you sure you want to delete this record")
+                             title=_('Confirm record deletion'),
+                             message=_('Are you sure you want to delete this record')
                          ))

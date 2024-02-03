@@ -32,4 +32,4 @@ class BaCa2AuthBackend:
         Reject users with is_active=False. Custom user models that don't have
         that attribute are allowed.
         """
-        return getattr(user, "is_active", True)
+        return getattr(user, 'is_active', True)

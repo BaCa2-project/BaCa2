@@ -6,7 +6,7 @@ Napisz program, który sprawdzi, czy zadana liczba jest doskonała.
 
 ## Wejście
 
-Progam przyjmuje jedną liczbę całkowitą dodatnią nie większą niż $10^6$. 
+Progam przyjmuje jedną liczbę całkowitą dodatnią nie większą niż $10^6$.
 
 ## Wyjście
 
@@ -34,4 +34,3 @@ Wyjście:
 ```
 NIE
 ```
-

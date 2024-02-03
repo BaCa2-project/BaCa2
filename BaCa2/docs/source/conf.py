@@ -1,11 +1,11 @@
-import sys
 import os
+import sys
+
 import django
 
 sys.path.insert(0, os.path.abspath('../..'))
-os.environ['DJANGO_SETTINGS_MODULE'] = 'BaCa2.settings'
+os.environ['DJANGO_SETTINGS_MODULE'] = 'core.settings'
 django.setup()
-
 
 # Configuration file for the Sphinx documentation builder.
 #
@@ -16,7 +16,7 @@ django.setup()
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'BaCa2'
-copyright = '2023, Bartosz Deptuła, Mateusz Kadula, Krzysztof Kalita'
+copyright = '2023, Bartosz Deptuła, Mateusz Kadula, Krzysztof Kalita'  # noqa: A001
 author = 'Bartosz Deptuła, Mateusz Kadula, Krzysztof Kalita'
 
 # -- General configuration ---------------------------------------------------

@@ -4,14 +4,15 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from main.models import Course
-from widgets.forms.base import (FormWidget,
-                                FormElementGroup,
-                                BaCa2ModelForm,
-                                ModelFormPostTarget,
-                                CourseModelFormPostTarget)
+from widgets.forms.base import (
+    BaCa2ModelForm,
+    CourseModelFormPostTarget,
+    FormElementGroup,
+    FormWidget,
+    ModelFormPostTarget
+)
 from widgets.forms.fields.course import CourseName, CourseShortName, USOSCode
 from widgets.popups.forms import SubmitConfirmationPopup
-
 
 # ---------------------------------------- create course --------------------------------------- #
 

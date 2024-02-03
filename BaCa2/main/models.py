@@ -1,25 +1,21 @@
 from __future__ import annotations
 
-from typing import List, Type, Any, Callable
+from typing import Any, Callable, List
 
-from django.contrib.auth.models import (AbstractBaseUser,
-                                        PermissionsMixin,
-                                        BaseUserManager,
-                                        Group,
-                                        Permission,
-                                        ContentType)
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Group, Permission
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models.query import QuerySet
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from BaCa2.choices import BasicModelAction, PermissionCheck, ModelAction
-from course.manager import create_course as create_course_db, delete_course as delete_course_db
+from core.choices import BasicModelAction, ModelAction, PermissionCheck
+from course.manager import create_course as create_course_db
+from course.manager import delete_course as delete_course_db
 from course.routing import InCourse
-from util.models import model_cls, get_model_permissions
-from util.other import replace_special_symbols
+from util.models import get_model_permissions, model_cls
 from util.models_registry import ModelsRegistry
+from util.other import replace_special_symbols
 
 
 class UserManager(BaseUserManager):
@@ -141,7 +137,7 @@ class CourseManager(models.Manager):
     @transaction.atomic
     def create_course(self,
                       name: str,
-                      short_name: str = "",
+                      short_name: str = '',
                       usos_course_code: str | None = None,
                       usos_term_code: str | None = None,
                       role_presets: List[RolePreset] = None) -> Course:
@@ -281,7 +277,7 @@ class CourseManager(models.Manager):
                          f'{replace_special_symbols(usos_term_code, "_")}'
             short_name = short_name.lower()
         else:
-            short_name = ""
+            short_name = ''
             for word in name.split():
                 short_name += word[0]
 
@@ -346,14 +342,14 @@ class Course(models.Model):
 
     #: Name of the course.
     name = models.CharField(
-        verbose_name=_("course name"),
+        verbose_name=_('course name'),
         max_length=100,
         blank=False
     )
     #: Short name of the course.
     #: Used to access the course's database with :py:class:`course.routing.InCourse`.
     short_name = models.CharField(
-        verbose_name=_("course short name"),
+        verbose_name=_('course short name'),
         max_length=40,
         unique=True,
         blank=False
@@ -361,7 +357,7 @@ class Course(models.Model):
     #: Subject code of the course in the USOS system.
     #: Used for automatic assignment of USOS registered users to the course
     USOS_course_code = models.CharField(
-        verbose_name=_("Subject code"),
+        verbose_name=_('Subject code'),
         max_length=20,
         blank=True,
         null=True
@@ -369,7 +365,7 @@ class Course(models.Model):
     #: Term code of the course in the USOS system.
     #: Used for automatic assignment of USOS registered users to the course
     USOS_term_code = models.CharField(
-        verbose_name=_("Term code"),
+        verbose_name=_('Term code'),
         max_length=20,
         blank=True,
         null=True
@@ -379,7 +375,7 @@ class Course(models.Model):
 
     #: The default role assigned to users within the course, if no other role is specified.
     default_role = models.ForeignKey(
-        verbose_name=_("default role"),
+        verbose_name=_('default role'),
         to='Role',
         on_delete=models.RESTRICT,
         null=False,
@@ -389,7 +385,7 @@ class Course(models.Model):
     #: The admin role for the course. The role has all permissions related to all course models.
     #: This group is automatically created during course creation.
     admin_role = models.ForeignKey(
-        verbose_name=_("admin role"),
+        verbose_name=_('admin role'),
         to='Role',
         on_delete=models.RESTRICT,
         null=False,
@@ -455,7 +451,7 @@ class Course(models.Model):
         :return: Short name and name of the course.
         :rtype: str
         """
-        return f"{self.short_name}__{self.name}"
+        return f'{self.short_name}__{self.name}'
 
     def get_data(self, user: User | str | int = None) -> dict:
         """
@@ -588,17 +584,17 @@ class Course(models.Model):
             users assigned to it or does not exist within the course.
         """
         if not self.role_exists(role):
-            raise Course.CourseRoleError("Attempted to remove a role that does not exist within "
-                                         "the course")
+            raise Course.CourseRoleError('Attempted to remove a role that does not exist within '
+                                         'the course')
 
         role = ModelsRegistry.get_role(role, self)
 
         if role == self.default_role:
-            raise Course.CourseRoleError("Default role cannot be removed from the course")
+            raise Course.CourseRoleError('Default role cannot be removed from the course')
         if role == self.admin_role:
-            raise Course.CourseRoleError("Admin role cannot be removed from the course")
+            raise Course.CourseRoleError('Admin role cannot be removed from the course')
         if role.user_set.exists():
-            raise Course.CourseRoleError("Cannot remove a role with users assigned to it")
+            raise Course.CourseRoleError('Cannot remove a role with users assigned to it')
 
         role.delete()
 
@@ -623,13 +619,13 @@ class Course(models.Model):
             course.
         """
         if not self.role_exists(role):
-            raise Course.CourseRoleError("Attempted to change permissions for a role that does not"
-                                         "exist within the course")
+            raise Course.CourseRoleError('Attempted to change permissions for a role that does not'
+                                         'exist within the course')
 
         role = ModelsRegistry.get_role(role, self)
 
         if role == self.admin_role:
-            raise Course.CourseRoleError("Cannot change permissions for the admin role")
+            raise Course.CourseRoleError('Cannot change permissions for the admin role')
 
         role.change_permissions(permissions)
 
@@ -650,8 +646,8 @@ class Course(models.Model):
         :raises Course.CourseRoleError: If the role does not exist within the course.
         """
         if not self.role_exists(role):
-            raise Course.CourseRoleError("Attempted to add permissions to a role that does not "
-                                         "exist within the course")
+            raise Course.CourseRoleError('Attempted to add permissions to a role that does not '
+                                         'exist within the course')
 
         ModelsRegistry.get_role(role, self).add_permissions(permissions)
 
@@ -673,13 +669,13 @@ class Course(models.Model):
             course.
         """
         if not self.role_exists(role):
-            raise Course.CourseRoleError("Attempted to remove permissions from a role that does "
-                                         "not exist within the course")
+            raise Course.CourseRoleError('Attempted to remove permissions from a role that does '
+                                         'not exist within the course')
 
         role = ModelsRegistry.get_role(role, self)
 
         if role == self.admin_role:
-            raise Course.CourseRoleError("Cannot remove permissions from the admin role")
+            raise Course.CourseRoleError('Cannot remove permissions from the admin role')
 
         role.remove_permissions(permissions)
 
@@ -707,7 +703,7 @@ class Course(models.Model):
         :raises Course.CourseMemberError: If the user is not a member of the course.
         """
         if not self.user_is_member(user):
-            raise Course.CourseMemberError("User is not a member of the course")
+            raise Course.CourseMemberError('User is not a member of the course')
         return ModelsRegistry.get_user(user).roles.get(course=self)
 
     # -------------------------------- Adding/removing members --------------------------------- #
@@ -734,13 +730,13 @@ class Course(models.Model):
             role = self.default_role
 
         if not self.role_exists(role):
-            raise Course.CourseRoleError("Attempted to assign a user to a non-existent role")
+            raise Course.CourseRoleError('Attempted to assign a user to a non-existent role')
 
         role = ModelsRegistry.get_role(role, self)
 
         if role == self.admin_role:
-            raise Course.CourseRoleError("Cannot assign a user to the admin role using the "
-                                         "add_user method. Use add_admin instead.")
+            raise Course.CourseRoleError('Cannot assign a user to the admin role using the '
+                                         'add_user method. Use add_admin instead.')
         self._validate_new_member(user)
         role.add_member(user)
 
@@ -800,11 +796,11 @@ class Course(models.Model):
         :raises Course.CourseMemberError: If the user is not a member of the course.
         """
         if not self.user_is_member(user):
-            raise Course.CourseMemberError("Attempted to remove a user who is not a member of the"
-                                           "course.")
+            raise Course.CourseMemberError('Attempted to remove a user who is not a member of the'
+                                           'course.')
         if self.user_is_admin(user):
-            raise Course.CourseMemberError("Attempted to remove a user from the admin role using "
-                                           "the remove_member method. Use remove_admin instead.")
+            raise Course.CourseMemberError('Attempted to remove a user from the admin role using '
+                                           'the remove_member method. Use remove_admin instead.')
 
         self.user_role(user).remove_member(user)
 
@@ -830,11 +826,11 @@ class Course(models.Model):
         :type user: User | str | int
         """
         if not self.user_is_member(user):
-            raise Course.CourseMemberError("Attempted to remove from the admin role a user who is "
-                                           "not a member of the course.")
+            raise Course.CourseMemberError('Attempted to remove from the admin role a user who is '
+                                           'not a member of the course.')
         if not self.user_is_admin(user):
-            raise Course.CourseMemberError("Attempted to remove a user from the admin role who is "
-                                           "not an admin in the course.")
+            raise Course.CourseMemberError('Attempted to remove a user from the admin role who is '
+                                           'not an admin in the course.')
 
         self.admin_role.remove_member(user)
 
@@ -1054,11 +1050,11 @@ class Course(models.Model):
         :raises Course.CourseMemberError: If the user is already a member of the course.
         """
         if self.user_is_member(user):
-            raise Course.CourseMemberError("User is already a member of the course")
+            raise Course.CourseMemberError('User is already a member of the course')
 
     # -------------------------------- Inside course actions ----------------------------------- #
 
-    from course.models import Round, Task, Submit
+    from course.models import Round, Submit, Task
 
     @staticmethod
     def inside_course(func: Callable) -> Callable:
@@ -1134,7 +1130,7 @@ class Settings(models.Model):
     """
     #: User's preferred UI theme.
     theme = models.CharField(
-        verbose_name=_("UI theme"),
+        verbose_name=_('UI theme'),
         max_length=255,
         default='dark'
     )
@@ -1158,30 +1154,30 @@ class User(AbstractBaseUser):
 
     #: User's email. Used to log in.
     email = models.EmailField(
-        verbose_name=_("email address"),
+        verbose_name=_('email address'),
         max_length=255,
         unique=True
     )
     #: User's first name.
     first_name = models.CharField(
-        verbose_name=_("first name"),
+        verbose_name=_('first name'),
         max_length=255,
         blank=True
     )
     #: User's last name.
     last_name = models.CharField(
-        verbose_name=_("last name"),
+        verbose_name=_('last name'),
         max_length=255,
         blank=True
     )
     #: Date of account creation.
     date_joined = models.DateField(
-        verbose_name=_("date joined"),
+        verbose_name=_('date joined'),
         auto_now_add=True
     )
     #: User's settings.
     user_settings = models.OneToOneField(
-        verbose_name=_("user settings"),
+        verbose_name=_('user settings'),
         to=Settings,
         on_delete=models.RESTRICT,
         null=False,
@@ -1192,42 +1188,42 @@ class User(AbstractBaseUser):
 
     #: Indicates whether user has all available moderation privileges.
     is_superuser = models.BooleanField(
-        verbose_name=_("superuser status"),
+        verbose_name=_('superuser status'),
         default=False,
         help_text=_(
-            "Designates that this user has all permissions without explicitly assigning them."
+            'Designates that this user has all permissions without explicitly assigning them.'
         ),
     )
     #: Groups the user belongs to. Groups are used to grant permissions to multiple users at once
     #: and to assign course access and roles to users.
     groups = models.ManyToManyField(
         to=Group,
-        verbose_name=_("groups"),
+        verbose_name=_('groups'),
         blank=True,
         help_text=_(
-            "The groups this user belongs to. A user will get all permissions granted to each of "
-            "their groups."
+            'The groups this user belongs to. A user will get all permissions granted to each of '
+            'their groups.'
         ),
-        related_name="user_set",
-        related_query_name="user",
+        related_name='user_set',
+        related_query_name='user',
     )
     #: Course roles user has been assigned to. Used to check course access and permissions.
     roles = models.ManyToManyField(
         to='Role',
-        verbose_name=_("roles"),
+        verbose_name=_('roles'),
         blank=True,
-        help_text=_("The course roles this user has been assigned to."),
-        related_name="user_set",
-        related_query_name="user",
+        help_text=_('The course roles this user has been assigned to.'),
+        related_name='user_set',
+        related_query_name='user',
     )
     #: Permissions specifically granted to the user.
     user_permissions = models.ManyToManyField(
         to=Permission,
-        verbose_name=_("user permissions"),
+        verbose_name=_('user permissions'),
         blank=True,
-        help_text=_("Specific permissions for this user."),
-        related_name="user_set",
-        related_query_name="user",
+        help_text=_('Specific permissions for this user.'),
+        related_name='user_set',
+        related_query_name='user',
     )
 
     # ------------------------------------ Django settings ------------------------------------- #
@@ -1759,7 +1755,7 @@ class Role(models.Model):
 
     #: Name of the role.
     name = models.CharField(
-        verbose_name=_("role name"),
+        verbose_name=_('role name'),
         max_length=100,
         blank=False,
         null=False
@@ -1767,14 +1763,14 @@ class Role(models.Model):
     #: Permissions assigned to the role.
     permissions = models.ManyToManyField(
         to=Permission,
-        verbose_name=_("role permissions"),
+        verbose_name=_('role permissions'),
         blank=True
     )
     #: Course the role is assigned to. A single role can only be assigned to a single course.
     course = models.ForeignKey(
         to=Course,
         on_delete=models.CASCADE,
-        verbose_name=_("course"),
+        verbose_name=_('course'),
         related_name='role_set',
         null=True,
     )
@@ -2057,7 +2053,7 @@ class RolePreset(models.Model):
 
     #: Name of the preset. Will be used as the name of the role created from the preset.
     name = models.CharField(
-        verbose_name=_("preset name"),
+        verbose_name=_('preset name'),
         max_length=100,
         blank=False,
         null=False
@@ -2065,23 +2061,23 @@ class RolePreset(models.Model):
     #: Permissions assigned to the preset. Will be assigned to the role created from the preset.
     permissions = models.ManyToManyField(
         to=Permission,
-        verbose_name=_("preset permissions"),
+        verbose_name=_('preset permissions'),
         blank=True
     )
     #: Whether the preset is public. Public presets can be used by all users, private presets can
     # only be used by their creator or other users given access.
     public = models.BooleanField(
-        verbose_name=_("preset is public"),
+        verbose_name=_('preset is public'),
         default=True,
-        help_text=_("Indicates whether the preset is public. Public presets can be used by all "
-                    "users, private presets can only be used by their creator or other users given "
-                    "access.")
+        help_text=_('Indicates whether the preset is public. Public presets can be used by all '
+                    'users, private presets can only be used by their creator or other users given '
+                    'access.')
     )
     #: User who created the preset.
     creator = models.ForeignKey(
         to=User,
         on_delete=models.CASCADE,
-        verbose_name=_("preset creator"),
+        verbose_name=_('preset creator'),
         related_name='created_role_presets',
         blank=True,
         null=True
@@ -2176,14 +2172,14 @@ class RolePresetUser(models.Model):
     user = models.ForeignKey(
         to=User,
         on_delete=models.CASCADE,
-        verbose_name=_("user"),
+        verbose_name=_('user'),
         related_name='User_role_presets'
     )
     #: Preset the user has been given access to.
     preset = models.ForeignKey(
         to=RolePreset,
         on_delete=models.CASCADE,
-        verbose_name=_("preset"),
+        verbose_name=_('preset'),
         related_name='role_preset_users'
     )
 

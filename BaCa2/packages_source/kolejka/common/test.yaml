@@ -4,7 +4,7 @@ kolejka:
     exclusive   : false
     requires    : [ 'cpu:xeon e3-1270 v5' ]
     collect     : [ 'log.zip' ]
-    limits: 
+    limits:
         time        : '20s'
         memory      : '4G'
         swap        : 0

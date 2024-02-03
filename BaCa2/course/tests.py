@@ -1,24 +1,24 @@
+import datetime as dt_raw
+from datetime import datetime, timedelta
 from random import choice, randint
 
 from django.core.exceptions import ValidationError
-from datetime import datetime, timedelta
-import datetime as dt_raw
-
 from django.test import TestCase
 from django.utils import timezone
+
+from core.choices import ResultStatus
+from main.models import Course, User
+from package.models import PackageInstance
 from parameterized import parameterized
 
-from BaCa2.choices import ResultStatus
-from package.models import PackageInstance
 from .models import *
-from main.models import Course, User
 from .routing import InCourse, OptionalInCourse
 
 
 def create_rounds(course, amount):
     with InCourse(course):
         rounds = []
-        for i in range(amount):
+        for _ in range(amount):
             new_round = Round.objects.create_round(
                 start_date=timezone.now() - timedelta(days=1),
                 deadline_date=timezone.now() + timedelta(days=2),
@@ -38,7 +38,7 @@ def create_package_task(course, round_, pkg_name, commit, init_task: bool = True
         task = Task.objects.create_task(
             package_instance=pkg,
             round_=round_,
-            task_name="Test task with package",
+            task_name='Test task with package',
             points=10,
             initialise_task=init_task,
         )
@@ -115,14 +115,14 @@ class RoundTest(TestCase):
             round1 = Round.objects.create_round(
                 start_date=datetime(2020, 1, 1),
                 deadline_date=datetime(2020, 1, 2),
-                name="Test 1"
+                name='Test 1'
             )
             round2 = Round.objects.create_round(
                 start_date=datetime(2020, 1, 3, tzinfo=dt_raw.timezone.utc),
                 deadline_date=datetime(2020, 1, 5, tzinfo=dt_raw.timezone.utc),
                 end_date=datetime(2020, 1, 4, tzinfo=dt_raw.timezone.utc),
                 reveal_date=datetime(2020, 1, 6, tzinfo=dt_raw.timezone.utc),
-                name="Test 2"
+                name='Test 2'
             )
             round1.save()
             round2.save()
@@ -135,7 +135,7 @@ class RoundTest(TestCase):
                              datetime(2020, 1, 4, tzinfo=dt_raw.timezone.utc))
             self.assertEqual(round_res.reveal_date,
                              datetime(2020, 1, 6, tzinfo=dt_raw.timezone.utc))
-            self.assertEqual(round_res.name, "Test 2")
+            self.assertEqual(round_res.name, 'Test 2')
 
     def test_02_validate_round(self):
         with InCourse(self.course):
@@ -170,7 +170,7 @@ class RoundTest(TestCase):
             create_package_task(self.course, round1, 'dosko', '1', init_task=False)
 
             self.assertEqual(Task.objects.count(), 1)
-            self.assertEqual(Task.objects.first().task_name, "Test task with package")
+            self.assertEqual(Task.objects.first().task_name, 'Test task with package')
 
             round1.delete()
             self.assertEqual(Task.objects.count(), 0)
@@ -220,11 +220,11 @@ class RoundTest(TestCase):
 
     @parameterized.expand([(3,), (10,), (100,)])
     def test_08_round_auto_name(self, amount):
-        rounds = create_rounds(self.course, amount)
+        create_rounds(self.course, amount)
         with InCourse(self.course):
             rounds_res = [r.name for r in Round.objects.all_rounds()]
             self.assertEqual(len(rounds_res), amount)
-            for i, r in enumerate(rounds_res):
+            for i, _ in enumerate(rounds_res):
                 self.assertIn(f'Round {i + 1}', rounds_res)
 
 

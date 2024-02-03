@@ -9,7 +9,6 @@ readme = "README.md"
 python = "^3.11"
 django = "^5.0.0"
 psycopg2-binary = "^2.9.5"
-django-allauth = "^0.60.0"
 django-extensions = "^3.2.1"
 django-dbbackup = "^4.0.2"
 pyyaml = "^6.0"
@@ -26,7 +25,19 @@ coverage = "^7.3.2"
 sphinx-rtd-theme = "^2.0.0"
 parameterized = "^0.9.0"
 requests = "^2.31.0"
+mozilla-django-oidc = "^4.0.0"
 
+colorlog = "^6.8.2"
+django-split-settings = "^1.2.0"
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.6.0"
+
+[tool.isort]
+multi_line_output = 3
+line_length = 100
+known_django="django"
+sections="FUTURE,STDLIB,DJANGO,FIRSTPARTY,THIRDPARTY,LOCALFOLDER"
 
 [build-system]
 requires = ["poetry-core"]

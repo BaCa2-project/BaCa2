@@ -18,4 +18,3 @@ Course app is divided into 3 parts:
     routing
     models
     views
-
