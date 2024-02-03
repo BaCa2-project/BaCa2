@@ -160,6 +160,11 @@ class BaCa2LoginView(BaCa2ContextMixin, LoginView):
     successful login or if user is already logged in (redirect target is set using the
     'LOGIN_REDIRECT_URL' variable in project's 'settings.py' file).
     """
+    logger.debug('This is a debug message')
+    logger.info('This is an info message')
+    logger.warning('This is a warning message')
+    logger.error('This is an error message')
+    logger.critical('This is a critical message')
 
     template_name = 'login.html'
     redirect_authenticated_user = True

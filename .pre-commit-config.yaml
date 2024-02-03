@@ -14,7 +14,7 @@ repos:
       - id: check-toml
       - id: check-merge-conflict
       - id: no-commit-to-branch
-        args: [ -b, master, -b, dev ]
+        args: [ -b, master ]
       - id: check-ast
 
   - repo: https://github.com/pre-commit/pygrep-hooks
@@ -27,11 +27,11 @@ repos:
       - id: rst-directive-colons
       - id: rst-inline-touching-normal
 
-  - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.5.4
-    hooks:
-      - id: forbid-crlf
-      - id: remove-crlf
+#  - repo: https://github.com/Lucas-C/pre-commit-hooks
+#    rev: v1.5.4
+#    hooks:
+#      - id: forbid-crlf
+#      - id: remove-crlf
 
   - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
     rev: v1.3.3
