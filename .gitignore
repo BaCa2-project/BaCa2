@@ -654,8 +654,8 @@ Baca2/submits/
 
 secrets.yaml
 
-ext_databases.py
-
 **/migrations/*
 migrations
 !migrations/__init__.py
+
+db.cache
