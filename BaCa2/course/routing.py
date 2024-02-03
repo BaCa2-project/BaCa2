@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from core.settings import currentDB
+from django.conf import settings
 
 if TYPE_CHECKING:
     from main.models import Course
@@ -70,14 +70,13 @@ class ContextCourseRouter(SimpleCourseRouter):
             return 'default'
 
         from core.exceptions import RoutingError
-        from core.settings import DATABASES
 
         try:
-            db = currentDB.get()
+            db = settings.CURRENT_DB.get()
         except LookupError:
             raise RoutingError(
                 "No DB chosen. Remember to use 'with InCourse', while accessing course instance.")
-        if db not in DATABASES.keys():
+        if db not in settings.DATABASES.keys():
             raise RoutingError(f"Can't access course DB {db}. Check the name in 'with InCourse'")
 
         return db
@@ -126,10 +125,10 @@ class InCourse:
             self.db = ModelsRegistry.get_course(course).short_name
 
     def __enter__(self):
-        self.token = currentDB.set(self.db)
+        self.token = settings.CURRENT_DB.set(self.db)
 
     def __exit__(self, *args):
-        currentDB.reset(self.token)
+        settings.CURRENT_DB.reset(self.token)
 
     @staticmethod
     def is_defined():
@@ -139,7 +138,7 @@ class InCourse:
         :return: True if there is any context database set.
         """
         try:
-            currentDB.get()
+            settings.CURRENT_DB.get()
         except LookupError:
             return False
         return True
