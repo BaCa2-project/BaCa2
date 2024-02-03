@@ -1,6 +1,6 @@
-from typing import Dict
 import logging
 import pathlib
+from typing import Dict
 
 
 class CustomFormatter(logging.Formatter):
@@ -57,9 +57,9 @@ class CustomFormatter(logging.Formatter):
         :return: format string with modified lineno format
         :rtype: str
         """
-        return fmt.replace('%(lineno)d', f'%(lineno)d::')
+        return fmt.replace('%(lineno)d', '%(lineno)d::')
 
-    def format(self, record) -> str:
+    def format(self, record) -> str:  # noqa: A003
         """
         Format the levelname, pathname, and funcName in the log record. Restore the original
         values after generating the log message.

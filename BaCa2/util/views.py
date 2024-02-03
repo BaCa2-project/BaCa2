@@ -88,6 +88,8 @@ class BaCa2ContextMixin:
             raise Exception('No request object found. Remember that BaCa2ContextMixin should only '
                             'be used as a view mixin.')
 
+        context['display_sidenav'] = False
+
         return context
 
     @staticmethod
