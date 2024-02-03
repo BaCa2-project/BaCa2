@@ -33,7 +33,7 @@ include(
     'packages.py',
     'broker.py',
     'usos.py',
-    'logging.py',
+    'logs.py',
     optional(str(LOCAL_SETTINGS_PATH)),
     'envvars.py',
 )

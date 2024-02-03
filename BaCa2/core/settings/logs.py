@@ -1,4 +1,5 @@
-LOGS_DIR = BASE_DIR / 'logs'
+LOGS_DIR = BASE_DIR / 'logs'  # noqa: F821
+_auto_create_dirs.add_dir(LOGS_DIR)  # noqa: F821
 
 FORMATTER_MODULE = 'core.tools.logs'
 
@@ -73,32 +74,36 @@ HANDLERS = {
     },
 }
 
-LOGGERS = {
+DJANGO_LOGGERS = {
     'django': {
-      'handlers': ['console', 'info'],
-      'level': 'INFO',
+        'handlers': ['console', 'info'],
+        'level': 'INFO',
     },
     'django.request': {
-      'handlers': ['error'],
-      'level': 'INFO',
-      'propagate': True,
+        'handlers': ['error'],
+        'level': 'INFO',
+        'propagate': True,
     },
     'django.server': {
-      'handlers': ['error', 'server_console'],
-      'level': 'INFO',
-      'propagate': False,
+        'handlers': ['error', 'server_console'],
+        'level': 'INFO',
+        'propagate': False,
     },
     'django.template': {
-      'handlers': ['error'],
-      'level': 'DEBUG',
-      'propagate': False,
+        'handlers': ['error'],
+        'level': 'DEBUG',
+        'propagate': False,
     },
-} | {
+}
+
+BACA2_LOGGERS = {
     app_name: {
-      'handlers': ['console', 'info', 'error'],
-      'level': 'DEBUG',
+        'handlers': ['console', 'info', 'error'],
+        'level': 'DEBUG',
     } for app_name in ('broker_api', 'course', 'package', 'util', 'main')
 }
+
+LOGGERS = DJANGO_LOGGERS | BACA2_LOGGERS
 
 LOGGING = {
     'version': 1,
