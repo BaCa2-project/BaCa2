@@ -27,12 +27,6 @@ repos:
       - id: rst-directive-colons
       - id: rst-inline-touching-normal
 
-#  - repo: https://github.com/Lucas-C/pre-commit-hooks
-#    rev: v1.5.4
-#    hooks:
-#      - id: forbid-crlf
-#      - id: remove-crlf
-
   - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
     rev: v1.3.3
     hooks:

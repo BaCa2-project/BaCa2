@@ -12,6 +12,11 @@ from main.models import Course
 from package.models import PackageInstance
 
 
+class BrokerSubmitManager(models.Manager):
+    ...
+    # TODO: move class methods from BrokerSubmit to BrokerSubmitManager
+
+
 class BrokerSubmit(models.Model):
     """Model for storing information about submits sent to broker."""
 

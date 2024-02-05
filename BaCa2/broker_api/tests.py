@@ -1,4 +1,5 @@
 import cgi
+from asyncio import sleep
 from datetime import datetime, timedelta
 from http import server
 from threading import Lock, Thread
@@ -9,7 +10,7 @@ from django.core.management import call_command
 from django.test import Client, TestCase
 
 from broker_api.views import *
-from course.models import Round, Submit, Task
+from course.models import Result, Round, Submit, Task
 from course.routing import InCourse
 from main.models import Course, User
 from package.models import PackageInstance
@@ -163,7 +164,7 @@ class General(TestCase):
 
         with InCourse(self.course.short_name):
             submit = Submit.objects.create_submit(source_code=src_code, task=self.task,
-                                                  user=self.user)
+                                                  user=self.user, auto_send=False)
             submit.pk = datetime.now().timestamp()
             submit.save()
             submit_id = submit.pk
@@ -249,7 +250,7 @@ class General(TestCase):
 
         with InCourse(self.course.short_name):
             submit = Submit.objects.create_submit(source_code=src_code, task=self.task,
-                                                  user=self.user)
+                                                  user=self.user, auto_send=False)
             submit.pk = 1
             submit.save()
             submit_id = submit.pk
@@ -312,7 +313,7 @@ class General(TestCase):
 
             with InCourse(self.course.short_name):
                 submit = Submit.objects.create_submit(source_code=src_code, task=self.task,
-                                                      user=self.user)
+                                                      user=self.user, auto_send=False)
                 submit.pk = i
                 submit.save()
                 submit_id = submit.pk
@@ -337,3 +338,69 @@ class General(TestCase):
         call_command('resendToBroker')
         self.assertEqual(5, BrokerSubmit.objects.filter(
             status=BrokerSubmit.StatusEnum.ERROR).count())
+
+
+class OnlineTest(TestCase):
+    TIMEOUT = 60
+
+    course = None
+    pkg_instance = None
+    task = None
+    user = None
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.course = Course.objects.create_course(name=f'course1_{datetime.now().timestamp()}')
+
+        cls.pkg_instance = PackageInstance.objects.create_source_and_instance('dosko', '1')
+        cls.pkg_instance.save()
+
+        cls.user = User.objects.create_user(password='user1',
+                                            email=f'test{datetime.now().timestamp()}@test.pl')
+
+        with InCourse(cls.course.short_name):
+            round_ = Round.objects.create_round(start_date=datetime.now(),
+                                                deadline_date=datetime.now() + timedelta(days=1),
+                                                reveal_date=datetime.now() + timedelta(days=2))
+            round_.save()
+
+            cls.task = Task.objects.create_task(
+                task_name='Liczby doskonałe',
+                package_instance=cls.pkg_instance,
+                round_=round_,
+                points=10,
+                initialise_task=True,
+            )
+            cls.task.save()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        Course.objects.delete_course(cls.course)
+
+    def test_broker_communication(self):
+        src_code = settings.SUBMITS_DIR / '1234.cpp'
+        src_code = src_code.absolute()
+
+        with InCourse(self.course.short_name):
+            submit = Submit.objects.create_submit(source_code=src_code,
+                                                  task=self.task,
+                                                  user=self.user,
+                                                  auto_send=False)
+            submit.save()
+            broker_submit = submit.send()
+
+        start = datetime.now()
+
+        while all((
+            broker_submit.status == BrokerSubmit.StatusEnum.AWAITING_RESPONSE,
+            datetime.now() - start < timedelta(seconds=self.TIMEOUT)
+        )):
+            broker_submit.refresh_from_db()
+            sleep(0.1)
+
+        self.assertTrue(broker_submit.status == BrokerSubmit.StatusEnum.SAVED)
+        with InCourse(self.course.short_name):
+            submit.refresh_from_db()
+            self.assertTrue(submit.score == 0)
+            results = Result.objects.all()
+            self.assertGreater(len(results), 0)
