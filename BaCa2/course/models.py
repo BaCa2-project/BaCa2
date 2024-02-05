@@ -19,6 +19,7 @@ from course.routing import InCourse, OptionalInCourse
 from util.models_registry import ModelsRegistry
 
 if TYPE_CHECKING:
+    from broker_api.models import BrokerSubmit
     from main.models import Course, User
     from package.models import PackageInstance
 
@@ -804,14 +805,16 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
     #: The manager for the Submit model.
     objects = SubmitManager()
 
-    def send(self):
+    def send(self) -> BrokerSubmit:
         """
         It sends the submit to the broker.
 
         :return: None
         """
-        pass
-        # TODO: Submit sending to broker
+        from broker_api.models import BrokerSubmit
+
+        return BrokerSubmit.send(ModelsRegistry.get_course(self._state.db), self.id,
+                                 self.task.package_instance)
 
     def delete(self, using=None, keep_parents=False):
         """
