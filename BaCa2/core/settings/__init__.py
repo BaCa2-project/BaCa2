@@ -26,6 +26,7 @@ include(
     'apps.py',
     'base.py',
     'localization.py',
+    'logs.py',
     'database.py',
     'authentication.py',
     'static_files.py',
@@ -33,7 +34,6 @@ include(
     'packages.py',
     'broker.py',
     'usos.py',
-    'logs.py',
     optional(str(LOCAL_SETTINGS_PATH)),
     'envvars.py',
 )
