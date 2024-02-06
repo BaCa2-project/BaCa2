@@ -100,7 +100,7 @@ BACA2_LOGGERS = {
     app_name: {
         'handlers': ['console', 'info', 'error'],
         'level': 'DEBUG',
-    } for app_name in ('broker_api', 'course', 'package', 'util', 'main')
+    } for app_name in ('broker_api', 'course', 'package', 'util', 'main', 'core')
 }
 
 LOGGERS = DJANGO_LOGGERS | BACA2_LOGGERS
