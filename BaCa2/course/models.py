@@ -251,6 +251,19 @@ class Round(models.Model, metaclass=ReadCourseMeta):
     def __str__(self):
         return f'Round {self.pk}'
 
+    def get_data(self) -> dict:
+        """
+        :return: The data of the round.
+        :rtype: dict
+        """
+        return {
+            'name': self.name,
+            'start_date': self.start_date,
+            'end_date': self.end_date,
+            'deadline_date': self.deadline_date,
+            'reveal_date': self.reveal_date
+        }
+
 
 class TaskManager(models.Manager):
 

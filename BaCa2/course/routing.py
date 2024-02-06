@@ -77,7 +77,8 @@ class ContextCourseRouter(SimpleCourseRouter):
             raise RoutingError(
                 "No DB chosen. Remember to use 'with InCourse', while accessing course instance.")
         if db not in settings.DATABASES.keys():
-            raise RoutingError(f"Can't access course DB {db}. Check the name in 'with InCourse'")
+            raise RoutingError(f"Can't access course DB {db}. Check the name in 'with InCourse'.\n"
+                               f'Available DBs: {list(settings.DATABASES.keys())}')
 
         return db
 
@@ -119,10 +120,11 @@ class InCourse:
 
     def __init__(self, course: int | str | Course):
         from util.models_registry import ModelsRegistry
-        if isinstance(course, str):
-            self.db = course
-        else:
-            self.db = ModelsRegistry.get_course(course).short_name
+
+        # if isinstance(course, str):
+        #     self.db = course
+        # else:
+        self.db = ModelsRegistry.get_course(course).short_name
 
     def __enter__(self):
         self.token = settings.CURRENT_DB.set(self.db)
