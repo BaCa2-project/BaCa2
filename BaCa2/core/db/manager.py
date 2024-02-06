@@ -67,6 +67,7 @@ class DB:
             db_dict.pop('NAME')
         if db_name.endswith('_db'):
             db_name = db_name[:-3]
+            logger.warning(f'Database name {db_name} has been stripped of the "_db" suffix.')
         return cls(db_name, **db_dict)
 
     def to_dict(self) -> dict:
@@ -154,6 +155,8 @@ class DBManager:
             default = DB(self.default_db_key, self.default_settings, key_is_name=True)
             self.databases['default'] = default.to_dict()
 
+        logger.info('DBManager initialized.')
+
     def _raw_root_connection(self):
         """
         It creates a raw connection to the database server as the root user
@@ -234,7 +237,11 @@ class DBManager:
             with self.databases_access_lock:
                 if db_name not in self.databases:
                     raise ValueError(f'DB {db_name} does not exist or not registered properly.')
-        call_command('migrate', database=db_name, interactive=False, skip_checks=True)
+        call_command('migrate',
+                     database=db_name,
+                     interactive=False,
+                     skip_checks=True,
+                     verbosity=0)
         logger.info(f'Database {db_name} migrated.')
 
     def migrate_all(self):
@@ -286,10 +293,11 @@ class DBManager:
                     cache = json.load(f)
                 except json.JSONDecodeError:
                     return
-                for _db_name, db_settings in cache.items():
-                    db = DB.from_json(db_settings)
+                for db_name, db_settings in cache.items():
+                    db = DB.from_json(db_settings, db_name=db_name)
                     with self.databases_access_lock:
                         self.databases[db.name] = db.to_dict()
+        logger.info('Databases loaded from cache.')
 
     def save_cache(self, with_locks: bool = True) -> None:
         """

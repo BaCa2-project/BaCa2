@@ -136,7 +136,7 @@ class CourseModelView(BaCa2ModelView, ABC, metaclass=ReadCourseViewMeta):
         return f'/course/{course_id}/models/{cls.MODEL._meta.model_name}'
 
 
-class RoundModelView(CourseModelView, metaclass=ReadCourseViewMeta):
+class RoundModelView(CourseModelView):
     MODEL = Round
 
     def check_get_filtered_permission(self,
