@@ -1,9 +1,12 @@
 import json
+import logging
 from pathlib import Path
 from threading import Lock
 from typing import Self
 
 import psycopg2
+
+logger = logging.getLogger(__name__)
 
 #: Postgres query to close all connections to a database
 CLOSE_ALL_DB_CONNECTIONS = """SELECT pg_terminate_backend(pg_stat_activity.pid)
@@ -23,6 +26,17 @@ class DB:
                  defaults: dict = None,
                  key_is_name: bool = False,
                  **kwargs):
+        """
+        It initializes the DB object.
+
+        :param db_name: The name of the database.
+        :type db_name: str
+        :param defaults: The default settings for the database.
+        :type defaults: dict
+        :param key_is_name: Whether the key of the database is the name of the database.
+        :type key_is_name: bool
+        :param kwargs: The settings for the database.
+        """
         if defaults is None:
             defaults = {}
         self.db_name = db_name
@@ -32,21 +46,47 @@ class DB:
             self.settings['NAME'] = self.db_name
 
     @classmethod
-    def from_json(cls, db_dict: dict) -> Self:
+    def from_json(cls, db_dict: dict, db_name: str = None) -> Self:
+        """
+        It creates a DB object from a dictionary. If the db_name is not provided, it is taken from
+        the dictionary, but without the '_db' suffix.
+
+        :param db_dict: The dictionary with the database settings.
+        :type db_dict: dict
+        :param db_name: The name of the database.
+        :type db_name: str
+
+        :return: The DB object.
+        :rtype: DB
+        """
         if 'NAME' not in db_dict:
             raise ValueError('DB name not found in dictionary.')
-        db_name = db_dict.pop('NAME')
-        return cls(db_name, key_is_name=True, **db_dict)
+        if db_name is None:
+            db_name = db_dict.pop('NAME')
+        else:
+            db_dict.pop('NAME')
+        if db_name.endswith('_db'):
+            db_name = db_name[:-3]
+        return cls(db_name, **db_dict)
 
     def to_dict(self) -> dict:
+        """
+        It returns the copy of database settings as a dictionary.
+        """
         return self.settings.copy()
 
     @property
     def name(self):
+        """
+        It returns the name of the database.
+        """
         return self.db_name
 
     @property
     def key(self):
+        """
+        It returns the key of the database.
+        """
         if self.key_is_name:
             return self.db_name
         return self.db_name + '_db'
@@ -173,6 +213,7 @@ class DBManager:
 
                 with self.cache_lock:
                     self.save_cache(with_locks=False)
+        logger.info(f'Database {db_name} created.')
 
     def migrate_db(self, db_name: str, migrate_all: bool = False) -> None:
         """
@@ -194,6 +235,7 @@ class DBManager:
                 if db_name not in self.databases:
                     raise ValueError(f'DB {db_name} does not exist or not registered properly.')
         call_command('migrate', database=db_name, interactive=False, skip_checks=True)
+        logger.info(f'Database {db_name} migrated.')
 
     def migrate_all(self):
         """
@@ -229,6 +271,7 @@ class DBManager:
                 cursor.execute(CLOSE_ALL_DB_CONNECTIONS % db.key)
                 cursor.execute(f' DROP DATABASE IF EXISTS {db.key}; ')
                 conn.close()
+        logger.info(f'Database {db_name} deleted.')
 
     def parse_cache(self) -> None:
         """
