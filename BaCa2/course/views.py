@@ -1,10 +1,15 @@
-from abc import ABC
+import inspect
+from abc import ABC, ABCMeta
+from typing import Callable, List, Union
 
+import django.db.models
 from django.contrib.auth.mixins import UserPassesTestMixin
-from django.http import HttpResponse, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect
 from django.utils.translation import gettext_lazy as _
 
+from course.models import Round
+from course.routing import InCourse
 from main.views import UserModelView
 from util.models_registry import ModelsRegistry
 from util.views import BaCa2LoggedInView, BaCa2ModelView
@@ -15,8 +20,141 @@ from widgets.navigation import SideNav
 
 # ----------------------------------------- Model views ---------------------------------------- #
 
-class CourseModelView(BaCa2ModelView, ABC):
-    ...
+class ReadCourseViewMeta(ABCMeta):
+    """
+    Metaclass providing automated database routing for all course Views
+    """
+
+    DECORATOR_OFF = ['MODEL']
+
+    def __new__(cls, name, bases, dct):
+        """
+        Creates new class with the same name, base and dictionary, but wraps all non-static,
+        non-class methods and properties with :py:meth`read_course_decorator`
+
+        *Special method signature from* ``django.db.models.base.ModelBase``
+        """
+        new_class = super().__new__(cls, name, bases, dct)
+
+        for base in bases:
+            new_class = cls.decorate_class(result_class=new_class,
+                                           attr_donor=base,
+                                           decorator=cls.read_course_decorator)
+        new_class = cls.decorate_class(result_class=new_class,
+                                       attr_donor=dct,
+                                       decorator=cls.read_course_decorator)
+        return new_class
+
+    @staticmethod
+    def decorate_class(result_class,
+                       attr_donor: type | dict,
+                       decorator: Callable[[Callable, bool], Union[Callable, property]]) -> type:
+        """
+        Decorates all non-static, non-class methods and properties of donor class with decorator
+        and adds them to result class.
+
+        :param result_class: Class to which decorated methods will be added
+        :type result_class: type
+        :param attr_donor: Class from which methods will be taken, or dictionary of methods
+        :type attr_donor: type | dict
+        :param decorator: Decorator to be applied to methods
+        :type decorator: Callable[[Callable, bool], Union[Callable, property]]
+
+        :returns: Result class with decorated methods
+        :rtype: type
+
+        """
+        if isinstance(attr_donor, type):
+            attr_donor = attr_donor.__dict__
+        # Decorate all non-static, non-class methods with the hook method
+        for attr_name, attr_value in attr_donor.items():
+            if all(((callable(attr_value) or isinstance(attr_value, property)),
+                    not attr_name.startswith('_'),
+                    not isinstance(attr_value, classmethod),
+                    not isinstance(attr_value, staticmethod),
+                    not inspect.isclass(attr_value),
+                    attr_name not in ReadCourseViewMeta.DECORATOR_OFF)):
+                decorated_meth = decorator(attr_value,
+                                           isinstance(attr_value, property))
+                decorated_meth.__doc__ = attr_value.__doc__
+                setattr(result_class,
+                        attr_name,
+                        decorated_meth)
+        return result_class
+
+    @staticmethod
+    def read_course_decorator(original_method, prop: bool = False):
+        """
+        Decorator used to decode origin database from object. It wraps every operation inside
+        the object to be performed on meta-read database.
+
+        :param original_method: Original method to be wrapped
+        :param prop: Indicates if original method is a property.
+        :type prop: bool
+
+        :returns: Wrapped method
+
+        """
+
+        def wrapper_method(self, *args, **kwargs):
+            if InCourse.is_defined():
+                result = original_method(self, *args, **kwargs)
+            else:
+                course_id = self.kwargs.get('course_id')
+                if not course_id:
+                    raise CourseModelView.MissingCourseId('Course not defined in URL params')
+                with InCourse(course_id):
+                    result = original_method(self, *args, **kwargs)
+            return result
+
+        def wrapper_property(self):
+            if InCourse.is_defined():
+                result = original_method.fget(self)
+            else:
+                course_id = self.kwargs.get('course_id')
+                if not course_id:
+                    raise CourseModelView.MissingCourseId('Course not defined in URL params')
+                with InCourse(course_id):
+                    result = original_method.fget(self)
+            return result
+
+        if prop:
+            return property(wrapper_property)
+        return wrapper_method
+
+
+class CourseModelView(BaCa2ModelView, ABC, metaclass=ReadCourseViewMeta):
+    class MissingCourseId(Exception):
+        pass
+
+    @classmethod
+    def url(cls, **kwargs) -> str:
+        course_id = kwargs.get('course_id')
+        if not course_id:
+            raise cls.MissingCourseId('Course id required to construct URL')
+
+        return f'/course/{course_id}/models/{cls.MODEL._meta.model_name}'
+
+
+class RoundModelView(CourseModelView):
+    MODEL = Round
+
+    def check_get_filtered_permission(self,
+                                      query_params: dict,
+                                      query_result: List[django.db.models.Model],
+                                      request,
+                                      **kwargs) -> bool:
+        return True
+
+    def check_get_excluded_permission(self,
+                                      query_params: dict,
+                                      query_result: List[django.db.models.Model],
+                                      request,
+                                      **kwargs) -> bool:
+        return True
+
+    def post(self, request, **kwargs) -> JsonResponse:
+        pass
 
 
 # ----------------------------------------- User views ----------------------------------------- #
