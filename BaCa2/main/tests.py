@@ -604,7 +604,7 @@ class CourseTest(TestCase):
         """
         self.reset_roles()
 
-        course_a = Course.objects.create_course(name='course_1')
+        course_a = Course.objects.create_course(name='course_10 test')
         self.models.append(course_a)
 
         for user in [self.user_1, self.user_2]:
