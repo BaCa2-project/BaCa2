@@ -17,7 +17,9 @@
     </div>
     <div class="tab-wrapper" id="view-rounds-tab">
         <div class="side-nav-tab">
-            View Rounds
+            {% with widgets.TableWidget.rounds_table_widget as table_widget %}
+                {% include "widget_templates/table.html" %}
+            {% endwith %}
         </div>
     </div>
     <div class="tab-wrapper" id="add-round-tab">
