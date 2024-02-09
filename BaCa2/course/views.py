@@ -225,7 +225,11 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
         members_table = TableWidget(
             name='members_table_widget',
             request=self.request,
-            data_source_url=UserModelView.get_url(),  # TODO: exclude course members
+            data_source_url=UserModelView.get_url(
+                mode=BaCa2ModelView.GetMode.FILTER,
+                query_params={'roles__course': course_id},
+                serialize_kwargs={'course': course_id},
+            ),
             cols=[TextColumn(name='first_name', header=_('First name')),
                   TextColumn(name='last_name', header=_('Last name')),
                   TextColumn(name='email', header=_('Email address')),
@@ -233,6 +237,21 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
             title=_('Course members'),
         )
         self.add_widget(context, members_table)
+
+        round_table = TableWidget(
+            name='rounds_table_widget',
+            request=self.request,
+            data_source_url=RoundModelView.get_url(course_id=course_id),
+            cols=[
+                TextColumn(name='name', header=_('Round name')),
+                TextColumn(name='start_date', header=_('Start date')),
+                TextColumn(name='end_date', header=_('End date')),
+                TextColumn(name='deadline_date', header=_('Deadline date')),
+                TextColumn(name='reveal_date', header=_('Reveal date')),
+            ],
+            title=_('Rounds')
+        )
+        self.add_widget(context, round_table)
 
         add_members_form = AddMembersFormWidget(request=self.request, course_id=course_id)
         self.add_widget(context, add_members_form)
