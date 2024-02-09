@@ -617,3 +617,13 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
 
         url_kwargs = {'mode': mode.value} | kwargs
         return add_kwargs_to_url(url, url_kwargs)
+
+    @classmethod
+    def post_url(cls, **kwargs) -> str:
+        """
+        Returns a URL used to send a post request to the view.
+
+        :param kwargs: Additional keyword arguments to be added to the URL.
+        :type kwargs: dict
+        """
+        return f'{cls._url(**kwargs)}/'

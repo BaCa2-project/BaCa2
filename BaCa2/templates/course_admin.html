@@ -24,7 +24,9 @@
     </div>
     <div class="tab-wrapper" id="add-round-tab">
         <div class="side-nav-tab">
-            Add Round
+            {% with widgets.FormWidget.create_round_form_widget as form_widget %}
+                {% include "widget_templates/forms/default.html" %}
+            {% endwith %}
         </div>
     </div>
     <div class="tab-wrapper" id="view-tasks-tab">

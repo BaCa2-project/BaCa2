@@ -145,6 +145,17 @@ class InCourse:
             return False
         return True
 
+    @staticmethod
+    def get_context_course() -> Course | None:
+        """
+        :return: Course instance of the current chosen database.
+        """
+        from util.models_registry import ModelsRegistry
+        try:
+            return ModelsRegistry.get_course(settings.CURRENT_DB.get())
+        except LookupError:
+            return None
+
 
 class OptionalInCourse(InCourse):
     """

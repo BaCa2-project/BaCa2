@@ -13,7 +13,7 @@ from course.routing import InCourse
 from main.views import UserModelView
 from util.models_registry import ModelsRegistry
 from util.views import BaCa2LoggedInView, BaCa2ModelView
-from widgets.forms.course import AddMembersFormWidget
+from widgets.forms.course import AddMembersFormWidget, CreateRoundForm, CreateRoundFormWidget
 from widgets.listing import TableWidget
 from widgets.listing.columns import DatetimeColumn, TextColumn
 from widgets.navigation import SideNav
@@ -154,7 +154,9 @@ class RoundModelView(CourseModelView):
         return True
 
     def post(self, request, **kwargs) -> JsonResponse:
-        pass
+        if request.POST.get('form_name') == 'add_round_form':
+            return CreateRoundForm.handle_post_request(request)
+        return self.handle_unknown_form(request, **kwargs)
 
 
 # ----------------------------------------- User views ----------------------------------------- #
@@ -249,9 +251,13 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
                 DatetimeColumn(name='deadline_date', header=_('Deadline date')),
                 DatetimeColumn(name='reveal_date', header=_('Reveal date')),
             ],
-            title=_('Rounds')
+            title=_('Rounds'),
+            refresh_button=True,
         )
         self.add_widget(context, round_table)
+
+        add_round_form = CreateRoundFormWidget(request=self.request, course_id=course_id)
+        self.add_widget(context, add_round_form)
 
         add_members_form = AddMembersFormWidget(request=self.request, course_id=course_id)
         self.add_widget(context, add_members_form)

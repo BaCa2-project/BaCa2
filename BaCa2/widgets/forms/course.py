@@ -3,6 +3,8 @@ from typing import Dict
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
+from course.models import Round
+from course.routing import InCourse
 from main.models import Course
 from widgets.forms.base import (
     BaCa2ModelForm,
@@ -11,8 +13,17 @@ from widgets.forms.base import (
     FormWidget,
     ModelFormPostTarget
 )
+from widgets.forms.fields import AlphanumericStringField
 from widgets.forms.fields.course import CourseName, CourseShortName, USOSCode
 from widgets.popups.forms import SubmitConfirmationPopup
+
+# ------------------------------------- Course Model Form -------------------------------------- #
+
+class CourseModelForm(BaCa2ModelForm):
+    @classmethod
+    def is_permissible(cls, request) -> bool:
+        return request.user.has_course_permission(cls.ACTION.label, InCourse.get_context_course())
+
 
 # ---------------------------------------- create course --------------------------------------- #
 
@@ -283,7 +294,6 @@ class DeleteCourseFormWidget(FormWidget):
 # ----------------------------------------- add members ---------------------------------------- #
 
 class AddMembersForm(BaCa2ModelForm):
-
     MODEL = Course
     ACTION = Course.CourseAction.ADD_MEMBER
 
@@ -319,5 +329,64 @@ class AddMembersFormWidget(FormWidget):
             form=form,
             post_target=CourseModelFormPostTarget(model=Course, course=course_id),
             button_text=_('Add members'),
+            **kwargs
+        )
+
+
+# --------------------------------------- create round ----------------------------------------- #
+
+class CreateRoundForm(CourseModelForm):
+    MODEL = Round
+    ACTION = Round.BasicAction.ADD
+
+    name = AlphanumericStringField(label=_('Round name'), required=True)
+    start_date = forms.DateTimeField(label=_('Start date'), required=True)
+    end_date = forms.DateTimeField(label=_('End date'), required=False)
+    deadline_date = forms.DateTimeField(label=_('Deadline date'), required=True)
+    reveal_date = forms.DateTimeField(label=_('Reveal date'), required=False)
+
+    @classmethod
+    def handle_valid_request(cls, request) -> Dict[str, str]:
+        Round.objects.create_round(
+            name=request.POST.get('name'),
+            start_date=request.POST.get('start_date'),
+            end_date=request.POST.get('end_date'),
+            deadline_date=request.POST.get('deadline_date'),
+            reveal_date=request.POST.get('reveal_date')
+        )
+
+        return {'message': _('Round ') + request.POST.get('name') + _(' created successfully')}
+
+    @classmethod
+    def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
+        return {'message': _('Round creation failed due to invalid data. Please correct the '
+                             'following errors:')}
+
+    @classmethod
+    def handle_impermissible_request(cls, request) -> Dict[str, str]:
+        return {'message': _('Round creation failed due to insufficient permissions.')}
+
+    @classmethod
+    def handle_error(cls, request, error: Exception) -> Dict[str, str]:
+        return {'message': 'Round creation failed due to the following error:\n' + str(error)}
+
+
+class CreateRoundFormWidget(FormWidget):
+    def __init__(self,
+                 request,
+                 course_id: int,
+                 form: CreateRoundForm = None,
+                 **kwargs) -> None:
+        from course.views import RoundModelView
+
+        if not form:
+            form = CreateRoundForm()
+
+        super().__init__(
+            name='create_round_form_widget',
+            request=request,
+            form=form,
+            post_target=RoundModelView.post_url(course_id=course_id),
+            button_text=_('Add round'),
             **kwargs
         )
