@@ -128,7 +128,7 @@ class CourseModelView(BaCa2ModelView, ABC, metaclass=ReadCourseViewMeta):
         pass
 
     @classmethod
-    def url(cls, **kwargs) -> str:
+    def _url(cls, **kwargs) -> str:
         course_id = kwargs.get('course_id')
         if not course_id:
             raise cls.MissingCourseId('Course id required to construct URL')
