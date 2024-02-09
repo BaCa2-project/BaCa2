@@ -364,6 +364,9 @@ function createColumnDef(col, index) {
         case 'delete':
             def['render'] = renderDeleteField;
             break;
+        case 'datetime':
+            def['render'] = DataTable.render.datetime(col['formatter']);
+            break;
     }
 
     return def;
