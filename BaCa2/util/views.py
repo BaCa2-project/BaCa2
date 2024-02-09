@@ -573,6 +573,13 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
                                   **{'data': data})
 
     @classmethod
+    def _url(cls, **kwargs) -> str:
+        """
+        :return: Base url for the view. Used by :meth:`get_url` method.
+        """
+        return f'/{cls.MODEL._meta.app_label}/models/{cls.MODEL._meta.model_name}'
+
+    @classmethod
     def get_url(cls,
                 mode: GetMode = GetMode.ALL,
                 query_params: dict = None,
@@ -596,7 +603,7 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         See also:
             - :class:`BaCa2ModelView.GetMode`
         """
-        url = f'/{cls.MODEL._meta.app_label}/models/{cls.MODEL._meta.model_name}'
+        url = cls._url(**kwargs)
 
         if mode != cls.GetMode.ALL and query_params is None:
             raise BaCa2ModelView.ModelViewException(
