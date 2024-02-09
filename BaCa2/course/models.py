@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, List
@@ -13,7 +14,7 @@ from django.utils.timezone import now
 
 from baca2PackageManager import TestF, TSet
 from baca2PackageManager.broker_communication import BrokerToBaca
-from core.choices import ResultStatus, TaskJudgingMode
+from core.choices import ModelAction, ResultStatus, TaskJudgingMode
 from core.exceptions import DataError
 from course.routing import InCourse, OptionalInCourse
 from util.models_registry import ModelsRegistry
@@ -32,6 +33,7 @@ class ReadCourseMeta(ModelBase):
     If object was acquired from specific database, all operations are performed inside
     of this database.
     """
+    DECORATOR_OFF = []
 
     def __new__(cls, name, bases, dct):
         """
@@ -40,21 +42,23 @@ class ReadCourseMeta(ModelBase):
 
         *Special method signature from* ``django.db.models.base.ModelBase``
         """
-        new_class = super().__new__(cls, name, bases, dct)
+        result_class = super().__new__(cls, name, bases, dct)
 
         # Decorate all non-static, non-class methods with the hook method
         for attr_name, attr_value in dct.items():
             if all(((callable(attr_value) or isinstance(attr_value, property)),
                     not attr_name.startswith('_'),
                     not isinstance(attr_value, classmethod),
-                    not isinstance(attr_value, staticmethod))):
+                    not isinstance(attr_value, staticmethod),
+                    not inspect.isclass(attr_value),
+                    attr_name not in cls.DECORATOR_OFF)):
                 decorated_meth = cls.read_course_decorator(attr_value,
                                                            isinstance(attr_value, property))
                 decorated_meth.__doc__ = attr_value.__doc__
-                setattr(new_class,
+                setattr(result_class,
                         attr_name,
                         decorated_meth)
-        return new_class
+        return result_class
 
     @staticmethod
     def read_course_decorator(original_method, prop: bool = False):
@@ -184,6 +188,15 @@ class Round(models.Model, metaclass=ReadCourseMeta):
 
     #: The manager for the Round model.
     objects = RoundManager()
+
+    class BasicAction(ModelAction):
+        """
+        Basic actions for Round model.
+        """
+        ADD = 'add', 'add_round'
+        DEL = 'delete', 'delete_round'
+        EDIT = 'edit', 'change_round'
+        VIEW = 'view', 'view_round'
 
     @staticmethod
     def validate_dates(start_date: datetime,
