@@ -2,97 +2,100 @@
 
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width initial-scale=1.0">
-        <title>
-            {% block title %}
-            {% endblock %}
-        </title>
-
-        <!-- jQuery -->
-        <script src="https://code.jquery.com/jquery-3.7.0.min.js"
-                integrity="sha256-2Pmvv0kuTBOenSvLm6bvfBSSHrUJ+3A7x6P5Ebd07/g="
-                crossorigin="anonymous"></script>
-
-        <!-- DataTables -->
-        <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.js"></script>
-        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.css"/>
-
-        <!-- Bootstrap theme - customised -->
-        <link rel="stylesheet" href="{% static 'css/baca2_theme.css' %}">
-        <!-- Bootstrap script -->
-        <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"
-                integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm"
-                crossorigin="anonymous"></script>
-
-        <!-- stylesheets -->
-        <link rel="stylesheet" href="{% static 'css/base.css' %}">
-
-
-        <!-- scripts -->
-        <script src="{% static 'js/base.js' %}"></script>
-        <script src="{% static 'js/logo.js' %}"></script>
-        <script src="{% static 'js/buttons.js' %}"></script>
-        <script src="{% static 'js/tables.js' %}"></script>
-        <script src="{% static 'js/forms.js' %}"></script>
-
-        <!-- template-specific -->
-        {% block head %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width initial-scale=1.0">
+    <title>
+        {% block title %}
         {% endblock %}
+    </title>
 
-    </head>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"
+            integrity="sha256-2Pmvv0kuTBOenSvLm6bvfBSSHrUJ+3A7x6P5Ebd07/g="
+            crossorigin="anonymous"></script>
 
-    <body data-bs-theme="{{ data_bs_theme }}">
+    <!-- DataTables -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js"
+            integrity="sha512-dUlSLLkxslGILhPdCkALwk4szPhp3xmZIKFtlUD+O9Lslq41Aksmdt5OGqpomDoT4FsCUH70jQU8ezZHI3v1RQ=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.css"/>
 
-        {% if display_navbar %}
-            {% with widgets.NavBar.navbar as navbar_widget %}
-                {% include 'widget_templates/navbar.html' %}
-            {% endwith %}
-        {% endif %}
+    <!-- Bootstrap theme - customised -->
+    <link rel="stylesheet" href="{% static 'css/baca2_theme.css' %}">
+    <!-- Bootstrap script -->
+    <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm"
+            crossorigin="anonymous"></script>
 
-        <div class="h-100 container main-container" id="main-container">
-            {% if display_navbar %}
-                <div class="navbar-padding">
-            {% endif %}
-                {% if display_sidenav %}
-                    <div class="row main-row">
-                    {% with widgets.SideNav.sidenav as sidenav_widget %}
-                        {% include 'widget_templates/sidenav.html' %}
-                    {% endwith %}
-                {% endif %}
+    <!-- stylesheets -->
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
 
-                    {% if display_sidenav %}
-                        <div class="col">
-                    {% endif %}
 
-                        {% block content %}
-                        {% endblock %}
+    <!-- scripts -->
+    <script src="{% static 'js/base.js' %}"></script>
+    <script src="{% static 'js/logo.js' %}"></script>
+    <script src="{% static 'js/buttons.js' %}"></script>
+    <script src="{% static 'js/tables.js' %}"></script>
+    <script src="{% static 'js/forms.js' %}"></script>
 
-                    {% if display_sidenav %}
-                        </div>
-                    {% endif %}
+    <!-- template-specific -->
+    {% block head %}
+    {% endblock %}
 
-                {% if display_sidenav %}
-                    </div>
-                {% endif %}
-            {% if display_navbar%}
-                </div>
-            {% endif %}
+</head>
+
+<body data-bs-theme="{{ data_bs_theme }}">
+
+{% if display_navbar %}
+    {% with widgets.NavBar.navbar as navbar_widget %}
+        {% include 'widget_templates/navbar.html' %}
+    {% endwith %}
+{% endif %}
+
+<div class="h-100 container main-container" id="main-container">
+    {% if display_navbar %}
+        <div class="navbar-padding">
+    {% endif %}
+    {% if display_sidenav %}
+        <div class="row main-row">
+        {% with widgets.SideNav.sidenav as sidenav_widget %}
+            {% include 'widget_templates/sidenav.html' %}
+        {% endwith %}
+    {% endif %}
+
+    {% if display_sidenav %}
+        <div class="col">
+    {% endif %}
+
+    {% block content %}
+    {% endblock %}
+
+    {% if display_sidenav %}
         </div>
+    {% endif %}
 
-        <script>
-            initCommon();
-        </script>
+    {% if display_sidenav %}
+        </div>
+    {% endif %}
+    {% if display_navbar %}
+        </div>
+    {% endif %}
+</div>
 
-        {% block initializers %}
-        {% endblock %}
+<script>
+    initCommon();
+</script>
 
-        <script>
-            showPage();
-        </script>
+{% block initializers %}
+{% endblock %}
 
-        {% block scripts %}
-        {% endblock %}
-    </body>
+<script>
+    showPage();
+</script>
+
+{% block scripts %}
+{% endblock %}
+</body>
 </html>

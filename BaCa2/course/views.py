@@ -15,7 +15,7 @@ from util.models_registry import ModelsRegistry
 from util.views import BaCa2LoggedInView, BaCa2ModelView
 from widgets.forms.course import AddMembersFormWidget
 from widgets.listing import TableWidget
-from widgets.listing.columns import TextColumn
+from widgets.listing.columns import DatetimeColumn, TextColumn
 from widgets.navigation import SideNav
 
 # ----------------------------------------- Model views ---------------------------------------- #
@@ -244,10 +244,10 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
             data_source_url=RoundModelView.get_url(course_id=course_id),
             cols=[
                 TextColumn(name='name', header=_('Round name')),
-                TextColumn(name='start_date', header=_('Start date')),
-                TextColumn(name='end_date', header=_('End date')),
-                TextColumn(name='deadline_date', header=_('Deadline date')),
-                TextColumn(name='reveal_date', header=_('Reveal date')),
+                DatetimeColumn(name='start_date', header=_('Start date')),
+                DatetimeColumn(name='end_date', header=_('End date')),
+                DatetimeColumn(name='deadline_date', header=_('Deadline date')),
+                DatetimeColumn(name='reveal_date', header=_('Reveal date')),
             ],
             title=_('Rounds')
         )
