@@ -19,7 +19,7 @@ urlpatterns = [
     # ------------------------------------------ Apps ------------------------------------------ #
     path('broker_api/', include('broker_api.urls')),
     path('main/', include('main.urls')),
-    path('course/', include('course.urls')),
+    path('course/<int:course_id>/', include('course.urls')),
 
     # --------------------------------------- Auxiliary ---------------------------------------- #
     path('field_validation', FieldValidationView.as_view(), name='field-validation'),
