@@ -8,7 +8,7 @@ from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect
 from django.utils.translation import gettext_lazy as _
 
-from course.models import Round
+from course.models import Round, Task
 from course.routing import InCourse
 from main.views import UserModelView
 from util.models_registry import ModelsRegistry
@@ -18,7 +18,7 @@ from widgets.listing import TableWidget
 from widgets.listing.columns import DatetimeColumn, TextColumn
 from widgets.navigation import SideNav
 
-# ----------------------------------------- Model views ---------------------------------------- #
+# ----------------------------------- Course views abstraction ---------------------------------- #
 
 class ReadCourseViewMeta(ABCMeta):
     """
@@ -136,6 +136,8 @@ class CourseModelView(BaCa2ModelView, ABC, metaclass=ReadCourseViewMeta):
         return f'/course/{course_id}/models/{cls.MODEL._meta.model_name}'
 
 
+# ----------------------------------------- Model views ----------------------------------------- #
+
 class RoundModelView(CourseModelView):
     MODEL = Round
 
@@ -157,6 +159,25 @@ class RoundModelView(CourseModelView):
         if request.POST.get('form_name') == 'add_round_form':
             return CreateRoundForm.handle_post_request(request)
         return self.handle_unknown_form(request, **kwargs)
+
+
+class TaskModelView(CourseModelView):
+    MODEL = Task
+
+    def check_get_filtered_permission(self,
+                                      query_params: dict,
+                                      query_result: List[django.db.models.Model],
+                                      request,
+                                      **kwargs) -> bool:
+        return True
+
+    def check_get_excluded_permission(self, query_params: dict,
+                                      query_result: List[django.db.models.Model], request,
+                                      **kwargs) -> bool:
+        return True
+
+    def post(self, request, **kwargs) -> JsonResponse:
+        pass
 
 
 # ----------------------------------------- User views ----------------------------------------- #
@@ -224,6 +245,7 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
                                     'Tasks': ['View tasks', 'Add task']})
         self.add_widget(context, sidenav)
 
+        # members --------------------------------------------------------------
         members_table = TableWidget(
             name='members_table_widget',
             request=self.request,
@@ -240,6 +262,10 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
         )
         self.add_widget(context, members_table)
 
+        add_members_form = AddMembersFormWidget(request=self.request, course_id=course_id)
+        self.add_widget(context, add_members_form)
+
+        # rounds ---------------------------------------------------------------
         round_table = TableWidget(
             name='rounds_table_widget',
             request=self.request,
@@ -259,7 +285,20 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
         add_round_form = CreateRoundFormWidget(request=self.request, course_id=course_id)
         self.add_widget(context, add_round_form)
 
-        add_members_form = AddMembersFormWidget(request=self.request, course_id=course_id)
-        self.add_widget(context, add_members_form)
+        # tasks ----------------------------------------------------------------
+        tasks_table = TableWidget(
+            name='tasks_table_widget',
+            request=self.request,
+            data_source_url=TaskModelView.get_url(course_id=course_id),
+            cols=[TextColumn(name='name', header=_('Task name')),
+                  TextColumn(name='round_name', header=_('Round')),
+                  TextColumn(name='judging_mode', header=_('Judging mode')),
+                  TextColumn(name='points', header=_('Max points')),
+                  ],
+            title=_('Tasks'),
+            refresh_button=True,
+            default_order_col='round_name',
+        )
+        self.add_widget(context, tasks_table)
 
         return context
