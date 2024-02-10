@@ -31,7 +31,9 @@
     </div>
     <div class="tab-wrapper" id="view-tasks-tab">
         <div class="side-nav-tab">
-            View Tasks
+            {% with widgets.TableWidget.tasks_table_widget as table_widget %}
+                {% include "widget_templates/table.html" %}
+            {% endwith %}
         </div>
     </div>
     <div class="tab-wrapper" id="add-task-tab">

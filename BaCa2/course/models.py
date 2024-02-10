@@ -262,7 +262,7 @@ class Round(models.Model, metaclass=ReadCourseMeta):
         return sum(task.points for task in self.tasks)
 
     def __str__(self):
-        return f'Round {self.pk}'
+        return f'Round {self.pk}: {self.name}'
 
     def get_data(self) -> dict:
         """
@@ -383,6 +383,15 @@ class Task(models.Model, metaclass=ReadCourseMeta):
 
     #: The manager for the Task model.
     objects = TaskManager()
+
+    class BasicAction(ModelAction):
+        """
+        Basic actions for Task model.
+        """
+        ADD = 'add', 'add_task'
+        DEL = 'delete', 'delete_task'
+        EDIT = 'edit', 'change_task'
+        VIEW = 'view', 'view_task'
 
     def __str__(self):
         return (f'Task {self.pk}: {self.task_name}; '
@@ -547,6 +556,19 @@ class Task(models.Model, metaclass=ReadCourseMeta):
                 if cls.objects.filter(package_instance_id=pkg_instance.pk).exists():
                     return True
         return False
+
+    def get_data(self) -> dict:
+        """
+        :return: The data of the task.
+        :rtype: dict
+        """
+        return {
+            'name': self.task_name,
+            'round_name': self.round.name,
+            'judging_mode': self.judging_mode,
+            'points': self.points,
+            # 'package_instance': self.package_instance,
+        }
 
 
 class TestSetManager(models.Manager):
