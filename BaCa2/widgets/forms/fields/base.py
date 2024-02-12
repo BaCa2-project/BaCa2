@@ -4,6 +4,7 @@ from abc import ABC
 from typing import List
 
 from django import forms
+from django.core.validators import FileExtensionValidator
 from django.utils.translation import gettext_lazy as _
 
 from course.routing import InCourse
@@ -57,7 +58,7 @@ class RestrictedCharField(forms.CharField, ABC):
         :rtype: str
         """
         return (_('This field can only contain the following characters: ')
-                + f'{", ".join(cls.ACCEPTED_CHARS)}.')
+                + f'{", ".join(cls.ACCEPTED_CHARS)}.')  # noqa: Q000
 
 
 class AlphanumericField(RestrictedCharField):
@@ -224,7 +225,7 @@ class CharArrayField(forms.CharField):
         :rtype: str
         """
         return _('This field must be a comma-separated list of strings from the following list: '
-                 f'{", ".join(self.queryset)}.')
+                 f'{", ".join(self.queryset)}.')  # noqa: Q000
 
 
 class IntegerArrayField(CharArrayField):
@@ -279,7 +280,7 @@ class IntegerArrayField(CharArrayField):
         :rtype: str
         """
         return _('This field must be a comma-separated list of integers from the following list: '
-                 f'{", ".join([str(elem) for elem in self.queryset])}.')
+                 f'{", ".join([str(elem) for elem in self.queryset])}.')  # noqa: Q000
 
 
 class ModelArrayField(IntegerArrayField):
@@ -364,3 +365,19 @@ class CourseModelArrayField(ModelArrayField):
             with InCourse(self.course.short_name):
                 return [instance.id for instance in self.model.objects.all()]
         return super().__getattribute__(item)
+
+
+# ----------------------------------------- file fields ---------------------------------------- #
+
+class FileUploadField(forms.FileField):
+    def __init__(self,
+                 allowed_extensions: List[str] = None,
+                 **kwargs) -> None:
+        validators = kwargs.get('validators', [])
+
+        if allowed_extensions:
+            self.allowed_extensions = allowed_extensions
+            validators.append(FileExtensionValidator(allowed_extensions))
+
+        kwargs['validators'] = validators
+        super().__init__(**kwargs)
