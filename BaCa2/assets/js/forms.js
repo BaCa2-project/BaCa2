@@ -114,10 +114,13 @@ function responsePopupsSetup() {
 // ---------------------------------------- ajax submit --------------------------------------- //
 
 function handleAjaxSubmit(form) {
+    const formData = new FormData(form[0]);
     $.ajax({
         type: 'POST',
         url: form.attr('action'),
-        data: form.serialize(),
+        data: formData,
+        contentType: false,
+        processData: false,
         success: function (data) {
             formRefresh(form);
 
