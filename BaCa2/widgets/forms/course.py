@@ -3,7 +3,7 @@ from typing import Dict
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from course.models import Round
+from course.models import Round, Task
 from course.routing import InCourse
 from main.models import Course
 from widgets.forms.base import (
@@ -392,32 +392,48 @@ class CreateRoundFormWidget(FormWidget):
         )
 
 
-# class CreateTaskForm(CourseModelForm):
-#     MODEL = Task
-#     ACTION = Task.BasicAction.ADD
-#
-#     round = TableSelectField(_('Round'),
-#                              'round_select_table_widget',
-#                              RoundModelView.get_url(),
-#                              cols=[
-#                                  TextColumn(name='name', header=_('Name')),
-#                                  DatetimeColumn(name='start_date', header=_('Start date')),
-#                                  DatetimeColumn(name='deadline_date', header=_('Deadline date')),
-#                              ])
-#
-#
-#     @classmethod
-#     def handle_valid_request(cls, request) -> Dict[str, str]:
-#         pass
-#
-#     @classmethod
-#     def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
-#         pass
-#
-#     @classmethod
-#     def handle_impermissible_request(cls, request) -> Dict[str, str]:
-#         pass
-#
-#     @classmethod
-#     def handle_error(cls, request, error: Exception) -> Dict[str, str]:
-#         pass
+# ----------------------------------------- create task ---------------------------------------- #
+
+class CreateTaskForm(BaCa2ModelForm):
+
+    MODEL = Task
+    ACTION = Task.BasicAction.ADD
+
+    package = forms.FileField(label=_('Task package'), required=True)
+
+    @classmethod
+    def handle_valid_request(cls, request) -> Dict[str, str]:
+        pass
+
+    @classmethod
+    def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
+        pass
+
+    @classmethod
+    def handle_impermissible_request(cls, request) -> Dict[str, str]:
+        pass
+
+    @classmethod
+    def handle_error(cls, request, error: Exception) -> Dict[str, str]:
+        pass
+
+
+class CreateTaskFormWidget(FormWidget):
+    def __init__(self,
+                 request,
+                 course_id: int,
+                 form: CreateTaskForm = None,
+                 **kwargs) -> None:
+        from course.views import TaskModelView
+
+        if not form:
+            form = CreateTaskForm()
+
+        super().__init__(
+            name='create_task_form_widget',
+            request=request,
+            form=form,
+            post_target=TaskModelView.post_url(course_id=course_id),
+            button_text=_('Add task'),
+            **kwargs
+        )
