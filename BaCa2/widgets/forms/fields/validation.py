@@ -41,7 +41,7 @@ def get_field_validation_status(request: HttpRequest,
     min_length = int(min_length) if min_length else False
 
     if field.widget.input_type == 'file':
-        return _get_file_field_validation_status(field)
+        return _get_file_field_validation_status(field, value)
 
     if hasattr(field, 'clean') and callable(field.clean):
         try:
@@ -64,5 +64,27 @@ def get_field_validation_status(request: HttpRequest,
         return {'status': 'ok'}
 
 
-def _get_file_field_validation_status(field: forms.FileField) -> Dict[str, str or List[str]]:
+def _get_file_field_validation_status(field: forms.FileField,
+                                      value: str) -> Dict[str, str or List[str]]:
+    if field.widget.is_required and not value:
+        return {'status': 'error',
+                'messages': [_('This field is required.')]}
+    elif not value:
+        return {'status': 'ok'}
+
+    validate_extensions = False
+    allowed_extensions = []
+
+    for validator in field.validators:
+        if hasattr(validator, 'allowed_extensions'):
+            validate_extensions = True
+            allowed_extensions = validator.allowed_extensions
+
+    if validate_extensions:
+        extension = value.split('.')[-1]
+        if extension not in allowed_extensions:
+            return {'status': 'error',
+                    'messages': [_('This file type is not allowed. Supported file types: ') +
+                                 ', '.join(allowed_extensions)]}
+
     return {'status': 'ok'}
