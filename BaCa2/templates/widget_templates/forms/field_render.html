@@ -1,0 +1,5 @@
+{% load widget_tweaks %}
+
+{% with field.field.widget.input_type as field_type  %}
+    {% render_field field class=field_class id=field.name placeholder="-" type=field_type %}
+{% endwith %}
