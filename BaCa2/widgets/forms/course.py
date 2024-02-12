@@ -390,3 +390,34 @@ class CreateRoundFormWidget(FormWidget):
             button_text=_('Add round'),
             **kwargs
         )
+
+
+# class CreateTaskForm(CourseModelForm):
+#     MODEL = Task
+#     ACTION = Task.BasicAction.ADD
+#
+#     round = TableSelectField(_('Round'),
+#                              'round_select_table_widget',
+#                              RoundModelView.get_url(),
+#                              cols=[
+#                                  TextColumn(name='name', header=_('Name')),
+#                                  DatetimeColumn(name='start_date', header=_('Start date')),
+#                                  DatetimeColumn(name='deadline_date', header=_('Deadline date')),
+#                              ])
+#
+#
+#     @classmethod
+#     def handle_valid_request(cls, request) -> Dict[str, str]:
+#         pass
+#
+#     @classmethod
+#     def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
+#         pass
+#
+#     @classmethod
+#     def handle_impermissible_request(cls, request) -> Dict[str, str]:
+#         pass
+#
+#     @classmethod
+#     def handle_error(cls, request, error: Exception) -> Dict[str, str]:
+#         pass
