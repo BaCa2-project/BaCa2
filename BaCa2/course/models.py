@@ -853,6 +853,15 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
     #: The manager for the Submit model.
     objects = SubmitManager()
 
+    class BasicAction(ModelAction):
+        """
+        Basic actions for Submit model.
+        """
+        ADD = 'add', 'add_submit'
+        DEL = 'delete', 'delete_submit'
+        EDIT = 'edit', 'change_submit'
+        VIEW = 'view', 'view_submit'
+
     def send(self) -> BrokerSubmit:
         """
         It sends the submit to the broker.
@@ -980,6 +989,37 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         self.final_score = round(final_score / final_weight, 6)
         self.save()
         return self.final_score
+
+    @staticmethod
+    def format_score(score: float) -> str:
+        """
+        It formats the score to a string.
+
+        :param score: The score that you want to format.
+        :type score: float
+
+        :return: The formatted score.
+        :rtype: str
+        """
+        score = round(score * 100, 2)
+        return f'{score:.2f} %' if score > -1 else 'PND'
+
+    def get_data(self, show_user: bool = True) -> dict:
+        """
+        :return: The data of the submit.
+        :rtype: dict
+        """
+        score = self.score()
+        res = {
+            'submit_date': self.submit_date,
+            'source_code': self.source_code,
+            'task': self.task.task_name,
+            'final_score': self.format_score(score),
+        }
+        if show_user:
+            res |= {'user_first_name': self.user.first_name,
+                    'user_last_name': self.user.last_name}
+        return res
 
 
 class ResultManager(models.Manager):

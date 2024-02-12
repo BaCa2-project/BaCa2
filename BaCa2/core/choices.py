@@ -34,3 +34,10 @@ class BasicModelAction(ModelAction):
     DEL = 'DEL', 'delete'
     EDIT = 'EDIT', 'change'
     VIEW = 'VIEW', 'view'
+
+
+class TaskDescriptionExtension(models.TextChoices):
+    PDF = 'PDF', _('PDF')
+    MD = 'MD', _('Markdown')
+    HTML = 'HTML', _('HTML')
+    TXT = 'TXT', _('Plain text')

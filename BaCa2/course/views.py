@@ -8,7 +8,7 @@ from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect
 from django.utils.translation import gettext_lazy as _
 
-from course.models import Round, Task
+from course.models import Round, Submit, Task
 from course.routing import InCourse
 from main.views import UserModelView
 from util.models_registry import ModelsRegistry
@@ -180,6 +180,25 @@ class TaskModelView(CourseModelView):
         pass
 
 
+class SubmitModelView(CourseModelView):
+    MODEL = Submit
+
+    def check_get_filtered_permission(self,
+                                      query_params: dict,
+                                      query_result: List[django.db.models.Model],
+                                      request,
+                                      **kwargs) -> bool:
+        return True
+
+    def check_get_excluded_permission(self, query_params: dict,
+                                      query_result: List[django.db.models.Model], request,
+                                      **kwargs) -> bool:
+        return True
+
+    def post(self, request, **kwargs) -> JsonResponse:
+        pass
+
+
 # ----------------------------------------- User views ----------------------------------------- #
 
 class CourseView(BaCa2LoggedInView):
@@ -242,7 +261,7 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
                           tabs=['Members', 'Rounds', 'Tasks', 'Results'],
                           sub_tabs={'Members': ['View members', 'Add members'],
                                     'Rounds': ['View rounds', 'Add round'],
-                                    'Tasks': ['View tasks', 'Add task']})
+                                    'Tasks': ['View tasks', 'Add task']}, )
         self.add_widget(context, sidenav)
 
         # members --------------------------------------------------------------
@@ -300,5 +319,90 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
             default_order_col='round_name',
         )
         self.add_widget(context, tasks_table)
+
+        return context
+
+
+class CourseTask(BaCa2LoggedInView):
+    template_name = 'course_task.html'
+
+    def get(self, request, *args, **kwargs) -> HttpResponse:
+        """
+        Checks if the user is an admin of the course or a superuser. If so, redirects to the course
+        admin page. If not, checks if the user is a member of the course. If so, returns the course
+        page. If not, returns an HTTP 403 Forbidden error.
+        """
+        course = ModelsRegistry.get_course(self.kwargs.get('course_id'))
+        # if course.user_is_admin(request.user) or request.user.is_superuser:
+        #     return redirect('course:course-admin', course_id=course.id)
+        if not course.user_is_member(request.user) and not course.user_is_admin(request.user):
+            return HttpResponseForbidden(_('You are neither a member of this course nor an admin.\n'
+                                           'You are not allowed to view this page.'))
+        return super().get(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs) -> dict:
+        context = super().get_context_data(**kwargs)
+        # course_id = self.kwargs.get('course_id')
+        # task_id = self.kwargs.get('task_id')
+
+        sidenav = SideNav(request=self.request,
+                          collapsed=True,
+                          tabs=['Description', 'Submit', 'My results'], )
+
+        self.add_widget(context, sidenav)
+
+        # Add widget, generating task description from file
+
+        return context
+
+
+class CourseTaskAdmin(BaCa2LoggedInView, UserPassesTestMixin):
+    """
+    View for admins of a course. Only accessible if the user is an admin of the course or a
+    superuser.
+    """
+
+    template_name = 'course_task_admin.html'
+
+    def test_func(self) -> bool:
+        """
+        Test function for UserPassesTestMixin.
+
+        :return: `True` if the user is an admin of the course or a superuser, `False` otherwise.
+        :rtype: bool
+        """
+        course = ModelsRegistry.get_course(self.kwargs.get('course_id'))
+        return course.user_is_admin(self.request.user) or self.request.user.is_superuser
+
+    def get_context_data(self, **kwargs) -> dict:
+        context = super().get_context_data(**kwargs)
+        course_id = self.kwargs.get('course_id')
+        task_id = self.kwargs.get('task_id')
+
+        sidenav = SideNav(request=self.request,
+                          collapsed=True,
+                          tabs=['Description', 'Student submissions', 'Edit'], )
+
+        self.add_widget(context, sidenav)
+
+        # Add widget, generating task description from file
+        submissions_table = TableWidget(
+            name='submissions_table_widget',
+            request=self.request,
+            data_source_url=SubmitModelView.get_url(
+                mode=BaCa2ModelView.GetMode.FILTER,
+                query_params={'task__id': task_id},
+                course_id=course_id,
+            ),
+            cols=[
+                DatetimeColumn(name='submit_date', header=_('Submit time')),
+                TextColumn(name='user_first_name', header=_('Submitter name')),
+                TextColumn(name='user_last_name', header=_('Submitter last name')),
+                TextColumn(name='final_score', header=_('Score')),
+            ],
+            title=_('Submissions'),
+            refresh_button=True,
+        )
+        self.add_widget(context, submissions_table)
 
         return context
