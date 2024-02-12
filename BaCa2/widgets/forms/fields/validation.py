@@ -40,6 +40,9 @@ def get_field_validation_status(request: HttpRequest,
 
     min_length = int(min_length) if min_length else False
 
+    if field.widget.input_type == 'file':
+        return _get_file_field_validation_status(field)
+
     if hasattr(field, 'clean') and callable(field.clean):
         try:
             field.clean(value)
@@ -59,3 +62,7 @@ def get_field_validation_status(request: HttpRequest,
                     'messages': e.messages}
     else:
         return {'status': 'ok'}
+
+
+def _get_file_field_validation_status(field: forms.FileField) -> Dict[str, str or List[str]]:
+    return {'status': 'ok'}
