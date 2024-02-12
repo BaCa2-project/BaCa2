@@ -31,6 +31,8 @@
                     {% with form_widget.form|get_form_field:element as field %}
                         {% if field.field.widget.attrs.class == 'table-select-field' %}
                             {% include 'widget_templates/forms/table_select_field.html' %}
+                        {% elif field.field.widget.input_type == 'file' %}
+                            {% include 'widget_templates/forms/file_upload_field.html' %}
                         {% elif not field.is_hidden %}
                             {% include 'widget_templates/forms/field.html' %}
                         {% endif %}

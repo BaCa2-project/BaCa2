@@ -13,7 +13,12 @@ from course.routing import InCourse
 from main.views import UserModelView
 from util.models_registry import ModelsRegistry
 from util.views import BaCa2LoggedInView, BaCa2ModelView
-from widgets.forms.course import AddMembersFormWidget, CreateRoundForm, CreateRoundFormWidget
+from widgets.forms.course import (
+    AddMembersFormWidget,
+    CreateRoundForm,
+    CreateRoundFormWidget,
+    CreateTaskFormWidget
+)
 from widgets.listing import TableWidget
 from widgets.listing.columns import DatetimeColumn, TextColumn
 from widgets.navigation import SideNav
@@ -270,13 +275,11 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
             name='rounds_table_widget',
             request=self.request,
             data_source_url=RoundModelView.get_url(course_id=course_id),
-            cols=[
-                TextColumn(name='name', header=_('Round name')),
-                DatetimeColumn(name='start_date', header=_('Start date')),
-                DatetimeColumn(name='end_date', header=_('End date')),
-                DatetimeColumn(name='deadline_date', header=_('Deadline date')),
-                DatetimeColumn(name='reveal_date', header=_('Reveal date')),
-            ],
+            cols=[TextColumn(name='name', header=_('Round name')),
+                  DatetimeColumn(name='start_date', header=_('Start date')),
+                  DatetimeColumn(name='end_date', header=_('End date')),
+                  DatetimeColumn(name='deadline_date', header=_('Deadline date')),
+                  DatetimeColumn(name='reveal_date', header=_('Reveal date'))],
             title=_('Rounds'),
             refresh_button=True,
         )
@@ -293,12 +296,14 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
             cols=[TextColumn(name='name', header=_('Task name')),
                   TextColumn(name='round_name', header=_('Round')),
                   TextColumn(name='judging_mode', header=_('Judging mode')),
-                  TextColumn(name='points', header=_('Max points')),
-                  ],
+                  TextColumn(name='points', header=_('Max points'))],
             title=_('Tasks'),
             refresh_button=True,
             default_order_col='round_name',
         )
         self.add_widget(context, tasks_table)
+
+        add_task_form = CreateTaskFormWidget(request=self.request, course_id=course_id)
+        self.add_widget(context, add_task_form)
 
         return context
