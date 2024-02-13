@@ -37,7 +37,12 @@ repos:
     hooks:
       - id: isort
         name: isort (python)
-
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+        exclude: ^.*admin.json$
   - repo: https://github.com/pycqa/flake8
     rev: 7.0.0
     hooks:
