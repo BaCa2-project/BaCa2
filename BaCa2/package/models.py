@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from baca2PackageManager import Package
 from baca2PackageManager.validators import isStr
+from core.tools.misc import random_id
 from main.models import User
 from util.models_registry import ModelsRegistry
 
@@ -18,23 +19,6 @@ class PackageSourceManager(models.Manager):
     """
     PackageSourceManager is a manager for the PackageSource class
     """
-
-    def get_unique_name(self, name: str) -> str:
-        """
-        It returns a unique name for the package source
-
-        :param name: The name of the package source
-        :type name: str
-
-        :return: The unique name of the package source.
-        """
-        if not self.model.exists(name):
-            return name
-
-        i = 1
-        while self.model.exists(f'{name}{i}'):
-            i += 1
-        return f'{name}{i}'
 
     @transaction.atomic
     def create_package_source(self, name: str) -> PackageSource:
@@ -56,7 +40,8 @@ class PackageSourceManager(models.Manager):
     def create_package_source_from_zip(self,
                                        name: str,
                                        zip_file: Path,
-                                       creator: int | str | User = None) -> PackageSource:
+                                       creator: int | str | User = None,
+                                       safe_name=True) -> PackageSource:
         """
         Create a new package source from the given zip file
 
@@ -66,9 +51,14 @@ class PackageSourceManager(models.Manager):
         :type zip_file: Path
         :param creator: The creator of the package (optional)
         :type creator: int | str | User
+        :param safe_name: If True, make the name unique
+        :type safe_name: bool
 
         :return: A new PackageSource object.
         """
+        if safe_name:
+            name = name.replace(' ', '_')
+            name = f'{name}_{random_id()}'
         package_source = self.model(name=name)
         package_source.save()
         if not package_source.path.exists():
@@ -338,11 +328,10 @@ class PackageInstanceManager(models.Manager):
         :param creator: The creator of the package (optional)
         :type creator: int | str | User
 
-
         :return: A new PackageInstance object.
         """
         package_source = ModelsRegistry.get_package_source(package_source)
-        commit_name = f'from_zip_{timezone.now().timestamp()}'
+        commit_name = f'from_zip_{random_id()}'
         pkg = Package.create_from_zip(package_source.path, commit_name, zip_file, overwrite)
         package_instance = self.model(package_source=package_source, commit=commit_name)
         settings.PACKAGES[PackageInstance.commit_msg(package_source, commit_name)] = pkg

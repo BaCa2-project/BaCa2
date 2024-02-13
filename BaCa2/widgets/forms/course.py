@@ -1,8 +1,12 @@
+import logging
 from typing import Dict
 
 from django import forms
+from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
+from core.choices import TaskJudgingMode
+from core.tools.files import FileHandler
 from course.models import Round, Task
 from course.routing import InCourse
 from main.models import Course
@@ -13,9 +17,12 @@ from widgets.forms.base import (
     FormWidget,
     ModelFormPostTarget
 )
-from widgets.forms.fields import AlphanumericStringField
+from widgets.forms.fields import AlphanumericStringField, FileUploadField
 from widgets.forms.fields.course import CourseName, CourseShortName, USOSCode
 from widgets.popups.forms import SubmitConfirmationPopup
+
+logger = logging.getLogger(__name__)
+
 
 # ------------------------------------- Course Model Form -------------------------------------- #
 
@@ -395,27 +402,77 @@ class CreateRoundFormWidget(FormWidget):
 # ----------------------------------------- create task ---------------------------------------- #
 
 class CreateTaskForm(BaCa2ModelForm):
-
     MODEL = Task
     ACTION = Task.BasicAction.ADD
 
-    package = forms.FileField(label=_('Task package'), required=True)
+    task_name = AlphanumericStringField(
+        label=_('Task name (if not provided - will be taken from package)'),
+        required=True)
+    round_ = AlphanumericStringField(label=_('Round ID (temp)'), required=True)
+    points = forms.FloatField(label=_('Points (if not provided - will be taken from package)'),
+                              min_value=0)
+    package = FileUploadField(label=_('Task package'),
+                              required=True,
+                              allowed_extensions=['zip'])
+    judge_mode = forms.ChoiceField(label=_('Judge mode'),
+                                   choices=TaskJudgingMode,
+                                   required=True,
+                                   )
 
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
-        pass
+        """
+        Creates a new :class:`Task` object based on the data provided in the request.
+        Also creates a new :class:`PackageSource` and :class:`PackageInstance` objects based on the
+        uploaded package.
+
+        :param request: POST request containing the task data.
+
+        :return: Dictionary containing a success message.
+        :rtype: Dict[str, str]
+        """
+        from package.models import PackageSource
+
+        task_name = request.POST.get('task_name')
+        round_id = request.POST.get('round_')
+        points = request.POST.get('points')
+        judge_mode = request.POST.get('judge_mode')
+        if judge_mode is None:
+            judge_mode = TaskJudgingMode.LIN
+        else:
+            judge_mode = TaskJudgingMode[judge_mode]
+        file = FileHandler(settings.UPLOAD_DIR, 'zip', request.FILES['package'])
+        file.save()
+        try:
+            package_instance = PackageSource.objects.create_package_source_from_zip(
+                name=task_name,
+                zip_file=file.path,
+                creator=request.user
+            )
+        except Exception as e:
+            file.delete()
+            raise e
+        Task.objects.create_task(
+            package_instance=package_instance,
+            round_=round_id,
+            task_name=task_name,
+            points=points,
+            judging_mode=judge_mode,
+        )
+        return {'message': _('Task ') + task_name + _(' created successfully')}
 
     @classmethod
     def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
-        pass
+        return {'message': _('Task creation failed due to invalid data. Please correct the '
+                             'following errors:')}
 
     @classmethod
     def handle_impermissible_request(cls, request) -> Dict[str, str]:
-        pass
+        return {'message': _('Task creation failed due to insufficient permissions.')}
 
     @classmethod
     def handle_error(cls, request, error: Exception) -> Dict[str, str]:
-        pass
+        return {'message': 'Task creation failed due to the following error:\n' + str(error)}
 
 
 class CreateTaskFormWidget(FormWidget):
@@ -425,7 +482,6 @@ class CreateTaskFormWidget(FormWidget):
                  form: CreateTaskForm = None,
                  **kwargs) -> None:
         from course.views import TaskModelView
-
         if not form:
             form = CreateTaskForm()
 
