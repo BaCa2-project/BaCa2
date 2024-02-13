@@ -1,6 +1,6 @@
 {% load custom_tags %}
 
-<div class="input-block table-select-field mb-3">
+<div class="input-block mb-3">
     <div class="{% if form_widget.live_validation %} live-validation {% endif %}">
         <label for="{{ field.name }}" class="form-label">{{ field.label }}</label>
         {% include 'widget_templates/forms/form_control_field.html' %}

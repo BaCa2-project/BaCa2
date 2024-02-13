@@ -40,6 +40,7 @@ class TableSelectField(IntegerArrayField):
         from widgets.listing import TableWidget
 
         super().__init__(**kwargs)
+        self.special_field_type = 'table_select'
         self.widget.attrs.update({'class': 'table-select-field'})
         self.data_source_url = data_source_url
         table_widget = TableWidget(
