@@ -311,7 +311,7 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
                   DatetimeColumn(name='reveal_date', header=_('Reveal date'))],
             title=_('Rounds'),
             refresh_button=True,
-            link_format_string=f'/course/{course_id}/round-edit/?tab={"{normalized_name}"}-tab#'
+            link_format_string=f'/course/{course_id}/round-edit/?tab=[[normalized_name]]-tab#'
         )
         self.add_widget(context, round_table)
 
@@ -333,7 +333,7 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
             allow_delete=True,
             delete_form=DeleteTaskForm(),
             data_post_url=TaskModelView.post_url(course_id=course_id),
-            link_format_string=f'/course/{course_id}/task/{"{id}"}',
+            link_format_string=f'/course/{course_id}/task/[[id]]',
         )
         self.add_widget(context, tasks_table)
 
