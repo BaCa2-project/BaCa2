@@ -493,3 +493,116 @@ class CreateTaskFormWidget(FormWidget):
             button_text=_('Add task'),
             **kwargs
         )
+
+
+class DeleteTaskForm(BaCa2ModelForm):
+    """
+    Form for deleting existing :py:class:`course.Task` objects.
+    """
+
+    MODEL = Task
+    ACTION = Task.BasicAction.DEL
+
+    #: ID of the task to be deleted.
+    task_id = forms.IntegerField(
+        label=_('Task ID'),
+        widget=forms.HiddenInput(attrs={'class': 'model-id', 'data-reset-on-refresh': 'true'}),
+        required=True,
+    )
+
+    @classmethod
+    def handle_valid_request(cls, request) -> Dict[str, str]:
+        """
+        Deletes the task with the ID provided in the request.
+
+        :param request: POST request containing the task ID.
+        :type request: HttpRequest
+        :return: Dictionary containing a success message.
+        :rtype: Dict[str, str]
+        """
+        Task.objects.delete_task(int(request.POST.get('task_id')))
+        return {'message': _('Task deleted successfully')}
+
+    @classmethod
+    def handle_error(cls, request, error) -> Dict[str, str]:
+        """
+        Returns response message for a request that failed due to an error other than invalid data
+        or insufficient permissions.
+
+        :param request: POST request containing the task ID.
+        :type request: HttpRequest
+        :param error: Error that caused the request to fail.
+        :type error: Exception
+        :return: Dictionary containing an error message.
+        :rtype: Dict[str, str]
+        """
+        return {'message': 'Task deletion failed due to the following error:\n' + str(error)}
+
+    @classmethod
+    def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
+        """
+        Returns response message for a request containing invalid data.
+
+        :param request: POST request containing the task ID.
+        :type request: HttpRequest
+        :param errors: Dictionary containing information about the errors found in the form data.
+        :type errors: dict
+        :return: Dictionary containing an error message preceding the list of errors.
+        :rtype: Dict[str, str]
+        """
+        return {'message': _('Task deletion failed due to invalid data. Please correct the '
+                             'following errors:')}
+
+    @classmethod
+    def handle_impermissible_request(cls, request) -> Dict[str, str]:
+        """
+        Returns response message for a request from a user without the permission to delete tasks.
+
+        :param request: POST request containing the task ID.
+        :type request: HttpRequest
+        :return: Dictionary containing an error message.
+        :rtype: Dict[str, str]
+        """
+        return {'message': _('Task deletion failed due to insufficient permissions.')}
+
+
+class DeleteTaskFormWidget(FormWidget):
+    """
+    Form widget for deleting tasks.
+
+    See also:
+        - :class:`FormWidget`
+        - :class:`DeleteTaskForm`
+    """
+
+    def __init__(self,
+                 request,
+                 form: DeleteTaskForm = None,
+                 **kwargs) -> None:
+        """
+        :param request: HTTP request object received by the view this form widget is rendered in.
+        :type request: HttpRequest
+        :param form: Form to be base the widget on. If not provided, a new form will be created.
+        :type form: :class:`DeleteTaskForm`
+        :param kwargs: Additional keyword arguments to be passed to the :class:`FormWidget`
+            super constructor.
+        :type kwargs: dict
+        """
+        if not form:
+            form = DeleteTaskForm()
+
+        super().__init__(
+            name='delete_task_form_widget',
+            request=request,
+            form=form,
+            post_target=ModelFormPostTarget(Task),
+            button_text=_('Delete task'),
+            submit_confirmation_popup=SubmitConfirmationPopup(
+                title=_('Confirm task deletion'),
+                message=_(
+                    'Are you sure you want to delete this task? This action cannot be undone.'
+                ),
+                confirm_button_text=_('Delete task'),
+            ),
+            **kwargs
+        )
