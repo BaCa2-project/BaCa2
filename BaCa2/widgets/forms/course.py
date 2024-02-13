@@ -7,7 +7,7 @@ from django.utils.translation import gettext_lazy as _
 
 from core.choices import TaskJudgingMode
 from core.tools.files import FileHandler
-from course.models import Round, Task
+from course.models import Round, Submit, Task
 from course.routing import InCourse
 from main.models import Course
 from widgets.forms.base import (
@@ -604,5 +604,70 @@ class DeleteTaskFormWidget(FormWidget):
                 ),
                 confirm_button_text=_('Delete task'),
             ),
+            **kwargs
+        )
+
+
+# ----------------------------------------- submissions ---------------------------------------- #
+
+class CreateSubmitForm(BaCa2ModelForm):
+    MODEL = Submit
+    ACTION = Submit.BasicAction.ADD
+
+    source_code = FileUploadField(label=_('Source code'), required=True)
+    task_id = forms.IntegerField(label=_('Task ID'), required=True)
+
+    @classmethod
+    def handle_valid_request(cls, request) -> Dict[str, str]:
+        file_extension = request.FILES['source_code'].name.split('.')[-1]
+        source_code_file = FileHandler(settings.SUBMITS_DIR,
+                                       file_extension,
+                                       request.FILES['source_code'])
+        source_code_file.save()
+        task_id = int(request.POST.get('task_id'))
+        user = request.user
+
+        try:
+            Submit.objects.create_submit(
+                source_code=source_code_file.path,
+                task=task_id,
+                user=user,
+                auto_send=False
+            )
+        except Exception as e:
+            source_code_file.delete()
+            raise e
+        return {'message': _('Submit created successfully')}
+
+    @classmethod
+    def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
+        return {'message': _('Submit creation failed due to invalid data. Please correct the '
+                             'following errors:')}
+
+    @classmethod
+    def handle_impermissible_request(cls, request) -> Dict[str, str]:
+        return {'message': _('Submit creation failed due to insufficient permissions.')}
+
+    @classmethod
+    def handle_error(cls, request, error: Exception) -> Dict[str, str]:
+        return {'message': 'Submit creation failed due to the following error:\n' + str(error)}
+
+
+class CreateSubmitFormWidget(FormWidget):
+    def __init__(self,
+                 request,
+                 course_id: int,
+                 form: CreateTaskForm = None,
+                 **kwargs) -> None:
+        from course.views import SubmitModelView
+        if not form:
+            form = CreateSubmitForm()
+
+        super().__init__(
+            name='create_submit_form_widget',
+            request=request,
+            form=form,
+            post_target=SubmitModelView.post_url(course_id=course_id),
+            button_text=_('New submission'),
             **kwargs
         )

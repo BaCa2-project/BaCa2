@@ -17,6 +17,8 @@ from widgets.forms.course import (
     AddMembersFormWidget,
     CreateRoundForm,
     CreateRoundFormWidget,
+    CreateSubmitForm,
+    CreateSubmitFormWidget,
     CreateTaskForm,
     CreateTaskFormWidget,
     DeleteTaskForm
@@ -207,7 +209,9 @@ class SubmitModelView(CourseModelView):
         return True
 
     def post(self, request, **kwargs) -> JsonResponse:
-        pass
+        if request.POST.get('form_name') == 'add_submit_form':
+            return CreateSubmitForm.handle_post_request(request)
+        return self.handle_unknown_form(request, **kwargs)
 
 
 # ----------------------------------------- User views ----------------------------------------- #
@@ -328,6 +332,7 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
             allow_delete=True,
             delete_form=DeleteTaskForm(),
             data_post_url=TaskModelView.post_url(course_id=course_id),
+            link_format_string=f'/course/{course_id}/task/{"{id}"}',
         )
         self.add_widget(context, tasks_table)
 
@@ -357,8 +362,9 @@ class CourseTask(BaCa2LoggedInView):
 
     def get_context_data(self, **kwargs) -> dict:
         context = super().get_context_data(**kwargs)
-        # course_id = self.kwargs.get('course_id')
-        # task_id = self.kwargs.get('task_id')
+        course_id = self.kwargs.get('course_id')
+        task_id = self.kwargs.get('task_id')
+        task = ModelsRegistry.get_task(task_id, course_id)
 
         sidenav = SideNav(request=self.request,
                           collapsed=True,
@@ -366,7 +372,33 @@ class CourseTask(BaCa2LoggedInView):
 
         self.add_widget(context, sidenav)
 
-        # Add widget, generating task description from file
+        # TODO: Add widget, generating task description from file
+
+        # submit
+        submit_form = CreateSubmitFormWidget(request=self.request,
+                                             course_id=course_id, )
+        self.add_widget(context, submit_form)
+
+        # results list
+        results_table = TableWidget(
+            name='results_table_widget',
+            request=self.request,
+            data_source_url=SubmitModelView.get_url(
+                mode=BaCa2ModelView.GetMode.FILTER,
+                query_params={'task__pk': task_id,
+                              'usr': self.request.user.id},
+                serialize_kwargs={'show_user': False},
+                course_id=course_id,
+            ),
+            cols=[
+                DatetimeColumn(name='submit_date', header=_('Submit time')),
+                TextColumn(name='final_score', header=_('Percentage')),
+                TextColumn(name='task_score', header=_('Task score')),
+            ],
+            title=f"{_('My results')} - {task.task_name}",
+            refresh_button=True,
+        )
+        self.add_widget(context, results_table)
 
         return context
 
