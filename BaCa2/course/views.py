@@ -283,7 +283,7 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
         members_table = TableWidget(
             name='members_table_widget',
             request=self.request,
-            data_source_url=UserModelView.get_url(
+            data_source=UserModelView.get_url(
                 mode=BaCa2ModelView.GetMode.FILTER,
                 query_params={'roles__course': course_id},
                 serialize_kwargs={'course': course_id},
@@ -303,7 +303,7 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
         round_table = TableWidget(
             name='rounds_table_widget',
             request=self.request,
-            data_source_url=RoundModelView.get_url(course_id=course_id),
+            data_source=RoundModelView.get_url(course_id=course_id),
             cols=[TextColumn(name='name', header=_('Round name')),
                   DatetimeColumn(name='start_date', header=_('Start date')),
                   DatetimeColumn(name='end_date', header=_('End date')),
@@ -322,7 +322,7 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
         tasks_table = TableWidget(
             name='tasks_table_widget',
             request=self.request,
-            data_source_url=TaskModelView.get_url(course_id=course_id),
+            data_source=TaskModelView.get_url(course_id=course_id),
             cols=[TextColumn(name='name', header=_('Task name')),
                   TextColumn(name='round_name', header=_('Round')),
                   TextColumn(name='judging_mode', header=_('Judging mode')),
@@ -343,7 +343,7 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
         results_table = TableWidget(
             name='results_table_widget',
             request=self.request,
-            data_source_url=SubmitModelView.get_url(
+            data_source=SubmitModelView.get_url(
                 serialize_kwargs={'add_round_task_name': True,
                                   'add_summary_score': True, },
                 course_id=course_id, ),
@@ -403,7 +403,7 @@ class CourseTask(BaCa2LoggedInView):
         results_table = TableWidget(
             name='results_table_widget',
             request=self.request,
-            data_source_url=SubmitModelView.get_url(
+            data_source=SubmitModelView.get_url(
                 mode=BaCa2ModelView.GetMode.FILTER,
                 query_params={'task__pk': task_id,
                               'usr': self.request.user.id},
@@ -456,7 +456,7 @@ class CourseTaskAdmin(BaCa2LoggedInView, UserPassesTestMixin):
         submissions_table = TableWidget(
             name='submissions_table_widget',
             request=self.request,
-            data_source_url=SubmitModelView.get_url(
+            data_source=SubmitModelView.get_url(
                 mode=BaCa2ModelView.GetMode.FILTER,
                 query_params={'task__id': task_id},
                 course_id=course_id,

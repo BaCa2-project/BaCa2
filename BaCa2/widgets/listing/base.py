@@ -15,15 +15,23 @@ from widgets.popups.forms import SubmitConfirmationPopup
 class TableWidget(Widget):
     """
     Widget used to display a table of data. Constructor arguments define the table's properties
-    such as title, columns, data source url, search options, etc.
+    such as title, columns, data source, search options, etc.
 
     The table widget is rendered with the help of the DataTables jQuery plugin using the
     `templates/widget_templates/table.html` template.
 
-    All table widgets use AJAX get requests to fetch the table data from the data source url.
-    The data source url should return a JSON object containing a 'data' key with a list of
-    dictionaries representing table rows. The keys of the dictionaries should correspond to the
-    names of the table columns.
+    All table widgets used to display database records should fetch their data with an AJAX get
+    request to the appropriate model view. As such their data source should be set to the url of
+    the model view from which they receive their data (generated using the `get_url` method of the
+    model view class). The data source url should return a JSON object containing a 'data' key with
+    a list of dictionaries representing table rows. The keys of the dictionaries should
+    correspond to the names of the table columns.
+
+    If the table widget is used to display static data, the data source should be provided as a
+    list of dictionaries representing table rows. The keys of the dictionaries should correspond to
+    the names of the table columns. All records in the table should have the same keys as well as
+    an 'id' key. If the provided dictionaries do not contain an 'id' key, the table widget will
+    automatically generate unique ids for the records.
 
     See also:
         - :class:`Column`
@@ -33,7 +41,7 @@ class TableWidget(Widget):
 
     def __init__(self,
                  name: str,
-                 data_source_url: str,
+                 data_source: str | List[Dict[str, Any]],
                  cols: List[Column],
                  request: HttpRequest | None = None,
                  title: str = '',
@@ -58,11 +66,15 @@ class TableWidget(Widget):
         :param name: The name of the table widget. Names are used as ids for the HTML <table>
             elements of the rendered table widgets.
         :type name: str
-        :param data_source_url: The url from which the table data is fetched via AJAX get request.
-        The url should return a JSON object containing a 'data' key with a list of dictionaries
-        representing table rows. The keys of the dictionaries should correspond to the names of
-        the table columns.
-        :type data_source_url: str
+        :param data_source: Data source used to populate the table. If the table is used to display
+            static data, the data source should be provided as a list of dictionaries representing
+            table rows. The keys of the dictionaries should correspond to the names of the table
+            columns. If the table is used to display database records, the data source should be
+            set to the url of the model view from which the table receives its data. The data source
+            should return a JSON object containing a 'data' key with a list of dictionaries
+            representing table rows. The keys of the dictionaries should correspond to the names of
+            the table columns.
+        :type data_source: str | List[Dict[str, Any]]
         :param cols: List of columns to be displayed in the table. Each column object defines the
             column's properties such as name, header, searchability, etc.
         :type cols: List[:class:`Column`]
@@ -167,12 +179,20 @@ class TableWidget(Widget):
             col.request = request
         self.cols = cols
 
+        if isinstance(data_source, str):
+            self.data_source_url = data_source
+            self.data_source = json.dumps([])
+            self.ajax = True
+        else:
+            self.data_source_url = ''
+            self.data_source = json.dumps(self.parse_static_data(data_source, self.cols))
+            self.ajax = False
+
         self.allow_global_search = allow_global_search
         self.allow_column_search = allow_column_search
         self.deselect_on_filter = deselect_on_filter
         self.link_format_string = link_format_string
         self.refresh_button = refresh_button
-        self.data_source_url = data_source_url
         self.paging = paging
         self.refresh = refresh
         self.refresh_interval = refresh_interval * 1000
@@ -209,7 +229,9 @@ class TableWidget(Widget):
             'allow_global_search': json.dumps(self.allow_global_search),
             'allow_column_search': self.allow_column_search,
             'deselect_on_filter': json.dumps(self.deselect_on_filter),
+            'ajax': json.dumps(self.ajax),
             'data_source_url': self.data_source_url,
+            'data_source': self.data_source,
             'link_format_string': self.link_format_string or json.dumps(False),
             'cols': [col.get_context() for col in self.cols],
             'cols_num': len(self.cols),
@@ -228,13 +250,33 @@ class TableWidget(Widget):
 
     def display_util_header(self) -> bool:
         """
-        Returns whether to display the util header above the table depending on the table's
-        properties.
-
         :return: Whether to display the util header above the table.
         :rtype: bool
         """
         return self.display_title or self.table_buttons or self.allow_global_search
+
+    @staticmethod
+    def parse_static_data(data: List[Dict[str, Any]], cols: List[Column]) -> List[Dict[str, Any]]:
+        """
+        :param data: List of dictionaries representing table rows.
+        :type data: List[Dict[str, Any]]
+        :param cols: List of columns to be displayed in the table.
+        :type cols: List[:class:`Column`]
+        :return: List of dictionaries representing table rows with unique ids for each record and
+            all columns present in each record (if not present, the column is set to an empty
+            string).
+        :rtype: List[Dict[str, Any]]
+        """
+        for col in cols:
+            for record in data:
+                if col.name not in record:
+                    record[col.name] = ''
+
+        for index, record in enumerate(data):
+            if 'id' not in record:
+                record['id'] = index
+
+        return data
 
 
 class TableWidgetPaging:
