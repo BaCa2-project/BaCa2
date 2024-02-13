@@ -37,11 +37,14 @@ class PackageSourceManager(models.Manager):
         return package_source
 
     @transaction.atomic
-    def create_package_source_from_zip(self,
-                                       name: str,
-                                       zip_file: Path,
-                                       creator: int | str | User = None,
-                                       safe_name=True) -> PackageSource:
+    def create_package_source_from_zip(
+        self,
+        name: str,
+        zip_file: Path,
+        creator: int | str | User = None,
+        safe_name: bool = True,
+        return_package_instance: bool = False
+    ) -> PackageSource | PackageInstance:
         """
         Create a new package source from the given zip file
 
@@ -53,6 +56,9 @@ class PackageSourceManager(models.Manager):
         :type creator: int | str | User
         :param safe_name: If True, make the name unique
         :type safe_name: bool
+        :param return_package_instance: If True, return the package instance instead of the package
+            source
+        :type return_package_instance: bool
 
         :return: A new PackageSource object.
         """
@@ -70,6 +76,9 @@ class PackageSourceManager(models.Manager):
         package_instance.save()
         if creator:
             PackageInstanceUser.objects.create_package_instance_user(creator, package_instance)
+
+        if return_package_instance:
+            return package_instance
         return package_source
 
     @transaction.atomic
