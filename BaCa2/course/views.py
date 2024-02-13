@@ -336,8 +336,7 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
         )
         self.add_widget(context, tasks_table)
 
-        with InCourse(course_id):
-            add_task_form = CreateTaskFormWidget(request=self.request, course_id=course_id)
+        add_task_form = CreateTaskFormWidget(request=self.request, course_id=course_id)
         self.add_widget(context, add_task_form)
 
         return context

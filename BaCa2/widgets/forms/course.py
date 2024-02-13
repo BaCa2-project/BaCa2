@@ -434,7 +434,7 @@ class CreateTaskForm(BaCa2ModelForm):
         from package.models import PackageSource
 
         task_name = request.POST.get('task_name')
-        round_id = request.POST.get('round_')
+        round_id = int(request.POST.get('round_'))
         points = request.POST.get('points')
         judge_mode = request.POST.get('judge_mode')
         if judge_mode is None:
@@ -447,18 +447,20 @@ class CreateTaskForm(BaCa2ModelForm):
             package_instance = PackageSource.objects.create_package_source_from_zip(
                 name=task_name,
                 zip_file=file.path,
-                creator=request.user
+                creator=request.user,
+                return_package_instance=True
+            )
+            Task.objects.create_task(
+                package_instance=package_instance,
+                round_=round_id,
+                task_name=task_name,
+                points=points,
+                judging_mode=judge_mode,
             )
         except Exception as e:
             file.delete()
             raise e
-        Task.objects.create_task(
-            package_instance=package_instance,
-            round_=round_id,
-            task_name=task_name,
-            points=points,
-            judging_mode=judge_mode,
-        )
+        file.delete()
         return {'message': _('Task ') + task_name + _(' created successfully')}
 
     @classmethod
@@ -637,6 +639,7 @@ class CreateSubmitForm(BaCa2ModelForm):
         except Exception as e:
             source_code_file.delete()
             raise e
+        source_code_file.delete()
         return {'message': _('Submit created successfully')}
 
     @classmethod
