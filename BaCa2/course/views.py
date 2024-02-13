@@ -23,7 +23,7 @@ from widgets.forms.course import (
     CreateTaskFormWidget,
     DeleteTaskForm
 )
-from widgets.listing import TableWidget
+from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.columns import DatetimeColumn, TextColumn
 from widgets.navigation import SideNav
 
@@ -339,6 +339,26 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
 
         add_task_form = CreateTaskFormWidget(request=self.request, course_id=course_id)
         self.add_widget(context, add_task_form)
+
+        results_table = TableWidget(
+            name='results_table_widget',
+            request=self.request,
+            data_source_url=SubmitModelView.get_url(
+                serialize_kwargs={'add_round_task_name': True,
+                                  'add_summary_score': True, },
+                course_id=course_id, ),
+            cols=[TextColumn(name='task_name', header=_('Task name')),
+                  DatetimeColumn(name='submit_date', header=_('Submit time')),
+                  TextColumn(name='user_first_name', header=_('Submitter first name')),
+                  TextColumn(name='user_last_name', header=_('Submitter last name')),
+                  TextColumn(name='summary_score', header=_('Score'))],
+            title=_('All results'),
+            refresh_button=True,
+            paging=TableWidgetPaging(page_length=50,
+                                     allow_length_change=True,
+                                     length_change_options=[10, 25, 50, 100])
+        )
+        self.add_widget(context, results_table)
 
         return context
 
