@@ -264,13 +264,17 @@ class Round(models.Model, metaclass=ReadCourseMeta):
     def __str__(self):
         return f'Round {self.pk}: {self.name}'
 
-    def get_data(self) -> dict:
+    def get_data(self, add_formatted_dates: bool = False) -> dict:
         """
+        :param add_formatted_dates: If True, formatted dates will be added to the data, defaults to
+            False (optional)
+        :type add_formatted_dates: bool
+
         :return: The data of the round.
         :rtype: dict
         """
         from widgets.navigation import SideNav
-        return {
+        res = {
             'id': self.pk,
             'name': self.name,
             'start_date': self.start_date,
@@ -279,6 +283,15 @@ class Round(models.Model, metaclass=ReadCourseMeta):
             'reveal_date': self.reveal_date,
             'normalized_name': SideNav.normalize_tab_name(self.name)
         }
+        if add_formatted_dates:
+            res |= {
+                'f_start_date': self.start_date.strftime('%Y-%m-%d %H:%M'),
+                'f_end_date': self.end_date.strftime('%Y-%m-%d %H:%M') if self.end_date else None,
+                'f_deadline_date': self.deadline_date.strftime('%Y-%m-%d %H:%M'),
+                'f_reveal_date': self.reveal_date.strftime(
+                    '%Y-%m-%d %H:%M') if self.reveal_date else None
+            }
+        return res
 
 
 class TaskManager(models.Manager):

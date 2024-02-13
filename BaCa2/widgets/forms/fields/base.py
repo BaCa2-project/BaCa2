@@ -419,7 +419,7 @@ class ModelChoiceField(forms.ChoiceField):
         :type loading_label: str
         """
         self.special_field_type = 'model_choice'
-        self.data_source_url = data_source_url
+        self._data_source_url = data_source_url
         self.label_format_string = label_format_string
         self.value_format_string = value_format_string
         if not loading_label:
@@ -427,12 +427,21 @@ class ModelChoiceField(forms.ChoiceField):
         self.loading_label = loading_label
         super().__init__(**kwargs)
 
+    @property
+    def data_source_url(self) -> str:
+        return self._data_source_url
+
+    @data_source_url.setter
+    def data_source_url(self, value: str) -> None:
+        self._data_source_url = value
+        self.widget.attrs.update({'data-source-url': value})
+
     def widget_attrs(self, widget) -> dict:
         attrs = super().widget_attrs(widget)
         attrs['class'] = 'form-select model-choice-field'
         attrs['data-label'] = self.label
         attrs['data-loading-label'] = self.loading_label
-        attrs['data-source-url'] = self.data_source_url
+        attrs['data-source-url'] = self._data_source_url
         attrs['data-label-format-string'] = self.label_format_string
         attrs['data-value-format-string'] = self.value_format_string
         return attrs
