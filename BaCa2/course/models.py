@@ -1019,7 +1019,8 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
             'id': self.pk,
             'submit_date': self.submit_date,
             'source_code': self.source_code,
-            'task': self.task.task_name,
+            'task_name': self.task.task_name,
+            'task_score': round(self.task.points * score, 2) if score > -1 else 'PND',
             'final_score': self.format_score(score),
         }
         if show_user:
