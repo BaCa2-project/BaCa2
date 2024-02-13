@@ -259,7 +259,9 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
             allow_select=True,
             allow_delete=True,
             delete_form=DeleteCourseForm(),
+            data_post_url=CourseModelView.post_url(),
             paging=TableWidgetPaging(10, False),
+            link_format_string='/course/{id}/',
         ))
 
         return context
@@ -307,7 +309,7 @@ class CoursesView(BaCa2LoggedInView):
                 TextColumn(name='USOS_term_code', header='Semester', searchable=True),
                 TextColumn(name='user_role', header='Your role', searchable=True),
             ],
-            highlight_rows_on_hover=True,
+            link_format_string='/course/{id}/',
         ))
         return context
 

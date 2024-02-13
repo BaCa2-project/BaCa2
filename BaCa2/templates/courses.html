@@ -1,26 +1,7 @@
 {% extends 'base.html' %}
 
-{% block head %}
-    <style>
-        #course_table_widget tbody tr {
-            cursor: pointer;
-        }
-    </style>
-{% endblock %}
-
 {% block content %}
     {% with widgets.TableWidget.courses_table_widget as table_widget %}
         {% include 'widget_templates/table.html' %}
     {% endwith %}
-{% endblock %}
-
-{% block scripts %}
-    <script>
-        $(document).ready(function() {
-            $('#course_table_widget').on('click', 'tbody tr', function() {
-                const course_id = $(this).attr('data-record-id')
-                window.location.href = '/course/' + course_id;
-            });
-        });
-    </script>
 {% endblock %}

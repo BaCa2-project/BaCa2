@@ -181,6 +181,10 @@ function tablesSetup() {
         globalSearchSetup($(this));
         columnSearchSetup($(this));
     });
+
+    $('.link-records').each(function () {
+        recordLinkSetup($(this).attr('id'));
+    });
 }
 
 
@@ -261,6 +265,12 @@ function deleteRecordFormSetup(form, tableId) {
     });
 }
 
+function recordLinkSetup(tableId) {
+    $(`#${tableId}`).on('click', 'tbody tr', function () {
+        window.location.href = $(this).data('record-link');
+    });
+}
+
 
 // -------------------------------------- DataTables init ------------------------------------- //
 
@@ -268,6 +278,7 @@ function initTable(
     {
         tableId,
         dataSourceUrl,
+        linkFormatString,
         cols,
         defaultOrder,
         defaultOrderCol,
@@ -320,9 +331,7 @@ function initTable(
     cols.forEach(col => columnDefs.push(createColumnDef(col, cols.indexOf(col))));
     tableParams['columnDefs'] = columnDefs;
 
-    tableParams['rowCallback'] = function (row, data) {
-        $(row).attr('data-record-id', `${data.id}`);
-    }
+    tableParams['rowCallback'] = createRowCallback(linkFormatString);
 
     if (!window.tableWidgets)
         window.tableWidgets = {};
@@ -332,11 +341,31 @@ function initTable(
         table.DataTable(tableParams)
     );
 
-    if (refresh) {
-        setInterval(function () {
-            window.tableWidgets[`#${tableId}`].table.ajax.reload();
-        }, refreshInterval);
+    if (refresh)
+        setRefresh(tableId, refreshInterval);
+}
+
+function setRefresh(tableId, interval) {
+    setInterval(function () {
+        window.tableWidgets[`#${tableId}`].table.ajax.reload();
+    }, interval);
+}
+
+function createRowCallback(linkFormatString) {
+    return function (row, data) {
+        $(row).attr('data-record-id', `${data.id}`);
+
+        if (linkFormatString) {
+            $(row).attr('data-record-link', constructRecordLink(data, linkFormatString));
+        }
     }
+}
+
+
+function constructRecordLink(data, linkFormatString) {
+    return linkFormatString.replace(/{(\w+)}/g, function (match, key) {
+       return data[key] || match;
+    });
 }
 
 
@@ -427,6 +456,7 @@ function selectHeaderClickHandler(e, checkbox) {
 // ------------------------------- special field click handlers ------------------------------- //
 
 function selectCheckboxClickHandler(e, checkbox) {
+    e.stopPropagation();
     const table = window.tableWidgets[`#${checkbox.closest('table').attr('id')}`]
     const row = checkbox.closest('tr');
     const on = checkbox.prop('checked');
@@ -443,6 +473,7 @@ function selectCheckboxClickHandler(e, checkbox) {
 
 
 function deleteButtonClickHandler(e, button) {
+    e.stopPropagation();
     const form = button.closest('.table-wrapper').find('.delete-record-form form');
     const input = form.find('input').filter(function () {
         return $(this).hasClass('model-id')
