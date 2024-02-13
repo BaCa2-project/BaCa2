@@ -311,6 +311,7 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
                   DatetimeColumn(name='reveal_date', header=_('Reveal date'))],
             title=_('Rounds'),
             refresh_button=True,
+            link_format_string=f'/course/{course_id}/round-edit/?tab={"{normalized_name}"}-tab#'
         )
         self.add_widget(context, round_table)
 
@@ -450,5 +451,41 @@ class CourseTaskAdmin(BaCa2LoggedInView, UserPassesTestMixin):
             refresh_button=True,
         )
         self.add_widget(context, submissions_table)
+
+        return context
+
+
+class RoundEditView(BaCa2LoggedInView, UserPassesTestMixin):
+    template_name = 'course_edit_round.html'
+
+    def test_func(self) -> bool:
+        """
+        Test function for UserPassesTestMixin.
+
+        :return: `True` if the user is an admin of the course or a superuser, `False` otherwise.
+        :rtype: bool
+        """
+        course = ModelsRegistry.get_course(self.kwargs.get('course_id'))
+        return course.user_is_admin(self.request.user) or self.request.user.is_superuser
+
+    def get_context_data(self, **kwargs) -> dict:
+        context = super().get_context_data(**kwargs)
+
+        course_id = self.kwargs.get('course_id')
+        course = ModelsRegistry.get_course(course_id)
+        rounds = course.rounds()
+        round_names = [r.name for r in rounds]
+        sidenav = SideNav(request=self.request,
+                          collapsed=True,
+                          tabs=round_names, )
+        self.add_widget(context, sidenav)
+
+        context['rounds'] = [
+            {
+                'tab_name': SideNav.normalize_tab_name(r),
+                'round_name': r
+            }
+            for r in round_names
+        ]
 
         return context

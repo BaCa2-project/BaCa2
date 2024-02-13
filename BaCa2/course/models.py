@@ -269,13 +269,15 @@ class Round(models.Model, metaclass=ReadCourseMeta):
         :return: The data of the round.
         :rtype: dict
         """
+        from widgets.navigation import SideNav
         return {
             'id': self.pk,
             'name': self.name,
             'start_date': self.start_date,
             'end_date': self.end_date,
             'deadline_date': self.deadline_date,
-            'reveal_date': self.reveal_date
+            'reveal_date': self.reveal_date,
+            'normalized_name': SideNav.normalize_tab_name(self.name)
         }
 
 

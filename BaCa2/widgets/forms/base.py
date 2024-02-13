@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Self
 
 from django import forms
 from django.utils.translation import gettext_lazy as _
@@ -42,6 +42,18 @@ class BaCa2Form(forms.Form):
         widget=forms.HiddenInput(),
         initial='',
     )
+
+    def fill_with_data(self, data: Dict[str, str]) -> Self:
+        """
+        Fills the form with the specified data.
+
+        :param data: Dictionary containing the data to be used to fill the form.
+        :type data: dict
+        """
+        for field in self.fields:
+            if field in data.keys():
+                self.fields[field].initial = data[field]
+        return self
 
 
 class BaCa2ModelForm(BaCa2Form):
