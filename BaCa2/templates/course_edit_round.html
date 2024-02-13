@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+    {% for r in rounds %}
+    <div class="tab-wrapper" id="{{ r.tab_name }}-tab">
+        <div class="side-nav-tab">
+            {{ r.round_name }}
+        </div>
+    </div>
+    {% endfor %}
+{% endblock %}
