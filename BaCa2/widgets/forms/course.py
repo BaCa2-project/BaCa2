@@ -17,7 +17,7 @@ from widgets.forms.base import (
     FormWidget,
     ModelFormPostTarget
 )
-from widgets.forms.fields import AlphanumericStringField, FileUploadField
+from widgets.forms.fields import AlphanumericStringField, FileUploadField, ModelChoiceField
 from widgets.forms.fields.course import CourseName, CourseShortName, USOSCode
 from widgets.popups.forms import SubmitConfirmationPopup
 
@@ -408,7 +408,12 @@ class CreateTaskForm(BaCa2ModelForm):
     task_name = AlphanumericStringField(
         label=_('Task name (if not provided - will be taken from package)'),
         required=True)
-    round_ = AlphanumericStringField(label=_('Round ID (temp)'), required=True)
+    round_ = ModelChoiceField(
+        data_source_url='',
+        label_format_string='[[name]] ([[f_start_date]] - [[f_deadline_date]])',
+        label=_('Round'),
+        required=True,
+    )
     points = forms.FloatField(label=_('Points (if not provided - will be taken from package)'),
                               min_value=0)
     package = FileUploadField(label=_('Task package'),
@@ -483,9 +488,14 @@ class CreateTaskFormWidget(FormWidget):
                  course_id: int,
                  form: CreateTaskForm = None,
                  **kwargs) -> None:
-        from course.views import TaskModelView
+        from course.views import RoundModelView, TaskModelView
         if not form:
             form = CreateTaskForm()
+
+        form.fields['round_'].data_source_url = RoundModelView.get_url(
+            serialize_kwargs={'add_formatted_dates': True},
+            course_id=course_id
+        )
 
         super().__init__(
             name='create_task_form_widget',
