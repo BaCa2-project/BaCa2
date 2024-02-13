@@ -674,6 +674,10 @@ html, body {
   --bs-form-valid-border-color: $red;
 }
 
+.link-records tbody tr {
+  cursor: pointer;
+}
+
 .table-wrapper .table-widget-forms-wrapper form {
   display: none;
 }

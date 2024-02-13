@@ -46,6 +46,7 @@ class TableWidget(Widget):
                  delete_form: BaCa2ModelForm = None,
                  data_post_url: str = '',
                  paging: TableWidgetPaging = None,
+                 link_format_string: str = '',
                  refresh_button: bool = False,
                  refresh: bool = False,
                  refresh_interval: int = 30,
@@ -93,6 +94,11 @@ class TableWidget(Widget):
         :type data_post_url: str
         :param paging: Paging options for the table. If not set, paging is disabled.
         :type paging: :class:`TableWidgetPaging`
+        :param link_format_string: A format string used to generate links for the table rows. The
+        format string can reference the fields of database records represented by the table rows
+        using curly braces. For example, if the table rows represent database records with a
+        'name' field, the format string can be '/path/to/{name}/'.
+        :type link_format_string: str
         :param refresh_button: Whether to display a refresh button in the util header above the
             table. Refreshing the table will reload the data from the data source.
         :type refresh_button: bool
@@ -152,8 +158,10 @@ class TableWidget(Widget):
 
         if stripe_rows:
             self.add_class('stripe')
-        if highlight_rows_on_hover:
+        if highlight_rows_on_hover or link_format_string:
             self.add_class('row-hover')
+        if link_format_string:
+            self.add_class('link-records')
 
         for col in cols:
             col.request = request
@@ -162,24 +170,36 @@ class TableWidget(Widget):
         self.allow_global_search = allow_global_search
         self.allow_column_search = allow_column_search
         self.deselect_on_filter = deselect_on_filter
+        self.link_format_string = link_format_string
         self.refresh_button = refresh_button
         self.data_source_url = data_source_url
         self.paging = paging
         self.refresh = refresh
         self.refresh_interval = refresh_interval * 1000
-        self.default_order = 'asc' if default_order_asc else 'desc'
 
         if self.delete_button or self.refresh_button:
             self.table_buttons = True
         else:
             self.table_buttons = False
 
+        self.default_order = 'asc' if default_order_asc else 'desc'
+        self.default_order_col = self.get_default_order_col_index(default_order_col, self.cols)
+
+    @staticmethod
+    def get_default_order_col_index(default_order_col: str, cols: List[Column]) -> int:
+        """
+        :param default_order_col: The name of the column to use for default ordering.
+        :type default_order_col: str
+        :param cols: List of columns to be displayed in the table.
+        :type cols: List[:class:`Column`]
+        :return: The index of the column to use for default ordering.
+        :rtype: int
+        """
         try:
-            self.default_order_col = next(index for index, col in enumerate(cols)
-                                          if getattr(col, 'name') == default_order_col)
+            return next(index for index, col in enumerate(cols)
+                        if getattr(col, 'name') == default_order_col)
         except StopIteration:
-            raise Widget.WidgetParameterError(f'Column {default_order_col} not found in table '
-                                              f'{name}')
+            raise Widget.WidgetParameterError(f'Column {default_order_col} not in the table')
 
     def get_context(self) -> Dict[str, Any]:
         return super().get_context() | {
@@ -190,6 +210,7 @@ class TableWidget(Widget):
             'allow_column_search': self.allow_column_search,
             'deselect_on_filter': json.dumps(self.deselect_on_filter),
             'data_source_url': self.data_source_url,
+            'link_format_string': self.link_format_string or json.dumps(False),
             'cols': [col.get_context() for col in self.cols],
             'cols_num': len(self.cols),
             'table_buttons': self.table_buttons,
@@ -223,6 +244,7 @@ class TableWidgetPaging:
     See also:
         - :class:`TableWidget`
     """
+
     def __init__(self,
                  page_length: int = 10,
                  allow_length_change: bool = False,
@@ -270,6 +292,7 @@ class DeleteRecordFormWidget(FormWidget):
         - :class:`TableWidget`
         - :class:`FormWidget`
     """
+
     def __init__(self,
                  request: HttpRequest,
                  form: BaCa2ModelForm,
