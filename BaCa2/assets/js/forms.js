@@ -211,6 +211,7 @@ function formRefresh(form) {
 
 function clearValidation(form) {
     form.find('input').removeClass('is-valid').removeClass('is-invalid');
+    form.find('select').removeClass('is-valid').removeClass('is-invalid');
     form.find('.invalid-feedback').remove();
 }
 
