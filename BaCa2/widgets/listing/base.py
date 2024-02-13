@@ -96,8 +96,8 @@ class TableWidget(Widget):
         :type paging: :class:`TableWidgetPaging`
         :param link_format_string: A format string used to generate links for the table rows. The
         format string can reference the fields of database records represented by the table rows
-        using curly braces. For example, if the table rows represent database records with a
-        'name' field, the format string can be '/path/to/{name}/'.
+        using double square brackets. For example, if the format string is '/records/[[id]]', the
+        table rows will be linked to '/records/1', '/records/2', etc.
         :type link_format_string: str
         :param refresh_button: Whether to display a refresh button in the util header above the
             table. Refreshing the table will reload the data from the data source.

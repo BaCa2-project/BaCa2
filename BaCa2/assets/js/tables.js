@@ -363,7 +363,7 @@ function createRowCallback(linkFormatString) {
 
 
 function constructRecordLink(data, linkFormatString) {
-    return linkFormatString.replace(/{(\w+)}/g, function (match, key) {
+    return linkFormatString.replace(/\[\[(\w+)]]/g, function (match, key) {
        return data[key] || match;
     });
 }
