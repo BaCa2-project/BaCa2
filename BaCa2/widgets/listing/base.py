@@ -44,6 +44,7 @@ class TableWidget(Widget):
                  deselect_on_filter: bool = True,
                  allow_delete: bool = False,
                  delete_form: BaCa2ModelForm = None,
+                 data_post_url: str = '',
                  paging: TableWidgetPaging = None,
                  refresh_button: bool = False,
                  refresh: bool = False,
@@ -87,6 +88,9 @@ class TableWidget(Widget):
         :param delete_form: The form used to delete database records represented by the table rows.
             Only relevant if allow_delete is True.
         :type delete_form: :class:`BaCa2ModelForm`
+        :param data_post_url: The url to which the data from the table delete form is posted. Only
+            relevant if allow_delete is True.
+        :type data_post_url: str
         :param paging: Paging options for the table. If not set, paging is disabled.
         :type paging: :class:`TableWidgetPaging`
         :param refresh_button: Whether to display a refresh button in the util header above the
@@ -125,11 +129,14 @@ class TableWidget(Widget):
             if not delete_form:
                 raise Widget.WidgetParameterError('Delete form must be set if allow_delete is '
                                                   'True.')
+            if not data_post_url:
+                raise Widget.WidgetParameterError('Data post url must be set if allow_delete is '
+                                                  'True.')
 
             delete_record_form_widget = DeleteRecordFormWidget(
                 request=request,
                 form=delete_form,
-                post_url=data_source_url,
+                post_url=data_post_url,
                 name=f'{name}_delete_record_form'
             )
             cols.append(DeleteColumn())
