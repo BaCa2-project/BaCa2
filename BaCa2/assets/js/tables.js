@@ -277,7 +277,9 @@ function recordLinkSetup(tableId) {
 function initTable(
     {
         tableId,
+        ajax,
         dataSourceUrl,
+        dataSource,
         linkFormatString,
         cols,
         defaultOrder,
@@ -291,7 +293,11 @@ function initTable(
     const tableParams = {};
     const table = $(`#${tableId}`);
 
-    tableParams['ajax'] = dataSourceUrl;
+    if (ajax)
+        tableParams['ajax'] = dataSourceUrl;
+    else
+        tableParams['data'] = dataSource;
+
     tableParams['order'] = [[defaultOrderCol, defaultOrder]];
     tableParams['searching'] = searching;
 

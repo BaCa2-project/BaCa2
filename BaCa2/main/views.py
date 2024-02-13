@@ -241,7 +241,7 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
             name='courses_table_widget',
             title='Courses',
             request=self.request,
-            data_source_url=CourseModelView.get_url(),
+            data_source=CourseModelView.get_url(),
             cols=[
                 TextColumn(name='id',
                            header='ID',
@@ -300,9 +300,9 @@ class CoursesView(BaCa2LoggedInView):
             name='courses_table_widget',
             request=self.request,
             title='Your courses',
-            data_source_url=CourseModelView.get_url(mode=BaCa2ModelView.GetMode.FILTER,
-                                                    query_params={'role_set__user': user_id},
-                                                    serialize_kwargs={'user': user_id}),
+            data_source=CourseModelView.get_url(mode=BaCa2ModelView.GetMode.FILTER,
+                                                query_params={'role_set__user': user_id},
+                                                serialize_kwargs={'user': user_id}),
             allow_column_search=True,
             cols=[
                 TextColumn(name='name', header='Name', searchable=True),

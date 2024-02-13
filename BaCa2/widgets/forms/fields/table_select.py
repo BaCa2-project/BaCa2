@@ -46,7 +46,7 @@ class TableSelectField(IntegerArrayField):
         table_widget = TableWidget(
             name=table_widget_name,
             title=label,
-            data_source_url=data_source_url,
+            data_source=data_source_url,
             cols=cols,
             allow_column_search=allow_column_search,
             allow_select=True,
