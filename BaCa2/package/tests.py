@@ -165,7 +165,8 @@ class TestPackage(TestCase):
             pkg_src = PackageSource.objects.create_package_source_from_zip(
                 'test',
                 self.zip_file,
-                creator=usr
+                creator=usr,
+                safe_name=False
             )
             self.assertIsInstance(pkg_src, PackageSource)
             pkg = pkg_src.instances.first()

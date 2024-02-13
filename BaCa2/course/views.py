@@ -17,6 +17,7 @@ from widgets.forms.course import (
     AddMembersFormWidget,
     CreateRoundForm,
     CreateRoundFormWidget,
+    CreateTaskForm,
     CreateTaskFormWidget
 )
 from widgets.listing import TableWidget
@@ -182,7 +183,9 @@ class TaskModelView(CourseModelView):
         return True
 
     def post(self, request, **kwargs) -> JsonResponse:
-        pass
+        if request.POST.get('form_name') == 'add_task_form':
+            return CreateTaskForm.handle_post_request(request)
+        return self.handle_unknown_form(request, **kwargs)
 
 
 class SubmitModelView(CourseModelView):
@@ -322,7 +325,8 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
         )
         self.add_widget(context, tasks_table)
 
-        add_task_form = CreateTaskFormWidget(request=self.request, course_id=course_id)
+        with InCourse(course_id):
+            add_task_form = CreateTaskFormWidget(request=self.request, course_id=course_id)
         self.add_widget(context, add_task_form)
 
         return context

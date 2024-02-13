@@ -79,7 +79,7 @@ class BaCa2ModelForm(BaCa2Form):
                 **cls.handle_impermissible_request(request)
             )
 
-        if cls(data=request.POST).is_valid():
+        if cls(data=request.POST, files=request.FILES).is_valid():
             try:
                 return BaCa2ModelResponse(
                     model=cls.MODEL,

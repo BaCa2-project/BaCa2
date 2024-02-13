@@ -285,7 +285,7 @@ class TaskManager(models.Manager):
                     package_instance: int | PackageInstance,
                     round_: int | Round,
                     task_name: str,
-                    points: float,
+                    points: float = None,
                     judging_mode: str | TaskJudgingMode = TaskJudgingMode.LIN,
                     initialise_task: bool = True,
                     course: str | int | Course = None) -> Task:
@@ -318,6 +318,9 @@ class TaskManager(models.Manager):
         package_instance = ModelsRegistry.get_package_instance(package_instance)
         round_ = ModelsRegistry.get_round(round_)
         judging_mode = ModelsRegistry.get_task_judging_mode(judging_mode)
+
+        if points is None:
+            points = package_instance.package['points']
         with OptionalInCourse(course):
             new_task = self.model(package_instance_id=package_instance.pk,
                                   task_name=task_name,

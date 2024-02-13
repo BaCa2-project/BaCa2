@@ -79,6 +79,7 @@ class USOSCode(forms.CharField):
     """
     Form field for USOS subject and term codes of a course.
     """
+
     def __init__(self, **kwargs) -> None:
         super().__init__(
             min_length=1,
