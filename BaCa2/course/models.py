@@ -998,36 +998,57 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         return self.final_score
 
     @staticmethod
-    def format_score(score: float) -> str:
+    def format_score(score: float, rnd: int = 2) -> str:
         """
         It formats the score to a string.
 
         :param score: The score that you want to format.
         :type score: float
+        :param rnd: The amount of decimal places, defaults to 2 (optional)
+        :type rnd: int
 
         :return: The formatted score.
         :rtype: str
         """
-        score = round(score * 100, 2)
-        return f'{score:.2f} %' if score > -1 else 'PND'
+        score = round(score * 100, rnd)
+        return f'{score:.{rnd}f}' if score > -1 else 'PND'
 
-    def get_data(self, show_user: bool = True) -> dict:
+    @property
+    def task_score(self) -> float:
+        """
+        It returns the amount of points that can be gained for completing the task.
+
+        :return: The amount of points that can be gained for completing the task.
+        :rtype: float
+        """
+        return round(self.task.points * self.score(), 2)
+
+    def get_data(self,
+                 show_user: bool = True,
+                 add_round_task_name: bool = False,
+                 add_summary_score: bool = False) -> dict:
         """
         :return: The data of the submit.
         :rtype: dict
         """
         score = self.score()
+        task_score = self.task_score
+        summary_score = f'{task_score} ({self.format_score(score, 1)} %)' if score > -1 else 'PND'
         res = {
             'id': self.pk,
             'submit_date': self.submit_date,
             'source_code': self.source_code,
             'task_name': self.task.task_name,
-            'task_score': round(self.task.points * score, 2) if score > -1 else 'PND',
+            'task_score': task_score if score > -1 else 'PND',
             'final_score': self.format_score(score),
         }
         if show_user:
             res |= {'user_first_name': self.user.first_name,
                     'user_last_name': self.user.last_name}
+        if add_round_task_name:
+            res |= {'round_task_name': f'{self.task.round.name}: {self.task.task_name}'}
+        if add_summary_score:
+            res |= {'summary_score': summary_score}
         return res
 
 

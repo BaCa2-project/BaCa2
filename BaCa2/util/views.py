@@ -610,8 +610,10 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
                 f'Query parameters must be specified when using {mode} get mode.'
             )
 
+        if query_params or serialize_kwargs:
+            url += '?'
         if query_params:
-            url += f'?{encode_dict_to_url("query_params", query_params)}'
+            url += encode_dict_to_url('query_params', query_params)
         if serialize_kwargs:
             url += f'&{encode_dict_to_url("serialize_kwargs", serialize_kwargs)}'
 
