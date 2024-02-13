@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
-
+    {% with widgets.FormWidget.test_form_widget as form_widget %}
+        {% include "widget_templates/forms/default.html" %}
+    {% endwith %}
 {% endblock %}
