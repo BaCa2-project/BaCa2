@@ -445,3 +445,8 @@ class ModelChoiceField(forms.ChoiceField):
         attrs['data-label-format-string'] = self.label_format_string
         attrs['data-value-format-string'] = self.value_format_string
         return attrs
+
+    def validate(self, value):
+        if self.required and not value:
+            raise forms.ValidationError(_('This field is required.'))
+        # TODO: add proper validation for the field
