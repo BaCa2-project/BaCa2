@@ -39,6 +39,9 @@
     <script src="{% static 'js/buttons.js' %}"></script>
     <script src="{% static 'js/tables.js' %}"></script>
     <script src="{% static 'js/forms.js' %}"></script>
+    {% if display_sidenav %}
+        <script src="{% static 'js/side_nav.js' %}"></script>
+    {% endif %}
 
     <!-- template-specific -->
     {% block head %}

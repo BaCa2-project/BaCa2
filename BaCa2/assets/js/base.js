@@ -6,6 +6,7 @@ function initCommon() {
     buttonsSetup();
     tablesSetup();
     formsSetup();
+    sideNavSetup();
 }
 
 function showPage() {
