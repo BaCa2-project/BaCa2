@@ -18,7 +18,8 @@ from widgets.forms.course import (
     CreateRoundForm,
     CreateRoundFormWidget,
     CreateTaskForm,
-    CreateTaskFormWidget
+    CreateTaskFormWidget,
+    DeleteTaskForm
 )
 from widgets.listing import TableWidget
 from widgets.listing.columns import DatetimeColumn, TextColumn
@@ -185,6 +186,8 @@ class TaskModelView(CourseModelView):
     def post(self, request, **kwargs) -> JsonResponse:
         if request.POST.get('form_name') == 'add_task_form':
             return CreateTaskForm.handle_post_request(request)
+        elif request.POST.get('form_name') == 'delete_task_form':
+            return DeleteTaskForm.handle_post_request(request)
         return self.handle_unknown_form(request, **kwargs)
 
 
@@ -322,6 +325,9 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
             title=_('Tasks'),
             refresh_button=True,
             default_order_col='round_name',
+            allow_delete=True,
+            delete_form=DeleteTaskForm(),
+            data_post_url=TaskModelView.post_url(course_id=course_id),
         )
         self.add_widget(context, tasks_table)
 

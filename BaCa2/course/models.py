@@ -270,6 +270,7 @@ class Round(models.Model, metaclass=ReadCourseMeta):
         :rtype: dict
         """
         return {
+            'id': self.pk,
             'name': self.name,
             'start_date': self.start_date,
             'end_date': self.end_date,
@@ -566,6 +567,7 @@ class Task(models.Model, metaclass=ReadCourseMeta):
         :rtype: dict
         """
         return {
+            'id': self.pk,
             'name': self.task_name,
             'round_name': self.round.name,
             'judging_mode': self.judging_mode,
@@ -1014,6 +1016,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         """
         score = self.score()
         res = {
+            'id': self.pk,
             'submit_date': self.submit_date,
             'source_code': self.source_code,
             'task': self.task.task_name,
