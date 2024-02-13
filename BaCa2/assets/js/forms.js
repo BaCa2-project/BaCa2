@@ -9,6 +9,7 @@ function formsSetup() {
     refreshButtonSetup();
     liveValidationSetup();
     tableSelectFieldSetup();
+    modelChoiceFieldSetup();
 }
 
 function ajaxPostSetup() {
@@ -24,7 +25,7 @@ function refreshButtonSetup() {
     $('form').each(function () {
         const form = $(this)
         form.find('.form-refresh-button').on('click', function () {
-           formRefresh(form)
+            formRefresh(form)
         });
     });
 }
@@ -44,7 +45,7 @@ function toggleableFieldSetup() {
         toggleableFieldButtonInit($(this));
     });
 
-    buttons.on('click', function(e) {
+    buttons.on('click', function (e) {
         toggleFieldButtonClickHandler(e, $(this))
     });
 }
@@ -63,13 +64,13 @@ function toggleableGroupSetup() {
         toggleableGroupButtonInit($(this))
     });
 
-    buttons.on('click', function(e) {
+    buttons.on('click', function (e) {
         toggleGroupButtonClickHandler(e, $(this))
     });
 }
 
 function toggleableGroupButtonInit(button) {
-    let on  = button.data('initial-state') !== 'off';
+    let on = button.data('initial-state') !== 'off';
     if (button.hasClass('switch-on') && !on)
         toggleTextSwitchBtn(button)
     toggleFieldGroup(button.closest('.form-element-group'), on)
@@ -116,30 +117,30 @@ function responsePopupsSetup() {
 function handleAjaxSubmit(form) {
     const formData = new FormData(form[0]);
     $.ajax({
-        type: 'POST',
-        url: form.attr('action'),
-        data: formData,
-        contentType: false,
-        processData: false,
-        success: function (data) {
-            formRefresh(form);
+               type: 'POST',
+               url: form.attr('action'),
+               data: formData,
+               contentType: false,
+               processData: false,
+               success: function (data) {
+                   formRefresh(form);
 
-            form.trigger('submit-complete', [data])
+                   form.trigger('submit-complete', [data])
 
-            if (data.status === 'success')
-                form.trigger('submit-success', [data]);
-            else {
-                form.trigger('submit-failure', [data]);
+                   if (data.status === 'success')
+                       form.trigger('submit-success', [data]);
+                   else {
+                       form.trigger('submit-failure', [data]);
 
-                if (data.status === 'invalid')
-                    form.trigger('submit-invalid', [data])
-                else if (data.status === 'impermissible')
-                    form.trigger('submit-impermissible', [data])
-                else if (data.status === 'error')
-                    form.trigger('submit-error', [data])
-            }
-        }
-    });
+                       if (data.status === 'invalid')
+                           form.trigger('submit-invalid', [data])
+                       else if (data.status === 'impermissible')
+                           form.trigger('submit-impermissible', [data])
+                       else if (data.status === 'error')
+                           form.trigger('submit-error', [data])
+                   }
+               }
+           });
 }
 
 // ----------------------------------- field & group toggle ----------------------------------- //
@@ -236,47 +237,62 @@ function resetHiddenFields(form) {
 function update_validation_status(field, formCls, minLength, url) {
     const value = $(field).val();
     $.ajax({
-        url: url,
-        data: {
-            'formCls': formCls,
-            'fieldName': $(field).attr('name'),
-            'value': value,
-            'minLength': minLength,
-        },
-        dataType: 'json',
-        success: function (data) {
-            if (data.status === 'ok') {
-                $(field).removeClass('is-invalid');
-                $(field).addClass('is-valid');
+               url: url,
+               data: {
+                   'formCls': formCls,
+                   'fieldName': $(field).attr('name'),
+                   'value': value,
+                   'minLength': minLength,
+               },
+               dataType: 'json',
+               success: function (data) {
+                   if (data.status === 'ok') {
+                       $(field).removeClass('is-invalid');
+                       $(field).addClass('is-valid');
 
-                const input_block = $(field).closest('.input-block');
-                $(input_block).find('.invalid-feedback').remove();
+                       const input_block = $(field).closest('.input-block');
+                       $(input_block).find('.invalid-feedback').remove();
 
-                submitButtonRefresh($(field).closest('form'));
-            } else {
-                $(field).removeClass('is-valid');
-                $(field).addClass('is-invalid');
+                       submitButtonRefresh($(field).closest('form'));
+                   } else {
+                       $(field).removeClass('is-valid');
+                       $(field).addClass('is-invalid');
 
-                const input_block = $(field).closest('.input-block');
-                $(input_block).find('.invalid-feedback').remove();
+                       const input_block = $(field).closest('.input-block');
+                       $(input_block).find('.invalid-feedback').remove();
 
-                for (let i = 0; i < data.messages.length; i++) {
-                    $(input_block).append(
-                        "<div class='invalid-feedback'>" + data.messages[i] + "</div>"
-                    );
-                }
+                       for (let i = 0; i < data.messages.length; i++) {
+                           $(input_block).append(
+                               "<div class='invalid-feedback'>" + data.messages[i] + "</div>"
+                           );
+                       }
 
-                $(field).closest('form').find('.submit-btn').attr('disabled', true);
-            }
+                       $(field).closest('form').find('.submit-btn').attr('disabled', true);
+                   }
 
-            $(field).trigger('validation-complete');
-        }
-    });
+                   $(field).trigger('validation-complete');
+               }
+           });
+}
+
+function updateSelectFieldValidationStatus(field) {
+    if ($(field).val().length === 0) {
+        $(field).removeClass('is-valid');
+        $(field).addClass('is-invalid');
+        $(field).closest('form').find('.submit-btn').attr('disabled', true);
+    } else {
+        $(field).removeClass('is-invalid');
+        $(field).addClass('is-valid');
+        submitButtonRefresh($(field).closest('form'));
+    }
+
+    $(field).trigger('validation-complete');
 }
 
 function submitButtonRefresh(form) {
     if (form.find('.live-validation').filter(function () {
-        return ($(this)).find('input:not(:disabled):not(.is-valid)').length > 0;
+        return ($(this)).find('input:not(:disabled):not(.is-valid)').length > 0 ||
+               $(this).find('select:not(:disabled):not(.is-valid)').length > 0;
     }).length > 0)
         form.find('.submit-btn').attr('disabled', true);
     else
@@ -299,7 +315,7 @@ function enableSubmitButton(submitButton) {
 function renderConfirmationPopup(popup) {
     popup.find('.input-summary-label').text(function () {
         return $('#' + $(this).data('input-target')).closest('.input-group')
-            .find('label').text() + ':';
+                                                    .find('label').text() + ':';
     });
 
     popup.find('.input-summary-value').text(function () {
@@ -357,12 +373,12 @@ function tableSelectFieldSetup() {
         });
 
         input.on('validation-complete', function () {
-           if ($(this).hasClass('is-valid'))
-               tableSelectField.removeClass('is-invalid').addClass('is-valid');
-           else if ($(this).hasClass('is-invalid'))
-               tableSelectField.removeClass('is-valid').addClass('is-invalid');
-           else
-               tableSelectField.removeClass('is-valid').removeClass('is-invalid');
+            if ($(this).hasClass('is-valid'))
+                tableSelectField.removeClass('is-invalid').addClass('is-valid');
+            else if ($(this).hasClass('is-invalid'))
+                tableSelectField.removeClass('is-valid').addClass('is-invalid');
+            else
+                tableSelectField.removeClass('is-valid').removeClass('is-invalid');
         });
     });
 }
@@ -375,4 +391,41 @@ function tableSelectFieldCheckboxClickHandler(tableSelectField, input) {
         ids.push($(row).data('record-id'));
 
     input.val(ids.join(',')).trigger('input');
+}
+
+// ------------------------------------ model choice field ------------------------------------ //
+
+function modelChoiceFieldSetup() {
+    $('.model-choice-field').each(function () {
+        const field = $(this);
+        const sourceURL = field.data('source-url');
+        const labelFormatString = field.data('label-format-string');
+        const valueFormatString = field.data('value-format-string');
+
+        field.attr('disabled', true);
+        field.append(`<option class="label" value="" selected>` +
+                     `${field.data('loading-label')}</option>`)
+
+        $.ajax({
+                   url: sourceURL,
+                   dataType: 'json',
+                   success: function (response) {
+                       for (const record of response.data) {
+                           addModelChoiceFieldOption(field,
+                                                     record,
+                                                     labelFormatString,
+                                                     valueFormatString)
+                       }
+
+                       field.find('option.label').text(field.data('label'));
+                       field.attr('disabled', false);
+                   }
+               })
+    })
+}
+
+function addModelChoiceFieldOption(field, data, labelFormatString, valueFormatString) {
+    const value = generateFormattedString(data, valueFormatString);
+    const label = generateFormattedString(data, labelFormatString);
+    field.append(`<option value="${value}">${label}</option>`);
 }

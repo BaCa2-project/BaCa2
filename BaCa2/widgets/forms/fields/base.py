@@ -381,3 +381,58 @@ class FileUploadField(forms.FileField):
 
         kwargs['validators'] = validators
         super().__init__(**kwargs)
+
+
+# ---------------------------------------- choice fields --------------------------------------- #
+
+class ModelChoiceField(forms.ChoiceField):
+    """
+    Form choice field which fetches its choices from a model view using the provided url. Allows to
+    specify custom label and value format strings for the choices, which can use the fields of
+    records fetched from the model view. The label format string is used to generate the option
+    labels, while the value format string is used to generate the associated values (sent in the
+    POST request).
+    """
+
+    def __init__(self,
+                 data_source_url: str,
+                 label_format_string: str,
+                 value_format_string: str = '[[id]]',
+                 loading_label: str = '',
+                 **kwargs) -> None:
+        """
+        :param data_source_url: URL to fetch the choice options from. Should return a JSON response
+            with a `data` array containing record dictionaries. Use the `get_url` method of the
+            model view associated with desired model to generate the URL.
+        :type data_source_url: str
+        :param label_format_string: Format string used to generate the option labels. Can use the
+            fields of records fetched from the model view with double square brackets notation
+            (e.g. `[[field_name]]`).
+        :type label_format_string: str
+        :param value_format_string: Format string used to generate the associated values. Can use
+            the fields of records fetched from the model view with double square brackets
+            notation. Defaults to `[[id]]`.
+        :type value_format_string: str
+        :param loading_label: Label to display while the options are being fetched. Will be
+            replaced with the actual field label once the options are fetched. Defaults to
+            "Loading...".
+        :type loading_label: str
+        """
+        self.special_field_type = 'model_choice'
+        self.data_source_url = data_source_url
+        self.label_format_string = label_format_string
+        self.value_format_string = value_format_string
+        if not loading_label:
+            loading_label = _('Loading...')
+        self.loading_label = loading_label
+        super().__init__(**kwargs)
+
+    def widget_attrs(self, widget) -> dict:
+        attrs = super().widget_attrs(widget)
+        attrs['class'] = 'form-select model-choice-field'
+        attrs['data-label'] = self.label
+        attrs['data-loading-label'] = self.loading_label
+        attrs['data-source-url'] = self.data_source_url
+        attrs['data-label-format-string'] = self.label_format_string
+        attrs['data-value-format-string'] = self.value_format_string
+        return attrs
