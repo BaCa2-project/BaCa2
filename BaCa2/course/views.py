@@ -332,6 +332,7 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
             allow_delete=True,
             delete_form=DeleteTaskForm(),
             data_post_url=TaskModelView.post_url(course_id=course_id),
+            link_format_string=f'/course/{course_id}/task/{"{id}"}',
         )
         self.add_widget(context, tasks_table)
 
