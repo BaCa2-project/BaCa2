@@ -356,16 +356,9 @@ function createRowCallback(linkFormatString) {
         $(row).attr('data-record-id', `${data.id}`);
 
         if (linkFormatString) {
-            $(row).attr('data-record-link', constructRecordLink(data, linkFormatString));
+            $(row).attr('data-record-link', generateFormattedString(data, linkFormatString));
         }
     }
-}
-
-
-function constructRecordLink(data, linkFormatString) {
-    return linkFormatString.replace(/\[\[(\w+)]]/g, function (match, key) {
-       return data[key] || match;
-    });
 }
 
 
