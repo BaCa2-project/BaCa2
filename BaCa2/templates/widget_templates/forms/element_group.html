@@ -29,13 +29,17 @@
                     {% endwith %}
                 {% else %}
                     {% with form_widget.form|get_form_field:element as field %}
-                        {% if field.field.widget.attrs.class == 'table-select-field' %}
-                            {% include 'widget_templates/forms/table_select_field.html' %}
-                        {% elif field.field.widget.input_type == 'file' %}
-                            {% include 'widget_templates/forms/file_upload_field.html' %}
-                        {% elif not field.is_hidden %}
-                            {% include 'widget_templates/forms/field.html' %}
-                        {% endif %}
+                        {% with field.field.special_field_type as special_type %}
+                            {% if special_type == 'model_choice' %}
+                                {% include 'widget_templates/forms/model_choice_field.html' %}
+                            {% elif special_type == 'table_select' %}
+                                {% include 'widget_templates/forms/table_select_field.html' %}
+                            {% elif field.field.widget.input_type == 'file' %}
+                                {% include 'widget_templates/forms/file_upload_field.html' %}
+                            {% elif not field.is_hidden %}
+                                {% include 'widget_templates/forms/field.html' %}
+                            {% endif %}
+                        {% endwith %}
                     {% endwith %}
                 {% endif %}
                 {% if element_group.layout == 'horizontal' %}

@@ -1,5 +1,11 @@
 {% load widget_tweaks %}
 
 {% with field.field.widget.input_type as field_type  %}
-    {% render_field field class=field_class id=field.name placeholder="-" type=field_type %}
+    {% if not field_class %}
+        {% with field.field.widget.attrs.class as field_class %}
+            {% render_field field class=field_class id=field.name placeholder="-" type=field_type %}
+        {% endwith %}
+    {% else %}
+        {% render_field field class=field_class id=field.name placeholder="-" type=field_type %}
+    {% endif %}
 {% endwith %}
