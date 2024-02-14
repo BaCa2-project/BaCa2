@@ -13,6 +13,10 @@
         {% include 'widget_templates/table.html' %}
     {% endwith %}
 
+    {% if field.help_text %}
+        <small class="form-text text-muted">{{ field.help_text }}</small>
+    {% endif %}
+
     {% include 'widget_templates/forms/field_errors.html' %}
 </div>
 

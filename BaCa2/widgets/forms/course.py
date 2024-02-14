@@ -17,7 +17,12 @@ from widgets.forms.base import (
     FormWidget,
     ModelFormPostTarget
 )
-from widgets.forms.fields import AlphanumericStringField, FileUploadField, ModelChoiceField
+from widgets.forms.fields import (
+    AlphanumericStringField,
+    ChoiceField,
+    FileUploadField,
+    ModelChoiceField
+)
 from widgets.forms.fields.course import CourseName, CourseShortName, USOSCode
 from widgets.popups.forms import SubmitConfirmationPopup
 
@@ -419,10 +424,9 @@ class CreateTaskForm(BaCa2ModelForm):
     package = FileUploadField(label=_('Task package'),
                               required=True,
                               allowed_extensions=['zip'])
-    judge_mode = forms.ChoiceField(label=_('Judge mode'),
-                                   choices=TaskJudgingMode,
-                                   required=True,
-                                   )
+    judge_mode = ChoiceField(label=_('Judge mode'),
+                             choices=TaskJudgingMode,
+                             required=True)
 
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
