@@ -1225,3 +1225,13 @@ class Result(models.Model, metaclass=ReadCourseMeta):
         super().delete(using, keep_parents)
         if rejudge:
             self.submit.score(rejudge=True)
+
+    def get_data(self):
+        return {
+            'id': self.pk,
+            'test_name': self.test.short_name,
+            'status': self.status,
+            'time_real': self.time_real,
+            'time_cpu': self.time_cpu,
+            'runtime_memory': self.runtime_memory
+        }

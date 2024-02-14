@@ -8,7 +8,7 @@ from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect
 from django.utils.translation import gettext_lazy as _
 
-from course.models import Round, Submit, Task
+from course.models import Result, Round, Submit, Task
 from course.routing import InCourse
 from main.views import UserModelView
 from util.models_registry import ModelsRegistry
@@ -212,6 +212,36 @@ class SubmitModelView(CourseModelView):
         if request.POST.get('form_name') == 'add_submit_form':
             return CreateSubmitForm.handle_post_request(request)
         return self.handle_unknown_form(request, **kwargs)
+
+
+class ResultModelView(CourseModelView):
+    MODEL = Result
+
+    class MissingSubmitId(Exception):
+        pass
+
+    # @classmethod
+    # def _url(cls, **kwargs) -> str:
+    #     url = super()._url(**kwargs)
+    #     submit_id = kwargs.get('submit_id')
+    #     if not submit_id:
+    #         raise cls.MissingSubmitId('Submit id required to construct URL')
+    #     return f'{url}/submit/{submit_id}'
+
+    def check_get_filtered_permission(self,
+                                      query_params: dict,
+                                      query_result: List[django.db.models.Model],
+                                      request,
+                                      **kwargs) -> bool:
+        return True
+
+    def check_get_excluded_permission(self, query_params: dict,
+                                      query_result: List[django.db.models.Model], request,
+                                      **kwargs) -> bool:
+        return True
+
+    def post(self, request, **kwargs) -> JsonResponse:
+        pass
 
 
 # ----------------------------------------- User views ----------------------------------------- #
@@ -538,7 +568,8 @@ class SubmitSummaryView(BaCa2LoggedInView):
         course_id = self.kwargs.get('course_id')
         submit_id = self.kwargs.get('submit_id')
         submit = ModelsRegistry.get_submit(submit_id, course_id)
-        task = submit.task_
+        with InCourse(course_id):
+            task = submit.task
         course = ModelsRegistry.get_course(course_id)
 
         summary_table = TableWidget(
@@ -564,5 +595,36 @@ class SubmitSummaryView(BaCa2LoggedInView):
             default_sorting=False,
         )
         self.add_widget(context, summary_table)
+
+        sets = task.sets
+        sets_list = []
+        for s in sets:
+            set_context = {
+                'set_name': s.short_name,
+                'set_id': s.pk,
+                'widgets': {'TableWidget': {}},
+            }
+
+            set_summary = TableWidget(
+                name=f'set_{s.pk}_summary_table_widget',
+                request=self.request,
+                data_source=ResultModelView.get_url(
+                    mode=BaCa2ModelView.GetMode.FILTER,
+                    query_params={'submit': submit_id, 'test__test_set_id': s.pk},
+                    course_id=course_id,
+                ),
+                cols=[
+                    TextColumn(name='test_name', header=_('Test')),
+                    TextColumn(name='status', header=_('Status')),
+                    TextColumn(name='time_real', header=_('Time')),
+                    TextColumn(name='runtime_memory', header=_('Memory')),
+                ],
+                title=f'{_("Set")} {s.short_name}',
+            )
+            self.add_widget(set_context, set_summary)
+            set_context['table_widget'] = list(set_context['widgets']['TableWidget'].values())[0]
+            sets_list.append(set_context)
+
+        context['sets'] = sets_list
 
         return context

@@ -4,4 +4,11 @@
     {% with widgets.TableWidget.summary_table_widget as table_widget %}
         {% include "widget_templates/table.html" %}
     {% endwith %}
+
+    {% for s in sets %}
+        <br />
+        {% with s.table_widget as table_widget %}
+            {% include "widget_templates/table.html" %}
+        {% endwith %}
+    {% endfor %}
 {% endblock %}
