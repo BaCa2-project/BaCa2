@@ -5,6 +5,16 @@
     cursor: pointer;
 }
 
+.no-header {
+    thead {
+        display: none;
+    }
+
+    &.no-footer {
+        border-bottom: 0 !important;
+    }
+}
+
 .table-wrapper {
     .table-widget-forms-wrapper form {
         display: none;

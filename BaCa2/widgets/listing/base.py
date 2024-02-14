@@ -61,7 +61,8 @@ class TableWidget(Widget):
                  default_order_col: str = '',
                  default_order_asc: bool = True,
                  stripe_rows: bool = True,
-                 highlight_rows_on_hover: bool = False) -> None:
+                 highlight_rows_on_hover: bool = False,
+                 hide_col_headers: bool = False) -> None:
         """
         :param name: The name of the table widget. Names are used as ids for the HTML <table>
             elements of the rendered table widgets.
@@ -128,6 +129,8 @@ class TableWidget(Widget):
         :type stripe_rows: bool
         :param highlight_rows_on_hover: Whether to highlight the table rows on mouse hover.
         :type highlight_rows_on_hover: bool
+        :param hide_col_headers: Whether to hide the column headers.
+        :type hide_col_headers: bool
         """
         super().__init__(name=name, request=request)
 
@@ -174,6 +177,8 @@ class TableWidget(Widget):
             self.add_class('row-hover')
         if link_format_string:
             self.add_class('link-records')
+        if hide_col_headers:
+            self.add_class('no-header')
 
         for col in cols:
             col.request = request
