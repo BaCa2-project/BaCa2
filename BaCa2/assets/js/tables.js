@@ -282,6 +282,7 @@ function initTable(
         dataSource,
         linkFormatString,
         cols,
+        defaultSorting,
         defaultOrder,
         defaultOrderCol,
         searching,
@@ -298,7 +299,11 @@ function initTable(
     else
         tableParams['data'] = dataSource;
 
-    tableParams['order'] = [[defaultOrderCol, defaultOrder]];
+    if (defaultSorting)
+        tableParams['order'] = [[defaultOrderCol, defaultOrder]];
+    else
+        tableParams['order'] = [];
+
     tableParams['searching'] = searching;
 
     const columns = [];
