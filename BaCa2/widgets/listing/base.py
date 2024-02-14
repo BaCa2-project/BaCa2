@@ -58,6 +58,7 @@ class TableWidget(Widget):
                  refresh_button: bool = False,
                  refresh: bool = False,
                  refresh_interval: int = 30,
+                 default_sorting: bool = True,
                  default_order_col: str = '',
                  default_order_asc: bool = True,
                  stripe_rows: bool = True,
@@ -119,6 +120,8 @@ class TableWidget(Widget):
         :type refresh: bool
         :param refresh_interval: The interval in seconds at which the table data is refreshed.
         :type refresh_interval: int
+        :param default_sorting: Whether to use default sorting for the table.
+        :type default_sorting: bool
         :param default_order_col: The name of the column to use for default ordering. If not set,
             the first column with sortable=True is used.
         :type default_order_col: str
@@ -140,7 +143,7 @@ class TableWidget(Widget):
         self.title = title
         self.display_title = display_title
 
-        if not default_order_col:
+        if not default_order_col and default_sorting:
             default_order_col = next(col.name for col in cols if getattr(col, 'sortable'))
 
         if allow_select:
@@ -207,8 +210,13 @@ class TableWidget(Widget):
         else:
             self.table_buttons = False
 
+        self.default_sorting = default_sorting
         self.default_order = 'asc' if default_order_asc else 'desc'
-        self.default_order_col = self.get_default_order_col_index(default_order_col, self.cols)
+
+        if default_sorting:
+            self.default_order_col = self.get_default_order_col_index(default_order_col, self.cols)
+        else:
+            self.default_order_col = 0
 
     @staticmethod
     def get_default_order_col_index(default_order_col: str, cols: List[Column]) -> int:
@@ -245,6 +253,7 @@ class TableWidget(Widget):
             'refresh': json.dumps(self.refresh),
             'refresh_interval': self.refresh_interval,
             'refresh_button': json.dumps(self.refresh_button),
+            'default_sorting': json.dumps(self.default_sorting),
             'default_order_col': self.default_order_col,
             'default_order': self.default_order,
             'allow_delete': self.allow_delete,
