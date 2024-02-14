@@ -5,6 +5,7 @@ from .views import (
     CourseTask,
     CourseTaskAdmin,
     CourseView,
+    ResultModelView,
     RoundEditView,
     RoundModelView,
     SubmitModelView,
@@ -25,4 +26,5 @@ urlpatterns = [
     path('models/round/', RoundModelView.as_view(), name='round-model-view'),
     path('models/task/', TaskModelView.as_view(), name='task-model-view'),
     path('models/submit/', SubmitModelView.as_view(), name='submit-model-view'),
+    path('models/result/', ResultModelView.as_view(), name='result-model-view')
 ]
