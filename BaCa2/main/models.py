@@ -1659,6 +1659,9 @@ class User(AbstractBaseUser):
         super().delete(using, keep_parents)
         settings.delete()
 
+    def get_full_name(self):
+        return f'{self.first_name} {self.last_name}'
+
 
 class RoleManager(models.Manager):
     """

@@ -1,6 +1,6 @@
 import inspect
 from abc import ABC, ABCMeta
-from typing import Callable, List, Union
+from typing import Any, Callable, Dict, List, Union
 
 import django.db.models
 from django.contrib.auth.mixins import UserPassesTestMixin
@@ -356,7 +356,8 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
             refresh_button=True,
             paging=TableWidgetPaging(page_length=50,
                                      allow_length_change=True,
-                                     length_change_options=[10, 25, 50, 100])
+                                     length_change_options=[10, 25, 50, 100]),
+            link_format_string=f'/course/{course_id}/submit/[[id]]/',
         )
         self.add_widget(context, results_table)
 
@@ -417,6 +418,7 @@ class CourseTask(BaCa2LoggedInView):
             ],
             title=f"{_('My results')} - {task.task_name}",
             refresh_button=True,
+            link_format_string=f'/course/{course_id}/submit/[[id]]/',
         )
         self.add_widget(context, results_table)
 
@@ -459,16 +461,18 @@ class CourseTaskAdmin(BaCa2LoggedInView, UserPassesTestMixin):
             data_source=SubmitModelView.get_url(
                 mode=BaCa2ModelView.GetMode.FILTER,
                 query_params={'task__id': task_id},
+                serialize_kwargs={'add_summary_score': True},
                 course_id=course_id,
             ),
             cols=[
                 DatetimeColumn(name='submit_date', header=_('Submit time')),
                 TextColumn(name='user_first_name', header=_('Submitter name')),
                 TextColumn(name='user_last_name', header=_('Submitter last name')),
-                TextColumn(name='final_score', header=_('Score')),
+                TextColumn(name='summary_score', header=_('Score')),
             ],
             title=_('Submissions'),
             refresh_button=True,
+            link_format_string=f'/course/{course_id}/submit/[[id]]/',
         )
         self.add_widget(context, submissions_table)
 
@@ -507,5 +511,58 @@ class RoundEditView(BaCa2LoggedInView, UserPassesTestMixin):
             }
             for r in round_names
         ]
+
+        return context
+
+
+class SubmitSummaryView(BaCa2LoggedInView):
+    template_name = 'course_submit_summary.html'
+
+    def get(self, request, *args, **kwargs) -> HttpResponse:
+        course_id = self.kwargs.get('course_id')
+        submit_id = self.kwargs.get('submit_id')
+        course = ModelsRegistry.get_course(course_id)
+        submit = course.get_submit(submit_id)
+
+        if course.user_is_admin(request.user):
+            self.kwargs['admin_access'] = True
+        elif submit.user == request.user:
+            self.kwargs['admin_access'] = False
+        else:
+            return HttpResponseForbidden(_('You are not allowed to view this page.'))
+
+        return super().get(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        course_id = self.kwargs.get('course_id')
+        submit_id = self.kwargs.get('submit_id')
+        submit = ModelsRegistry.get_submit(submit_id, course_id)
+        task = submit.task_
+        course = ModelsRegistry.get_course(course_id)
+
+        summary_table = TableWidget(
+            name='summary_table_widget',
+            request=self.request,
+            cols=[
+                TextColumn(name='title', sortable=False),
+                TextColumn(name='value', sortable=False)
+            ],
+            data_source=[
+                {'title': _('Course'), 'value': course.name},
+                {'title': _('Round'), 'value': task.round_.name},
+                {'title': _('Task'), 'value': task.task_name},
+                {'title': _('User'), 'value': submit.user.get_full_name()},
+                {'title': _('Submit time'),
+                 'value': submit.submit_date.strftime('%Y-%m-%d %H:%M:%S')},
+                {'title': _('Score'), 'value': submit.summary_score},
+            ],
+            title=_('Summary') + f' - {_("submit")} #{submit.pk}',
+            allow_global_search=False,
+            allow_column_search=False,
+            hide_col_headers=True,
+            default_sorting=False,
+        )
+        self.add_widget(context, summary_table)
 
         return context

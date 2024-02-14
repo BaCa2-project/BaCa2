@@ -4,6 +4,7 @@ import json
 from typing import Any, Dict, List
 
 from django.http import HttpRequest
+from django.utils.functional import Promise
 from django.utils.translation import gettext_lazy as _
 
 from widgets.base import Widget
@@ -193,7 +194,8 @@ class TableWidget(Widget):
             self.ajax = True
         else:
             self.data_source_url = ''
-            self.data_source = json.dumps(self.parse_static_data(data_source, self.cols))
+            self.data_source = json.dumps(self.parse_static_data(data_source, self.cols),
+                                          ensure_ascii=False)
             self.ajax = False
 
         self.allow_global_search = allow_global_search
@@ -277,14 +279,21 @@ class TableWidget(Widget):
         :param cols: List of columns to be displayed in the table.
         :type cols: List[:class:`Column`]
         :return: List of dictionaries representing table rows with unique ids for each record and
-            all columns present in each record (if not present, the column is set to an empty
+            all columns present in each record (if not present, the column is set to a "---"
             string).
         :rtype: List[Dict[str, Any]]
         """
         for col in cols:
             for record in data:
                 if col.name not in record:
-                    record[col.name] = ''
+                    record[col.name] = '---'
+
+        for record in data:
+            for key, value in record.items():
+                if not str(value).strip():
+                    record[key] = '---'
+                if isinstance(value, Promise):
+                    record[key] = str(value)
 
         for index, record in enumerate(data):
             if 'id' not in record:
