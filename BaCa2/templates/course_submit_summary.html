@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+
+{% block content %}
+    {% with widgets.TableWidget.summary_table_widget as table_widget %}
+        {% include "widget_templates/table.html" %}
+    {% endwith %}
+{% endblock %}

@@ -58,7 +58,34 @@ class ReadCourseMeta(ModelBase):
                 setattr(result_class,
                         attr_name,
                         decorated_meth)
+            elif isinstance(attr_value, models.Field):
+                dest_field = result_class.__dict__.get(attr_name)
+                dest_field_id = result_class.__dict__.get(f'{attr_name}_id')
+                setattr(result_class, f'{attr_name}_', cls.field_decorator(dest_field))
+                if dest_field_id:
+                    setattr(result_class, f'{attr_name}_id_', cls.field_decorator(dest_field_id))
         return result_class
+
+    @staticmethod
+    def field_decorator(field):
+        """
+        Decorator used to decode origin database from object. It wraps every operation inside
+        the object to be performed on meta-read database.
+
+        :param field: Field to be wrapped
+        :type field: models.Field
+
+        :returns: Wrapped field
+        """
+
+        @property
+        def field_property(self):
+            if InCourse.is_defined():
+                return field.__get__(self)
+            with InCourse(self._state.db):
+                return field.__get__(self)
+
+        return field_property
 
     @staticmethod
     def read_course_decorator(original_method, prop: bool = False):
@@ -1036,6 +1063,11 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         """
         return round(self.task.points * self.score(), 2)
 
+    @property
+    def summary_score(self) -> str:
+        score = self.score()
+        return f'{self.task_score} ({self.format_score(score, 1)} %)' if score > -1 else 'PND'
+
     def get_data(self,
                  show_user: bool = True,
                  add_round_task_name: bool = False,
@@ -1046,7 +1078,6 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         """
         score = self.score()
         task_score = self.task_score
-        summary_score = f'{task_score} ({self.format_score(score, 1)} %)' if score > -1 else 'PND'
         res = {
             'id': self.pk,
             'submit_date': self.submit_date,
@@ -1061,7 +1092,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         if add_round_task_name:
             res |= {'round_task_name': f'{self.task.round.name}: {self.task.task_name}'}
         if add_summary_score:
-            res |= {'summary_score': summary_score}
+            res |= {'summary_score': self.summary_score}
         return res
 
 

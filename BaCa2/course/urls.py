@@ -8,6 +8,7 @@ from .views import (
     RoundEditView,
     RoundModelView,
     SubmitModelView,
+    SubmitSummaryView,
     TaskModelView
 )
 
@@ -19,6 +20,7 @@ urlpatterns = [
     path('round-edit/', RoundEditView.as_view(), name='round-edit-view'),
     path('task/<int:task_id>/', CourseTask.as_view(), name='task-view'),
     path('task/<int:task_id>/admin/', CourseTaskAdmin.as_view(), name='task-admin'),
+    path('submit/<int:submit_id>/', SubmitSummaryView.as_view(), name='submit-summary-view'),
 
     path('models/round/', RoundModelView.as_view(), name='round-model-view'),
     path('models/task/', TaskModelView.as_view(), name='task-model-view'),
