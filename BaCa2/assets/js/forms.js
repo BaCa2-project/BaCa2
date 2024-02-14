@@ -9,6 +9,7 @@ function formsSetup() {
     refreshButtonSetup();
     liveValidationSetup();
     tableSelectFieldSetup();
+    choiceFieldSetup();
     modelChoiceFieldSetup();
 }
 
@@ -396,16 +397,30 @@ function tableSelectFieldCheckboxClickHandler(tableSelectField, input) {
 
 // ------------------------------------ model choice field ------------------------------------ //
 
+function choiceFieldSetup() {
+    $('.choice-field.placeholder-option').each(function () {
+        const placeholder = $(this).data('placeholder-option');
+        $(this).prepend(`<option class="placeholder" value="" selected>${placeholder}</option>`);
+    });
+
+    $('.choice-field:not(.placeholder-option)').each(function () {
+        const inputBlock = $(this).closest('.input-block');
+        if (inputBlock.find('.live-validation').length > 0)
+            updateSelectFieldValidationStatus($(this));
+    });
+}
+
 function modelChoiceFieldSetup() {
     $('.model-choice-field').each(function () {
         const field = $(this);
         const sourceURL = field.data('source-url');
         const labelFormatString = field.data('label-format-string');
         const valueFormatString = field.data('value-format-string');
+        const placeholderOption = field.find('option.placeholder');
+        const placeholderText = placeholderOption.text();
 
         field.attr('disabled', true);
-        field.append(`<option class="label" value="" selected>` +
-                     `${field.data('loading-label')}</option>`)
+        placeholderOption.text(field.data('loading-option'));
 
         $.ajax({
                    url: sourceURL,
@@ -418,7 +433,7 @@ function modelChoiceFieldSetup() {
                                                      valueFormatString)
                        }
 
-                       field.find('option.label').text(field.data('label'));
+                       placeholderOption.text(placeholderText);
                        field.attr('disabled', false);
                    }
                })

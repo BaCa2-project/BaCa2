@@ -385,7 +385,39 @@ class FileUploadField(forms.FileField):
 
 # ---------------------------------------- choice fields --------------------------------------- #
 
-class ModelChoiceField(forms.ChoiceField):
+class ChoiceField(forms.ChoiceField):
+    """
+    Custom choice field extending the Django `ChoiceField` class to allow for proper rendering.
+    Adds option to specify a default placeholder option which is displayed when no option is
+    selected.
+    """
+    def __init__(self,
+                 placeholder_default_option: bool = True,
+                 placeholder_option: str = '-',
+                 **kwargs):
+        """
+        :param placeholder_default_option: Whether to display the placeholder option when no option
+            is selected. If set to `False`, the placeholder option will not be added.
+        :type placeholder_default_option: bool
+        :param placeholder_option: Label of the placeholder option to be displayed when no option is
+            selected. If not provided defaults to `-`.
+        :type placeholder_option: str
+        """
+        self.special_field_type = 'choice'
+        self.placeholder_default_option = placeholder_default_option
+        self.placeholder_option = placeholder_option
+        super().__init__(**kwargs)
+
+    def widget_attrs(self, widget) -> dict:
+        attrs = super().widget_attrs(widget)
+        attrs['class'] = 'form-select choice-field'
+        if self.placeholder_default_option:
+            attrs['class'] += ' placeholder-option'
+            attrs['data-placeholder-option'] = self.placeholder_option
+        return attrs
+
+
+class ModelChoiceField(ChoiceField):
     """
     Form choice field which fetches its choices from a model view using the provided url. Allows to
     specify custom label and value format strings for the choices, which can use the fields of
@@ -398,7 +430,8 @@ class ModelChoiceField(forms.ChoiceField):
                  data_source_url: str,
                  label_format_string: str,
                  value_format_string: str = '[[id]]',
-                 loading_label: str = '',
+                 placeholder_option: str = '-',
+                 loading_placeholder_option: str = '',
                  **kwargs) -> None:
         """
         :param data_source_url: URL to fetch the choice options from. Should return a JSON response
@@ -413,19 +446,22 @@ class ModelChoiceField(forms.ChoiceField):
             the fields of records fetched from the model view with double square brackets
             notation. Defaults to `[[id]]`.
         :type value_format_string: str
-        :param loading_label: Label to display while the options are being fetched. Will be
-            replaced with the actual field label once the options are fetched. Defaults to
-            "Loading...".
-        :type loading_label: str
+        :param placeholder_option: Placeholder option label to be displayed when no option is
+            selected. If not provided defaults to `-`.
+        :type placeholder_option: str
+        :param loading_placeholder_option: Placeholder option label to be displayed while the
+            choices are being fetched. If not provided defaults to `Loading...`.
+        :type loading_placeholder_option: str
         """
-        self.special_field_type = 'model_choice'
         self._data_source_url = data_source_url
         self.label_format_string = label_format_string
         self.value_format_string = value_format_string
-        if not loading_label:
-            loading_label = _('Loading...')
-        self.loading_label = loading_label
-        super().__init__(**kwargs)
+        if not loading_placeholder_option:
+            loading_placeholder_option = _('Loading...')
+        self.loading_placeholder_option = loading_placeholder_option
+        super().__init__(placeholder_default_option=True,
+                         placeholder_option=placeholder_option,
+                         **kwargs)
 
     @property
     def data_source_url(self) -> str:
@@ -438,9 +474,8 @@ class ModelChoiceField(forms.ChoiceField):
 
     def widget_attrs(self, widget) -> dict:
         attrs = super().widget_attrs(widget)
-        attrs['class'] = 'form-select model-choice-field'
-        attrs['data-label'] = self.label
-        attrs['data-loading-label'] = self.loading_label
+        attrs['class'] += ' model-choice-field'
+        attrs['data-loading-option'] = self.loading_placeholder_option
         attrs['data-source-url'] = self._data_source_url
         attrs['data-label-format-string'] = self.label_format_string
         attrs['data-value-format-string'] = self.value_format_string

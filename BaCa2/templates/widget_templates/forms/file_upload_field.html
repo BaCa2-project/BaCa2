@@ -3,7 +3,12 @@
 <div class="input-block mb-3">
     <div class="{% if form_widget.live_validation %} live-validation {% endif %}">
         <label for="{{ field.name }}" class="form-label">{{ field.label }}</label>
+
         {% include 'widget_templates/forms/form_control_field.html' %}
+
+        {% if field.help_text %}
+            <small class="form-text text-muted">{{ field.help_text }}</small>
+        {% endif %}
     </div>
 
     {% include 'widget_templates/forms/field_errors.html' %}

@@ -30,8 +30,8 @@
                 {% else %}
                     {% with form_widget.form|get_form_field:element as field %}
                         {% with field.field.special_field_type as special_type %}
-                            {% if special_type == 'model_choice' %}
-                                {% include 'widget_templates/forms/model_choice_field.html' %}
+                            {% if special_type == 'choice' %}
+                                {% include 'widget_templates/forms/choice_field.html' %}
                             {% elif special_type == 'table_select' %}
                                 {% include 'widget_templates/forms/table_select_field.html' %}
                             {% elif field.field.widget.input_type == 'file' %}

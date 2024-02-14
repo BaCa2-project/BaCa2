@@ -2,7 +2,23 @@
 
 <div class="input-block mb-3">
     <div class="{% if form_widget.live_validation %} live-validation {% endif %}">
+
+        {% if form_widget.floating_labels %}
+            <div class="form-floating">
+        {% else %}
+            <label for="{{ field.name }}" class="form-label">{{ field.label }}</label>
+        {% endif %}
+
         {% include 'widget_templates/forms/field_render.html' %}
+
+        {% if form_widget.floating_labels %}
+            <label for="{{ field.name }}" class="form-label">{{ field.label }}</label>
+            </div>
+        {% endif %}
+
+        {% if field.help_text %}
+            <small class="form-text text-muted">{{ field.help_text }}</small>
+        {% endif %}
     </div>
 
     {% include 'widget_templates/forms/field_errors.html' %}
