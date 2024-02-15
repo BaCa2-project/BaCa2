@@ -1,4 +1,6 @@
 import json
+import logging
+import traceback
 
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -6,6 +8,8 @@ from django.views.decorators.csrf import csrf_exempt
 from baca2PackageManager.broker_communication import *
 
 from .models import BrokerSubmit
+
+logger = logging.getLogger(__name__)
 
 
 @csrf_exempt
@@ -31,7 +35,7 @@ def handle_broker_result(request):
     :rtype: django.http.HttpResponse
     """
     if request.method != 'POST':
-        return HttpResponse('Not found', status=404)
+        return HttpResponse('Not found', status=408)
 
     if request.headers.get('content-type') != 'application/json':
         return HttpResponse('Wrong argument', status=400)
@@ -42,7 +46,8 @@ def handle_broker_result(request):
     except PermissionError as e:
         return HttpResponse(str(e), status=401)
     except Exception as e:
-        return HttpResponse(str(e), status=403)
+        logger.error(traceback.format_exc())
+        return HttpResponse(str(e), status=405)
     else:
         return HttpResponse('Good', status=200)
 

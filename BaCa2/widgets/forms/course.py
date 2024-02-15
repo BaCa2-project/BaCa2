@@ -653,7 +653,6 @@ class CreateSubmitForm(BaCa2ModelForm):
         except Exception as e:
             source_code_file.delete()
             raise e
-        source_code_file.delete()
         return {'message': _('Submit created successfully')}
 
     @classmethod
