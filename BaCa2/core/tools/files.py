@@ -10,7 +10,7 @@ class FileHandler:
         self.file_data = file_data
         self.extension = extension
         self.file_id = random_id()
-        self.path = path / (self.file_id + extension)
+        self.path = path / f'{self.file_id}.{extension}'
 
     def save(self):
         with open(self.path, 'wb+') as file:

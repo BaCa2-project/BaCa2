@@ -169,7 +169,7 @@ class General(TestCase):
             submit.save()
             submit_id = submit.pk
             DelayedAction.INSTANCE.set_lock(
-                create_broker_submit_id(self.course.name, int(submit_id)))
+                create_broker_submit_id(self.course.short_name, int(submit_id)))
             broker_submit = BrokerSubmit.send(self.course,
                                               submit_id,
                                               self.pkg_instance,
@@ -193,7 +193,7 @@ class General(TestCase):
             submit.save()
             submit_id = submit.pk
             DelayedAction.INSTANCE.set_lock(
-                create_broker_submit_id(self.course.name, int(submit_id)))
+                create_broker_submit_id(self.course.short_name, int(submit_id)))
             broker_submit = BrokerSubmit.send(self.course, submit_id,
                                               self.pkg_instance, broker_password='wrong')
 
@@ -255,7 +255,7 @@ class General(TestCase):
             submit.save()
             submit_id = submit.pk
             DelayedAction.INSTANCE.set_lock(
-                create_broker_submit_id(self.course.name, int(submit_id)))
+                create_broker_submit_id(self.course.short_name, int(submit_id)))
             broker_submit = BrokerSubmit.send(self.course, submit_id,
                                               self.pkg_instance, broker_password='wrong')
 

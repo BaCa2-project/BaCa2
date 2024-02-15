@@ -1,3 +1,4 @@
+import logging
 from time import sleep
 
 from django.conf import settings
@@ -10,6 +11,9 @@ from course.models import Result, Submit
 from course.routing import InCourse
 from main.models import Course
 from package.models import PackageInstance
+from util.models_registry import ModelsRegistry
+
+logger = logging.getLogger(__name__)
 
 
 class BrokerSubmitManager(models.Manager):
@@ -51,7 +55,7 @@ class BrokerSubmit(models.Model):
         :return: broker_id of this submit
         :rtype: str
         """
-        return brcom.create_broker_submit_id(self.course.name, int(self.submit_id))
+        return brcom.create_broker_submit_id(self.course.short_name, int(self.submit_id))
 
     def hash_password(self, password: str) -> str:
         """
@@ -177,7 +181,8 @@ class BrokerSubmit(models.Model):
         """
         course_name, submit_id = brcom.split_broker_submit_id(response.submit_id)
         print(f'{course_name=}, {submit_id=}')
-        broker_submit = cls.objects.filter(course__name=course_name, submit_id=submit_id).first()
+        broker_submit = cls.objects.filter(course__short_name=course_name,
+                                           submit_id=submit_id).first()
         print(f'{broker_submit=}')
         if broker_submit is None:
             raise ValueError(f'No submit with broker_id {response.submit_id} exists.')
@@ -195,9 +200,9 @@ class BrokerSubmit(models.Model):
         """
         broker_submit = cls.authenticate(response)
         course_name, submit_id = brcom.split_broker_submit_id(response.submit_id)
-        course = Course.objects.get(name=course_name)
+        course = ModelsRegistry.get_course(course_name)
 
-        print('update status')
+        logger.info(f'Handling result for submit {submit_id} in course {course_name}.')
         broker_submit.update_status(cls.StatusEnum.CHECKED)
 
         print('unpack results')
