@@ -238,8 +238,8 @@ class FieldValidationView(LoginRequiredMixin, View):
             get_field_validation_status(
                 request=request,
                 form_cls=form_cls_name,
-                field_name=normalize_string_to_python(field_name),
-                value=normalize_string_to_python(request.GET.get('value')),
+                field_name=field_name,
+                value=request.GET.get('value'),
                 min_length=normalize_string_to_python(request.GET.get('minLength', None))
             )
         )
@@ -577,7 +577,7 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         """
         :return: Base url for the view. Used by :meth:`get_url` method.
         """
-        return f'/{cls.MODEL._meta.app_label}/models/{cls.MODEL._meta.model_name}'
+        return f'/{cls.MODEL._meta.app_label}/models/{cls.MODEL._meta.model_name}/'
 
     @classmethod
     def get_url(cls,
@@ -628,4 +628,4 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         :param kwargs: Additional keyword arguments to be added to the URL.
         :type kwargs: dict
         """
-        return f'{cls._url(**kwargs)}/'
+        return f'{cls._url(**kwargs)}'

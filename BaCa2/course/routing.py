@@ -77,8 +77,11 @@ class ContextCourseRouter(SimpleCourseRouter):
             raise RoutingError(
                 "No DB chosen. Remember to use 'with InCourse', while accessing course instance.")
         if db not in settings.DATABASES.keys():
-            raise RoutingError(f"Can't access course DB {db}. Check the name in 'with InCourse'.\n"
-                               f'Available DBs: {list(settings.DATABASES.keys())}')
+            settings.DB_MANAGER.parse_cache()
+            if db not in settings.DATABASES.keys():
+                raise RoutingError(
+                    f"Can't access course DB {db}. Check the name in 'with InCourse'.\n"
+                    f'Available DBs: {list(settings.DATABASES.keys())}')
 
         return db
 
