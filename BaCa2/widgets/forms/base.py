@@ -468,7 +468,7 @@ class ModelFormPostTarget(FormPostTarget):
         :return: URL of the model view
         :rtype: str
         """
-        return f'/{self.model._meta.app_label}/models/{self.model._meta.model_name}'
+        return f'/{self.model._meta.app_label}/models/{self.model._meta.model_name}/'
 
 
 class CourseModelFormPostTarget(ModelFormPostTarget):
@@ -501,7 +501,7 @@ class CourseModelFormPostTarget(ModelFormPostTarget):
         :return: URL of the model view
         :rtype: str
         """
-        return f'course/{self.course}/models/{self.model._meta.model_name}'
+        return f'course/{self.course}/models/{self.model._meta.model_name}/'
 
 
 # -------------------------------------- form element group ------------------------------------ #

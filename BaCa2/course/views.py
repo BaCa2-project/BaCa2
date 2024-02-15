@@ -142,7 +142,7 @@ class CourseModelView(BaCa2ModelView, ABC, metaclass=ReadCourseViewMeta):
         if not course_id:
             raise cls.MissingCourseId('Course id required to construct URL')
 
-        return f'/course/{course_id}/models/{cls.MODEL._meta.model_name}'
+        return f'/course/{course_id}/models/{cls.MODEL._meta.model_name}/'
 
 
 # ----------------------------------------- Model views ----------------------------------------- #
@@ -406,7 +406,7 @@ class CourseTask(BaCa2LoggedInView):
         course = ModelsRegistry.get_course(self.kwargs.get('course_id'))
         # if course.user_is_admin(request.user) or request.user.is_superuser:
         #     return redirect('course:course-admin', course_id=course.id)
-        if not course.user_is_member(request.user) and not course.user_is_admin(request.user):
+        if not course.user_is_member(request.user) and not request.user.is_superuser:
             return HttpResponseForbidden(_('You are neither a member of this course nor an admin.\n'
                                            'You are not allowed to view this page.'))
         return super().get(request, *args, **kwargs)
@@ -554,7 +554,7 @@ class SubmitSummaryView(BaCa2LoggedInView):
         course = ModelsRegistry.get_course(course_id)
         submit = course.get_submit(submit_id)
 
-        if course.user_is_admin(request.user):
+        if course.user_is_admin(request.user) or request.user.is_superuser:
             self.kwargs['admin_access'] = True
         elif submit.user == request.user:
             self.kwargs['admin_access'] = False
