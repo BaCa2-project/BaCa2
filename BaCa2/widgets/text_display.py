@@ -44,6 +44,13 @@ class MarkupDisplayer(Widget):
         """
         super().__init__(name=name)
 
+        if not file_path:
+            self.content = 'No description'
+            self.line_height = f'{round(line_height, 2)}rem'
+            self.limit_display_height = limit_display_height
+            self.display_height = f'{round(display_height * line_height, 2)}rem'
+            return
+
         suffix = file_path.suffix
 
         if suffix not in {extension.value for extension in self.AcceptedFormats}:
