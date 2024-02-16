@@ -4,7 +4,9 @@
     {% for r in rounds %}
     <div class="tab-wrapper" id="{{ r.tab_name }}-tab">
         <div class="side-nav-tab">
-            {{ r.round_name }}
+            {% with r.round_edit_form as form_widget %}
+                {% include "widget_templates/forms/default.html" %}
+            {% endwith %}
         </div>
     </div>
     {% endfor %}

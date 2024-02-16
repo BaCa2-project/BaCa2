@@ -10,6 +10,7 @@ from core.tools.files import FileHandler
 from course.models import Round, Submit, Task
 from course.routing import InCourse
 from main.models import Course
+from util.models_registry import ModelsRegistry
 from widgets.forms.base import (
     BaCa2ModelForm,
     CourseModelFormPostTarget,
@@ -400,6 +401,76 @@ class CreateRoundFormWidget(FormWidget):
             form=form,
             post_target=RoundModelView.post_url(course_id=course_id),
             button_text=_('Add round'),
+            **kwargs
+        )
+
+
+class EditRoundForm(CourseModelForm):
+    MODEL = Round
+    ACTION = Round.BasicAction.EDIT
+
+    name = AlphanumericStringField(label=_('Round name'), required=True)
+    start_date = forms.DateTimeField(label=_('Start date'), required=True)
+    end_date = forms.DateTimeField(label=_('End date'), required=False)
+    deadline_date = forms.DateTimeField(label=_('Deadline date'), required=True)
+    reveal_date = forms.DateTimeField(label=_('Reveal date'), required=False)
+    round_id = forms.IntegerField(widget=forms.HiddenInput())
+
+    @classmethod
+    def handle_valid_request(cls, request) -> Dict[str, str]:
+        round_ = ModelsRegistry.get_round(int(request.POST.get('round_id')))
+
+        round_.update(
+            name=request.POST.get('name'),
+            start_date=request.POST.get('start_date'),
+            end_date=request.POST.get('end_date'),
+            deadline_date=request.POST.get('deadline_date'),
+            reveal_date=request.POST.get('reveal_date'),
+        )
+
+        return {'message': _('Round ') + request.POST.get('name') + _(' edited successfully')}
+
+    @classmethod
+    def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
+        return {'message': _('Round edition failed due to invalid data. Please correct the '
+                             'following errors:')}
+
+    @classmethod
+    def handle_impermissible_request(cls, request) -> Dict[str, str]:
+        return {'message': _('Round edition failed due to insufficient permissions.')}
+
+    @classmethod
+    def handle_error(cls, request, error: Exception) -> Dict[str, str]:
+        return {'message': 'Round edition failed due to the following error:\n' + str(error)}
+
+
+class EditRoundFormWidget(FormWidget):
+    def __init__(self,
+                 request,
+                 course_id: int,
+                 round_: int | Round,
+                 form: CreateRoundForm = None,
+                 **kwargs) -> None:
+        from course.views import RoundModelView
+
+        if not form:
+            form = EditRoundForm()
+
+        round_obj = ModelsRegistry.get_round(round_, course_id)
+
+        form.fields['name'].initial = round_obj.name
+        form.fields['start_date'].initial = round_obj.start_date
+        form.fields['end_date'].initial = round_obj.end_date
+        form.fields['deadline_date'].initial = round_obj.deadline_date
+        form.fields['reveal_date'].initial = round_obj.reveal_date
+        form.fields['round_id'].initial = round_obj.pk
+
+        super().__init__(
+            name=f'edit_round{round_obj.pk}_form_widget',
+            request=request,
+            form=form,
+            post_target=RoundModelView.post_url(course_id=course_id),
+            button_text=f"{_('Edit round')} {round_obj.name}",
             **kwargs
         )
 
