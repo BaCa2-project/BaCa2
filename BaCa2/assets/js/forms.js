@@ -33,6 +33,15 @@ function refreshButtonSetup() {
 
 function liveValidationSetup() {
     $('form').each(function () {
+        $(this).find('.live-validation').each(function () {
+            $(this).find('input').filter(function () {
+                return $(this).val() !== undefined && $(this).val().length > 0;
+            }).addClass('is-valid');
+
+            $(this).find('select').filter(function () {
+                return $(this).val() !== null && $(this).val().length > 0;
+            }).addClass('is-valid');
+        })
         submitButtonRefresh($(this));
     });
 }
@@ -236,7 +245,7 @@ function resetHiddenFields(form) {
 
 // -------------------------------------- live validation ------------------------------------- //
 
-function update_validation_status(field, formCls, minLength, url) {
+function updateValidationStatus(field, formCls, minLength, url) {
     const value = $(field).val();
     $.ajax({
                url: url,
@@ -293,7 +302,7 @@ function updateSelectFieldValidationStatus(field) {
 
 function submitButtonRefresh(form) {
     if (form.find('.live-validation').filter(function () {
-        return ($(this)).find('input:not(:disabled):not(.is-valid)').length > 0 ||
+        return ($(this)).find('input:not(:disabled):not(.is-valid):required').length > 0 ||
                $(this).find('select:not(:disabled):not(.is-valid)').length > 0;
     }).length > 0)
         form.find('.submit-btn').attr('disabled', true);
