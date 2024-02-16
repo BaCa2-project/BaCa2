@@ -1,4 +1,17 @@
-<div class="card">
+<style>
+    #{{ displayer.name }} {
+        line-height: {{ displayer.line_height }};
+        overflow-y: auto;
+    }
+
+    {% if displayer.limit_display_height %}
+        #{{ displayer.name }} {
+            max-height: {{ displayer.display_height }};
+        }
+    {% endif %}
+</style>
+
+<div id="{{ displayer.name }}" class="card markup-display">
     <div class="card-body">
         {{ displayer.content|safe }}
     </div>
