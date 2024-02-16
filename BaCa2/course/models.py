@@ -250,6 +250,19 @@ class Round(models.Model, metaclass=ReadCourseMeta):
             raise ValidationError("Round: Start date can't be later then deadline.")
 
     @transaction.atomic
+    def update(self, **kwargs) -> None:
+        """
+        It updates the round object.
+
+        :param kwargs: The new values for the round object.
+        :type kwargs: dict
+        """
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.validate_dates(self.start_date, self.deadline_date, self.end_date)
+        self.save()
+
+    @transaction.atomic
     def delete(self, using: Any = None, keep_parents: bool = False):
         """
         It deletes the round object.

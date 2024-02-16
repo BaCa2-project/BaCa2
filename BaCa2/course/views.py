@@ -21,7 +21,9 @@ from widgets.forms.course import (
     CreateSubmitFormWidget,
     CreateTaskForm,
     CreateTaskFormWidget,
-    DeleteTaskForm
+    DeleteTaskForm,
+    EditRoundForm,
+    EditRoundFormWidget
 )
 from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.columns import DatetimeColumn, TextColumn
@@ -168,6 +170,8 @@ class RoundModelView(CourseModelView):
     def post(self, request, **kwargs) -> JsonResponse:
         if request.POST.get('form_name') == 'add_round_form':
             return CreateRoundForm.handle_post_request(request)
+        elif request.POST.get('form_name') == 'change_round_form':
+            return EditRoundForm.handle_post_request(request)
         return self.handle_unknown_form(request, **kwargs)
 
 
@@ -425,8 +429,14 @@ class CourseTask(BaCa2LoggedInView):
         self.add_widget(context, sidenav)
 
         # description
-        description_extension = task.package_instance.package.doc_extension('md')
-        description_file = task.package_instance.package.doc_path(description_extension)
+        package = task.package_instance.package
+
+        description_extension = package.doc_extension()
+        description_file = package.doc_path(description_extension)
+        # if package.doc_has_extension('pdf'):
+        #     pdf_path = package.doc_path('pdf')
+        if description_extension == 'pdf':
+            description_file = None
         description_displayer = MarkupDisplayer(name='description', file_path=description_file)
         self.add_widget(context, description_displayer)
 
@@ -533,19 +543,27 @@ class RoundEditView(BaCa2LoggedInView, UserPassesTestMixin):
         course_id = self.kwargs.get('course_id')
         course = ModelsRegistry.get_course(course_id)
         rounds = course.rounds()
+        rounds = sorted(rounds, key=lambda x: x.name)
         round_names = [r.name for r in rounds]
         sidenav = SideNav(request=self.request,
                           collapsed=True,
                           tabs=round_names, )
         self.add_widget(context, sidenav)
 
-        context['rounds'] = [
-            {
-                'tab_name': SideNav.normalize_tab_name(r),
-                'round_name': r
-            }
-            for r in round_names
-        ]
+        rounds_context = []
+
+        for r in rounds:
+            round_edit_form = EditRoundFormWidget(
+                request=self.request,
+                course_id=course_id,
+                round_=r,
+            )
+            rounds_context.append({
+                'tab_name': SideNav.normalize_tab_name(r.name),
+                'round_name': r.name,
+                'round_edit_form': round_edit_form,
+            })
+        context['rounds'] = rounds_context
 
         return context
 
