@@ -433,10 +433,10 @@ class CourseTask(BaCa2LoggedInView):
 
         description_extension = package.doc_extension()
         description_file = package.doc_path(description_extension)
-        # if package.doc_has_extension('pdf'):
-        #     pdf_path = package.doc_path('pdf')
+        if package.doc_has_extension('pdf'):
+            pdf_path = task.package_instance.pdf_docs_path
         if description_extension == 'pdf':
-            description_file = None
+            description_file = pdf_path
         description_displayer = MarkupDisplayer(name='description', file_path=description_file)
         self.add_widget(context, description_displayer)
 

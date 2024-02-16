@@ -467,6 +467,15 @@ class PackageInstance(models.Model):
         from course.models import Task
         return Task.check_instance(self)
 
+    @property
+    def pdf_docs_path(self) -> Path:
+        """
+        It returns the path to the pdf docs file
+
+        :return: The path to the pdf docs file.
+        """
+        return Path(self.pdf_docs)
+
     def delete(self, delete_files: bool = False, using=None, keep_parents=False):
         """
         If the task is not in the database, raise an exception.
