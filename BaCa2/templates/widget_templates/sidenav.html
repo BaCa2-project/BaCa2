@@ -1,10 +1,5 @@
 {% load static %}
-<div class="col-4 side-nav
-    {% if sidenav_widget.collapsed %}
-        collapsed
-    {% else %}
-        expanded
-    {% endif %}">
+<div class="col-4 side-nav {{ sidenav_widget.widget_class }}">
     <ul class="side-nav-content mb-3">
         {% for tab in sidenav_widget.tabs reversed %}
             <li class="side-nav-button tab-button

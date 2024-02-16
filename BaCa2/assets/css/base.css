@@ -3,10 +3,6 @@ html, body {
   height: 100%;
 }
 
-#main-container {
-  display: none;
-}
-
 :root {
   --bs-form-valid-border-color: $red;
 }
@@ -430,8 +426,9 @@ html, body {
   --bs-form-valid-border-color: $red;
 }
 
-.side-nav {
-  height: 100%;
+.side-nav.sticky-side-nav {
+  position: sticky;
+  top: 4.25rem;
 }
 .side-nav .side-nav-content {
   list-style: none;
