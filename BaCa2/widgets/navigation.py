@@ -50,7 +50,8 @@ class SideNav(Widget):
                  tabs: List[str],
                  sub_tabs: Dict[str, List[str]] = None,
                  collapsed: bool = False,
-                 toggle_button: bool = False) -> None:
+                 toggle_button: bool = False,
+                 sticky: bool = True) -> None:
         """
         :param request: HTTP request object received by the view this side nav panel is rendered in.
         :type request: HttpRequest
@@ -65,14 +66,17 @@ class SideNav(Widget):
         :param toggle_button: Whether the toggle button should be displayed. Toggle button is used
             to expand/collapse the side navigation sub-tabs.
         :type toggle_button: bool
+        :param sticky: Whether the side navigation should be sticky and always visible.
+        :type sticky: bool
         """
         super().__init__(name='sidenav', request=request)
         sub_tabs = sub_tabs or {}
-        self.collapsed = collapsed
+
         self.toggle_button = {'on': toggle_button,
                               'state': collapsed,
                               'text_collapsed': _('Expand'),
                               'text_expanded': _('Collapse')}
+
         self.tabs = [
             {
                 'name': tab_name,
@@ -83,6 +87,13 @@ class SideNav(Widget):
             }
             for tab_name in tabs
         ]
+
+        if sticky:
+            self.add_class('sticky-side-nav')
+        if collapsed:
+            self.add_class('collapsed')
+        else:
+            self.add_class('expanded')
 
     @staticmethod
     def normalize_tab_name(tab_name: str) -> str:
@@ -98,6 +109,4 @@ class SideNav(Widget):
         return tab_name.replace(' ', '-').lower()
 
     def get_context(self) -> Dict[str, Any]:
-        return {'tabs': self.tabs,
-                'collapsed': self.collapsed,
-                'toggle_button': self.toggle_button}
+        return super().get_context() | {'tabs': self.tabs, 'toggle_button': self.toggle_button}
