@@ -198,7 +198,7 @@ class BaCa2LogoutView(RedirectView):
 class UJLogin(View):
     @staticmethod
     def post(request, *args, **kwargs) -> None:
-        logger.debug(f'{request.POST}')
+        logger.warning(f'{request.POST}')
 
 
 # ----------------------------------------- Admin view ----------------------------------------- #
