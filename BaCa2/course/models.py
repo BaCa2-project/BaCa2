@@ -14,6 +14,7 @@ from django.utils.timezone import now
 
 from baca2PackageManager import TestF, TSet
 from baca2PackageManager.broker_communication import BrokerToBaca
+from baca2PackageManager.tools import bytes_from_str, bytes_to_str
 from core.choices import ModelAction, ResultStatus, TaskJudgingMode
 from core.exceptions import DataError
 from course.routing import InCourse, OptionalInCourse
@@ -721,6 +722,14 @@ class TestSet(models.Model, metaclass=ReadCourseMeta):
         """
         return list(Test.objects.filter(test_set=self).all())
 
+    @property
+    def package_test_set(self) -> TSet:
+        """
+        :return: The TSet object that corresponds to the TestSet object.
+        :rtype: TSet
+        """
+        return self.task.package_instance.package.sets(self.short_name)
+
 
 class TestManager(models.Manager):
 
@@ -807,6 +816,14 @@ class Test(models.Model, metaclass=ReadCourseMeta):
         for result in self.associated_results:
             result.delete()
         super().delete(using, keep_parents)
+
+    @property
+    def package_test(self) -> TestF:
+        """
+        :return: The TestF object that corresponds to the Test object.
+        :rtype: TestF
+        """
+        return self.test_set.package_test_set.tests(self.short_name)
 
 
 class SubmitManager(models.Manager):
@@ -1226,8 +1243,12 @@ class Result(models.Model, metaclass=ReadCourseMeta):
         if rejudge:
             self.submit.score(rejudge=True)
 
-    def get_data(self):
-        return {
+    def get_data(self,
+                 format_time: bool = True,
+                 format_memory: bool = True,
+                 translate_status: bool = True,
+                 add_limits: bool = True) -> dict:
+        res = {
             'id': self.pk,
             'test_name': self.test.short_name,
             'status': self.status,
@@ -1235,3 +1256,19 @@ class Result(models.Model, metaclass=ReadCourseMeta):
             'time_cpu': self.time_cpu,
             'runtime_memory': self.runtime_memory
         }
+        if format_time:
+            res['f_time_real'] = f'{self.time_real:.3f} s' if self.time_real else None
+            res['f_time_cpu'] = f'{self.time_cpu:.3f} s' if self.time_cpu else None
+            if add_limits:
+                time_limit = round(self.test.package_test['time_limit'], 3)
+                res['f_time_real'] += f' / {time_limit} s'
+                res['f_time_cpu'] += f' / {time_limit} s'
+        if format_memory and self.runtime_memory:
+            res['f_runtime_memory'] = f'{bytes_to_str(self.runtime_memory)}'
+            if add_limits:
+                memory_limit = self.test.package_test['memory_limit']
+                res['f_runtime_memory'] += f' / {bytes_to_str(bytes_from_str(memory_limit))}'
+        if translate_status:
+            res['f_status'] = f'{self.status} ({ResultStatus[self.status].label})'
+
+        return res

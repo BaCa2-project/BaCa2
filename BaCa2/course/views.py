@@ -602,6 +602,7 @@ class SubmitSummaryView(BaCa2LoggedInView):
         self.add_widget(context, summary_table)
 
         sets = task.sets
+        sets = sorted(sets, key=lambda x: x.short_name)
         sets_list = []
         for s in sets:
             set_context = {
@@ -620,11 +621,13 @@ class SubmitSummaryView(BaCa2LoggedInView):
                 ),
                 cols=[
                     TextColumn(name='test_name', header=_('Test')),
-                    TextColumn(name='status', header=_('Status')),
-                    TextColumn(name='time_real', header=_('Time')),
-                    TextColumn(name='runtime_memory', header=_('Memory')),
+                    TextColumn(name='f_status', header=_('Status')),
+                    TextColumn(name='f_time_real', header=_('Time'), searchable=False),
+                    TextColumn(name='f_runtime_memory', header=_('Memory'), searchable=False),
                 ],
-                title=f'{_("Set")} {s.short_name}',
+                title=f'{_("Set")} {s.short_name} - {_("weight:")} {s.weight}',
+                allow_column_search=False,
+                default_order_col='test_name',
             )
             self.add_widget(set_context, set_summary)
             set_context['table_widget'] = list(set_context['widgets']['TableWidget'].values())[0]
