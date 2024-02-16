@@ -26,6 +26,7 @@ from widgets.forms.course import (
 from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.columns import DatetimeColumn, TextColumn
 from widgets.navigation import SideNav
+from widgets.text_display import MarkupDisplayer
 
 # ----------------------------------- Course views abstraction ---------------------------------- #
 
@@ -423,7 +424,11 @@ class CourseTask(BaCa2LoggedInView):
 
         self.add_widget(context, sidenav)
 
-        # TODO: Add widget, generating task description from file
+        # description
+        description_extension = task.package_instance.package.doc_extension('md')
+        description_file = task.package_instance.package.doc_path(description_extension)
+        description_displayer = MarkupDisplayer(name='description', file_path=description_file)
+        self.add_widget(context, description_displayer)
 
         # submit
         submit_form = CreateSubmitFormWidget(request=self.request,

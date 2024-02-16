@@ -3,7 +3,9 @@
 {% block content %}
     <div class="tab-wrapper" id="description-tab">
         <div class="side-nav-tab">
-            Task description
+            {% with widgets.MarkupDisplayer.description as displayer %}
+                {% include "widget_templates/markup_displayer.html" %}
+            {% endwith %}
         </div>
     </div>
     <div class="tab-wrapper" id="submit-tab">

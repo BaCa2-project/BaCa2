@@ -23,6 +23,7 @@ from widgets.forms import FormWidget
 from widgets.forms.fields.validation import get_field_validation_status
 from widgets.listing import TableWidget
 from widgets.navigation import NavBar, SideNav
+from widgets.text_display import MarkupDisplayer
 
 
 class BaCa2ContextMixin:
@@ -42,7 +43,7 @@ class BaCa2ContextMixin:
         pass
 
     #: List of all widget types used in BaCa2 views.
-    WIDGET_TYPES = [FormWidget, NavBar, SideNav, TableWidget]
+    WIDGET_TYPES = [FormWidget, NavBar, SideNav, TableWidget, MarkupDisplayer]
     #: List of all widgets which are unique (i.e. there can only be one instance of each widget type
     #: can exist in the context dictionary).
     UNIQUE_WIDGETS = [NavBar, SideNav]
