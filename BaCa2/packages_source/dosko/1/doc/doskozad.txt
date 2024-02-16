@@ -1,0 +1,19 @@
+Zadanie Liczba Doskonała
+
+Liczba doskonała to taka liczba, która jest sumą wszystkich swoich dzielników, nie licząc siebie. Przykładem liczby doskonałej jest 6=1+2+3 oraz 28 czy 496.
+
+Napisz program, który sprawdzi, czy zadana liczba jest doskonała.
+
+Wejście:
+Progam przyjmuje jedną liczbę całkowitą dodatnią nie większą niż 106.
+
+Wyjście:
+Program wypisuje TAK jeśli podana liczba jest doskonała, a NIE jeśli nie jest.
+
+Przykład:
+
+Wejście: 28
+Wyjście:TAK
+
+Wejście: 30
+Wyjście: NIE
