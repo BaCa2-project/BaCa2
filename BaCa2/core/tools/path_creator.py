@@ -62,6 +62,7 @@ class PathCreator:
 
     def __init__(self):
         self._auto_create_dirs = []
+        self._auto_assertions = []
 
     def add_dir(self, path: Path, overwrite: bool = False):
         self._auto_create_dirs.append(self.Dir(path, overwrite))
@@ -74,7 +75,7 @@ class PathCreator:
         if instant:
             exist_tester.create()
         else:
-            self._auto_create_dirs.insert(0, exist_tester)
+            self._auto_assertions.append(exist_tester)
 
     def assert_exists_dir(self, path: Path, instant: bool = False):
         self.assert_exists(self.Dir(path), instant)
@@ -85,3 +86,5 @@ class PathCreator:
     def create(self):
         for p in self._auto_create_dirs:
             p.create()
+        for a in self._auto_assertions:
+            a.create()
