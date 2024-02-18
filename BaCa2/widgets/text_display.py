@@ -75,3 +75,28 @@ class MarkupDisplayer(Widget):
             'limit_display_height': self.limit_display_height,
             'display_height': self.display_height
         }
+
+
+class PDFDisplayer(Widget):
+    """
+    Widget used to display PDF files.
+    """
+
+    def __init__(self, name: str, file_path: Path) -> None:
+        """
+        :param name: Name of the widget.
+        :type name: str
+        :param file_path: Path to the PDF file to be displayed.
+        :type file_path: Path
+        """
+        super().__init__(name=name)
+
+        suffix = file_path.suffix
+
+        if suffix != '.pdf':
+            raise self.WidgetParameterError(f'File format {suffix} not supported.')
+
+        self.file_path = str(file_path.name).replace('\\', '/')
+
+    def get_context(self) -> dict:
+        return super().get_context() | {'file_path': self.file_path}

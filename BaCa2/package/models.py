@@ -474,7 +474,7 @@ class PackageInstance(models.Model):
 
         :return: The path to the pdf docs file.
         """
-        return Path(self.pdf_docs)
+        return Path(str(self.pdf_docs))
 
     def delete(self, delete_files: bool = False, using=None, keep_parents=False):
         """

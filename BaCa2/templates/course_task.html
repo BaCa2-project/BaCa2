@@ -3,8 +3,8 @@
 {% block content %}
     <div class="tab-wrapper" id="description-tab">
         <div class="side-nav-tab">
-            {% with widgets.MarkupDisplayer.description as displayer %}
-                {% include "widget_templates/markup_displayer.html" %}
+            {% with widgets.PDFDisplayer.pdf_description as displayer %}
+                {% include "widget_templates/pdf_displayer.html" %}
             {% endwith %}
         </div>
     </div>
