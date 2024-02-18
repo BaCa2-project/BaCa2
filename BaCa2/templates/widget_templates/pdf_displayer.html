@@ -1,0 +1,39 @@
+{% load static %}
+
+<div class="card">
+    <div class="card-body">
+        <canvas id="pdf-canvas" style="width: 100%"></canvas>
+    </div>
+</div>
+
+<script>
+    const loadingTask = pdfjsLib.getDocument("{% static displayer.file_path %}");
+
+    loadingTask.promise.then(function(pdf) {
+        const canvas = document.getElementById('pdf-canvas');
+        const context = canvas.getContext('2d');
+
+        for(let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+            pdf.getPage(pageNumber).then(function(page) {
+                const scale = 2.5;
+                const viewport = page.getViewport({scale: scale});
+
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                const renderContext = {
+                    canvasContext: context,
+                    viewport: viewport
+                };
+
+                const renderTask = page.render(renderContext);
+
+                renderTask.promise.then(function () {
+                    console.log('Page rendered');
+                });
+            });
+        }
+    }, function (reason) {
+        console.error(reason);
+    });
+</script>
