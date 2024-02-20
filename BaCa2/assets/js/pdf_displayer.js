@@ -34,7 +34,8 @@ class PDFDisplayer {
                 }
             });
 
-            this.displayer.find('.pdf-current-page').val(num);
+            this.pageNum = num;
+            this.displayer.find('.pdf-page-number').val(num);
         });
     }
 
