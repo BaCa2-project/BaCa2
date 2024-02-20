@@ -28,7 +28,7 @@ from widgets.forms.course import (
 from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.columns import DatetimeColumn, TextColumn
 from widgets.navigation import SideNav
-from widgets.text_display import PDFDisplayer
+from widgets.text_display import TextDisplayer
 
 # ----------------------------------- Course views abstraction ---------------------------------- #
 
@@ -435,8 +435,8 @@ class CourseTask(BaCa2LoggedInView):
             pdf_path = task.package_instance.pdf_docs_path
         else:
             pdf_path = None
-        pdf_description_displayer = PDFDisplayer(name='pdf_description', file_path=pdf_path)
-        self.add_widget(context, pdf_description_displayer)
+        description_displayer = TextDisplayer(name='description', file_path=pdf_path)
+        self.add_widget(context, description_displayer)
 
         # submit
         submit_form = CreateSubmitFormWidget(request=self.request,
