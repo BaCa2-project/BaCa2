@@ -840,6 +840,18 @@ html, body {
     stroke-dashoffset: 900;
   }
 }
+.pdf-displayer .pdf-page-info {
+  display: flex;
+  line-height: 1.8rem;
+}
+.pdf-displayer .pdf-page-change {
+  display: flex;
+}
+.pdf-displayer .pdf-page-number {
+  flex: 1;
+  width: 2.5rem;
+}
+
 /*!
  * Bootstrap Icons v1.11.2 (https://icons.getbootstrap.com/)
  * Copyright 2019-2023 The Bootstrap Authors

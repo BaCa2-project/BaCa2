@@ -1,39 +1,41 @@
 {% load static %}
+{% load i18n %}
 
-<div class="card">
+<div class="pdf-displayer card" id="{{ displayer.name }}">
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col-auto pe-1">
+                <button class="prev-page-btn btn btn-outline-light_muted">
+                    <i class="bi bi-caret-left"></i>
+                </button>
+            </div>
+            <div class="col-auto ps-1">
+                <button class="next-page-btn btn btn-outline-light_muted">
+                    <i class="bi bi-caret-right"></i>
+                </button>
+            </div>
+            <div class="col-auto d-flex align-items-center ps-1">
+                <div class="pdf-page-info">
+                    {% blocktrans %}
+                        <p class="m-0">Page</p>
+                        <form class="pdf-page-change">
+                            <div class="input-group input-group-sm ms-2 me-2">
+                                <input class="form-control pdf-page-number" value="1">
+                            </div>
+                        </form>
+                        <p class="m-0">of</p>
+                        <span class="ms-2 pdf-page-count">1</span>
+                    {% endblocktrans %}
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="card-body">
-        <canvas id="pdf-canvas" style="width: 100%"></canvas>
+        <canvas style="width: 100%"></canvas>
     </div>
 </div>
 
 <script>
-    const loadingTask = pdfjsLib.getDocument("{% static displayer.file_path %}");
-
-    loadingTask.promise.then(function(pdf) {
-        const canvas = document.getElementById('pdf-canvas');
-        const context = canvas.getContext('2d');
-
-        for(let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
-            pdf.getPage(pageNumber).then(function(page) {
-                const scale = 2.5;
-                const viewport = page.getViewport({scale: scale});
-
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-
-                const renderContext = {
-                    canvasContext: context,
-                    viewport: viewport
-                };
-
-                const renderTask = page.render(renderContext);
-
-                renderTask.promise.then(function () {
-                    console.log('Page rendered');
-                });
-            });
-        }
-    }, function (reason) {
-        console.error(reason);
-    });
+    const url = '{% static displayer.file_path %}';
+    const displayer = new PDFDisplayer('{{ displayer.name }}', url);
 </script>
