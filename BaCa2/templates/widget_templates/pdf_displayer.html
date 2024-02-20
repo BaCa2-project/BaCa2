@@ -36,6 +36,6 @@
 </div>
 
 <script>
-    const url = '{% static displayer.file_path %}';
-    const displayer = new PDFDisplayer('{{ displayer.name }}', url);
+    let url = '{% static displayer.file_path %}';
+    new PDFDisplayer('{{ displayer.name }}', url);
 </script>
