@@ -1,0 +1,84 @@
+@import "baca2_variables";
+@import "functions";
+
+@each $theme, $map in $datetimepicker_theme_variables {
+    [data-bs-theme="#{$theme}"] .xdsoft_datetimepicker {
+        background: safe_get(
+                        $map,
+                        $datetimepicker_default_variables,
+                        bg_color
+        ) !important;
+
+        .xdsoft_label {
+            background-color: safe_get(
+                            $map,
+                            $datetimepicker_default_variables,
+                            bg_color
+            ) !important;
+        }
+
+        $icon_color: safe_get(
+                        $map,
+                        $datetimepicker_default_variables,
+                        icon_color
+        );
+
+        .xdsoft_label i, .xdsoft_prev, .xdsoft_next, .xdsoft_today_button {
+            background-image: unquote("url('../img/datetime_picker_icons_#{$icon_color}.png')")
+            !important;
+        }
+
+        .xdsoft_label {
+            color: safe_get(
+                        $map,
+                        $datetimepicker_default_variables,
+                        text_color
+            ) !important;
+        }
+
+        .xdsoft_calendar {
+            th {
+                background: safe_get(
+                                $map,
+                                $datetimepicker_default_variables,
+                                bg_color
+                ) !important;
+                color: safe_get(
+                            $map,
+                            $datetimepicker_default_variables,
+                            text_color
+                ) !important;
+            }
+
+            th, td {
+                box-shadow: none !important;
+                border: none !important;
+            }
+
+            td:not(.xdsoft_other_month):hover {
+                background: safe_get(
+                                $map,
+                                $datetimepicker_default_variables,
+                                hover_bg_color
+                ) !important;
+            }
+
+            .xdsoft_current {
+                background: safe_get(
+                                $map,
+                                $datetimepicker_default_variables,
+                                current_date_bg_color
+                ) !important;
+                box-shadow: none !important;
+            }
+
+            .xdsoft_other_month {
+                background: safe_get(
+                                $map,
+                                $datetimepicker_default_variables,
+                                other_month_bg_color
+                ) !important;
+            }
+        }
+    }
+}

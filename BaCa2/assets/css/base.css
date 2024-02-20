@@ -852,9 +852,75 @@ html, body {
   width: 2.5rem;
 }
 
+:root {
+  --bs-form-valid-border-color: $red;
+}
+
+[data-bs-theme=light] .xdsoft_datetimepicker {
+  background: #0d6efd !important;
+}
+[data-bs-theme=light] .xdsoft_datetimepicker .xdsoft_label {
+  background-color: #0d6efd !important;
+}
+[data-bs-theme=light] .xdsoft_datetimepicker .xdsoft_label i, [data-bs-theme=light] .xdsoft_datetimepicker .xdsoft_prev, [data-bs-theme=light] .xdsoft_datetimepicker .xdsoft_next, [data-bs-theme=light] .xdsoft_datetimepicker .xdsoft_today_button {
+  background-image: url('../img/datetime_picker_icons_black.png') !important;
+}
+[data-bs-theme=light] .xdsoft_datetimepicker .xdsoft_label {
+  color: #212529 !important;
+}
+[data-bs-theme=light] .xdsoft_datetimepicker .xdsoft_calendar th {
+  background: #0d6efd !important;
+  color: #212529 !important;
+}
+[data-bs-theme=light] .xdsoft_datetimepicker .xdsoft_calendar th, [data-bs-theme=light] .xdsoft_datetimepicker .xdsoft_calendar td {
+  box-shadow: none !important;
+  border: none !important;
+}
+[data-bs-theme=light] .xdsoft_datetimepicker .xdsoft_calendar td:not(.xdsoft_other_month):hover {
+  background: #FE2E63 !important;
+}
+[data-bs-theme=light] .xdsoft_datetimepicker .xdsoft_calendar .xdsoft_current {
+  background: #D3CABD !important;
+  box-shadow: none !important;
+}
+[data-bs-theme=light] .xdsoft_datetimepicker .xdsoft_calendar .xdsoft_other_month {
+  background: #f8f9fa !important;
+}
+
+[data-bs-theme=dark] .xdsoft_datetimepicker {
+  background: #000 !important;
+}
+[data-bs-theme=dark] .xdsoft_datetimepicker .xdsoft_label {
+  background-color: #000 !important;
+}
+[data-bs-theme=dark] .xdsoft_datetimepicker .xdsoft_label i, [data-bs-theme=dark] .xdsoft_datetimepicker .xdsoft_prev, [data-bs-theme=dark] .xdsoft_datetimepicker .xdsoft_next, [data-bs-theme=dark] .xdsoft_datetimepicker .xdsoft_today_button {
+  background-image: url('../img/datetime_picker_icons_white.png') !important;
+}
+[data-bs-theme=dark] .xdsoft_datetimepicker .xdsoft_label {
+  color: #f8f9fa !important;
+}
+[data-bs-theme=dark] .xdsoft_datetimepicker .xdsoft_calendar th {
+  background: #000 !important;
+  color: #f8f9fa !important;
+}
+[data-bs-theme=dark] .xdsoft_datetimepicker .xdsoft_calendar th, [data-bs-theme=dark] .xdsoft_datetimepicker .xdsoft_calendar td {
+  box-shadow: none !important;
+  border: none !important;
+}
+[data-bs-theme=dark] .xdsoft_datetimepicker .xdsoft_calendar td:not(.xdsoft_other_month):hover {
+  background: #FE2E63 !important;
+}
+[data-bs-theme=dark] .xdsoft_datetimepicker .xdsoft_calendar .xdsoft_current {
+  background: #D3CABD !important;
+  box-shadow: none !important;
+}
+[data-bs-theme=dark] .xdsoft_datetimepicker .xdsoft_calendar .xdsoft_other_month {
+  background: #f8f9fa !important;
+}
+
 /*!
- * Bootstrap Icons v1.11.2 (https://icons.getbootstrap.com/)
- * Copyright 2019-2023 The Bootstrap Authors
+ * Bootstrap Icons v1.11.3 (https://icons.getbootstrap.com/)
+ * Copyright 2019-2024 The Bootstrap Authors
  * Licensed under MIT (https://github.com/twbs/icons/blob/main/LICENSE)
  */
 @font-face {
