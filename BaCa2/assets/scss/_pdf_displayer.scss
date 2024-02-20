@@ -1,0 +1,15 @@
+.pdf-displayer {
+    .pdf-page-info {
+        display: flex;
+        line-height: 1.8rem;
+    }
+
+    .pdf-page-change {
+        display: flex;
+    }
+
+    .pdf-page-number {
+        flex: 1;
+        width: 2.5rem;
+    }
+}
