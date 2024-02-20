@@ -90,7 +90,8 @@ class MarkupDisplayer(Widget):
                  file_path: Path,
                  line_height: float = 1.2,
                  limit_display_height: bool = True,
-                 display_height: int = 50) -> None:
+                 display_height: int = 50,
+                 pdf_download: Path = None) -> None:
         """
         :param name: Name of the widget.
         :type name: str
@@ -106,17 +107,16 @@ class MarkupDisplayer(Widget):
         :param display_height: Height of the displayed text in number of standard height lines.
             Only used if `limit_display_height` is set to `True`. Default is 50.
         :type display_height: int
+        :param pdf_download: Path to the PDF file to be downloaded. If provided, a download button
+            will be displayed above the text.
+        :type pdf_download: Path
         """
         super().__init__(name=name)
-
-        self.line_height = f'{round(line_height, 2)}rem'
-        self.limit_display_height = limit_display_height
-        self.display_height = f'{round(display_height * line_height, 2)}rem'
 
         suffix = file_path.suffix
 
         if suffix not in {extension.value for extension in self.AcceptedFormats}:
-            raise self.WidgetParameterError('File format not supported.')
+            raise self.WidgetParameterError(f'File format {suffix} not supported.')
 
         with file_path.open('r', encoding='utf-8') as file:
             self.content = file.read()
@@ -124,14 +124,26 @@ class MarkupDisplayer(Widget):
         if suffix == self.AcceptedFormats.MARKDOWN.value:
             self.content = markdown(self.content, extensions=[MathExtension()])
         elif suffix == self.AcceptedFormats.TEXT.value:
-            self.content = self.content.replace('\n', '<br>')
+            self.content = self.content.replace('\n', '<br>')\
+
+        if pdf_download:
+            if pdf_download.suffix != '.pdf':
+                raise self.WidgetParameterError(f'File format {suffix} not supported.')
+            self.pdf_download = str(pdf_download.name).replace('\\', '/')
+        else:
+            self.pdf_download = False
+
+        self.line_height = f'{round(line_height, 2)}rem'
+        self.limit_display_height = limit_display_height
+        self.display_height = f'{round(display_height * line_height, 2)}rem'
 
     def get_context(self) -> dict:
         return super().get_context() | {
             'content': self.content,
             'line_height': self.line_height,
             'limit_display_height': self.limit_display_height,
-            'display_height': self.display_height
+            'display_height': self.display_height,
+            'pdf_download': self.pdf_download
         }
 
 
