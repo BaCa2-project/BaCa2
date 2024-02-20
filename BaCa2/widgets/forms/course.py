@@ -22,6 +22,7 @@ from widgets.forms.fields import (
     AlphanumericStringField,
     ChoiceField,
     FileUploadField,
+    DateTimeField,
     ModelChoiceField
 )
 from widgets.forms.fields.course import CourseName, CourseShortName, USOSCode
@@ -353,10 +354,10 @@ class CreateRoundForm(CourseModelForm):
     ACTION = Round.BasicAction.ADD
 
     name = AlphanumericStringField(label=_('Round name'), required=True)
-    start_date = forms.DateTimeField(label=_('Start date'), required=True)
-    end_date = forms.DateTimeField(label=_('End date'), required=False)
-    deadline_date = forms.DateTimeField(label=_('Deadline date'), required=True)
-    reveal_date = forms.DateTimeField(label=_('Reveal date'), required=False)
+    start_date = DateTimeField(label=_('Start date'), required=True)
+    end_date = DateTimeField(label=_('End date'), required=False)
+    deadline_date = DateTimeField(label=_('Deadline date'), required=True)
+    reveal_date = DateTimeField(label=_('Reveal date'), required=False)
 
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
@@ -410,10 +411,10 @@ class EditRoundForm(CourseModelForm):
     ACTION = Round.BasicAction.EDIT
 
     name = AlphanumericStringField(label=_('Round name'), required=True)
-    start_date = forms.DateTimeField(label=_('Start date'), required=True)
-    end_date = forms.DateTimeField(label=_('End date'), required=False)
-    deadline_date = forms.DateTimeField(label=_('Deadline date'), required=True)
-    reveal_date = forms.DateTimeField(label=_('Reveal date'), required=False)
+    start_date = DateTimeField(label=_('Start date'), required=True)
+    end_date = DateTimeField(label=_('End date'), required=False)
+    deadline_date = DateTimeField(label=_('Deadline date'), required=True)
+    reveal_date = DateTimeField(label=_('Reveal date'), required=False)
     round_id = forms.IntegerField(widget=forms.HiddenInput())
 
     @classmethod

@@ -34,6 +34,8 @@
                                 {% include 'widget_templates/forms/choice_field.html' %}
                             {% elif special_type == 'table_select' %}
                                 {% include 'widget_templates/forms/table_select_field.html' %}
+                            {% elif special_type == 'datetime' %}
+                                {% include 'widget_templates/forms/datetime_field.html' %}
                             {% elif field.field.widget.input_type == 'file' %}
                                 {% include 'widget_templates/forms/file_upload_field.html' %}
                             {% elif not field.is_hidden %}

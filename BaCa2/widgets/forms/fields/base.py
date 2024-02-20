@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC
 from typing import List
+from datetime import datetime
 
 from django import forms
 from django.core.validators import FileExtensionValidator
@@ -382,6 +383,19 @@ class FileUploadField(forms.FileField):
         kwargs['validators'] = validators
         super().__init__(**kwargs)
 
+
+# --------------------------------------- date-time fields ------------------------------------- #
+
+class DateTimeField(forms.DateTimeField):
+    def __init__(self, **kwargs) -> None:
+        self.special_field_type = 'datetime'
+        kwargs.setdefault('input_formats', ['%Y-%m-%d %H:%M'])
+        super().__init__(**kwargs)
+
+    def widget_attrs(self, widget) -> dict:
+        attrs = super().widget_attrs(widget)
+        attrs['class'] = 'form-control date-field'
+        return attrs
 
 # ---------------------------------------- choice fields --------------------------------------- #
 
