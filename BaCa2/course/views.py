@@ -30,6 +30,7 @@ from widgets.listing.columns import DatetimeColumn, TextColumn
 from widgets.navigation import SideNav
 from widgets.text_display import TextDisplayer
 
+
 # ----------------------------------- Course views abstraction ---------------------------------- #
 
 class ReadCourseViewMeta(ABCMeta):
@@ -433,12 +434,19 @@ class CourseTask(BaCa2LoggedInView):
 
         description_extension = package.doc_extension('pdf')
         description_file = package.doc_path(description_extension)
+        kwargs = {}
+
         if package.doc_has_extension('pdf'):
             pdf_path = task.package_instance.pdf_docs_path
+
             if description_extension == 'pdf':
                 description_file = pdf_path
+            else:
+                kwargs['pdf_download'] = pdf_path
 
-        description_displayer = TextDisplayer(name='description', file_path=description_file)
+        description_displayer = TextDisplayer(name='description',
+                                              file_path=description_file,
+                                              **kwargs)
         self.add_widget(context, description_displayer)
 
         # submit

@@ -5,22 +5,20 @@
     <div class="card-header">
         <div class="row align-items-center">
             <div class="col">
-                <div class="col-auto ps-1">
-                    <a href="{% static displayer.file_path %}" download
-                       class="btn btn-outline-light_muted">
-                        <i class="bi bi-download"></i> {% trans "Download" %}
-                    </a>
-                </div>
+                <a href="{% static displayer.file_path %}" download
+                   class="btn btn-sm btn-outline-light_muted">
+                    <i class="bi bi-download"></i> {% trans "Download" %}
+                </a>
             </div>
             <div class="col">
                 <div class="pdf-navigation row align-items-center justify-content-end">
                     <div class="col-auto pe-1">
-                        <button class="prev-page-btn btn btn-outline-light_muted">
+                        <button class="prev-page-btn btn btn-sm btn-outline-light_muted">
                             <i class="bi bi-caret-left"></i>
                         </button>
                     </div>
                     <div class="col-auto ps-1">
-                        <button class="next-page-btn btn btn-outline-light_muted">
+                        <button class="next-page-btn btn btn-sm btn-outline-light_muted">
                             <i class="bi bi-caret-right"></i>
                         </button>
                     </div>
