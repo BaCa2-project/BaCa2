@@ -185,3 +185,22 @@ $table_theme_variables: (
 
 $submit_success_color: $success;
 $submit_failure_color: $danger;
+
+// -------------------------------------- datetimepicker -------------------------------------- //
+
+$datetimepicker_default_variables: (
+    bg_color: $blue,
+    icon_color: 'black',
+    text_color: $dark,
+    current_date_bg_color: $baca2_beige,
+    other_month_bg_color: $light,
+    hover_bg_color: $baca2_pink,
+);
+$datetimepicker_theme_variables: (
+    light: (),
+    dark: (
+        bg_color: $black,
+        icon_color: 'white',
+        text_color: $light
+    )
+);
