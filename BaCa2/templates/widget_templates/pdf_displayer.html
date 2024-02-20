@@ -5,10 +5,15 @@
     <div class="card-header">
         <div class="row align-items-center">
             <div class="col">
-                <h4 class="m-0">Tytuł</h4>
+                <div class="col-auto ps-1">
+                    <a href="{% static displayer.file_path %}" download
+                       class="btn btn-outline-light_muted">
+                        <i class="bi bi-download"></i> {% trans "Download" %}
+                    </a>
+                </div>
             </div>
             <div class="col">
-                <div class="row align-items-center justify-content-end">
+                <div class="pdf-navigation row align-items-center justify-content-end">
                     <div class="col-auto pe-1">
                         <button class="prev-page-btn btn btn-outline-light_muted">
                             <i class="bi bi-caret-left"></i>

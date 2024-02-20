@@ -63,15 +63,21 @@ class PDFDisplayer {
     init() {
         pdfjsLib.getDocument(this.pdfUrl).promise.then(pdf => {
             this.pdfDoc = pdf;
-            this.displayer.find('.pdf-page-count').text(this.pdfDoc.numPages);
-            this.displayer.find('.prev-page-btn').on('click', () => this.showPrevPage());
-            this.displayer.find('.next-page-btn').on('click', () => this.showNextPage());
-            this.displayer.find('.pdf-page-change').submit(e => {
-                e.preventDefault();
-                const pageNum = parseInt(this.displayer.find('.pdf-page-number').val());
-                if (pageNum > 0 && pageNum <= this.pdfDoc.numPages)
-                    this.queueRenderPage(pageNum);
-            });
+
+            if (this.pdfDoc.numPages <= 1) {
+                this.displayer.find('.pdf-navigation').remove();
+            } else {
+                this.displayer.find('.pdf-page-count').text(this.pdfDoc.numPages);
+                this.displayer.find('.prev-page-btn').on('click', () => this.showPrevPage());
+                this.displayer.find('.next-page-btn').on('click', () => this.showNextPage());
+                this.displayer.find('.pdf-page-change').submit(e => {
+                    e.preventDefault();
+                    const pageNum = parseInt(this.displayer.find('.pdf-page-number').val());
+                    if (pageNum > 0 && pageNum <= this.pdfDoc.numPages)
+                        this.queueRenderPage(pageNum);
+                });
+            }
+
             this.renderPage(this.pageNum);
         });
     }
