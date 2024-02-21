@@ -214,7 +214,8 @@ class CourseManager(models.Manager):
         :return: The admin role.
         :rtype: Role
         """
-        admin_role = Role.objects.create_role(name='admin')
+        admin_role = Role.objects.create_role(name=_('admin'),
+                                              description=_('Admin role for course leaders'))
         admin_role.add_permissions(Course.CourseAction.labels)
         return admin_role
 
@@ -1672,6 +1673,7 @@ class RoleManager(models.Manager):
     @transaction.atomic
     def create_role(self,
                     name: str,
+                    description: str = '',
                     permissions: List[Permission] | List[str] | List[int] = None,
                     course: Course = None) -> Role:
         """
@@ -1680,6 +1682,8 @@ class RoleManager(models.Manager):
 
         :param name: Name of the role.
         :type name: str
+        :param description: Description of the role.
+        :type description: str
         :param permissions: Permissions which should be assigned to the role. The permissions can be
             specified as either the permission objects, their codenames or their ids. If no
             permissions are specified, the role will be created without any permissions.
@@ -1695,7 +1699,7 @@ class RoleManager(models.Manager):
         else:
             permissions = ModelsRegistry.get_permissions(permissions)
 
-        role = self.model(name=name)
+        role = self.model(name=name, description=description)
         role.save()
 
         for permission in permissions:
@@ -1762,6 +1766,12 @@ class Role(models.Model):
         max_length=100,
         blank=False,
         null=False
+    )
+    #: Description of the role.
+    description = models.TextField(
+        verbose_name=_('role description'),
+        blank=True,
+        null=True
     )
     #: Permissions assigned to the role.
     permissions = models.ManyToManyField(
