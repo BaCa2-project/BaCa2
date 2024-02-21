@@ -21,8 +21,8 @@ from widgets.forms.base import (
 from widgets.forms.fields import (
     AlphanumericStringField,
     ChoiceField,
-    FileUploadField,
     DateTimeField,
+    FileUploadField,
     ModelChoiceField
 )
 from widgets.forms.fields.course import CourseName, CourseShortName, USOSCode
@@ -483,16 +483,20 @@ class CreateTaskForm(BaCa2ModelForm):
     ACTION = Task.BasicAction.ADD
 
     task_name = AlphanumericStringField(
-        label=_('Task name (if not provided - will be taken from package)'),
-        required=True)
+        label=_('Task name'),
+        help_text=_('If not provided - task name will be taken from package.'),
+        required=False,
+    )
     round_ = ModelChoiceField(
         data_source_url='',
         label_format_string='[[name]] ([[f_start_date]] - [[f_deadline_date]])',
         label=_('Round'),
         required=True,
     )
-    points = forms.FloatField(label=_('Points (if not provided - will be taken from package)'),
-                              min_value=0)
+    points = forms.FloatField(label=_('Points'),
+                              min_value=0,
+                              required=False,
+                              help_text=_('If not provided - points will be taken from package.'),)
     package = FileUploadField(label=_('Task package'),
                               required=True,
                               allowed_extensions=['zip'])
@@ -703,7 +707,7 @@ class CreateSubmitForm(BaCa2ModelForm):
     ACTION = Submit.BasicAction.ADD
 
     source_code = FileUploadField(label=_('Source code'), required=True)
-    task_id = forms.IntegerField(label=_('Task ID'), required=True)
+    task_id = forms.IntegerField(label=_('Task ID'), widget=forms.HiddenInput(), required=True)
 
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
@@ -745,11 +749,14 @@ class CreateSubmitFormWidget(FormWidget):
     def __init__(self,
                  request,
                  course_id: int,
+                 task_id: int,
                  form: CreateTaskForm = None,
                  **kwargs) -> None:
         from course.views import SubmitModelView
         if not form:
             form = CreateSubmitForm()
+
+        form.fields['task_id'].initial = task_id
 
         super().__init__(
             name='create_submit_form_widget',
