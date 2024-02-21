@@ -5,7 +5,7 @@
     <div class="{% if form_widget.live_validation %} live-validation {% endif %}">
 
         {%  if not form_widget.floating_labels  %}
-            <label for="{{ field.name }}" class="form-label">{{ field.label }}</label>
+            {% include 'widget_templates/forms/field_label.html' %}
         {% endif %}
 
         <div class="input-group">
@@ -20,7 +20,7 @@
             {% include 'widget_templates/forms/field_render.html' %}
 
             {% if form_widget.floating_labels %}
-                <label for="{{ field.name }}" class="form-label">{{ field.label }}</label>
+                {% include 'widget_templates/forms/field_label.html' %}
                 </div>
             {% endif %}
         </div>
