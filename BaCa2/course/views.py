@@ -30,7 +30,6 @@ from widgets.listing.columns import DatetimeColumn, TextColumn
 from widgets.navigation import SideNav
 from widgets.text_display import TextDisplayer
 
-
 # ----------------------------------- Course views abstraction ---------------------------------- #
 
 class ReadCourseViewMeta(ABCMeta):
@@ -432,7 +431,7 @@ class CourseTask(BaCa2LoggedInView):
         # description
         package = task.package_instance.package
 
-        description_extension = package.doc_extension('pdf')
+        description_extension = package.doc_extension()
         description_file = package.doc_path(description_extension)
         kwargs = {}
 
@@ -451,7 +450,8 @@ class CourseTask(BaCa2LoggedInView):
 
         # submit
         submit_form = CreateSubmitFormWidget(request=self.request,
-                                             course_id=course_id, )
+                                             course_id=course_id,
+                                             task_id=task_id)
         self.add_widget(context, submit_form)
 
         # results list
