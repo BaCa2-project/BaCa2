@@ -515,7 +515,8 @@ class CreateTaskForm(BaCa2ModelForm):
                               help_text=_('If not provided - points will be taken from package.'), )
     package = FileUploadField(label=_('Task package'),
                               required=True,
-                              allowed_extensions=['zip'])
+                              allowed_extensions=['zip'],
+                              help_text=_('Only .zip files are allowed'))
     judge_mode = ChoiceField(label=_('Judge mode'),
                              choices=TaskJudgingMode,
                              required=True,
