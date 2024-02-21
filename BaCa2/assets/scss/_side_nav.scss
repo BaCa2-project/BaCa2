@@ -4,9 +4,11 @@
 // ---------------------------------------- display ------------------------------------------- //
 
 .side-nav {
-    &.sticky-side-nav {
-        position: sticky;
-        top: $navbar_padding;
+    @media (min-width: 768px) {
+        &.sticky-side-nav {
+            position: sticky;
+            top: $navbar_padding;
+        }
     }
 
     .side-nav-content {

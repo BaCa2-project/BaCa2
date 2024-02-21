@@ -1,5 +1,5 @@
 {% load static %}
-<div class="col-4 side-nav {{ sidenav_widget.widget_class }}">
+<div class="col-lg-3 col-md-4 col-12 side-nav {{ sidenav_widget.widget_class }}">
     <ul class="side-nav-content mb-3">
         {% for tab in sidenav_widget.tabs reversed %}
             <li class="side-nav-button tab-button
@@ -28,7 +28,7 @@
     </ul>
     {% with sidenav_widget.toggle_button as button %}
         {% if button.on %}
-            <div class="col-lg-3 col-md-6 col-s-12">
+            <div class="col-lg-5 col-md-6 col-4 mb-3">
                 <button class="btn btn-baca2_beige w-100"
                         onclick="toggleSidenavButton(
                             this,
