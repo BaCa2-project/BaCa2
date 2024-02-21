@@ -410,6 +410,14 @@ class CreateRoundFormWidget(FormWidget):
             form=form,
             post_target=RoundModelView.post_url(course_id=course_id),
             button_text=_('Add round'),
+            element_groups=[
+                FormElementGroup(name='start_dates',
+                                 elements=['start_date', 'reveal_date'],
+                                 layout=FormElementGroup.FormElementsLayout.HORIZONTAL),
+                FormElementGroup(name='end_dates',
+                                 elements=['end_date', 'deadline_date'],
+                                 layout=FormElementGroup.FormElementsLayout.HORIZONTAL)
+            ],
             **kwargs
         )
 
@@ -504,7 +512,7 @@ class CreateTaskForm(BaCa2ModelForm):
     points = forms.FloatField(label=_('Points'),
                               min_value=0,
                               required=False,
-                              help_text=_('If not provided - points will be taken from package.'),)
+                              help_text=_('If not provided - points will be taken from package.'), )
     package = FileUploadField(label=_('Task package'),
                               required=True,
                               allowed_extensions=['zip'])
