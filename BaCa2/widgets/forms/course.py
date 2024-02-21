@@ -601,6 +601,9 @@ class CreateTaskFormWidget(FormWidget):
             form=form,
             post_target=TaskModelView.post_url(course_id=course_id),
             button_text=_('Add task'),
+            element_groups=FormElementGroup(name='grading',
+                                            elements=['points', 'judge_mode'],
+                                            layout=FormElementGroup.FormElementsLayout.HORIZONTAL),
             **kwargs
         )
 
