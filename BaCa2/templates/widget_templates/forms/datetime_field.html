@@ -1,4 +1,5 @@
 {% load static %}
+{% load custom_tags %}
 
 <div class="input-block mb-3">
     <div class="{% if form_widget.live_validation %} live-validation {% endif %}">
@@ -26,10 +27,28 @@
 
 <script>
     $(document).ready(function () {
-        $('.date-field').datetimepicker(
-            {
-                format: 'Y-m-d H:i',
-            }
+        $('#{{ field.name }}').datetimepicker(
+            {% with field.field as field %}
+                {
+                    format: '{{ field.format|safe }}',
+                    datepicker: {{ field.datepicker|safe }},
+                    timepicker: {{ field.timepicker|safe }},
+                }
+            {% endwith %}
         );
     });
 </script>
+
+{% if form_widget.live_validation and field.field.widget.input_type != "password" %}
+    <script>
+        $(document).ready(function () {
+            $('#{{ field.name }}').on('change input', function () {
+                updateValidationStatus(
+                    this,
+                    '{{ form_widget.form_cls }}',
+                    '{{ form_widget.field_min_length|get_item:field.name }}',
+                    '{% url 'field-validation' %}');
+            });
+        });
+    </script>
+{% endif %}

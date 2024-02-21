@@ -21,8 +21,8 @@ from widgets.forms.base import (
 from widgets.forms.fields import (
     AlphanumericStringField,
     ChoiceField,
-    FileUploadField,
     DateTimeField,
+    FileUploadField,
     ModelChoiceField
 )
 from widgets.forms.fields.course import CourseName, CourseShortName, USOSCode
@@ -361,12 +361,20 @@ class CreateRoundForm(CourseModelForm):
 
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
+        end_date = request.POST.get('end_date')
+        reveal_date = request.POST.get('reveal_date')
+
+        if not end_date:
+            end_date = None
+        if not reveal_date:
+            reveal_date = None
+
         Round.objects.create_round(
             name=request.POST.get('name'),
             start_date=request.POST.get('start_date'),
-            end_date=request.POST.get('end_date'),
+            end_date=end_date,
             deadline_date=request.POST.get('deadline_date'),
-            reveal_date=request.POST.get('reveal_date')
+            reveal_date=reveal_date
         )
 
         return {'message': _('Round ') + request.POST.get('name') + _(' created successfully')}
@@ -498,7 +506,8 @@ class CreateTaskForm(BaCa2ModelForm):
                               allowed_extensions=['zip'])
     judge_mode = ChoiceField(label=_('Judge mode'),
                              choices=TaskJudgingMode,
-                             required=True)
+                             required=True,
+                             placeholder_default_option=False)
 
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:

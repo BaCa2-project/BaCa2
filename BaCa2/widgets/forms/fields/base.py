@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import json
 from abc import ABC
 from typing import List
-from datetime import datetime
 
 from django import forms
 from django.core.validators import FileExtensionValidator
@@ -371,9 +371,21 @@ class CourseModelArrayField(ModelArrayField):
 # ----------------------------------------- file fields ---------------------------------------- #
 
 class FileUploadField(forms.FileField):
+    """
+    Custom file upload field extending the Django `FileField`. The field can be configured to
+    accept only files with specific extensions.
+    """
+
     def __init__(self,
                  allowed_extensions: List[str] = None,
                  **kwargs) -> None:
+        """
+        :param allowed_extensions: List of allowed file extensions. If not provided, all extensions
+            are allowed.
+        :type allowed_extensions: List[str]
+        :param kwargs: Additional keyword arguments for the field.
+        :type kwargs: dict
+        """
         validators = kwargs.get('validators', [])
 
         if allowed_extensions:
@@ -387,15 +399,67 @@ class FileUploadField(forms.FileField):
 # --------------------------------------- date-time fields ------------------------------------- #
 
 class DateTimeField(forms.DateTimeField):
-    def __init__(self, **kwargs) -> None:
+    """
+    Custom date-time field extending the Django `DateTimeField` class to allow for proper rendering
+    with a date and/or time picker. The field can be configured to display a date picker, a time
+    picker or both. The time picker can be configured to have a custom time step.
+    """
+
+    def __init__(self,
+                 *,
+                 datepicker: bool = True,
+                 timepicker: bool = True,
+                 time_step: int = 30,
+                 **kwargs) -> None:
+        """
+        : param datepicker: Whether to display a date picker.
+        : type datepicker: bool
+        : param timepicker: Whether to display a time picker.
+        : type timepicker: bool
+        : param time_step: Time step for the time picker in minutes. Only used if the time picker is
+            enabled. Defaults to 30.
+        : type time_step: int
+        : param kwargs: Additional keyword arguments for the field.
+        : type kwargs: dict
+        """
+        if not datepicker and not timepicker:
+            raise ValueError('At least one of datepicker and timepicker must be enabled.')
+
         self.special_field_type = 'datetime'
-        kwargs.setdefault('input_formats', ['%Y-%m-%d %H:%M'])
+        self.timepicker = json.dumps(timepicker)
+        self.datepicker = json.dumps(datepicker)
+        self.time_step = time_step
+
+        if datepicker and timepicker:
+            kwargs.setdefault('input_formats', ['%Y-%m-%d %H:%M'])
+            self.format = 'Y-m-d H:i'
+        elif datepicker:
+            kwargs.setdefault('input_formats', ['%Y-%m-%d'])
+            self.format = 'Y-m-d'
+        elif timepicker:
+            kwargs.setdefault('input_formats', ['%H:%M'])
+            self.format = 'H:i'
+
         super().__init__(**kwargs)
 
+    def __setattr__(self, key, value):
+        """
+        Intercepts the setting of the `initial` attribute to convert the value to a string using the
+        expected input format.
+        """
+        if key == 'initial':
+            if value:
+                value = value.strftime(self.input_formats[0])
+        super().__setattr__(key, value)
+
     def widget_attrs(self, widget) -> dict:
+        """
+        Sets the appropriate class attribute for the widget needed for proper rendering.
+        """
         attrs = super().widget_attrs(widget)
         attrs['class'] = 'form-control date-field'
         return attrs
+
 
 # ---------------------------------------- choice fields --------------------------------------- #
 
@@ -423,6 +487,10 @@ class ChoiceField(forms.ChoiceField):
         super().__init__(**kwargs)
 
     def widget_attrs(self, widget) -> dict:
+        """
+        Sets the appropriate class attribute for the widget needed for proper rendering and adds
+        the placeholder option data attribute if necessary.
+        """
         attrs = super().widget_attrs(widget)
         attrs['class'] = 'form-select choice-field'
         if self.placeholder_default_option:
