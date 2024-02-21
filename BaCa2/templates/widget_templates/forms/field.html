@@ -22,13 +22,13 @@
 
         {% include 'widget_templates/forms/form_control_field.html' %}
 
+        {% if field.help_text %}
+            <small class="form-text text-muted">{{ field.help_text }}</small>
+        {% endif %}
+
         {% if form_widget.floating_labels %}
             <label for="{{ field.name }}" class="form-label">{{ field.label }}</label>
             </div>
-        {% endif %}
-
-        {% if field.help_text %}
-            <small class="form-text text-muted">{{ field.help_text }}</small>
         {% endif %}
 
         {% if field.name in form_widget.toggleable_fields %}
