@@ -1,12 +1,13 @@
 {% load custom_tags %}
 
 <div class="input-block mb-3">
-    <div class="{% if form_widget.live_validation %} live-validation {% endif %}">
+    <div class="{% if form_widget.live_validation %} live-validation {% endif %}
+                {% if field.field.required %} select-required {% endif %}">
 
         {% if form_widget.floating_labels %}
             <div class="form-floating">
         {% else %}
-            <label for="{{ field.name }}" class="form-label">{{ field.label }}</label>
+            {% include 'widget_templates/forms/field_label.html' %}
         {% endif %}
 
         {% include 'widget_templates/forms/field_render.html' %}
@@ -16,7 +17,7 @@
         {% endif %}
 
         {% if form_widget.floating_labels %}
-            <label for="{{ field.name }}" class="form-label">{{ field.label }}</label>
+            {% include 'widget_templates/forms/field_label.html' %}
             </div>
         {% endif %}
     </div>

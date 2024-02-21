@@ -17,7 +17,7 @@
         {% if form_widget.floating_labels %}
             <div class="form-floating">
         {% else %}
-            <label for="{{ field.name }}" class="form-label">{{ field.label }}</label>
+            {% include 'widget_templates/forms/field_label.html' %}
         {% endif %}
 
         {% include 'widget_templates/forms/form_control_field.html' %}
@@ -27,7 +27,7 @@
         {% endif %}
 
         {% if form_widget.floating_labels %}
-            <label for="{{ field.name }}" class="form-label">{{ field.label }}</label>
+            {% include 'widget_templates/forms/field_label.html' %}
             </div>
         {% endif %}
 
