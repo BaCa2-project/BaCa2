@@ -426,9 +426,11 @@ html, body {
   --bs-form-valid-border-color: $red;
 }
 
-.side-nav.sticky-side-nav {
-  position: sticky;
-  top: 4.25rem;
+@media (min-width: 768px) {
+  .side-nav.sticky-side-nav {
+    position: sticky;
+    top: 4.25rem;
+  }
 }
 .side-nav .side-nav-content {
   list-style: none;
