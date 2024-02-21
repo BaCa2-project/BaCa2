@@ -471,14 +471,14 @@ class ChoiceField(forms.ChoiceField):
     """
     def __init__(self,
                  placeholder_default_option: bool = True,
-                 placeholder_option: str = '-',
+                 placeholder_option: str = '---',
                  **kwargs):
         """
         :param placeholder_default_option: Whether to display the placeholder option when no option
             is selected. If set to `False`, the placeholder option will not be added.
         :type placeholder_default_option: bool
         :param placeholder_option: Label of the placeholder option to be displayed when no option is
-            selected. If not provided defaults to `-`.
+            selected. If not provided defaults to `---`.
         :type placeholder_option: str
         """
         self.special_field_type = 'choice'
@@ -512,7 +512,7 @@ class ModelChoiceField(ChoiceField):
                  data_source_url: str,
                  label_format_string: str,
                  value_format_string: str = '[[id]]',
-                 placeholder_option: str = '-',
+                 placeholder_option: str = '---',
                  loading_placeholder_option: str = '',
                  **kwargs) -> None:
         """
@@ -529,7 +529,7 @@ class ModelChoiceField(ChoiceField):
             notation. Defaults to `[[id]]`.
         :type value_format_string: str
         :param placeholder_option: Placeholder option label to be displayed when no option is
-            selected. If not provided defaults to `-`.
+            selected. If not provided defaults to `---`.
         :type placeholder_option: str
         :param loading_placeholder_option: Placeholder option label to be displayed while the
             choices are being fetched. If not provided defaults to `Loading...`.

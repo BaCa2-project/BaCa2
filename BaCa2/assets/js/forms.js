@@ -7,10 +7,10 @@ function formsSetup() {
     confirmationPopupSetup();
     responsePopupsSetup();
     refreshButtonSetup();
-    liveValidationSetup();
-    tableSelectFieldSetup();
     choiceFieldSetup();
     modelChoiceFieldSetup();
+    tableSelectFieldSetup();
+    liveValidationSetup();
 }
 
 function ajaxPostSetup() {
@@ -259,7 +259,11 @@ function updateValidationStatus(field, formCls, minLength, url) {
                success: function (data) {
                    if (data.status === 'ok') {
                        $(field).removeClass('is-invalid');
-                       $(field).addClass('is-valid');
+
+                       if (value.length > 0)
+                           $(field).addClass('is-valid');
+                       else
+                           $(field).removeClass('is-valid');
 
                        const input_block = $(field).closest('.input-block');
                        $(input_block).find('.invalid-feedback').remove();
