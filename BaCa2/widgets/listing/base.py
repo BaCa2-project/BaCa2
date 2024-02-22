@@ -41,6 +41,7 @@ class TableWidget(Widget):
     """
 
     def __init__(self,
+                 *,
                  name: str,
                  data_source: str | List[Dict[str, Any]],
                  cols: List[Column],

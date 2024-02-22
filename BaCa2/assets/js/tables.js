@@ -483,5 +483,7 @@ function deleteButtonClickHandler(e, button) {
         return $(this).hasClass('model-id')
     });
     input.val(button.data('record-target'));
-    form.find('.submit-btn').click();
+    console.log(input.val());
+    console.log(form.find('.submit-btn'));
+    form.find('.submit-btn')[0].click();
 }

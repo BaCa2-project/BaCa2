@@ -21,6 +21,7 @@ from widgets.forms.course import (
     CreateSubmitFormWidget,
     CreateTaskForm,
     CreateTaskFormWidget,
+    DeleteRoundForm,
     DeleteTaskForm,
     EditRoundForm,
     EditRoundFormWidget
@@ -172,6 +173,8 @@ class RoundModelView(CourseModelView):
             return CreateRoundForm.handle_post_request(request)
         elif request.POST.get('form_name') == 'change_round_form':
             return EditRoundForm.handle_post_request(request)
+        elif request.POST.get('form_name') == 'delete_round_form':
+            return DeleteRoundForm.handle_post_request(request)
         return self.handle_unknown_form(request, **kwargs)
 
 
@@ -318,6 +321,7 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
         # members --------------------------------------------------------------
         members_table = TableWidget(
             name='members_table_widget',
+            title=_('Course members'),
             request=self.request,
             data_source=UserModelView.get_url(
                 mode=BaCa2ModelView.GetMode.FILTER,
@@ -328,7 +332,6 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
                   TextColumn(name='last_name', header=_('Last name')),
                   TextColumn(name='email', header=_('Email address')),
                   TextColumn(name='user_role', header=_('Role'))],
-            title=_('Course members'),
         )
         self.add_widget(context, members_table)
 
@@ -338,6 +341,7 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
         # roles ----------------------------------------------------------------
         roles_table = TableWidget(
             name='roles_table_widget',
+            title=_('Roles'),
             request=self.request,
             data_source=RoleModelView.get_url(
                 mode=BaCa2ModelView.GetMode.FILTER,
@@ -345,15 +349,15 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
             ),
             cols=[TextColumn(name='name', header=_('Role name')),
                   TextColumn(name='description', header=_('Description'))],
-            title=_('Roles'),
             refresh_button=True,
             # TODO: link to role edit
         )
         self.add_widget(context, roles_table)
 
         # rounds ---------------------------------------------------------------
-        round_table = TableWidget(
+        rounds_table = TableWidget(
             name='rounds_table_widget',
+            title=_('Rounds'),
             request=self.request,
             data_source=RoundModelView.get_url(course_id=course_id),
             cols=[TextColumn(name='name', header=_('Round name')),
@@ -361,11 +365,16 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
                   DatetimeColumn(name='end_date', header=_('End date')),
                   DatetimeColumn(name='deadline_date', header=_('Deadline date')),
                   DatetimeColumn(name='reveal_date', header=_('Reveal date'))],
-            title=_('Rounds'),
+            allow_select=True,
+            allow_delete=True,
+            delete_form=DeleteRoundForm(),
+            data_post_url=RoundModelView.post_url(course_id=course_id),
             refresh_button=True,
+            default_order_col='start_date',
+            default_order_asc=False,
             link_format_string=f'/course/{course_id}/round-edit/?tab=[[normalized_name]]-tab#'
         )
-        self.add_widget(context, round_table)
+        self.add_widget(context, rounds_table)
 
         add_round_form = CreateRoundFormWidget(request=self.request, course_id=course_id)
         self.add_widget(context, add_round_form)
@@ -373,18 +382,18 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
         # tasks ----------------------------------------------------------------
         tasks_table = TableWidget(
             name='tasks_table_widget',
+            title=_('Tasks'),
             request=self.request,
             data_source=TaskModelView.get_url(course_id=course_id),
             cols=[TextColumn(name='name', header=_('Task name')),
                   TextColumn(name='round_name', header=_('Round')),
                   TextColumn(name='judging_mode', header=_('Judging mode')),
                   TextColumn(name='points', header=_('Max points'))],
-            title=_('Tasks'),
-            refresh_button=True,
-            default_order_col='round_name',
             allow_delete=True,
             delete_form=DeleteTaskForm(),
             data_post_url=TaskModelView.post_url(course_id=course_id),
+            refresh_button=True,
+            default_order_col='round_name',
             link_format_string=f'/course/{course_id}/task/[[id]]',
         )
         self.add_widget(context, tasks_table)
