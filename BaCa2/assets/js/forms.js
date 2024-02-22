@@ -89,13 +89,18 @@ function toggleableGroupButtonInit(button) {
 // ---------------------------------------- popup setup --------------------------------------- //
 
 function confirmationPopupSetup() {
-    $('.submit-btn').filter(function () {
-        return $(this).data('bs-toggle') === 'modal';
-    }).filter(function () {
-        return $($(this).data('bs-target')).find('.input-summary').length > 0;
-    }).on('click', function (e) {
-        e.preventDefault();
-        renderConfirmationPopup($($(this).data('bs-target')));
+    const formWrappers = $('.form-wrapper').filter(function () {
+        return $(this).find('.form-confirmation-popup').length > 0;
+    });
+
+    formWrappers.each(function () {
+        const form = $(this).find('form');
+        const popup = $(this).find('.form-confirmation-popup');
+        const submitBtn = form.find('.submit-btn');
+        submitBtn.on('click', function (e) {
+            e.preventDefault();
+            renderConfirmationPopup(popup, form);
+        });
     });
 
     $('.form-confirmation-popup .submit-btn').on('click', function () {
@@ -327,10 +332,10 @@ function enableSubmitButton(submitButton) {
 
 // ------------------------------------------ popups ------------------------------------------ //
 
-function renderConfirmationPopup(popup) {
+function renderConfirmationPopup(popup, form) {
     popup.find('.input-summary-label').text(function () {
-        return $('#' + $(this).data('input-target')).closest('.input-group')
-                                                    .find('label').text() + ':';
+        const inputId = $(this).data('input-target');
+        return getFieldLabel(inputId, form) + ':';
     });
 
     popup.find('.input-summary-value').text(function () {
@@ -354,10 +359,7 @@ function renderValidationErrors(popup, errors) {
 
     Object.entries(errors).forEach(([key, value]) => {
         const errorDiv = $('<div class="popup-error mt-2"></div>');
-        let fieldLabel = form.find(`label[for="${key}"]`).text();
-
-        if (fieldLabel.length === 0)
-            fieldLabel = key;
+        const fieldLabel = getFieldLabel(key, form);
 
         errorDiv.append(`<b>${fieldLabel}:</b>`);
 
@@ -457,4 +459,20 @@ function addModelChoiceFieldOption(field, data, labelFormatString, valueFormatSt
     const value = generateFormattedString(data, valueFormatString);
     const label = generateFormattedString(data, labelFormatString);
     field.append(`<option value="${value}">${label}</option>`);
+}
+
+// ------------------------------------------ helpers ----------------------------------------- //
+
+function getFieldLabel(fieldId, form) {
+    let label = form.find(`label[for="${fieldId}"]`);
+
+    if (label.length === 0)
+        return fieldId;
+
+    if (label.find('.required-symbol').length > 0) {
+        label = label.clone();
+        label.find('.required-symbol').remove();
+    }
+
+    return label.text().trim();
 }
