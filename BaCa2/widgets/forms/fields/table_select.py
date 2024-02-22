@@ -39,9 +39,7 @@ class TableSelectField(IntegerArrayField):
         """
         from widgets.listing import TableWidget
 
-        super().__init__(**kwargs)
         self.special_field_type = 'table_select'
-        self.widget.attrs.update({'class': 'table-select-field'})
         self.data_source_url = data_source_url
         table_widget = TableWidget(
             name=table_widget_name,
@@ -51,5 +49,15 @@ class TableSelectField(IntegerArrayField):
             allow_column_search=allow_column_search,
             allow_select=True,
             deselect_on_filter=False,
+            highlight_rows_on_hover=True,
         )
         self.table_widget = table_widget.get_context()
+        self.table_widget_id = table_widget_name
+
+        super().__init__(**kwargs)
+
+    def widget_attrs(self, widget) -> dict:
+        attrs = super().widget_attrs(widget)
+        attrs['class'] = 'table-select-field'
+        attrs['data-table-id'] = self.table_widget_id
+        return attrs
