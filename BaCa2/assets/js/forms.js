@@ -397,7 +397,7 @@ function tableSelectFieldSetup() {
         const input = tableSelectField.find('.input-group input');
 
         table.DataTable().on('init.dt', function () {
-            table.find('.select').on('click', function () {
+            table.find('.select').on('change', function () {
                 tableSelectFieldCheckboxClickHandler(tableSelectField, input)
             });
         });
@@ -414,7 +414,8 @@ function tableSelectFieldSetup() {
 }
 
 function tableSelectFieldCheckboxClickHandler(tableSelectField, input) {
-    const tableWidget = window.tableWidgets[`#${tableSelectField.find('table').attr('id')}`];
+    const tableId = input.data('table-id');
+    const tableWidget = window.tableWidgets[`#${tableId}`];
     const ids = [];
 
     for (const row of tableWidget.getAllSelectedRows())
