@@ -1995,6 +1995,21 @@ class Role(models.Model):
         self.permissions.clear()
         super().delete()
 
+    def get_data(self) -> dict:
+        """
+        Returns the contents of a Role object's fields as a dictionary. Used to send role data to
+        the frontend.
+
+        :return: Dictionary containing the role's data.
+        :rtype: dict
+        """
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'course': self.course.short_name if self.course else None,
+        }
+
 
 class RolePresetManager(models.Manager):
     """
