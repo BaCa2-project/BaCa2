@@ -394,7 +394,9 @@ function tableSelectFieldSetup() {
     $('.table-select-field').each(function () {
         const tableSelectField = $(this);
         const table = tableSelectField.find('table');
+        const tableId = table.attr('id');
         const input = tableSelectField.find('.input-group input');
+        const form = tableSelectField.closest('form')
 
         table.DataTable().on('init.dt', function () {
             table.find('.select').on('change', function () {
@@ -410,6 +412,15 @@ function tableSelectFieldSetup() {
             else
                 tableSelectField.removeClass('is-valid').removeClass('is-invalid');
         });
+
+        form.on('submit-complete', function () {
+            const tableWidget = window.tableWidgets[`#${tableId}`];
+            tableWidget.table.one('draw.dt', function () {
+               console.log('draw.dt')
+                tableWidget.updateSelectHeader();
+            });
+            tableWidget.table.ajax.reload();
+        })
     });
 }
 
