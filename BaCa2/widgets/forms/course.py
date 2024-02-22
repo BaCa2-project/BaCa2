@@ -12,13 +12,7 @@ from course.models import Round, Submit, Task
 from course.routing import InCourse
 from main.models import Course
 from util.models_registry import ModelsRegistry
-from widgets.forms.base import (
-    BaCa2ModelForm,
-    CourseModelFormPostTarget,
-    FormElementGroup,
-    FormWidget,
-    ModelFormPostTarget
-)
+from widgets.forms.base import BaCa2ModelForm, FormElementGroup, FormWidget, ModelFormPostTarget
 from widgets.forms.fields import (
     AlphanumericStringField,
     ChoiceField,
@@ -27,6 +21,8 @@ from widgets.forms.fields import (
     ModelChoiceField
 )
 from widgets.forms.fields.course import CourseName, CourseShortName, USOSCode
+from widgets.forms.fields.table_select import TableSelectField
+from widgets.listing.columns import TextColumn
 from widgets.popups.forms import SubmitConfirmationPopup
 
 logger = logging.getLogger(__name__)
@@ -254,9 +250,51 @@ class AddMembersForm(BaCa2ModelForm):
     MODEL = Course
     ACTION = Course.CourseAction.ADD_MEMBER
 
+    users = TableSelectField(
+        label=_('Choose users to add'),
+        table_widget_name='add_members_table_widget',
+        data_source_url='',
+        cols=[TextColumn(name='email', header=_('Email')),
+              TextColumn(name='first_name', header=_('First name')),
+              TextColumn(name='last_name', header=_('Last name'))],
+    )
+
+    role = ModelChoiceField(
+        label=_('Role'),
+        data_source_url='',
+        label_format_string='[[name]]',
+        required=True,
+    )
+
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
-        pass
+        course_id = int(request.course.get('course_id'))
+        users = TableSelectField.parse_value(request.POST.get('users'))
+        role = int(request.POST.get('role'))
+
+        course = ModelsRegistry.get_course(course_id)
+
+        if role == course.admin_role.id:
+            course.add_admins(users)
+        else:
+            course.add_members(users, role)
+
+        return {'message': _('Members added successfully')}
+
+    @classmethod
+    def is_permissible(cls, request) -> bool:
+        course_id = int(request.course.get('course_id'))
+
+        if not course_id:
+            raise ValueError('Course ID not provided in the request')
+
+        course = ModelsRegistry.get_course(course_id)
+        role = int(request.POST.get('role'))
+
+        if role == course.admin_role.id:
+            return request.user.has_course_permission(Course.CourseAction.ADD_ADMIN.label, course)
+
+        return request.user.has_course_permission(cls.ACTION.label, course)
 
 
 class AddMembersFormWidget(FormWidget):
@@ -265,14 +303,27 @@ class AddMembersFormWidget(FormWidget):
                  course_id: int,
                  form: AddMembersForm = None,
                  **kwargs) -> None:
+        from main.views import CourseModelView, RoleModelView, UserModelView
+        from util.views import BaCa2ModelView
+
         if not form:
             form = AddMembersForm()
+
+        form.fields['users'].update_data_source_url(UserModelView.get_url(
+            mode=BaCa2ModelView.GetMode.EXCLUDE,
+            query_params={'roles__course': course_id}
+        ))
+
+        form.fields['role'].data_source_url = RoleModelView.get_url(
+            mode=BaCa2ModelView.GetMode.FILTER,
+            query_params={'course': course_id}
+        )
 
         super().__init__(
             name='add_members_form_widget',
             request=request,
             form=form,
-            post_target=CourseModelFormPostTarget(model=Course, course=course_id),
+            post_target=CourseModelView.post_url(**{'course_id': course_id}),
             button_text=_('Add members'),
             **kwargs
         )
@@ -516,19 +567,20 @@ class CreateTaskFormWidget(FormWidget):
                  form: CreateTaskForm = None,
                  **kwargs) -> None:
         from course.views import RoundModelView, TaskModelView
+
         if not form:
             form = CreateTaskForm()
 
         form.fields['round_'].data_source_url = RoundModelView.get_url(
             serialize_kwargs={'add_formatted_dates': True},
-            course_id=course_id
+            **{'course_id': course_id}
         )
 
         super().__init__(
             name='create_task_form_widget',
             request=request,
             form=form,
-            post_target=TaskModelView.post_url(course_id=course_id),
+            post_target=TaskModelView.post_url(**{'course_id': course_id}),
             button_text=_('Add task'),
             element_groups=FormElementGroup(name='grading',
                                             elements=['points', 'judge_mode'],

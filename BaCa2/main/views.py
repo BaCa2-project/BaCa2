@@ -9,10 +9,16 @@ from django.urls import reverse_lazy
 from django.views.generic.base import RedirectView, View
 
 from main.models import Course, Role, User
+from util import decode_url_to_dict, encode_dict_to_url
 from util.responses import BaCa2ModelResponse
 from util.views import BaCa2ContextMixin, BaCa2LoggedInView, BaCa2ModelView
 from widgets.forms import FormWidget
-from widgets.forms.course import CreateCourseForm, CreateCourseFormWidget, DeleteCourseForm
+from widgets.forms.course import (
+    AddMembersForm,
+    CreateCourseForm,
+    CreateCourseFormWidget,
+    DeleteCourseForm
+)
 from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.columns import TextColumn
 from widgets.navigation import SideNav
@@ -79,12 +85,28 @@ class CourseModelView(BaCa2ModelView):
             strings.
         :rtype: :class:`BaCa2ModelResponse`
         """
+        params = request.GET.dict()
+
+        if params.get('course'):
+            request.course = decode_url_to_dict(params.get('course'))
+        else:
+            request.course = {}
+
         if request.POST.get('form_name') == 'add_course_form':
             return CreateCourseForm.handle_post_request(request)
-        if request.POST.get('form_name') == 'delete_course_form':
+        elif request.POST.get('form_name') == 'delete_course_form':
             return DeleteCourseForm.handle_post_request(request)
+        elif request.POST.get('form_name') == 'add_course_member_form':
+            return AddMembersForm.handle_post_request(request)
         else:
             return self.handle_unknown_form(request, **kwargs)
+
+    @classmethod
+    def post_url(cls, **kwargs) -> str:
+        url = super().post_url(**kwargs)
+        if 'course_id' in kwargs:
+            url += f'?{encode_dict_to_url("course", {"course_id": kwargs["course_id"]})}'
+        return url
 
 
 class UserModelView(BaCa2ModelView):
