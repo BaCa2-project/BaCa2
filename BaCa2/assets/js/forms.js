@@ -350,6 +350,19 @@ function renderResponsePopup(popup, data) {
         message.text(data.message);
     if (data['status'] === 'invalid')
         renderValidationErrors(popup, data['errors']);
+    if (data['status'] === 'error')
+        renderErrorMessages(popup, data['errors']);
+}
+
+function renderErrorMessages(popup, errors) {
+    const messageBlock = popup.find('.popup-message-wrapper');
+    const errorsBlock = $('<div class="popup-errors-wrapper text-center"></div>');
+
+    errors.forEach((error) => {
+        errorsBlock.append(`<div class="popup-error mt-2"><b>${error}</b></div>`);
+    });
+
+    messageBlock.after(errorsBlock);
 }
 
 function renderValidationErrors(popup, errors) {

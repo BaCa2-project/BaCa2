@@ -58,8 +58,11 @@ class BaCa2Form(forms.Form):
 
 class BaCa2ModelForm(BaCa2Form):
     """
-    Base form for all forms in the BaCa2 system which are used to create, delete or modify
-    django model objects.
+    Base class for all forms in the BaCa2 app which are used to create, delete or modify model
+    objects.
+
+    See Also:
+        :class:`BaCa2Form`
     """
 
     #: Model class which instances are affected by the form.
@@ -68,6 +71,9 @@ class BaCa2ModelForm(BaCa2Form):
     ACTION: ModelAction = None
 
     def __init__(self, **kwargs):
+        """
+        Sets initial values for the form's hidden name and action fields.
+        """
         super().__init__(initial={'form_name': f'{self.ACTION.label}_form',
                                   'action': self.ACTION.value}, **kwargs)
 
@@ -76,7 +82,8 @@ class BaCa2ModelForm(BaCa2Form):
         """
         Handles the POST request received by the view this form's data was posted to. Based on the
         user's permissions and the validity of the form data, returns a JSON response containing
-        information about the status of the request and a message accompanying it.
+        information about the status of the request and a message accompanying it, along with any
+        additional data needed to process the response.
 
         :param request: Request object.
         :type request: HttpRequest
@@ -100,11 +107,16 @@ class BaCa2ModelForm(BaCa2Form):
                     **cls.handle_valid_request(request)
                 )
             except Exception as e:
+                messages = [arg for arg in e.args if arg]
+
+                if not messages:
+                    messages = [str(e)]
+
                 return BaCa2ModelResponse(
                     model=cls.MODEL,
                     action=cls.ACTION,
                     status=BaCa2JsonResponse.Status.ERROR,
-                    **cls.handle_error(request, e)
+                    **cls.handle_error(request, e) | {'errors': messages}
                 )
 
         validation_errors = cls(data=request.POST).errors
@@ -118,7 +130,7 @@ class BaCa2ModelForm(BaCa2Form):
 
     @classmethod
     @abstractmethod
-    def handle_valid_request(cls, request) -> Dict[str, str]:
+    def handle_valid_request(cls, request) -> Dict[str, Any]:
         """
         Handles the POST request received by the view this form's data was posted to if the request
         is permissible and the form data is valid.
@@ -127,13 +139,12 @@ class BaCa2ModelForm(BaCa2Form):
         :type request: HttpRequest
         :return: Dictionary containing a success message and any additional data to be included in
             the response.
-        :rtype: Dict[str, str]
+        :rtype: Dict[str, Any]
         """
         raise NotImplementedError('This method has to be implemented by inheriting classes.')
 
     @classmethod
-    @abstractmethod
-    def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
+    def handle_invalid_request(cls, request, errors: dict) -> Dict[str, Any]:
         """
         Handles the POST request received by the view this form's data was posted to if the request
         is permissible but the form data is invalid.
@@ -142,30 +153,28 @@ class BaCa2ModelForm(BaCa2Form):
         :type request: HttpRequest
         :param errors: Dictionary containing information about the errors found in the form data.
         :type errors: dict
-        :return: Dictionary containing a failure message and any additional data to be included in
-            the response.
-        :rtype: Dict[str, str]
+        :return: Dictionary containing a failure message. If the form widget has a submit failure
+            popup, the message will be displayed in the popup followed by information about the
+            errors found in the form data.
+        :rtype: Dict[str, Any]
         """
-        raise NotImplementedError('This method has to be implemented by inheriting classes.')
+        return {'message': _('Invalid form data. Please correct the following errors:')}
 
     @classmethod
-    @abstractmethod
-    def handle_impermissible_request(cls, request) -> Dict[str, str]:
+    def handle_impermissible_request(cls, request) -> Dict[str, Any]:
         """
         Handles the POST request received by the view this form's data was posted to if the request
         is impermissible.
 
         :param request: Request object.
         :type request: HttpRequest
-        :return: Dictionary containing a failure message and any additional data to be included in
-            the response.
-        :rtype: Dict[str, str]
+        :return: Dictionary containing a failure message.
+        :rtype: Dict[str, Any]
         """
-        raise NotImplementedError('This method has to be implemented by inheriting classes.')
+        return {'message': _('Request failed due to insufficient permissions.')}
 
     @classmethod
-    @abstractmethod
-    def handle_error(cls, request, error: Exception) -> Dict[str, str]:
+    def handle_error(cls, request, error: Exception) -> Dict[str, Any]:
         """
         Handles the POST request received by the view this form's data was posted to if the request
         resulted in an error unrelated to form validation or the user's permissions.
@@ -174,11 +183,12 @@ class BaCa2ModelForm(BaCa2Form):
         :type request: HttpRequest
         :param error: Error which occurred while processing the request.
         :type error: Exception
-        :return: Dictionary containing a failure message and any additional data to be included in
-            the response.
-        :rtype: Dict[str, str]
+        :return: Dictionary containing a failure message. If the form widget has a submit failure
+            popup, the message will be displayed in the popup followed by information about the
+            error which occurred.
+        :rtype: Dict[str, Any]
         """
-        raise NotImplementedError('This method has to be implemented by inheriting classes.')
+        return {'message': _('Following error occurred while processing the request:')}
 
     @classmethod
     def is_permissible(cls, request) -> bool:

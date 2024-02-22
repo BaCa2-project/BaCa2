@@ -1,5 +1,6 @@
 import logging
-from typing import Dict
+from abc import abstractmethod
+from typing import Any, Dict
 
 from django import forms
 from django.conf import settings
@@ -31,13 +32,39 @@ from widgets.popups.forms import SubmitConfirmationPopup
 logger = logging.getLogger(__name__)
 
 
-# ------------------------------------- Course Model Form -------------------------------------- #
+# -------------------------------------- course model form ------------------------------------- #
 
 class CourseModelForm(BaCa2ModelForm):
+    """
+    Base class for all forms in the BaCa2 app which are used to create, delete or modify course
+    database model objects.
+    """
+
+    @classmethod
+    @abstractmethod
+    def handle_valid_request(cls, request) -> Dict[str, Any]:
+        """
+        Handles the POST request received by the view this form's data was posted to if the request
+        is permissible and the form data is valid.
+
+        :param request: Request object.
+        :type request: HttpRequest
+        :return: Dictionary containing a success message and any additional data to be included in
+            the response.
+        :rtype: Dict[str, Any]
+        """
+        raise NotImplementedError('This method has to be implemented by inheriting classes.')
+
     @classmethod
     def is_permissible(cls, request) -> bool:
+        """
+        Checks if the user making the request has the permission to perform the action specified by
+        the form within the scope of the current course.
+        """
         return request.user.has_course_permission(cls.ACTION.label, InCourse.get_context_course())
 
+
+# =========================================== COURSE =========================================== #
 
 # ---------------------------------------- create course --------------------------------------- #
 
@@ -90,49 +117,6 @@ class CreateCourseForm(BaCa2ModelForm):
             usos_term_code=request.POST.get('USOS_term_code')
         )
         return {'message': _('Course ') + request.POST.get('name') + _(' created successfully')}
-
-    @classmethod
-    def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
-        """
-        Returns response message for a request containing invalid data.
-
-        :param request: POST request containing the course data.
-        :type request: HttpRequest
-        :param errors: Dictionary containing information about the errors found in the form data.
-        :type errors: dict
-        :return: Dictionary containing an error message preceding the list of errors.
-        :rtype: Dict[str, str]
-        """
-        return {'message': _('Course creation failed due to invalid data. Please correct the '
-                             'following errors:')}
-
-    @classmethod
-    def handle_impermissible_request(cls, request) -> Dict[str, str]:
-        """
-        Returns response message for a request from a user without the permission to create new
-        courses.
-
-        :param request: POST request containing the course data.
-        :type request: HttpRequest
-        :return: Dictionary containing an error message.
-        :rtype: Dict[str, str]
-        """
-        return {'message': _('Course creation failed due to insufficient permissions.')}
-
-    @classmethod
-    def handle_error(cls, request, error) -> Dict[str, str]:
-        """
-        Returns response message for a request that failed due to an error other than invalid data
-        or insufficient permissions.
-
-        :param request: POST request containing the course data.
-        :type request: HttpRequest
-        :param error: Error that caused the request to fail.
-        :type error: Exception
-        :return: Dictionary containing an error message.
-        :rtype: Dict[str, str]
-        """
-        return {'message': 'Course creation failed due to the following error:\n' + str(error)}
 
 
 class CreateCourseFormWidget(FormWidget):
@@ -191,7 +175,6 @@ class CreateCourseFormWidget(FormWidget):
 
 # ---------------------------------------- delete course --------------------------------------- #
 
-
 class DeleteCourseForm(BaCa2ModelForm):
     """
     Form for deleting existing :py:class:`main.Course` objects.
@@ -219,48 +202,6 @@ class DeleteCourseForm(BaCa2ModelForm):
         """
         Course.objects.delete_course(int(request.POST.get('course_id')))
         return {'message': _('Course deleted successfully')}
-
-    @classmethod
-    def handle_error(cls, request, error) -> Dict[str, str]:
-        """
-        Returns response message for a request that failed due to an error other than invalid data
-        or insufficient permissions.
-
-        :param request: POST request containing the course ID.
-        :type request: HttpRequest
-        :param error: Error that caused the request to fail.
-        :type error: Exception
-        :return: Dictionary containing an error message.
-        :rtype: Dict[str, str]
-        """
-        return {'message': 'Course deletion failed due to the following error:\n' + str(error)}
-
-    @classmethod
-    def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
-        """
-        Returns response message for a request containing invalid data.
-
-        :param request: POST request containing the course ID.
-        :type request: HttpRequest
-        :param errors: Dictionary containing information about the errors found in the form data.
-        :type errors: dict
-        :return: Dictionary containing an error message preceding the list of errors.
-        :rtype: Dict[str, str]
-        """
-        return {'message': _('Course deletion failed due to invalid data. Please correct the '
-                             'following errors:')}
-
-    @classmethod
-    def handle_impermissible_request(cls, request) -> Dict[str, str]:
-        """
-        Returns response message for a request from a user without the permission to delete courses.
-
-        :param request: POST request containing the course ID.
-        :type request: HttpRequest
-        :return: Dictionary containing an error message.
-        :rtype: Dict[str, str]
-        """
-        return {'message': _('Course deletion failed due to insufficient permissions.')}
 
 
 class DeleteCourseFormWidget(FormWidget):
@@ -305,23 +246,13 @@ class DeleteCourseFormWidget(FormWidget):
         )
 
 
+# =========================================== MEMBERS ========================================== #
+
 # ----------------------------------------- add members ---------------------------------------- #
 
 class AddMembersForm(BaCa2ModelForm):
     MODEL = Course
     ACTION = Course.CourseAction.ADD_MEMBER
-
-    @classmethod
-    def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
-        pass
-
-    @classmethod
-    def handle_impermissible_request(cls, request) -> Dict[str, str]:
-        pass
-
-    @classmethod
-    def handle_error(cls, request, error: Exception) -> Dict[str, str]:
-        pass
 
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
@@ -347,7 +278,9 @@ class AddMembersFormWidget(FormWidget):
         )
 
 
-# --------------------------------------- create round ----------------------------------------- #
+# ============================================ ROUND =========================================== #
+
+# ---------------------------------------- create round ---------------------------------------- #
 
 class CreateRoundForm(CourseModelForm):
     MODEL = Round
@@ -379,19 +312,6 @@ class CreateRoundForm(CourseModelForm):
 
         return {'message': _('Round ') + request.POST.get('name') + _(' created successfully')}
 
-    @classmethod
-    def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
-        return {'message': _('Round creation failed due to invalid data. Please correct the '
-                             'following errors:')}
-
-    @classmethod
-    def handle_impermissible_request(cls, request) -> Dict[str, str]:
-        return {'message': _('Round creation failed due to insufficient permissions.')}
-
-    @classmethod
-    def handle_error(cls, request, error: Exception) -> Dict[str, str]:
-        return {'message': 'Round creation failed due to the following error:\n' + str(error)}
-
 
 class CreateRoundFormWidget(FormWidget):
     def __init__(self,
@@ -422,6 +342,8 @@ class CreateRoundFormWidget(FormWidget):
         )
 
 
+# ----------------------------------------- edit round ----------------------------------------- #
+
 class EditRoundForm(CourseModelForm):
     MODEL = Round
     ACTION = Round.BasicAction.EDIT
@@ -446,19 +368,6 @@ class EditRoundForm(CourseModelForm):
         )
 
         return {'message': _('Round ') + request.POST.get('name') + _(' edited successfully')}
-
-    @classmethod
-    def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
-        return {'message': _('Round edition failed due to invalid data. Please correct the '
-                             'following errors:')}
-
-    @classmethod
-    def handle_impermissible_request(cls, request) -> Dict[str, str]:
-        return {'message': _('Round edition failed due to insufficient permissions.')}
-
-    @classmethod
-    def handle_error(cls, request, error: Exception) -> Dict[str, str]:
-        return {'message': 'Round edition failed due to the following error:\n' + str(error)}
 
 
 class EditRoundFormWidget(FormWidget):
@@ -492,6 +401,19 @@ class EditRoundFormWidget(FormWidget):
         )
 
 
+# ---------------------------------------- delete round ---------------------------------------- #
+
+class DeleteRoundForm(BaCa2ModelForm):
+    MODEL = Round
+    ACTION = Round.BasicAction.DEL
+
+    @classmethod
+    def handle_valid_request(cls, request) -> Dict[str, Any]:
+        pass
+
+
+# ============================================ TASK ============================================ #
+
 # ----------------------------------------- create task ---------------------------------------- #
 
 class CreateTaskForm(BaCa2ModelForm):
@@ -514,8 +436,8 @@ class CreateTaskForm(BaCa2ModelForm):
                               required=False,
                               help_text=_('If not provided - points will be taken from package.'), )
     package = FileUploadField(label=_('Task package'),
-                              required=True,
                               allowed_extensions=['zip'],
+                              required=True,
                               help_text=_('Only .zip files are allowed'))
     judge_mode = ChoiceField(label=_('Judge mode'),
                              choices=TaskJudgingMode,
@@ -566,19 +488,6 @@ class CreateTaskForm(BaCa2ModelForm):
         file.delete()
         return {'message': _('Task ') + task_name + _(' created successfully')}
 
-    @classmethod
-    def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
-        return {'message': _('Task creation failed due to invalid data. Please correct the '
-                             'following errors:')}
-
-    @classmethod
-    def handle_impermissible_request(cls, request) -> Dict[str, str]:
-        return {'message': _('Task creation failed due to insufficient permissions.')}
-
-    @classmethod
-    def handle_error(cls, request, error: Exception) -> Dict[str, str]:
-        return {'message': 'Task creation failed due to the following error:\n' + str(error)}
-
 
 class CreateTaskFormWidget(FormWidget):
     def __init__(self,
@@ -608,6 +517,9 @@ class CreateTaskFormWidget(FormWidget):
         )
 
 
+# ----------------------------------------- delete task ---------------------------------------- #
+
+
 class DeleteTaskForm(BaCa2ModelForm):
     """
     Form for deleting existing :py:class:`course.Task` objects.
@@ -635,48 +547,6 @@ class DeleteTaskForm(BaCa2ModelForm):
         """
         Task.objects.delete_task(int(request.POST.get('task_id')))
         return {'message': _('Task deleted successfully')}
-
-    @classmethod
-    def handle_error(cls, request, error) -> Dict[str, str]:
-        """
-        Returns response message for a request that failed due to an error other than invalid data
-        or insufficient permissions.
-
-        :param request: POST request containing the task ID.
-        :type request: HttpRequest
-        :param error: Error that caused the request to fail.
-        :type error: Exception
-        :return: Dictionary containing an error message.
-        :rtype: Dict[str, str]
-        """
-        return {'message': 'Task deletion failed due to the following error:\n' + str(error)}
-
-    @classmethod
-    def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
-        """
-        Returns response message for a request containing invalid data.
-
-        :param request: POST request containing the task ID.
-        :type request: HttpRequest
-        :param errors: Dictionary containing information about the errors found in the form data.
-        :type errors: dict
-        :return: Dictionary containing an error message preceding the list of errors.
-        :rtype: Dict[str, str]
-        """
-        return {'message': _('Task deletion failed due to invalid data. Please correct the '
-                             'following errors:')}
-
-    @classmethod
-    def handle_impermissible_request(cls, request) -> Dict[str, str]:
-        """
-        Returns response message for a request from a user without the permission to delete tasks.
-
-        :param request: POST request containing the task ID.
-        :type request: HttpRequest
-        :return: Dictionary containing an error message.
-        :rtype: Dict[str, str]
-        """
-        return {'message': _('Task deletion failed due to insufficient permissions.')}
 
 
 class DeleteTaskFormWidget(FormWidget):
@@ -721,7 +591,9 @@ class DeleteTaskFormWidget(FormWidget):
         )
 
 
-# ----------------------------------------- submissions ---------------------------------------- #
+# ========================================= SUBMISSION ========================================= #
+
+# -------------------------------------- create submission ------------------------------------- #
 
 class CreateSubmitForm(BaCa2ModelForm):
     MODEL = Submit
@@ -751,19 +623,6 @@ class CreateSubmitForm(BaCa2ModelForm):
             source_code_file.delete()
             raise e
         return {'message': _('Submit created successfully')}
-
-    @classmethod
-    def handle_invalid_request(cls, request, errors: dict) -> Dict[str, str]:
-        return {'message': _('Submit creation failed due to invalid data. Please correct the '
-                             'following errors:')}
-
-    @classmethod
-    def handle_impermissible_request(cls, request) -> Dict[str, str]:
-        return {'message': _('Submit creation failed due to insufficient permissions.')}
-
-    @classmethod
-    def handle_error(cls, request, error: Exception) -> Dict[str, str]:
-        return {'message': 'Submit creation failed due to the following error:\n' + str(error)}
 
 
 class CreateSubmitFormWidget(FormWidget):
