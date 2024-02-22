@@ -404,12 +404,32 @@ class EditRoundFormWidget(FormWidget):
 # ---------------------------------------- delete round ---------------------------------------- #
 
 class DeleteRoundForm(BaCa2ModelForm):
+    """
+    Form for deleting existing :py:class:`course.Round` objects.
+    """
+
     MODEL = Round
     ACTION = Round.BasicAction.DEL
 
+    #: ID of the round to be deleted.
+    round_id = forms.IntegerField(
+        label=_('Round ID'),
+        widget=forms.HiddenInput(attrs={'class': 'model-id', 'data-reset-on-refresh': 'true'}),
+        required=True,
+    )
+
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, Any]:
-        pass
+        """
+        Deletes the round with the ID provided in the request.
+
+        :param request: POST request containing the round ID.
+        :type request: HttpRequest
+        :return: Dictionary containing a success message.
+        :rtype: Dict[str, Any]
+        """
+        Round.objects.delete_round(int(request.POST.get('round_id')))
+        return {'message': _('Round deleted successfully')}
 
 
 # ============================================ TASK ============================================ #
