@@ -56,8 +56,32 @@ class TableSelectField(IntegerArrayField):
 
         super().__init__(**kwargs)
 
+    def update_data_source_url(self, data_source_url: str) -> None:
+        """
+        Updates the data source url of the field's table widget.
+
+        :param data_source_url: The new data source url.
+        :type data_source_url: str
+        """
+        self.data_source_url = data_source_url
+        self.table_widget['data_source_url'] = data_source_url
+
     def widget_attrs(self, widget) -> dict:
+        """
+        Adds the class `table-select-field` and the data attribute `data-table-id` to the widget
+        attributes. Required for the JavaScript and styling to work properly.
+        """
         attrs = super().widget_attrs(widget)
         attrs['class'] = 'table-select-field'
         attrs['data-table-id'] = self.table_widget_id
         return attrs
+
+    @staticmethod
+    def parse_value(value: str) -> List[int]:
+        """
+        :param value: The field value as a comma-separated string of primary keys.
+        :type value: str
+        :return: The field value as a list of integers.
+        :rtype: List[int]
+        """
+        return [int(pk) for pk in value.split(',')] if value else []

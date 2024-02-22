@@ -321,7 +321,7 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         if not get_data_method or not callable(get_data_method):
             raise BaCa2ModelView.ModelViewException(
                 f'Model class managed by the {self.__class__.__name__} view does not '
-                f'implement the `get_data` method needed to perform this action.'
+                f'implement the get_data method needed to perform this action.'
             )
 
         get_params = request.GET.dict()
