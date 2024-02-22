@@ -10,7 +10,7 @@ from django.utils.translation import gettext_lazy as _
 
 from course.models import Result, Round, Submit, Task
 from course.routing import InCourse
-from main.views import UserModelView
+from main.views import RoleModelView, UserModelView
 from util.models_registry import ModelsRegistry
 from util.views import BaCa2LoggedInView, BaCa2ModelView
 from widgets.forms.course import (
@@ -308,8 +308,9 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
         sidenav = SideNav(request=self.request,
                           collapsed=False,
                           toggle_button=True,
-                          tabs=['Members', 'Rounds', 'Tasks', 'Results'],
+                          tabs=['Members', 'Roles', 'Rounds', 'Tasks', 'Results'],
                           sub_tabs={'Members': ['View members', 'Add members'],
+                                    'Roles': ['View roles', 'Add role'],
                                     'Rounds': ['View rounds', 'Add round'],
                                     'Tasks': ['View tasks', 'Add task']}, )
         self.add_widget(context, sidenav)
@@ -333,6 +334,22 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
 
         add_members_form = AddMembersFormWidget(request=self.request, course_id=course_id)
         self.add_widget(context, add_members_form)
+
+        # roles ----------------------------------------------------------------
+        roles_table = TableWidget(
+            name='roles_table_widget',
+            request=self.request,
+            data_source=RoleModelView.get_url(
+                mode=BaCa2ModelView.GetMode.FILTER,
+                query_params={'course': course_id},
+            ),
+            cols=[TextColumn(name='name', header=_('Role name')),
+                  TextColumn(name='description', header=_('Description'))],
+            title=_('Roles'),
+            refresh_button=True,
+            # TODO: link to role edit
+        )
+        self.add_widget(context, roles_table)
 
         # rounds ---------------------------------------------------------------
         round_table = TableWidget(

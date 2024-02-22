@@ -8,7 +8,7 @@ from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse_lazy
 from django.views.generic.base import RedirectView, View
 
-from main.models import Course, User
+from main.models import Course, Role, User
 from util.responses import BaCa2ModelResponse
 from util.views import BaCa2ContextMixin, BaCa2LoggedInView, BaCa2ModelView
 from widgets.forms import FormWidget
@@ -140,6 +140,35 @@ class UserModelView(BaCa2ModelView):
             strings.
         :rtype: :class:`BaCa2ModelResponse`
         """
+        pass
+
+
+class RoleModelView(BaCa2ModelView):
+    MODEL = Role
+
+    def check_get_filtered_permission(self,
+                                      query_params: dict,
+                                      query_result: List[Role],
+                                      request,
+                                      **kwargs) -> bool:
+        if self.check_get_all_permission(request, **kwargs):
+            return True
+        for role in query_result:
+            course = role.course
+            if all((not course.user_is_admin(request.user),
+                    not course.user_has_role(request.user, role)
+                    )):
+                return False
+        return True
+
+    def check_get_excluded_permission(self,
+                                      query_params: dict,
+                                      query_result: List[Role],
+                                      request,
+                                      **kwargs) -> bool:
+        return self.check_get_filtered_permission(query_params, query_result, request, **kwargs)
+
+    def post(self, request, **kwargs) -> JsonResponse:
         pass
 
 
