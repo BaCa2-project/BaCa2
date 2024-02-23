@@ -1,9 +1,11 @@
 import logging
-from typing import List
+from typing import Any, Dict, List
 
 from django.contrib.auth import logout
 from django.contrib.auth.mixins import UserPassesTestMixin
+from django.contrib.auth.models import Permission
 from django.contrib.auth.views import LoginView
+from django.db import models
 from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse_lazy
 from django.views.generic.base import RedirectView, View
@@ -189,6 +191,38 @@ class RoleModelView(BaCa2ModelView):
                                       request,
                                       **kwargs) -> bool:
         return self.check_get_filtered_permission(query_params, query_result, request, **kwargs)
+
+    def post(self, request, **kwargs) -> JsonResponse:
+        pass
+
+
+class PermissionModelView(BaCa2ModelView):
+    MODEL = Permission
+
+    @staticmethod
+    def get_data(instance: Permission, **kwargs) -> Dict[str, Any]:
+        return {
+            'id': instance.id,
+            'name': instance.name,
+            'content_type_id': instance.content_type.id,
+            'codename': instance.codename,
+        }
+
+    GET_DATA_METHOD = get_data
+
+    def check_get_filtered_permission(self,
+                                      query_params: dict,
+                                      query_result: List[models.Model],
+                                      request,
+                                      **kwargs) -> bool:
+        return True
+
+    def check_get_excluded_permission(self,
+                                      query_params: dict,
+                                      query_result: List[models.Model],
+                                      request,
+                                      **kwargs) -> bool:
+        return True
 
     def post(self, request, **kwargs) -> JsonResponse:
         pass
