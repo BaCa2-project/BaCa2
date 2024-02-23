@@ -644,6 +644,7 @@ class SubmitSummaryView(BaCa2LoggedInView):
                 {'title': _('User'), 'value': submit.user.get_full_name()},
                 {'title': _('Submit time'),
                  'value': submit.submit_date.strftime('%Y-%m-%d %H:%M:%S')},
+                {'title': _('Submit status'), 'value': submit.formatted_submit_status},
                 {'title': _('Score'), 'value': submit.summary_score},
             ],
             title=_('Summary') + f' - {_("submit")} #{submit.pk}',
