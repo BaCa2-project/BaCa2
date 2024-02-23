@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Dict, List, Type
+from typing import Any, Callable, Dict, List, Optional, Type
 
 import django.db.models
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -289,7 +289,22 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
     #: Model class which the view manages. Should be set by inheriting classes.
     MODEL: model_cls = None
 
+    #: Serialization method for the model class instances, where `:meth:get_data` is not specified
+    #: in the model class.
+    GET_DATA_METHOD: Callable[[model_cls, Optional[Dict[str, Any]]], Dict[str, Any]] = None
+
     # -------------------------------------- get methods --------------------------------------- #
+
+    @classmethod
+    def get_data_method(cls) -> Callable[[model_cls, Optional[Dict[str, Any]]], Dict[str, Any]]:
+        in_class_method = getattr(cls.MODEL, 'get_data', None)
+        if in_class_method:
+            return in_class_method
+        if cls.GET_DATA_METHOD:
+            return cls.GET_DATA_METHOD
+        raise BaCa2ModelView.ModelViewException(
+            f'No get_data method found for model {cls.MODEL.__name__}.'
+        )
 
     def get(self, request, *args, **kwargs) -> BaCa2ModelResponse:
         """
@@ -307,8 +322,6 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         :return: JSON response with the result of the action in the form of status and message
             string (and data if the action was successful).
         :rtype: :class:`BaCa2ModelResponse`
-        :raises ModelViewException: If the model class managed by the view does not implement the
-            `get_data` method needed to perform this action.
 
         See also:
             - :class:`BaCa2ModelView.GetMode`
@@ -316,14 +329,6 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
             - :meth:`BaCa2ModelView.get_filtered`
             - :meth:`BaCa2ModelView.get_excluded`
         """
-        get_data_method = getattr(self.MODEL, 'get_data')
-
-        if not get_data_method or not callable(get_data_method):
-            raise BaCa2ModelView.ModelViewException(
-                f'Model class managed by the {self.__class__.__name__} view does not '
-                f'implement the get_data method needed to perform this action.'
-            )
-
         get_params = request.GET.dict()
         mode = get_params.get('mode')
 
@@ -394,7 +399,8 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         return self.get_request_response(
             status=BaCa2JsonResponse.Status.SUCCESS,
             message=_('Successfully retrieved data for all model instances'),
-            data=[instance.get_data(**serialize_kwargs) for instance in self.MODEL.objects.all()]
+            data=[self.get_data_method()(instance, **serialize_kwargs)
+                  for instance in self.MODEL.objects.all()]
         )
 
     def get_filtered(self,
@@ -432,7 +438,8 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
             status=BaCa2JsonResponse.Status.SUCCESS,
             message=_('Successfully retrieved data for model instances matching the specified '
                       'filter parameters.'),
-            data=[obj.get_data(**serialize_kwargs) for obj in query_result]
+            data=[self.get_data_method()(obj, **serialize_kwargs)
+                  for obj in query_result]
         )
 
     def get_excluded(self,
@@ -470,7 +477,8 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
             status=BaCa2JsonResponse.Status.SUCCESS,
             message=_('Successfully retrieved data for model instances not matching the specified '
                       'exclusion parameters.'),
-            data=[obj.get_data(**serialize_kwargs) for obj in query_result]
+            data=[self.get_data_method()(obj, **serialize_kwargs)
+                  for obj in query_result]
         )
 
     # --------------------------------- get permission checks ---------------------------------- #
