@@ -15,7 +15,13 @@ from django.utils.timezone import now
 from baca2PackageManager import TestF, TSet
 from baca2PackageManager.broker_communication import BrokerToBaca
 from baca2PackageManager.tools import bytes_from_str, bytes_to_str
-from core.choices import ModelAction, ResultStatus, TaskJudgingMode
+from core.choices import (
+    EMPTY_FINAL_STATUSES,
+    ModelAction,
+    ResultStatus,
+    SubmitType,
+    TaskJudgingMode
+)
 from core.exceptions import DataError
 from course.routing import InCourse, OptionalInCourse
 from util.models_registry import ModelsRegistry
@@ -847,7 +853,10 @@ class SubmitManager(models.Manager):
                       user: str | int | User,
                       submit_date: datetime = None,
                       final_score: float = -1,
-                      auto_send: bool = True) -> Submit:
+                      auto_send: bool = True,
+                      submit_type: SubmitType = SubmitType.STD,
+                      submit_status: ResultStatus = ResultStatus.PND,
+                      error_msg: str = None) -> Submit:
         """
         It creates a new submit object.
 
@@ -865,6 +874,12 @@ class SubmitManager(models.Manager):
         :param auto_send: If True, the submit will be sent to the broker, defaults to True
             (optional)
         :type auto_send: bool
+        :param submit_type: The type of the submit, defaults to SubmitType.STD (optional)
+        :type submit_type: SubmitType
+        :param submit_status: The status of the submit, defaults to None (optional)
+        :type submit_status: ResultStatus
+        :param error_msg: The error message of the submit, defaults to None (optional)
+        :type error_msg: str
 
         :return: A new submit object.
         :rtype: Submit
@@ -876,7 +891,10 @@ class SubmitManager(models.Manager):
                                 source_code=source_code,
                                 task=task,
                                 usr=user.pk,
-                                final_score=final_score)
+                                final_score=final_score,
+                                submit_type=submit_type,
+                                submit_status=submit_status,
+                                error_msg=error_msg)
         new_submit.save()
         if auto_send:
             new_submit.send()
@@ -923,8 +941,18 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
     #: Pseudo-foreign key to :py:class:`main.models.User` model (user), who submitted to the task.
     usr = models.BigIntegerField(validators=[SubmitManager.user_exists_validator])
+    #: Solution type
+    submit_type = models.CharField(max_length=3,
+                                   choices=SubmitType.choices,
+                                   default=SubmitType.STD)
+    #: Status of submit (initially PND - pending)
+    submit_status = models.CharField(max_length=3,
+                                     choices=ResultStatus.choices,
+                                     default=ResultStatus.PND)
+    #: Error message, if submit ended with error
+    error_msg = models.TextField(null=True, blank=True, default=None)
     #: Final score (as percent), gained by user's submission. Before solution check score is set
-    # to ``-1``.
+    #: to ``-1``.
     final_score = models.FloatField(default=-1)
 
     #: The manager for the Submit model.
@@ -943,12 +971,40 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         """
         It sends the submit to the broker.
 
-        :return: None
+        :return: A new BrokerSubmit object.
+        :rtype: BrokerSubmit
         """
         from broker_api.models import BrokerSubmit
 
-        return BrokerSubmit.send(ModelsRegistry.get_course(self._state.db), self.id,
+        return BrokerSubmit.send(ModelsRegistry.get_course(self._state.db),
+                                 self.id,
                                  self.task.package_instance)
+
+    def resend(self) -> BrokerSubmit:
+        """
+        It marks this submit as hidden, and creates new submit with the same data. New submit will
+        be sent to broker.
+
+        :return: A new BrokerSubmit object.
+        :rtype: BrokerSubmit
+        """
+        from broker_api.models import BrokerSubmit
+
+        sub_type = SubmitType[self.submit_type]
+        self.submit_type = SubmitType.HID
+        self.save()
+
+        new_submit = self.objects.create_submit(
+            source_code=self.source_code,
+            task=self.task,
+            user=self.usr,
+            auto_send=False,
+            submit_type=sub_type,
+        )
+
+        return BrokerSubmit.send(ModelsRegistry.get_course(self._state.db),
+                                 new_submit.id,
+                                 new_submit.task.package_instance)
 
     def delete(self, using=None, keep_parents=False):
         """
@@ -982,6 +1038,21 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         """
         return list(Result.objects.filter(submit=self).all())
 
+    def end_with_error(self, error_type: ResultStatus, error_msg: str) -> None:
+        """
+        It ends the submit with an error.
+
+        :param error_type: The type of the error.
+        :type error_type: ResultStatus
+        :param error_msg: The message of the error.
+        :type error_msg: str
+        """
+        self.submit_status = error_type
+        self.error_msg = error_msg
+
+        self.final_score = 0
+        self.save()
+
     @transaction.atomic
     def score(self, rejudge: bool = False) -> float:
         """
@@ -996,19 +1067,29 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         :raise DataError: if there is more results than tests
         :raise NotImplementedError: if selected judging mode is not implemented
         """
-
+        submit_status = ResultStatus[self.submit_status]
         if rejudge:
+            if submit_status in EMPTY_FINAL_STATUSES:
+                self.final_score = 0
+                self.save()
+                return 0
             self.final_score = -1
+            self.submit_status = ResultStatus.PND
 
         # It's a cache. If the score was already calculated, it will be returned without
         # recalculating.
         if self.final_score >= 0:
             return self.final_score
 
-        if len(self.results) < self.task.tests_amount:
+        if submit_status == ResultStatus.PND and len(self.results) < self.task.tests_amount:
             self.final_score = -1
             self.save()
             return -1
+
+        if submit_status in EMPTY_FINAL_STATUSES:
+            self.final_score = 0
+            self.save()
+            return 0
 
         # It counts amount of different statuses, grouped by test sets.
         results = (
@@ -1040,6 +1121,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
             results_aggregated[r['test__test_set']]['SUM'] += r['amount']
 
         judging_mode = self.task.judging_mode
+        worst_status = ResultStatus.PND
         for test_set, s in results_aggregated.items():
             if s['SUM'] > s['MAX']:
                 raise DataError(f'Submit ({self}): More test results, then test assigned to task')
@@ -1056,6 +1138,12 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
                     f'Submit ({self}): Task {self.task.pk} has judging mode ' +
                     'which is not implemented.')
 
+            for status in results_aggregated[test_set].keys():
+                if status in ResultStatus.values:
+                    status = ResultStatus[status]
+                    if ResultStatus.compare(status, worst_status) > 0:
+                        worst_status = status
+
         # It's calculating the score of a submit, as weighted average of sets scores.
         final_score = 0
         final_weight = 0
@@ -1064,6 +1152,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
             final_score += s['score'] * weight
 
         self.final_score = round(final_score / final_weight, 6)
+        self.submit_status = worst_status
         self.save()
         return self.final_score
 
@@ -1098,6 +1187,16 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         score = self.score()
         return f'{self.task_score} ({self.format_score(score, 1)} %)' if score > -1 else 'PND'
 
+    @property
+    def formatted_submit_status(self) -> str:
+        """
+        It returns the submit status in a formatted way.
+
+        :return: The submit status in a formatted way.
+        :rtype: str
+        """
+        return f'{self.submit_status} ({ResultStatus[self.submit_status].label})'
+
     def get_data(self,
                  show_user: bool = True,
                  add_round_task_name: bool = False,
@@ -1115,6 +1214,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
             'task_name': self.task.task_name,
             'task_score': task_score if score > -1 else 'PND',
             'final_score': self.format_score(score),
+            'submit_status': self.formatted_submit_status,
         }
         if show_user:
             res |= {'user_first_name': self.user.first_name,
