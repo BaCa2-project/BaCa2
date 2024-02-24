@@ -28,12 +28,16 @@ from widgets.popups.forms import SubmitConfirmationPopup
 logger = logging.getLogger(__name__)
 
 
-# -------------------------------------- course model form ------------------------------------- #
+# ---------------------------------- course form base classes ---------------------------------- #
 
 class CourseModelForm(BaCa2ModelForm):
     """
     Base class for all forms in the BaCa2 app which are used to create, delete or modify course
     database model objects.
+
+    See also:
+        - :class:`BaCa2ModelForm`
+        - :class:`CourseActionForm`
     """
 
     @classmethod
@@ -58,6 +62,67 @@ class CourseModelForm(BaCa2ModelForm):
         the form within the scope of the current course.
         """
         return request.user.has_course_permission(cls.ACTION.label, InCourse.get_context_course())
+
+
+class CourseActionForm(BaCa2ModelForm):
+    """
+    Base class for all forms in the BaCa2 app which are used to perform course-specific actions
+    on default database model objects (such as adding or removing members, creating roles, etc.).
+    All form widgets wrapping this form should post to the course model view url with a specified
+    `course_id` parameter. The form's `is_permissible` checks if the requesting user has the
+    permission to perform its action within the scope of the course with the given ID.
+
+    See also:
+        - :class:`BaCa2ModelForm`
+        - :class:`Course.CourseAction`
+    """
+
+    #: Course action to be performed by the form.
+    ACTION: Course.CourseAction = None
+
+    @classmethod
+    def handle_valid_request(cls, request) -> Dict[str, Any]:
+        """
+        Handles the POST request received by the view this form's data was posted to if the request
+        is permissible and the form data is valid.
+
+        :param request: Request object.
+        :type request: HttpRequest
+        :return: Dictionary containing a success message and any additional data to be included in
+            the response.
+        :rtype: Dict[str, Any]
+        """
+        raise NotImplementedError('This method has to be implemented by inheriting classes.')
+
+    @staticmethod
+    def get_context_course(request) -> Course:
+        """
+        :return: Course object matching the course ID provided in the request.
+        :rtype: Course
+        :raises ValueError: If the request object does not have a course attribute or the course ID
+            is not provided in the request.
+        """
+        if not hasattr(request, 'course'):
+            raise ValueError('Request object does not have a course attribute')
+
+        course_id = request.course.get('course_id')
+
+        if not course_id:
+            raise ValueError('Course ID not provided in the request')
+
+        return ModelsRegistry.get_course(int(course_id))
+
+    @classmethod
+    def is_permissible(cls, request) -> bool:
+        """
+        :param request: Request object.
+        :type request: HttpRequest
+        :return: `True` if the user has the permission to perform the action specified by the form
+            within the scope of the course with the ID provided in the request, `False` otherwise.
+        :rtype: bool
+        """
+        course = cls.get_context_course(request)
+        return request.user.has_course_permission(cls.ACTION.label, course)
 
 
 # =========================================== COURSE =========================================== #
@@ -246,10 +311,19 @@ class DeleteCourseFormWidget(FormWidget):
 
 # ----------------------------------------- add members ---------------------------------------- #
 
-class AddMembersForm(BaCa2ModelForm):
+class AddMembersForm(CourseActionForm):
+    """
+    Form for adding members to a course with a specified role.
+
+    See also:
+        - :class:`CourseActionForm`
+        - :class: `Role`
+    """
+
     MODEL = Course
     ACTION = Course.CourseAction.ADD_MEMBER
 
+    #: Users to be added to the course.
     users = TableSelectField(
         label=_('Choose users to add'),
         table_widget_name='add_members_table_widget',
@@ -259,6 +333,7 @@ class AddMembersForm(BaCa2ModelForm):
               TextColumn(name='last_name', header=_('Last name'))],
     )
 
+    #: Role to be assigned to the newly added members.
     role = ModelChoiceField(
         label=_('Role'),
         data_source_url='',
@@ -268,6 +343,14 @@ class AddMembersForm(BaCa2ModelForm):
 
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
+        """
+        Adds the users selected in the form to the course with the role specified in the form.
+
+        :param request: POST request containing the users and role data.
+        :type request: HttpRequest
+        :return: Dictionary containing a success message.
+        :rtype: Dict[str, str]
+        """
         course_id = int(request.course.get('course_id'))
         users = TableSelectField.parse_value(request.POST.get('users'))
         role = int(request.POST.get('role'))
@@ -283,12 +366,15 @@ class AddMembersForm(BaCa2ModelForm):
 
     @classmethod
     def is_permissible(cls, request) -> bool:
-        course_id = int(request.course.get('course_id'))
-
-        if not course_id:
-            raise ValueError('Course ID not provided in the request')
-
-        course = ModelsRegistry.get_course(course_id)
+        """
+        :param request: Request object.
+        :type request: HttpRequest
+        :return: `True` if the requesting user has the permission to add members to the course
+            specified in the request, `False` otherwise. If the role specified in the request is the
+            admin role, the user must have the `ADD_ADMIN` permission.
+        :rtype: bool
+        """
+        course = cls.get_context_course(request)
         role = int(request.POST.get('role'))
 
         if role == course.admin_role.id:
