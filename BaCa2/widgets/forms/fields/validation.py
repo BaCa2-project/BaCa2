@@ -40,7 +40,7 @@ def get_field_validation_status(request: HttpRequest,
 
     min_length = int(min_length) if min_length else False
 
-    if field.widget.input_type == 'file':
+    if hasattr(field.widget, 'input_type') and field.widget.input_type == 'file':
         return _get_file_field_validation_status(field, value)
 
     if hasattr(field, 'clean') and callable(field.clean):
@@ -52,6 +52,9 @@ def get_field_validation_status(request: HttpRequest,
                     return {'status': 'error',
                             'messages': [_('This field cannot be empty.')]}
                 else:
+                    if len(value) == 0 and not field.widget.is_required:
+                        return {'status': 'ok'}
+
                     return {'status': 'error',
                             'messages': [_('This field must contain at least '
                                            f'{min_length} characters.')]}
