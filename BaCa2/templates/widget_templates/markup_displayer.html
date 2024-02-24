@@ -1,0 +1,29 @@
+{% load static %}
+{% load i18n %}
+
+<style>
+    #{{ displayer.name }} {
+        line-height: {{ displayer.line_height }};
+        overflow-y: auto;
+    }
+
+    {% if displayer.limit_display_height %}
+        #{{ displayer.name }} {
+            max-height: {{ displayer.display_height }};
+        }
+    {% endif %}
+</style>
+
+<div id="{{ displayer.name }}" class="card markup-display">
+    {% if displayer.pdf_download %}
+        <div class="card-header">
+            <a href="{% static displayer.pdf_download %}" download
+               class="btn btn-sm btn-outline-light_muted">
+                <i class="bi bi-download"></i> {% trans "Download PDF" %}
+            </a>
+        </div>
+    {% endif %}
+    <div class="card-body">
+        {{ displayer.content|safe }}
+    </div>
+</div>

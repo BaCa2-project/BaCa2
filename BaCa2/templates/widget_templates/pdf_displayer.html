@@ -1,0 +1,51 @@
+{% load static %}
+{% load i18n %}
+
+<div class="pdf-displayer card" id="{{ displayer.name }}">
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col">
+                <a href="{% static displayer.file_path %}" download
+                   class="btn btn-sm btn-outline-light_muted">
+                    <i class="bi bi-download"></i> {% trans "Download" %}
+                </a>
+            </div>
+            <div class="col">
+                <div class="pdf-navigation row align-items-center justify-content-end">
+                    <div class="col-auto pe-1">
+                        <button class="prev-page-btn btn btn-sm btn-outline-light_muted">
+                            <i class="bi bi-caret-left"></i>
+                        </button>
+                    </div>
+                    <div class="col-auto ps-1">
+                        <button class="next-page-btn btn btn-sm btn-outline-light_muted">
+                            <i class="bi bi-caret-right"></i>
+                        </button>
+                    </div>
+                    <div class="col-auto d-flex align-items-center ps-1">
+                        <div class="pdf-page-info">
+                            {% blocktrans %}
+                                <p class="m-0">Page</p>
+                                <form class="pdf-page-change">
+                                    <div class="input-group input-group-sm ms-2 me-2">
+                                        <input class="form-control pdf-page-number" value="1">
+                                    </div>
+                                </form>
+                                <p class="m-0">of</p>
+                                <span class="ms-2 pdf-page-count">1</span>
+                            {% endblocktrans %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <canvas style="width: 100%"></canvas>
+    </div>
+</div>
+
+<script>
+    let url = '{% static displayer.file_path %}';
+    new PDFDisplayer('{{ displayer.name }}', url);
+</script>

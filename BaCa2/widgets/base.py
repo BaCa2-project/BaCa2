@@ -16,7 +16,7 @@ class Widget(ABC):  # noqa: B024
         """
         pass
 
-    def __init__(self, name: str, request: HttpRequest, widget_class: str = '') -> None:
+    def __init__(self, name: str, request: HttpRequest = None, widget_class: str = '') -> None:
         """
         Initializes the widget with a name. Name is used to distinguish between widgets of the same
         type within a single HTML template.

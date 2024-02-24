@@ -4,6 +4,7 @@ import json
 from typing import Any, Dict, List
 
 from django.http import HttpRequest
+from django.utils.functional import Promise
 from django.utils.translation import gettext_lazy as _
 
 from widgets.base import Widget
@@ -15,15 +16,23 @@ from widgets.popups.forms import SubmitConfirmationPopup
 class TableWidget(Widget):
     """
     Widget used to display a table of data. Constructor arguments define the table's properties
-    such as title, columns, data source url, search options, etc.
+    such as title, columns, data source, search options, etc.
 
     The table widget is rendered with the help of the DataTables jQuery plugin using the
     `templates/widget_templates/table.html` template.
 
-    All table widgets use AJAX get requests to fetch the table data from the data source url.
-    The data source url should return a JSON object containing a 'data' key with a list of
-    dictionaries representing table rows. The keys of the dictionaries should correspond to the
-    names of the table columns.
+    All table widgets used to display database records should fetch their data with an AJAX get
+    request to the appropriate model view. As such their data source should be set to the url of
+    the model view from which they receive their data (generated using the `get_url` method of the
+    model view class). The data source url should return a JSON object containing a 'data' key with
+    a list of dictionaries representing table rows. The keys of the dictionaries should
+    correspond to the names of the table columns.
+
+    If the table widget is used to display static data, the data source should be provided as a
+    list of dictionaries representing table rows. The keys of the dictionaries should correspond to
+    the names of the table columns. All records in the table should have the same keys as well as
+    an 'id' key. If the provided dictionaries do not contain an 'id' key, the table widget will
+    automatically generate unique ids for the records.
 
     See also:
         - :class:`Column`
@@ -32,8 +41,9 @@ class TableWidget(Widget):
     """
 
     def __init__(self,
+                 *,
                  name: str,
-                 data_source_url: str,
+                 data_source: str | List[Dict[str, Any]],
                  cols: List[Column],
                  request: HttpRequest | None = None,
                  title: str = '',
@@ -44,23 +54,32 @@ class TableWidget(Widget):
                  deselect_on_filter: bool = True,
                  allow_delete: bool = False,
                  delete_form: BaCa2ModelForm = None,
+                 data_post_url: str = '',
                  paging: TableWidgetPaging = None,
+                 height_limit: int | None = None,
+                 link_format_string: str = '',
                  refresh_button: bool = False,
                  refresh: bool = False,
                  refresh_interval: int = 30,
+                 default_sorting: bool = True,
                  default_order_col: str = '',
                  default_order_asc: bool = True,
                  stripe_rows: bool = True,
-                 highlight_rows_on_hover: bool = False) -> None:
+                 highlight_rows_on_hover: bool = False,
+                 hide_col_headers: bool = False) -> None:
         """
         :param name: The name of the table widget. Names are used as ids for the HTML <table>
             elements of the rendered table widgets.
         :type name: str
-        :param data_source_url: The url from which the table data is fetched via AJAX get request.
-        The url should return a JSON object containing a 'data' key with a list of dictionaries
-        representing table rows. The keys of the dictionaries should correspond to the names of
-        the table columns.
-        :type data_source_url: str
+        :param data_source: Data source used to populate the table. If the table is used to display
+            static data, the data source should be provided as a list of dictionaries representing
+            table rows. The keys of the dictionaries should correspond to the names of the table
+            columns. If the table is used to display database records, the data source should be
+            set to the url of the model view from which the table receives its data. The data source
+            should return a JSON object containing a 'data' key with a list of dictionaries
+            representing table rows. The keys of the dictionaries should correspond to the names of
+            the table columns.
+        :type data_source: str | List[Dict[str, Any]]
         :param cols: List of columns to be displayed in the table. Each column object defines the
             column's properties such as name, header, searchability, etc.
         :type cols: List[:class:`Column`]
@@ -87,8 +106,19 @@ class TableWidget(Widget):
         :param delete_form: The form used to delete database records represented by the table rows.
             Only relevant if allow_delete is True.
         :type delete_form: :class:`BaCa2ModelForm`
+        :param data_post_url: The url to which the data from the table delete form is posted. Only
+            relevant if allow_delete is True.
+        :type data_post_url: str
         :param paging: Paging options for the table. If not set, paging is disabled.
         :type paging: :class:`TableWidgetPaging`
+        :param height_limit: The maximum height of the table in percent of the viewport height. If
+            not set, the table height is not limited.
+        :type height_limit: int | None
+        :param link_format_string: A format string used to generate links for the table rows. The
+        format string can reference the fields of database records represented by the table rows
+        using double square brackets. For example, if the format string is '/records/[[id]]', the
+        table rows will be linked to '/records/1', '/records/2', etc.
+        :type link_format_string: str
         :param refresh_button: Whether to display a refresh button in the util header above the
             table. Refreshing the table will reload the data from the data source.
         :type refresh_button: bool
@@ -96,6 +126,8 @@ class TableWidget(Widget):
         :type refresh: bool
         :param refresh_interval: The interval in seconds at which the table data is refreshed.
         :type refresh_interval: int
+        :param default_sorting: Whether to use default sorting for the table.
+        :type default_sorting: bool
         :param default_order_col: The name of the column to use for default ordering. If not set,
             the first column with sortable=True is used.
         :type default_order_col: str
@@ -106,6 +138,8 @@ class TableWidget(Widget):
         :type stripe_rows: bool
         :param highlight_rows_on_hover: Whether to highlight the table rows on mouse hover.
         :type highlight_rows_on_hover: bool
+        :param hide_col_headers: Whether to hide the column headers.
+        :type hide_col_headers: bool
         """
         super().__init__(name=name, request=request)
 
@@ -115,7 +149,7 @@ class TableWidget(Widget):
         self.title = title
         self.display_title = display_title
 
-        if not default_order_col:
+        if not default_order_col and default_sorting:
             default_order_col = next(col.name for col in cols if getattr(col, 'sortable'))
 
         if allow_select:
@@ -125,11 +159,14 @@ class TableWidget(Widget):
             if not delete_form:
                 raise Widget.WidgetParameterError('Delete form must be set if allow_delete is '
                                                   'True.')
+            if not data_post_url:
+                raise Widget.WidgetParameterError('Data post url must be set if allow_delete is '
+                                                  'True.')
 
             delete_record_form_widget = DeleteRecordFormWidget(
                 request=request,
                 form=delete_form,
-                post_url=data_source_url,
+                post_url=data_post_url,
                 name=f'{name}_delete_record_form'
             )
             cols.append(DeleteColumn())
@@ -145,34 +182,71 @@ class TableWidget(Widget):
 
         if stripe_rows:
             self.add_class('stripe')
-        if highlight_rows_on_hover:
+        if highlight_rows_on_hover or link_format_string:
             self.add_class('row-hover')
+        if link_format_string:
+            self.add_class('link-records')
+        if hide_col_headers:
+            self.add_class('no-header')
 
         for col in cols:
             col.request = request
         self.cols = cols
 
+        if isinstance(data_source, str):
+            self.data_source_url = data_source
+            self.data_source = json.dumps([])
+            self.ajax = True
+        else:
+            self.data_source_url = ''
+            self.data_source = json.dumps(self.parse_static_data(data_source, self.cols),
+                                          ensure_ascii=False)
+            self.ajax = False
+
         self.allow_global_search = allow_global_search
         self.allow_column_search = allow_column_search
         self.deselect_on_filter = deselect_on_filter
+        self.link_format_string = link_format_string
         self.refresh_button = refresh_button
-        self.data_source_url = data_source_url
         self.paging = paging
         self.refresh = refresh
         self.refresh_interval = refresh_interval * 1000
-        self.default_order = 'asc' if default_order_asc else 'desc'
 
         if self.delete_button or self.refresh_button:
             self.table_buttons = True
         else:
             self.table_buttons = False
 
+        self.default_sorting = default_sorting
+        self.default_order = 'asc' if default_order_asc else 'desc'
+
+        if default_sorting:
+            self.default_order_col = self.get_default_order_col_index(default_order_col, self.cols)
+        else:
+            self.default_order_col = 0
+
+        if height_limit:
+            self.limit_height = True
+            self.height = f'{height_limit}vh'
+        else:
+            self.limit_height = False
+            self.height = ''
+
+    @staticmethod
+    def get_default_order_col_index(default_order_col: str, cols: List[Column]) -> int:
+        """
+        :param default_order_col: The name of the column to use for default ordering.
+        :type default_order_col: str
+        :param cols: List of columns to be displayed in the table.
+        :type cols: List[:class:`Column`]
+        :return: The index of the column to use for default ordering.
+        :rtype: int
+        """
         try:
-            self.default_order_col = next(index for index, col in enumerate(cols)
-                                          if getattr(col, 'name') == default_order_col)
+            return next(index for index, col in enumerate(cols)
+                        if getattr(col, 'name') == default_order_col)
         except StopIteration:
-            raise Widget.WidgetParameterError(f'Column {default_order_col} not found in table '
-                                              f'{name}')
+            raise Widget.WidgetParameterError(f'Column {default_order_col} not in the table')
 
     def get_context(self) -> Dict[str, Any]:
         return super().get_context() | {
@@ -182,14 +256,20 @@ class TableWidget(Widget):
             'allow_global_search': json.dumps(self.allow_global_search),
             'allow_column_search': self.allow_column_search,
             'deselect_on_filter': json.dumps(self.deselect_on_filter),
+            'ajax': json.dumps(self.ajax),
             'data_source_url': self.data_source_url,
+            'data_source': self.data_source,
+            'link_format_string': self.link_format_string or json.dumps(False),
             'cols': [col.get_context() for col in self.cols],
             'cols_num': len(self.cols),
             'table_buttons': self.table_buttons,
             'paging': self.paging.get_context() if self.paging else json.dumps(False),
+            'limit_height': json.dumps(self.limit_height),
+            'height': self.height,
             'refresh': json.dumps(self.refresh),
             'refresh_interval': self.refresh_interval,
             'refresh_button': json.dumps(self.refresh_button),
+            'default_sorting': json.dumps(self.default_sorting),
             'default_order_col': self.default_order_col,
             'default_order': self.default_order,
             'allow_delete': self.allow_delete,
@@ -200,13 +280,40 @@ class TableWidget(Widget):
 
     def display_util_header(self) -> bool:
         """
-        Returns whether to display the util header above the table depending on the table's
-        properties.
-
         :return: Whether to display the util header above the table.
         :rtype: bool
         """
         return self.display_title or self.table_buttons or self.allow_global_search
+
+    @staticmethod
+    def parse_static_data(data: List[Dict[str, Any]], cols: List[Column]) -> List[Dict[str, Any]]:
+        """
+        :param data: List of dictionaries representing table rows.
+        :type data: List[Dict[str, Any]]
+        :param cols: List of columns to be displayed in the table.
+        :type cols: List[:class:`Column`]
+        :return: List of dictionaries representing table rows with unique ids for each record and
+            all columns present in each record (if not present, the column is set to a "---"
+            string).
+        :rtype: List[Dict[str, Any]]
+        """
+        for col in cols:
+            for record in data:
+                if col.name not in record:
+                    record[col.name] = '---'
+
+        for record in data:
+            for key, value in record.items():
+                if not str(value).strip():
+                    record[key] = '---'
+                if isinstance(value, Promise):
+                    record[key] = str(value)
+
+        for index, record in enumerate(data):
+            if 'id' not in record:
+                record['id'] = index
+
+        return data
 
 
 class TableWidgetPaging:
@@ -216,6 +323,7 @@ class TableWidgetPaging:
     See also:
         - :class:`TableWidget`
     """
+
     def __init__(self,
                  page_length: int = 10,
                  allow_length_change: bool = False,
@@ -263,6 +371,7 @@ class DeleteRecordFormWidget(FormWidget):
         - :class:`TableWidget`
         - :class:`FormWidget`
     """
+
     def __init__(self,
                  request: HttpRequest,
                  form: BaCa2ModelForm,

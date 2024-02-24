@@ -6,19 +6,17 @@
                 {% if form_widget.live_validation %}
                 live-validation
                 {% endif %}">
-        {% if form_widget.display_field_errors and form_widget.form.is_bound %}
-            {% if field.errors %}
-                {% render_field field class="form-control is-invalid" id=field.name placeholder="-" %}
-            {% else %}
-                {% render_field field class="form-control is-valid" id=field.name placeholder="-" %}
-            {% endif %}
-        {% else %}
-            {% render_field field class="form-control" id=field.name placeholder="-" %}
-        {% endif %}
+        {% include 'widget_templates/forms/form_control_field.html' %}
     </div>
+
     {% with field.field.table_widget as table_widget %}
         {% include 'widget_templates/table.html' %}
     {% endwith %}
+
+    {% if field.help_text %}
+        <small class="form-text text-muted">{{ field.help_text }}</small>
+    {% endif %}
+
     {% include 'widget_templates/forms/field_errors.html' %}
 </div>
 
@@ -26,7 +24,7 @@
     <script>
         $(document).ready(function () {
             $('#{{ field.name }}').on('input', function () {
-                update_validation_status(
+                updateValidationStatus(
                     this,
                     '{{ form_widget.form_cls }}',
                     '{{ form_widget.field_min_length|get_item:field.name }}',

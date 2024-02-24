@@ -4,7 +4,12 @@
 // ---------------------------------------- display ------------------------------------------- //
 
 .side-nav {
-    height: 100%;
+    @media (min-width: 768px) {
+        &.sticky-side-nav {
+            position: sticky;
+            top: $navbar_padding;
+        }
+    }
 
     .side-nav-content {
         list-style: none;

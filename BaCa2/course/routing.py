@@ -77,8 +77,11 @@ class ContextCourseRouter(SimpleCourseRouter):
             raise RoutingError(
                 "No DB chosen. Remember to use 'with InCourse', while accessing course instance.")
         if db not in settings.DATABASES.keys():
-            raise RoutingError(f"Can't access course DB {db}. Check the name in 'with InCourse'.\n"
-                               f'Available DBs: {list(settings.DATABASES.keys())}')
+            settings.DB_MANAGER.parse_cache()
+            if db not in settings.DATABASES.keys():
+                raise RoutingError(
+                    f"Can't access course DB {db}. Check the name in 'with InCourse'.\n"
+                    f'Available DBs: {list(settings.DATABASES.keys())}')
 
         return db
 
@@ -144,6 +147,17 @@ class InCourse:
         except LookupError:
             return False
         return True
+
+    @staticmethod
+    def get_context_course() -> Course | None:
+        """
+        :return: Course instance of the current chosen database.
+        """
+        from util.models_registry import ModelsRegistry
+        try:
+            return ModelsRegistry.get_course(settings.CURRENT_DB.get())
+        except LookupError:
+            return None
 
 
 class OptionalInCourse(InCourse):

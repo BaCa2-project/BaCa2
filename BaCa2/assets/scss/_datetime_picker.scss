@@ -1,0 +1,191 @@
+@import "baca2_variables";
+@import "functions";
+
+.xdsoft_datetimepicker {
+    border-radius : 5px;
+
+    .xdsoft_select {
+        border : none !important;
+
+        .xdsoft_current {
+            box-shadow : none !important;
+        }
+    }
+
+    .xdsoft_calendar {
+        th, td {
+            box-shadow : none !important;
+            border     : none !important;
+            box-sizing : border-box !important;
+        }
+
+        .xdsoft_current {
+            box-shadow : none !important;
+        }
+    }
+
+    .xdsoft_time_box {
+        border : none !important;
+
+        .xdsoft_time {
+            border: none !important;
+        }
+
+        .xdsoft_current {
+            box-shadow : none !important;
+        }
+    }
+}
+
+@each $theme, $map in $datetimepicker_theme_variables {
+    $icon_color                    : safe_get(
+                    $map,
+                    $datetimepicker_default_variables,
+                    icon_color
+    );
+    $body_bg_color                 : safe_get(
+                    $map,
+                    $datetimepicker_default_variables,
+                    body_bg_color
+    );
+    $body_text_color               : safe_get(
+                    $map,
+                    $datetimepicker_default_variables,
+                    body_text_color
+    );
+
+    $datetime_bg_color             : safe_get(
+                    $map,
+                    $datetimepicker_default_variables,
+                    datetime_bg_color
+    );
+    $datetime_text_color           : safe_get(
+                    $map,
+                    $datetimepicker_default_variables,
+                    datetime_text_color
+    );
+    $current_datetime_border_color : safe_get(
+                    $map,
+                    $datetimepicker_default_variables,
+                    current_datetime_border_color
+    );
+    $current_datetime_text_color   : safe_get(
+                    $map,
+                    $datetimepicker_default_variables,
+                    current_datetime_text_color
+    );
+    $datetime_hover_bg_color       : safe_get(
+                    $map,
+                    $datetimepicker_default_variables,
+                    datetime_hover_bg_color
+    );
+    $datetime_hover_text_color     : safe_get(
+                    $map,
+                    $datetimepicker_default_variables,
+                    datetime_hover_text_color
+    );
+
+    $other_month_bg_color          : safe_get(
+                    $map,
+                    $datetimepicker_default_variables,
+                    other_month_bg_color
+    );
+    $other_month_text_color        : safe_get(
+                    $map,
+                    $datetimepicker_default_variables,
+                    other_month_text_color
+    );
+    $other_month_hover_bg_color    : safe_get(
+                    $map,
+                    $datetimepicker_default_variables,
+                    other_month_hover_bg_color
+    );
+    $other_month_hover_text_color  : safe_get(
+                    $map,
+                    $datetimepicker_default_variables,
+                    other_month_hover_text_color
+    );
+
+    [data-bs-theme="#{$theme}"] .xdsoft_datetimepicker {
+        background : $body_bg_color !important;
+
+        .xdsoft_label {
+            background-color : $body_bg_color !important;
+        }
+
+        .xdsoft_label i, .xdsoft_prev, .xdsoft_next, .xdsoft_today_button {
+            background-image : unquote(
+                            "url('../img/datetime_picker_icons_#{$icon_color}.png')"
+            ) !important;
+        }
+
+        .xdsoft_label {
+            color : $body_text_color !important;
+        }
+
+        .xdsoft_select {
+            .xdsoft_option {
+                background : $body_bg_color !important;
+
+                &:hover {
+                    background : $datetime_hover_bg_color !important;
+                    color      : $datetime_hover_text_color !important;
+                }
+            }
+
+            .xdsoft_current {
+                border : 2px solid $current_datetime_border_color !important;
+                color  : $body_text_color !important;
+            }
+        }
+
+        .xdsoft_calendar {
+            th {
+                background : $body_bg_color !important;
+                color      : $body_text_color !important;
+            }
+
+            td:not(.xdsoft_other_month) {
+                background : $datetime_bg_color !important;
+                color      : $datetime_text_color !important;
+            }
+
+            td:not(.xdsoft_other_month):hover {
+                background : $datetime_hover_bg_color !important;
+                color      : $datetime_hover_text_color !important;
+            }
+
+            .xdsoft_current {
+                border : 2px solid $current_datetime_border_color !important;
+                color  : $current_datetime_text_color !important;
+            }
+
+            .xdsoft_other_month {
+                background : $other_month_bg_color !important;
+                color      : $other_month_text_color !important;
+
+                &:hover {
+                    background : $other_month_hover_bg_color !important;
+                    color      : $other_month_hover_text_color !important;
+                }
+            }
+        }
+
+        .xdsoft_time_box {
+            .xdsoft_time {
+                background : $datetime_bg_color !important;
+                color      : $datetime_text_color !important;
+
+                &:hover {
+                    background : $datetime_hover_bg_color !important;
+                    color      : $datetime_hover_text_color !important;
+                }
+            }
+
+            .xdsoft_current {
+                border : 2px solid $current_datetime_border_color !important;
+                color  : $current_datetime_text_color !important;
+            }
+        }
+    }
+}

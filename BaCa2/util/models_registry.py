@@ -532,7 +532,7 @@ class ModelsRegistry:
         return tasks
 
     @staticmethod
-    def get_submit(submit: int | Task, course: str | int | Course = None) -> Submit:
+    def get_submit(submit: int | Submit, course_: str | int | Course = None) -> Submit:
         """
         Returns a Submit model instance from the database using its id or name and course as
         a reference. It can also be used to return the same instance if it is passed as the
@@ -542,15 +542,15 @@ class ModelsRegistry:
 
         :param submit: Submit name, id or model instance.
         :type submit: str | int | Submit
-        :param course: Course short name, id or model instance.
-        :type course: str | int | Course
+        :param course_: Course short name, id or model instance.
+        :type course_: str | int | Course
 
         :return: Submit model instance.
         :rtype: Submit
         """
         from course.models import Submit
 
-        with OptionalInCourse(course):
+        with OptionalInCourse(course_):
             if isinstance(submit, int):
                 return Submit.objects.get(id=submit)
         return submit
@@ -656,17 +656,17 @@ class ModelsRegistry:
         :param src: Path to the source code file or its name.
         :return: Path to the source code file.
         """
-        from core.settings import SUBMITS_DIR
+        from django.conf import settings
         if isinstance(src, str):
             path = Path(src)
             path = path.absolute()
-            if not path.is_relative_to(SUBMITS_DIR):
-                path = SUBMITS_DIR / src
+            if not path.is_relative_to(settings.SUBMITS_DIR):
+                path = settings.SUBMITS_DIR / src
         else:
             path = src
         if not path.exists():
             raise FileNotFoundError(f'File {path} does not exist.')
-        if not path.is_relative_to(SUBMITS_DIR):
+        if not path.is_relative_to(settings.SUBMITS_DIR):
             raise FileNotFoundError(f'Path {path} is not a file.')
         return path
 

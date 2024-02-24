@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="tab-wrapper" id="description-tab">
+        <div class="side-nav-tab">
+            {% with widgets.TextDisplayer.description as displayer %}
+                {% include "widget_templates/text_displayer.html" %}
+            {% endwith %}
+        </div>
+    </div>
+    <div class="tab-wrapper" id="submit-tab">
+        <div class="side-nav-tab">
+            {% with widgets.FormWidget.create_submit_form_widget as form_widget %}
+                {% include "widget_templates/forms/default.html" %}
+            {% endwith %}
+        </div>
+    </div>
+    <div class="tab-wrapper" id="my-results-tab">
+        <div class="side-nav-tab">
+            <div class="side-nav-tab">
+                {% with widgets.TableWidget.results_table_widget as table_widget %}
+                    {% include "widget_templates/table.html" %}
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+{% endblock %}
