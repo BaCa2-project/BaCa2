@@ -17,6 +17,7 @@ from util.views import BaCa2ContextMixin, BaCa2LoggedInView, BaCa2ModelView
 from widgets.forms import FormWidget
 from widgets.forms.course import (
     AddMembersForm,
+    AddRoleForm,
     CreateCourseForm,
     CreateCourseFormWidget,
     DeleteCourseForm
@@ -94,14 +95,18 @@ class CourseModelView(BaCa2ModelView):
         else:
             request.course = {}
 
-        if request.POST.get('form_name') == 'add_course_form':
+        form_name = request.POST.get('form_name')
+
+        if form_name == f'{Course.BasicAction.ADD.label}_form':
             return CreateCourseForm.handle_post_request(request)
-        elif request.POST.get('form_name') == 'delete_course_form':
+        elif form_name == f'{Course.BasicAction.DEL.label}_form':
             return DeleteCourseForm.handle_post_request(request)
-        elif request.POST.get('form_name') == 'add_course_member_form':
+        elif form_name == f'{Course.CourseAction.ADD_MEMBER.label}_form':
             return AddMembersForm.handle_post_request(request)
-        else:
-            return self.handle_unknown_form(request, **kwargs)
+        elif form_name == f'{Course.CourseAction.ADD_ROLE.label}_form':
+            return AddRoleForm.handle_post_request(request)
+
+        return self.handle_unknown_form(request, **kwargs)
 
     @classmethod
     def post_url(cls, **kwargs) -> str:
@@ -197,8 +202,6 @@ class RoleModelView(BaCa2ModelView):
 
 
 class PermissionModelView(BaCa2ModelView):
-    MODEL = Permission
-
     @staticmethod
     def get_data(instance: Permission, **kwargs) -> Dict[str, Any]:
         return {
@@ -208,6 +211,7 @@ class PermissionModelView(BaCa2ModelView):
             'codename': instance.codename,
         }
 
+    MODEL = Permission
     GET_DATA_METHOD = get_data
 
     def check_get_filtered_permission(self,
@@ -222,10 +226,17 @@ class PermissionModelView(BaCa2ModelView):
                                       query_result: List[models.Model],
                                       request,
                                       **kwargs) -> bool:
-        return True
+        return self.check_get_filtered_permission(query_params, query_result, request, **kwargs)
 
     def post(self, request, **kwargs) -> JsonResponse:
         pass
+
+    @classmethod
+    def _url(cls, **kwargs) -> str:
+        """
+        :return: Base url for the view. Used by :meth:`get_url` method.
+        """
+        return f'/main/models/{cls.MODEL._meta.model_name}/'
 
 
 # --------------------------------------- Authentication --------------------------------------- #

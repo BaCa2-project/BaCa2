@@ -10,7 +10,7 @@ from core.choices import TaskJudgingMode
 from core.tools.files import FileHandler
 from course.models import Round, Submit, Task
 from course.routing import InCourse
-from main.models import Course
+from main.models import Course, Role
 from util.models_registry import ModelsRegistry
 from widgets.forms.base import BaCa2ModelForm, FormElementGroup, FormWidget, ModelFormPostTarget
 from widgets.forms.fields import (
@@ -354,11 +354,9 @@ class AddMembersForm(CourseActionForm):
         :return: Dictionary containing a success message.
         :rtype: Dict[str, str]
         """
-        course_id = int(request.course.get('course_id'))
+        course = cls.get_context_course(request)
         users = TableSelectField.parse_value(request.POST.get('users'))
         role = int(request.POST.get('role'))
-
-        course = ModelsRegistry.get_course(course_id)
 
         if role == course.admin_role.id:
             course.add_admins(users)
@@ -435,6 +433,69 @@ class AddMembersFormWidget(FormWidget):
             form=form,
             post_target=CourseModelView.post_url(**{'course_id': course_id}),
             button_text=_('Add members'),
+            **kwargs
+        )
+
+
+# ============================================ ROLE ============================================ #
+
+# ----------------------------------------- create role ---------------------------------------- #
+
+class AddRoleForm(CourseActionForm):
+    ACTION = Course.CourseAction.ADD_ROLE
+
+    role_name = AlphanumericStringField(label=_('Role name'),
+                                        required=True,
+                                        min_length=4,
+                                        max_length=Role._meta.get_field('name').max_length)
+
+    role_description = forms.CharField(label=_('Description'),
+                                       required=False,
+                                       widget=forms.Textarea(attrs={'rows': 3}))
+
+    role_permissions = TableSelectField(label=_('Choose role permissions'),
+                                        table_widget_name='role_permissions_table_widget',
+                                        data_source_url='',
+                                        cols=[TextColumn(name='codename', header=_('Codename')),
+                                              TextColumn(name='name', header=_('Description'))],
+                                        table_widget_kwargs={'height_limit': 25})
+
+    @ classmethod
+    def handle_valid_request(cls, request) -> Dict[str, Any]:
+        course = cls.get_context_course(request)
+        role_name = request.POST.get('role_name')
+        role_description = request.POST.get('role_description', '')
+        permissions = TableSelectField.parse_value(request.POST.get('role_permissions'))
+
+        course.create_role(name=role_name, description=role_description, permissions=permissions)
+
+        return {'message': _('Role ') + role_name + _(' created successfully')}
+
+
+class AddRoleFormWidget(FormWidget):
+    def __init__(self,
+                 request,
+                 course_id: int,
+                 form: AddRoleForm = None,
+                 **kwargs) -> None:
+        from main.views import CourseModelView, PermissionModelView
+
+        if not form:
+            form = AddRoleForm()
+
+        codenames = [action.label for action in Course.CourseAction]
+
+        form.fields['role_permissions'].update_data_source_url(PermissionModelView.get_url(
+            mode=PermissionModelView.GetMode.FILTER,
+            query_params={'codename__in': codenames}
+        ))
+
+        super().__init__(
+            name='add_role_form_widget',
+            request=request,
+            form=form,
+            post_target=CourseModelView.post_url(**{'course_id': course_id}),
+            button_text=_('Add role'),
             **kwargs
         )
 

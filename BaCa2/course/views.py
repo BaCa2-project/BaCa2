@@ -15,6 +15,7 @@ from util.models_registry import ModelsRegistry
 from util.views import BaCa2LoggedInView, BaCa2ModelView
 from widgets.forms.course import (
     AddMembersFormWidget,
+    AddRoleFormWidget,
     CreateRoundForm,
     CreateRoundFormWidget,
     CreateSubmitForm,
@@ -353,6 +354,9 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
             # TODO: link to role edit
         )
         self.add_widget(context, roles_table)
+
+        add_role_form = AddRoleFormWidget(request=self.request, course_id=course_id)
+        self.add_widget(context, add_role_form)
 
         # rounds ---------------------------------------------------------------
         rounds_table = TableWidget(

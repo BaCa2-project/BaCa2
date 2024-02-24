@@ -15,6 +15,20 @@
             {% endwith %}
         </div>
     </div>
+    <div class="tab-wrapper" id="view-roles-tab">
+        <div class="side-nav-tab">
+            {% with widgets.TableWidget.roles_table_widget as table_widget %}
+                {% include "widget_templates/table.html" %}
+            {% endwith %}
+        </div>
+    </div>
+    <div class="tab-wrapper" id="add-role-tab">
+        <div class="side-nav-tab">
+            {% with widgets.FormWidget.add_role_form_widget as form_widget %}
+                {% include "widget_templates/forms/default.html" %}
+            {% endwith %}
+        </div>
+    </div>
     <div class="tab-wrapper" id="view-rounds-tab">
         <div class="side-nav-tab">
             {% with widgets.TableWidget.rounds_table_widget as table_widget %}
