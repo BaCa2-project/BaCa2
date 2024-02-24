@@ -548,17 +548,22 @@ class Course(models.Model):
     @transaction.atomic
     def create_role(self,
                     name: str,
-                    permissions: List[str] | List[int] | List[Permission]) -> None:
+                    permissions: List[str] | List[int] | List[Permission],
+                    description: str = '') -> None:
         """
-        Create a new role for the course with given name and permissions.
+        Create a new role for the course with given name, description and permissions.
 
         :param name: Name of the new role.
         :type name: str
         :param permissions: List of permissions to assign to the role. The permissions can be
             specified as either the permission objects, their ids or their codenames.
         :type permissions: List[Permission] | List[str] | List[int]
+        :param description: Description of the new role.
+        :type description: str
         """
-        self.add_role(Role.objects.create_role(name, permissions))
+        self.add_role(Role.objects.create_role(name=name,
+                                               description=description,
+                                               permissions=permissions))
 
     @transaction.atomic
     def create_role_from_preset(self, preset: int | RolePreset) -> None:
