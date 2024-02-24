@@ -25,7 +25,9 @@
     </div>
     <div class ="tab-wrapper" id="users-table-tab">
         <div class="side-nav-tab">
-            Users 2
+            {% with widgets.TableWidget.users_table_widget as table_widget %}
+                {% include "widget_templates/table.html" %}
+            {% endwith %}
         </div>
     </div>
     <div class="tab-wrapper" id="packages-tab">

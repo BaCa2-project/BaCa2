@@ -1278,6 +1278,7 @@ class User(AbstractBaseUser):
             'last_name': self.last_name,
             'is_superuser': self.is_superuser,
             'date_joined': self.date_joined,
+            'f_is_superuser': _('YES') if self.is_superuser else _('NO'),
         }
         if course is not None:
             result['user_role'] = ModelsRegistry.get_course(course).user_role(self).name

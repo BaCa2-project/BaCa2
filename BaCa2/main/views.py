@@ -8,6 +8,7 @@ from django.contrib.auth.views import LoginView
 from django.db import models
 from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse_lazy
+from django.utils.translation import gettext as _
 from django.views.generic.base import RedirectView, View
 
 from main.models import Course, Role, User
@@ -352,6 +353,21 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
             paging=TableWidgetPaging(10, False),
             link_format_string='/course/[[id]]/',
         ))
+
+        users_table = TableWidget(
+            name='users_table_widget',
+            title='Users',
+            request=self.request,
+            data_source=UserModelView.get_url(),
+            cols=[
+                TextColumn(name='email', header=_('Email'), searchable=True),
+                TextColumn(name='first_name', header=_('First name'), searchable=True),
+                TextColumn(name='last_name', header=_('Last name'), searchable=True),
+                TextColumn(name='f_is_superuser', header=_('Superuser'), searchable=True),
+            ],
+            paging=TableWidgetPaging(25, False),
+        )
+        self.add_widget(context, users_table)
 
         add_user_form = CreateUserWidget(request=self.request)
         self.add_widget(context, add_user_form)
