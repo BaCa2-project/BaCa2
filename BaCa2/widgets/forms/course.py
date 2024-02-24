@@ -458,7 +458,7 @@ class AddRoleForm(CourseActionForm):
                                         data_source_url='',
                                         cols=[TextColumn(name='codename', header=_('Codename')),
                                               TextColumn(name='name', header=_('Description'))],
-                                        table_widget_kwargs={'height_limit': 25})
+                                        table_widget_kwargs={'height_limit': 35})
 
     @ classmethod
     def handle_valid_request(cls, request) -> Dict[str, Any]:
