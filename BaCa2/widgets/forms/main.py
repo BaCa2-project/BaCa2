@@ -7,6 +7,7 @@ from django.utils.translation import gettext_lazy as _
 from core.tools.mailer import TemplateMailer
 from main.models import User
 from widgets.forms import BaCa2ModelForm, FormWidget
+from widgets.forms.fields import AlphanumericField
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ class CreateUser(BaCa2ModelForm):
             user.delete()
             raise e
 
-        return {'success': _('User created and email sent.')}
+        return {'message': _('User created and email sent.')}
 
 
 class CreateUserWidget(FormWidget):
@@ -73,5 +74,64 @@ class CreateUserWidget(FormWidget):
             form=form,
             post_target=UserModelView.post_url(),
             button_text=_('Add new user'),
+            **kwargs
+        )
+
+
+# ------------------------------ Profile forms ------------------------------ #
+
+class ChangePersonalData(BaCa2ModelForm):
+    MODEL = User
+
+    ACTION = User.BasicAction.EDIT
+    nickname = AlphanumericField(
+        min_length=3,
+        max_length=20,
+        required=False,
+        label=_('Nickname'),
+    )
+
+    @classmethod
+    def handle_valid_request(cls, request) -> Dict[str, Any]:
+        user = request.user
+        nickname = request.POST.get('nickname')
+        if not nickname:
+            user.nickname = None
+            user.save()
+            return {'message': _('Personal data changed.')}
+        if nickname == user.nickname:
+            return {'message': _('No changes to apply.')}
+
+        if nickname:
+            nickname = nickname.strip()
+        if len(nickname) > 20:
+            raise ValueError(_('Nickname is too long.'))
+        if len(nickname) < 3:
+            raise ValueError(_('Nickname is too short.'))
+        user.nickname = nickname
+
+        user.save()
+        return {'message': _('Personal data changed.')}
+
+
+class ChangePersonalDataWidget(FormWidget):
+    def __init__(self,
+                 request,
+                 form: ChangePersonalData = None,
+                 **kwargs) -> None:
+        from main.views import UserModelView
+
+        if not form:
+            form = ChangePersonalData()
+
+        if request.user.nickname:
+            form.fields['nickname'].initial = request.user.nickname
+
+        super().__init__(
+            name='change_personal_data_form_widget',
+            request=request,
+            form=form,
+            post_target=UserModelView.post_url(),
+            button_text=_('Save changes'),
             **kwargs
         )

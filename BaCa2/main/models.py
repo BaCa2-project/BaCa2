@@ -1226,6 +1226,12 @@ class User(AbstractBaseUser):
         related_name='user_set',
         related_query_name='user',
     )
+    nickname = models.CharField(
+        verbose_name=_('nickname'),
+        max_length=255,
+        blank=True,
+        null=True,
+    )
 
     class BasicAction(ModelAction):
         ADD = 'add', 'add_user'

@@ -1,7 +1,8 @@
 import logging
 from typing import Any, Dict, List
 
-from django.contrib.auth import logout
+from django.contrib.auth import logout, update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib.auth.models import Permission
 from django.contrib.auth.views import LoginView
@@ -13,7 +14,7 @@ from django.views.generic.base import RedirectView, View
 
 from main.models import Course, Role, User
 from util import decode_url_to_dict, encode_dict_to_url
-from util.responses import BaCa2ModelResponse
+from util.responses import BaCa2JsonResponse, BaCa2ModelResponse
 from util.views import BaCa2ContextMixin, BaCa2LoggedInView, BaCa2ModelView
 from widgets.forms import FormWidget
 from widgets.forms.course import (
@@ -22,7 +23,12 @@ from widgets.forms.course import (
     CreateCourseFormWidget,
     DeleteCourseForm
 )
-from widgets.forms.main import CreateUser, CreateUserWidget
+from widgets.forms.main import (
+    ChangePersonalData,
+    ChangePersonalDataWidget,
+    CreateUser,
+    CreateUserWidget
+)
 from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.columns import TextColumn
 from widgets.navigation import SideNav
@@ -166,8 +172,11 @@ class UserModelView(BaCa2ModelView):
             strings.
         :rtype: :class:`BaCa2ModelResponse`
         """
-        if request.POST.get('form_name') == f'{User.BasicAction.ADD.label}_form':
+        form_name = request.POST.get('form_name')
+        if form_name == f'{User.BasicAction.ADD.label}_form':
             return CreateUser.handle_post_request(request)
+        if form_name == f'{User.BasicAction.EDIT.label}_form':
+            return ChangePersonalData.handle_post_request(request)
         else:
             return self.handle_unknown_form(request, **kwargs)
 
@@ -261,7 +270,7 @@ class BaCa2LoginView(BaCa2ContextMixin, LoginView):
             name='login_form',
             request=self.request,
             form=self.get_form(),
-            button_text='Zaloguj',
+            button_text=_('Login'),
             display_field_errors=False,
             live_validation=False,
         ))
@@ -422,6 +431,64 @@ class CoursesView(BaCa2LoggedInView):
         return context
 
 
+class ProfileView(BaCa2LoggedInView):
+    """
+    View for managing user settings.
+
+    See also:
+        - :class:`BaCa2LoggedInView`
+    """
+    template_name = 'profile.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        user = self.request.user
+
+        sidenav = SideNav(
+            request=self.request,
+            tabs=['Profile', 'Security'],
+        )
+        self.add_widget(context, sidenav)
+
+        data_summary = TableWidget(
+            name='personal_data_table_widget',
+            title=f"{_('Personal data')} - {user.first_name} {user.last_name}",
+            request=self.request,
+            cols=[
+                TextColumn(name='description', sortable=False),
+                TextColumn(name='value', sortable=False),
+            ],
+            data_source=[
+                {'description': _('Email'), 'value': user.email},
+                {'description': _('First name'), 'value': user.first_name},
+                {'description': _('Last name'), 'value': user.last_name},
+                {'description': _('Superuser'), 'value': user.is_superuser},
+            ],
+            allow_column_search=False,
+            allow_global_search=False,
+            hide_col_headers=True,
+            default_sorting=False,
+        )
+        self.add_widget(context, data_summary)
+
+        data_change = ChangePersonalDataWidget(request=self.request)
+        self.add_widget(context, data_change)
+
+        self.add_widget(context, FormWidget(
+            name='change_password_form_widget',
+            request=self.request,
+            form=PasswordChangeForm(user),
+            button_text=_('Change password'),
+            display_field_errors=False,
+            live_validation=False,
+            post_target=reverse_lazy('main:change-password'),
+        ))
+        context['change_password_title'] = _('Change password')
+
+        return context
+
+
 # ----------------------------------------- Util views ----------------------------------------- #
 
 
@@ -439,3 +506,24 @@ def change_theme(request) -> JsonResponse:
             request.user.user_settings.save()
         return JsonResponse({'status': 'ok'})
     return JsonResponse({'status': 'error'})
+
+
+def change_password(request) -> BaCa2JsonResponse:
+    """
+    Placeholder functional view for changing the user password.
+
+    :return: JSON response with the result of the action in the form of status string.
+    :rtype: BaCa2JsonResponse
+    """
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)
+            return BaCa2JsonResponse(status=BaCa2JsonResponse.Status.SUCCESS,
+                                     message=_('Password changed.'))
+        else:
+            validation_errors = form.errors
+            return BaCa2JsonResponse(status=BaCa2JsonResponse.Status.INVALID,
+                                     message=_('Password not changed.'),
+                                     errors=validation_errors)
