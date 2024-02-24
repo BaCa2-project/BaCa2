@@ -287,6 +287,8 @@ function initTable(
         defaultOrderCol,
         searching,
         paging,
+        limitHeight,
+        height,
         refresh,
         refreshInterval,
     } = {}
@@ -303,6 +305,11 @@ function initTable(
         tableParams['order'] = [[defaultOrderCol, defaultOrder]];
     else
         tableParams['order'] = [];
+
+    if (limitHeight) {
+        tableParams['scrollY'] = height;
+        tableParams['scrollCollapse'] = true;
+    }
 
     tableParams['searching'] = searching;
 
