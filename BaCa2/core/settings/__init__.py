@@ -34,6 +34,7 @@ include(
     'static_files.py',
     'broker.py',
     'usos.py',
+    'email.py',
     optional(str(LOCAL_SETTINGS_PATH)),
     'envvars.py',
 )
