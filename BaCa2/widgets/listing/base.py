@@ -56,6 +56,7 @@ class TableWidget(Widget):
                  delete_form: BaCa2ModelForm = None,
                  data_post_url: str = '',
                  paging: TableWidgetPaging = None,
+                 height_limit: int | None = None,
                  link_format_string: str = '',
                  refresh_button: bool = False,
                  refresh: bool = False,
@@ -110,6 +111,9 @@ class TableWidget(Widget):
         :type data_post_url: str
         :param paging: Paging options for the table. If not set, paging is disabled.
         :type paging: :class:`TableWidgetPaging`
+        :param height_limit: The maximum height of the table in percent of the viewport height. If
+            not set, the table height is not limited.
+        :type height_limit: int | None
         :param link_format_string: A format string used to generate links for the table rows. The
         format string can reference the fields of database records represented by the table rows
         using double square brackets. For example, if the format string is '/records/[[id]]', the
@@ -221,6 +225,13 @@ class TableWidget(Widget):
         else:
             self.default_order_col = 0
 
+        if height_limit:
+            self.limit_height = True
+            self.height = f'{height_limit}vh'
+        else:
+            self.limit_height = False
+            self.height = ''
+
     @staticmethod
     def get_default_order_col_index(default_order_col: str, cols: List[Column]) -> int:
         """
@@ -253,6 +264,8 @@ class TableWidget(Widget):
             'cols_num': len(self.cols),
             'table_buttons': self.table_buttons,
             'paging': self.paging.get_context() if self.paging else json.dumps(False),
+            'limit_height': json.dumps(self.limit_height),
+            'height': self.height,
             'refresh': json.dumps(self.refresh),
             'refresh_interval': self.refresh_interval,
             'refresh_button': json.dumps(self.refresh_button),

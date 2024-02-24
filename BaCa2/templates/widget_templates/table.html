@@ -17,10 +17,10 @@
 
         {% if table_widget.display_util_header %}
             <div class="table-util-header card-body">
-                <div class="row">
+                <div class="row align-items-center">
                     {% if table_widget.display_title %}
                         <div class="col-auto">
-                            <h4 class="table-title ms-3">{{ table_widget.title }}</h4>
+                            <h4 class="table-title ms-3 mb-0">{{ table_widget.title }}</h4>
                         </div>
                     {% endif %}
                     <div class="col">
@@ -113,6 +113,8 @@
                   defaultOrderCol: parseInt({{ table_widget.default_order_col }}),
                   searching: {{ table_widget.allow_global_search|safe }},
                   paging: {{ table_widget.paging|safe }},
+                  limitHeight: {{ table_widget.limit_height|safe }},
+                  height: '{{ table_widget.height }}',
                   refresh: {{ table_widget.refresh|safe }},
                   refreshInterval: parseInt({{ table_widget.refresh_interval }}),
                   linkFormatString: '{{ table_widget.link_format_string|safe }}',
