@@ -411,18 +411,8 @@ class Course(models.Model):
             ('add_course_role', _('Can add course role')),
             ('delete_course_role', _('Can delete course role')),
 
-            # Task related permissions
-            ('view_course_tasks', _('Can view tasks in the course')),
-            ('add_course_tasks', _('Can add tasks to the course')),
-            ('edit_course_tasks', _('Can edit tasks in the course')),
-            ('delete_course_tasks', _('Can delete tasks from the course')),
-
-            # Round related permissions
-            ('add_course_rounds', _('Can add rounds to the course')),
-            ('edit_course_rounds', _('Can edit rounds in the course')),
-            ('delete_course_rounds', _('Can delete rounds from the course')),
-
-            # TODO
+            # Solution related permissions
+            ('submit_task_solution', _('Can submit solutions to tasks in the course')),
         ]
 
     class BasicAction(ModelAction):
@@ -439,9 +429,25 @@ class Course(models.Model):
         ADD_ADMIN = 'add_admin', 'add_course_admin'
 
         VIEW_ROLE = 'view_role', 'view_course_role'
-        EDIT_ROLE = 'edit_role', 'edit_course_role'
         ADD_ROLE = 'add_role', 'add_course_role'
+        EDIT_ROLE = 'edit_role', 'edit_course_role'
         DEL_ROLE = 'delete_role', 'delete_course_role'
+
+        VIEW_ROUND = 'view_round', 'view_round'
+        ADD_ROUND = 'add_round', 'add_round'
+        EDIT_ROUND = 'edit_round', 'change_round'
+        DEL_ROUND = 'delete_round', 'delete_round'
+
+        VIEW_TASK = 'view_task', 'view_task'
+        ADD_TASK = 'add_task', 'add_task'
+        EDIT_TASK = 'edit_task', 'change_task'
+        DEL_TASK = 'delete_task', 'delete_task'
+
+        VIEW_RESULT = 'view_result', 'view_result'
+        EDIT_RESULT = 'edit_result', 'change_result'
+        DEL_RESULT = 'delete_result', 'delete_result'
+
+        SUBMIT_SOLUTION = 'submit_solution', 'submit_task_solution'
 
     # ---------------------------------- Course representation --------------------------------- #
 
