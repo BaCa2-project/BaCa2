@@ -6,6 +6,7 @@ from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
 
 from widgets.forms.course import *
+from widgets.forms.main import *
 
 
 def get_field_validation_status(request: HttpRequest,

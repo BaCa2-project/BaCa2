@@ -1227,6 +1227,12 @@ class User(AbstractBaseUser):
         related_query_name='user',
     )
 
+    class BasicAction(ModelAction):
+        ADD = 'add', 'add_user'
+        DEL = 'delete', 'delete_user'
+        EDIT = 'edit', 'change_user'
+        VIEW = 'view', 'view_user'
+
     # ------------------------------------ Django settings ------------------------------------- #
 
     #: Indicates which field should be considered as username.
