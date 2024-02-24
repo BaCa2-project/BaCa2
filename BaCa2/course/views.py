@@ -356,7 +356,7 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
             allow_delete=True,
             delete_form=DeleteRoleForm(),
             data_post_url=CourseModelManagerView.post_url(course_id=course_id),
-            # TODO: link to role edit
+            link_format_string='/main/role/[[id]]/',
         )
         self.add_widget(context, roles_table)
 
@@ -399,6 +399,7 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
                   TextColumn(name='judging_mode', header=_('Judging mode')),
                   TextColumn(name='points', header=_('Max points'))],
             allow_delete=True,
+            allow_select=True,
             delete_form=DeleteTaskForm(),
             data_post_url=TaskModelView.post_url(course_id=course_id),
             refresh_button=True,
