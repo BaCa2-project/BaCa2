@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, List
@@ -13,7 +14,14 @@ from django.utils.timezone import now
 
 from baca2PackageManager import TestF, TSet
 from baca2PackageManager.broker_communication import BrokerToBaca
-from core.choices import ResultStatus, TaskJudgingMode
+from baca2PackageManager.tools import bytes_from_str, bytes_to_str
+from core.choices import (
+    EMPTY_FINAL_STATUSES,
+    ModelAction,
+    ResultStatus,
+    SubmitType,
+    TaskJudgingMode
+)
 from core.exceptions import DataError
 from course.routing import InCourse, OptionalInCourse
 from util.models_registry import ModelsRegistry
@@ -32,6 +40,7 @@ class ReadCourseMeta(ModelBase):
     If object was acquired from specific database, all operations are performed inside
     of this database.
     """
+    DECORATOR_OFF = []
 
     def __new__(cls, name, bases, dct):
         """
@@ -40,21 +49,50 @@ class ReadCourseMeta(ModelBase):
 
         *Special method signature from* ``django.db.models.base.ModelBase``
         """
-        new_class = super().__new__(cls, name, bases, dct)
+        result_class = super().__new__(cls, name, bases, dct)
 
         # Decorate all non-static, non-class methods with the hook method
         for attr_name, attr_value in dct.items():
             if all(((callable(attr_value) or isinstance(attr_value, property)),
                     not attr_name.startswith('_'),
                     not isinstance(attr_value, classmethod),
-                    not isinstance(attr_value, staticmethod))):
+                    not isinstance(attr_value, staticmethod),
+                    not inspect.isclass(attr_value),
+                    attr_name not in cls.DECORATOR_OFF)):
                 decorated_meth = cls.read_course_decorator(attr_value,
                                                            isinstance(attr_value, property))
                 decorated_meth.__doc__ = attr_value.__doc__
-                setattr(new_class,
+                setattr(result_class,
                         attr_name,
                         decorated_meth)
-        return new_class
+            elif isinstance(attr_value, models.Field):
+                dest_field = result_class.__dict__.get(attr_name)
+                dest_field_id = result_class.__dict__.get(f'{attr_name}_id')
+                setattr(result_class, f'{attr_name}_', cls.field_decorator(dest_field))
+                if dest_field_id:
+                    setattr(result_class, f'{attr_name}_id_', cls.field_decorator(dest_field_id))
+        return result_class
+
+    @staticmethod
+    def field_decorator(field):
+        """
+        Decorator used to decode origin database from object. It wraps every operation inside
+        the object to be performed on meta-read database.
+
+        :param field: Field to be wrapped
+        :type field: models.Field
+
+        :returns: Wrapped field
+        """
+
+        @property
+        def field_property(self):
+            if InCourse.is_defined():
+                return field.__get__(self)
+            with InCourse(self._state.db):
+                return field.__get__(self)
+
+        return field_property
 
     @staticmethod
     def read_course_decorator(original_method, prop: bool = False):
@@ -185,6 +223,15 @@ class Round(models.Model, metaclass=ReadCourseMeta):
     #: The manager for the Round model.
     objects = RoundManager()
 
+    class BasicAction(ModelAction):
+        """
+        Basic actions for Round model.
+        """
+        ADD = 'add', 'add_round'
+        DEL = 'delete', 'delete_round'
+        EDIT = 'edit', 'change_round'
+        VIEW = 'view', 'view_round'
+
     @staticmethod
     def validate_dates(start_date: datetime,
                        deadline_date: datetime,
@@ -207,6 +254,19 @@ class Round(models.Model, metaclass=ReadCourseMeta):
             raise ValidationError('Round: End date out of bounds of start date and deadline.')
         elif deadline_date <= start_date:
             raise ValidationError("Round: Start date can't be later then deadline.")
+
+    @transaction.atomic
+    def update(self, **kwargs) -> None:
+        """
+        It updates the round object.
+
+        :param kwargs: The new values for the round object.
+        :type kwargs: dict
+        """
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.validate_dates(self.start_date, self.deadline_date, self.end_date)
+        self.save()
 
     @transaction.atomic
     def delete(self, using: Any = None, keep_parents: bool = False):
@@ -249,20 +309,36 @@ class Round(models.Model, metaclass=ReadCourseMeta):
         return sum(task.points for task in self.tasks)
 
     def __str__(self):
-        return f'Round {self.pk}'
+        return f'Round {self.pk}: {self.name}'
 
-    def get_data(self) -> dict:
+    def get_data(self, add_formatted_dates: bool = False) -> dict:
         """
+        :param add_formatted_dates: If True, formatted dates will be added to the data, defaults to
+            False (optional)
+        :type add_formatted_dates: bool
+
         :return: The data of the round.
         :rtype: dict
         """
-        return {
+        from widgets.navigation import SideNav
+        res = {
+            'id': self.pk,
             'name': self.name,
             'start_date': self.start_date,
             'end_date': self.end_date,
             'deadline_date': self.deadline_date,
-            'reveal_date': self.reveal_date
+            'reveal_date': self.reveal_date,
+            'normalized_name': SideNav.normalize_tab_name(self.name)
         }
+        if add_formatted_dates:
+            res |= {
+                'f_start_date': self.start_date.strftime('%Y-%m-%d %H:%M'),
+                'f_end_date': self.end_date.strftime('%Y-%m-%d %H:%M') if self.end_date else None,
+                'f_deadline_date': self.deadline_date.strftime('%Y-%m-%d %H:%M'),
+                'f_reveal_date': self.reveal_date.strftime(
+                    '%Y-%m-%d %H:%M') if self.reveal_date else None
+            }
+        return res
 
 
 class TaskManager(models.Manager):
@@ -272,7 +348,7 @@ class TaskManager(models.Manager):
                     package_instance: int | PackageInstance,
                     round_: int | Round,
                     task_name: str,
-                    points: float,
+                    points: float = None,
                     judging_mode: str | TaskJudgingMode = TaskJudgingMode.LIN,
                     initialise_task: bool = True,
                     course: str | int | Course = None) -> Task:
@@ -305,6 +381,9 @@ class TaskManager(models.Manager):
         package_instance = ModelsRegistry.get_package_instance(package_instance)
         round_ = ModelsRegistry.get_round(round_)
         judging_mode = ModelsRegistry.get_task_judging_mode(judging_mode)
+
+        if points is None:
+            points = package_instance.package['points']
         with OptionalInCourse(course):
             new_task = self.model(package_instance_id=package_instance.pk,
                                   task_name=task_name,
@@ -370,6 +449,15 @@ class Task(models.Model, metaclass=ReadCourseMeta):
 
     #: The manager for the Task model.
     objects = TaskManager()
+
+    class BasicAction(ModelAction):
+        """
+        Basic actions for Task model.
+        """
+        ADD = 'add', 'add_task'
+        DEL = 'delete', 'delete_task'
+        EDIT = 'edit', 'change_task'
+        VIEW = 'view', 'view_task'
 
     def __str__(self):
         return (f'Task {self.pk}: {self.task_name}; '
@@ -535,6 +623,20 @@ class Task(models.Model, metaclass=ReadCourseMeta):
                     return True
         return False
 
+    def get_data(self) -> dict:
+        """
+        :return: The data of the task.
+        :rtype: dict
+        """
+        return {
+            'id': self.pk,
+            'name': self.task_name,
+            'round_name': self.round.name,
+            'judging_mode': self.judging_mode,
+            'points': self.points,
+            # 'package_instance': self.package_instance,
+        }
+
 
 class TestSetManager(models.Manager):
 
@@ -639,6 +741,14 @@ class TestSet(models.Model, metaclass=ReadCourseMeta):
         """
         return list(Test.objects.filter(test_set=self).all())
 
+    @property
+    def package_test_set(self) -> TSet:
+        """
+        :return: The TSet object that corresponds to the TestSet object.
+        :rtype: TSet
+        """
+        return self.task.package_instance.package.sets(self.short_name)
+
 
 class TestManager(models.Manager):
 
@@ -726,6 +836,14 @@ class Test(models.Model, metaclass=ReadCourseMeta):
             result.delete()
         super().delete(using, keep_parents)
 
+    @property
+    def package_test(self) -> TestF:
+        """
+        :return: The TestF object that corresponds to the Test object.
+        :rtype: TestF
+        """
+        return self.test_set.package_test_set.tests(self.short_name)
+
 
 class SubmitManager(models.Manager):
     @transaction.atomic
@@ -735,7 +853,10 @@ class SubmitManager(models.Manager):
                       user: str | int | User,
                       submit_date: datetime = None,
                       final_score: float = -1,
-                      auto_send: bool = True) -> Submit:
+                      auto_send: bool = True,
+                      submit_type: SubmitType = SubmitType.STD,
+                      submit_status: ResultStatus = ResultStatus.PND,
+                      error_msg: str = None) -> Submit:
         """
         It creates a new submit object.
 
@@ -753,6 +874,12 @@ class SubmitManager(models.Manager):
         :param auto_send: If True, the submit will be sent to the broker, defaults to True
             (optional)
         :type auto_send: bool
+        :param submit_type: The type of the submit, defaults to SubmitType.STD (optional)
+        :type submit_type: SubmitType
+        :param submit_status: The status of the submit, defaults to None (optional)
+        :type submit_status: ResultStatus
+        :param error_msg: The error message of the submit, defaults to None (optional)
+        :type error_msg: str
 
         :return: A new submit object.
         :rtype: Submit
@@ -764,7 +891,10 @@ class SubmitManager(models.Manager):
                                 source_code=source_code,
                                 task=task,
                                 usr=user.pk,
-                                final_score=final_score)
+                                final_score=final_score,
+                                submit_type=submit_type,
+                                submit_status=submit_status,
+                                error_msg=error_msg)
         new_submit.save()
         if auto_send:
             new_submit.send()
@@ -811,23 +941,70 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
     #: Pseudo-foreign key to :py:class:`main.models.User` model (user), who submitted to the task.
     usr = models.BigIntegerField(validators=[SubmitManager.user_exists_validator])
+    #: Solution type
+    submit_type = models.CharField(max_length=3,
+                                   choices=SubmitType.choices,
+                                   default=SubmitType.STD)
+    #: Status of submit (initially PND - pending)
+    submit_status = models.CharField(max_length=3,
+                                     choices=ResultStatus.choices,
+                                     default=ResultStatus.PND)
+    #: Error message, if submit ended with error
+    error_msg = models.TextField(null=True, blank=True, default=None)
     #: Final score (as percent), gained by user's submission. Before solution check score is set
-    # to ``-1``.
+    #: to ``-1``.
     final_score = models.FloatField(default=-1)
 
     #: The manager for the Submit model.
     objects = SubmitManager()
 
+    class BasicAction(ModelAction):
+        """
+        Basic actions for Submit model.
+        """
+        ADD = 'add', 'add_submit'
+        DEL = 'delete', 'delete_submit'
+        EDIT = 'edit', 'change_submit'
+        VIEW = 'view', 'view_submit'
+
     def send(self) -> BrokerSubmit:
         """
         It sends the submit to the broker.
 
-        :return: None
+        :return: A new BrokerSubmit object.
+        :rtype: BrokerSubmit
         """
         from broker_api.models import BrokerSubmit
 
-        return BrokerSubmit.send(ModelsRegistry.get_course(self._state.db), self.id,
+        return BrokerSubmit.send(ModelsRegistry.get_course(self._state.db),
+                                 self.id,
                                  self.task.package_instance)
+
+    def resend(self) -> BrokerSubmit:
+        """
+        It marks this submit as hidden, and creates new submit with the same data. New submit will
+        be sent to broker.
+
+        :return: A new BrokerSubmit object.
+        :rtype: BrokerSubmit
+        """
+        from broker_api.models import BrokerSubmit
+
+        sub_type = SubmitType[self.submit_type]
+        self.submit_type = SubmitType.HID
+        self.save()
+
+        new_submit = self.objects.create_submit(
+            source_code=self.source_code,
+            task=self.task,
+            user=self.usr,
+            auto_send=False,
+            submit_type=sub_type,
+        )
+
+        return BrokerSubmit.send(ModelsRegistry.get_course(self._state.db),
+                                 new_submit.id,
+                                 new_submit.task.package_instance)
 
     def delete(self, using=None, keep_parents=False):
         """
@@ -861,6 +1038,21 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         """
         return list(Result.objects.filter(submit=self).all())
 
+    def end_with_error(self, error_type: ResultStatus, error_msg: str) -> None:
+        """
+        It ends the submit with an error.
+
+        :param error_type: The type of the error.
+        :type error_type: ResultStatus
+        :param error_msg: The message of the error.
+        :type error_msg: str
+        """
+        self.submit_status = error_type
+        self.error_msg = error_msg
+
+        self.final_score = 0
+        self.save()
+
     @transaction.atomic
     def score(self, rejudge: bool = False) -> float:
         """
@@ -875,19 +1067,29 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         :raise DataError: if there is more results than tests
         :raise NotImplementedError: if selected judging mode is not implemented
         """
-
+        submit_status = ResultStatus[self.submit_status]
         if rejudge:
+            if submit_status in EMPTY_FINAL_STATUSES:
+                self.final_score = 0
+                self.save()
+                return 0
             self.final_score = -1
+            self.submit_status = ResultStatus.PND
 
         # It's a cache. If the score was already calculated, it will be returned without
         # recalculating.
         if self.final_score >= 0:
             return self.final_score
 
-        if len(self.results) < self.task.tests_amount:
+        if submit_status == ResultStatus.PND and len(self.results) < self.task.tests_amount:
             self.final_score = -1
             self.save()
             return -1
+
+        if submit_status in EMPTY_FINAL_STATUSES:
+            self.final_score = 0
+            self.save()
+            return 0
 
         # It counts amount of different statuses, grouped by test sets.
         results = (
@@ -919,6 +1121,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
             results_aggregated[r['test__test_set']]['SUM'] += r['amount']
 
         judging_mode = self.task.judging_mode
+        worst_status = ResultStatus.PND
         for test_set, s in results_aggregated.items():
             if s['SUM'] > s['MAX']:
                 raise DataError(f'Submit ({self}): More test results, then test assigned to task')
@@ -935,6 +1138,12 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
                     f'Submit ({self}): Task {self.task.pk} has judging mode ' +
                     'which is not implemented.')
 
+            for status in results_aggregated[test_set].keys():
+                if status in ResultStatus.values:
+                    status = ResultStatus[status]
+                    if ResultStatus.compare(status, worst_status) > 0:
+                        worst_status = status
+
         # It's calculating the score of a submit, as weighted average of sets scores.
         final_score = 0
         final_weight = 0
@@ -943,8 +1152,78 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
             final_score += s['score'] * weight
 
         self.final_score = round(final_score / final_weight, 6)
+        self.submit_status = worst_status
         self.save()
         return self.final_score
+
+    @staticmethod
+    def format_score(score: float, rnd: int = 2) -> str:
+        """
+        It formats the score to a string.
+
+        :param score: The score that you want to format.
+        :type score: float
+        :param rnd: The amount of decimal places, defaults to 2 (optional)
+        :type rnd: int
+
+        :return: The formatted score.
+        :rtype: str
+        """
+        score = round(score * 100, rnd)
+        return f'{score:.{rnd}f}' if score > -1 else 'PND'
+
+    @property
+    def task_score(self) -> float:
+        """
+        It returns the amount of points that can be gained for completing the task.
+
+        :return: The amount of points that can be gained for completing the task.
+        :rtype: float
+        """
+        return round(self.task.points * self.score(), 2)
+
+    @property
+    def summary_score(self) -> str:
+        score = self.score()
+        return f'{self.task_score} ({self.format_score(score, 1)} %)' if score > -1 else 'PND'
+
+    @property
+    def formatted_submit_status(self) -> str:
+        """
+        It returns the submit status in a formatted way.
+
+        :return: The submit status in a formatted way.
+        :rtype: str
+        """
+        return f'{self.submit_status} ({ResultStatus[self.submit_status].label})'
+
+    def get_data(self,
+                 show_user: bool = True,
+                 add_round_task_name: bool = False,
+                 add_summary_score: bool = False) -> dict:
+        """
+        :return: The data of the submit.
+        :rtype: dict
+        """
+        score = self.score()
+        task_score = self.task_score
+        res = {
+            'id': self.pk,
+            'submit_date': self.submit_date,
+            'source_code': self.source_code,
+            'task_name': self.task.task_name,
+            'task_score': task_score if score > -1 else 'PND',
+            'final_score': self.format_score(score),
+            'submit_status': self.formatted_submit_status,
+        }
+        if show_user:
+            res |= {'user_first_name': self.user.first_name,
+                    'user_last_name': self.user.last_name}
+        if add_round_task_name:
+            res |= {'round_task_name': f'{self.task.round.name}: {self.task.task_name}'}
+        if add_summary_score:
+            res |= {'summary_score': self.summary_score}
+        return res
 
 
 class ResultManager(models.Manager):
@@ -1076,3 +1355,33 @@ class Result(models.Model, metaclass=ReadCourseMeta):
         super().delete(using, keep_parents)
         if rejudge:
             self.submit.score(rejudge=True)
+
+    def get_data(self,
+                 format_time: bool = True,
+                 format_memory: bool = True,
+                 translate_status: bool = True,
+                 add_limits: bool = True) -> dict:
+        res = {
+            'id': self.pk,
+            'test_name': self.test.short_name,
+            'status': self.status,
+            'time_real': self.time_real,
+            'time_cpu': self.time_cpu,
+            'runtime_memory': self.runtime_memory
+        }
+        if format_time:
+            res['f_time_real'] = f'{self.time_real:.3f} s' if self.time_real else None
+            res['f_time_cpu'] = f'{self.time_cpu:.3f} s' if self.time_cpu else None
+            if add_limits:
+                time_limit = round(self.test.package_test['time_limit'], 3)
+                res['f_time_real'] += f' / {time_limit} s'
+                res['f_time_cpu'] += f' / {time_limit} s'
+        if format_memory and self.runtime_memory:
+            res['f_runtime_memory'] = f'{bytes_to_str(self.runtime_memory)}'
+            if add_limits:
+                memory_limit = self.test.package_test['memory_limit']
+                res['f_runtime_memory'] += f' / {bytes_to_str(bytes_from_str(memory_limit))}'
+        if translate_status:
+            res['f_status'] = f'{self.status} ({ResultStatus[self.status].label})'
+
+        return res

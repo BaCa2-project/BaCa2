@@ -17,26 +17,18 @@
         {% if form_widget.floating_labels %}
             <div class="form-floating">
         {% else %}
-            <label for="{{ field.name }}" class="form-label">{{ field.label }}</label>
+            {% include 'widget_templates/forms/field_label.html' %}
         {% endif %}
 
-        {% if form_widget.display_field_errors and form_widget.form.is_bound %}
-            {% if field.errors %}
-                {% render_field field class="form-control is-invalid" id=field.name placeholder="-" %}
-            {% else %}
-                {% render_field field class="form-control is-valid" id=field.name placeholder="-" %}
-            {% endif %}
-        {% else %}
-            {% render_field field class="form-control" id=field.name placeholder="-" %}
-        {% endif %}
-
-        {% if form_widget.floating_labels %}
-            <label for="{{ field.name }}" class="form-label">{{ field.label }}</label>
-            </div>
-        {% endif %}
+        {% include 'widget_templates/forms/form_control_field.html' %}
 
         {% if field.help_text %}
             <small class="form-text text-muted">{{ field.help_text }}</small>
+        {% endif %}
+
+        {% if form_widget.floating_labels %}
+            {% include 'widget_templates/forms/field_label.html' %}
+            </div>
         {% endif %}
 
         {% if field.name in form_widget.toggleable_fields %}
@@ -59,7 +51,8 @@
     <script>
         $(document).ready( function () {
             $('#{{ field.name }}').on('input', function () {
-                update_validation_status(
+                console.log('input event');
+                updateValidationStatus(
                     this,
                     '{{ form_widget.form_cls }}',
                     '{{ form_widget.field_min_length|get_item:field.name }}',

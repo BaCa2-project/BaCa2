@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Dict, List, Type
+from typing import Any, Callable, Dict, List, Optional, Type
 
 import django.db.models
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -23,6 +23,7 @@ from widgets.forms import FormWidget
 from widgets.forms.fields.validation import get_field_validation_status
 from widgets.listing import TableWidget
 from widgets.navigation import NavBar, SideNav
+from widgets.text_display import MarkupDisplayer, PDFDisplayer, TextDisplayer
 
 
 class BaCa2ContextMixin:
@@ -42,7 +43,13 @@ class BaCa2ContextMixin:
         pass
 
     #: List of all widget types used in BaCa2 views.
-    WIDGET_TYPES = [FormWidget, NavBar, SideNav, TableWidget]
+    WIDGET_TYPES = [FormWidget,
+                    NavBar,
+                    SideNav,
+                    TableWidget,
+                    TextDisplayer,
+                    MarkupDisplayer,
+                    PDFDisplayer]
     #: List of all widgets which are unique (i.e. there can only be one instance of each widget type
     #: can exist in the context dictionary).
     UNIQUE_WIDGETS = [NavBar, SideNav]
@@ -238,8 +245,8 @@ class FieldValidationView(LoginRequiredMixin, View):
             get_field_validation_status(
                 request=request,
                 form_cls=form_cls_name,
-                field_name=normalize_string_to_python(field_name),
-                value=normalize_string_to_python(request.GET.get('value')),
+                field_name=field_name,
+                value=request.GET.get('value'),
                 min_length=normalize_string_to_python(request.GET.get('minLength', None))
             )
         )
@@ -282,7 +289,22 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
     #: Model class which the view manages. Should be set by inheriting classes.
     MODEL: model_cls = None
 
+    #: Serialization method for the model class instances, where `:meth:get_data` is not specified
+    #: in the model class.
+    GET_DATA_METHOD: Callable[[model_cls, Optional[Dict[str, Any]]], Dict[str, Any]] = None
+
     # -------------------------------------- get methods --------------------------------------- #
+
+    @classmethod
+    def get_data_method(cls) -> Callable[[model_cls, Optional[Dict[str, Any]]], Dict[str, Any]]:
+        in_class_method = getattr(cls.MODEL, 'get_data', None)
+        if in_class_method:
+            return in_class_method
+        if cls.GET_DATA_METHOD:
+            return cls.GET_DATA_METHOD
+        raise BaCa2ModelView.ModelViewException(
+            f'No get_data method found for model {cls.MODEL.__name__}.'
+        )
 
     def get(self, request, *args, **kwargs) -> BaCa2ModelResponse:
         """
@@ -300,8 +322,6 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         :return: JSON response with the result of the action in the form of status and message
             string (and data if the action was successful).
         :rtype: :class:`BaCa2ModelResponse`
-        :raises ModelViewException: If the model class managed by the view does not implement the
-            `get_data` method needed to perform this action.
 
         See also:
             - :class:`BaCa2ModelView.GetMode`
@@ -309,14 +329,6 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
             - :meth:`BaCa2ModelView.get_filtered`
             - :meth:`BaCa2ModelView.get_excluded`
         """
-        get_data_method = getattr(self.MODEL, 'get_data')
-
-        if not get_data_method or not callable(get_data_method):
-            raise BaCa2ModelView.ModelViewException(
-                f'Model class managed by the {self.__class__.__name__} view does not '
-                f'implement the `get_data` method needed to perform this action.'
-            )
-
         get_params = request.GET.dict()
         mode = get_params.get('mode')
 
@@ -387,7 +399,8 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         return self.get_request_response(
             status=BaCa2JsonResponse.Status.SUCCESS,
             message=_('Successfully retrieved data for all model instances'),
-            data=[instance.get_data(**serialize_kwargs) for instance in self.MODEL.objects.all()]
+            data=[self.get_data_method()(instance, **serialize_kwargs)
+                  for instance in self.MODEL.objects.all()]
         )
 
     def get_filtered(self,
@@ -425,7 +438,8 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
             status=BaCa2JsonResponse.Status.SUCCESS,
             message=_('Successfully retrieved data for model instances matching the specified '
                       'filter parameters.'),
-            data=[obj.get_data(**serialize_kwargs) for obj in query_result]
+            data=[self.get_data_method()(obj, **serialize_kwargs)
+                  for obj in query_result]
         )
 
     def get_excluded(self,
@@ -463,7 +477,8 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
             status=BaCa2JsonResponse.Status.SUCCESS,
             message=_('Successfully retrieved data for model instances not matching the specified '
                       'exclusion parameters.'),
-            data=[obj.get_data(**serialize_kwargs) for obj in query_result]
+            data=[self.get_data_method()(obj, **serialize_kwargs)
+                  for obj in query_result]
         )
 
     # --------------------------------- get permission checks ---------------------------------- #
@@ -573,6 +588,13 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
                                   **{'data': data})
 
     @classmethod
+    def _url(cls, **kwargs) -> str:
+        """
+        :return: Base url for the view. Used by :meth:`get_url` method.
+        """
+        return f'/{cls.MODEL._meta.app_label}/models/{cls.MODEL._meta.model_name}/'
+
+    @classmethod
     def get_url(cls,
                 mode: GetMode = GetMode.ALL,
                 query_params: dict = None,
@@ -596,17 +618,29 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         See also:
             - :class:`BaCa2ModelView.GetMode`
         """
-        url = f'/{cls.MODEL._meta.app_label}/models/{cls.MODEL._meta.model_name}'
+        url = cls._url(**kwargs)
 
         if mode != cls.GetMode.ALL and query_params is None:
             raise BaCa2ModelView.ModelViewException(
                 f'Query parameters must be specified when using {mode} get mode.'
             )
 
+        if query_params or serialize_kwargs:
+            url += '?'
         if query_params:
-            url += f'?{encode_dict_to_url("query_params", query_params)}'
+            url += encode_dict_to_url('query_params', query_params)
         if serialize_kwargs:
             url += f'&{encode_dict_to_url("serialize_kwargs", serialize_kwargs)}'
 
         url_kwargs = {'mode': mode.value} | kwargs
         return add_kwargs_to_url(url, url_kwargs)
+
+    @classmethod
+    def post_url(cls, **kwargs) -> str:
+        """
+        Returns a URL used to send a post request to the view.
+
+        :param kwargs: Additional keyword arguments to be added to the URL.
+        :type kwargs: dict
+        """
+        return f'{cls._url(**kwargs)}'

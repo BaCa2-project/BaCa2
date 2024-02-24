@@ -214,7 +214,8 @@ class CourseManager(models.Manager):
         :return: The admin role.
         :rtype: Role
         """
-        admin_role = Role.objects.create_role(name='admin')
+        admin_role = Role.objects.create_role(name=_('admin'),
+                                              description=_('Admin role for course leaders'))
         admin_role.add_permissions(Course.CourseAction.labels)
         return admin_role
 
@@ -547,17 +548,22 @@ class Course(models.Model):
     @transaction.atomic
     def create_role(self,
                     name: str,
-                    permissions: List[str] | List[int] | List[Permission]) -> None:
+                    permissions: List[str] | List[int] | List[Permission],
+                    description: str = '') -> None:
         """
-        Create a new role for the course with given name and permissions.
+        Create a new role for the course with given name, description and permissions.
 
         :param name: Name of the new role.
         :type name: str
         :param permissions: List of permissions to assign to the role. The permissions can be
             specified as either the permission objects, their ids or their codenames.
         :type permissions: List[Permission] | List[str] | List[int]
+        :param description: Description of the new role.
+        :type description: str
         """
-        self.add_role(Role.objects.create_role(name, permissions))
+        self.add_role(Role.objects.create_role(name=name,
+                                               description=description,
+                                               permissions=permissions))
 
     @transaction.atomic
     def create_role_from_preset(self, preset: int | RolePreset) -> None:
@@ -1659,6 +1665,9 @@ class User(AbstractBaseUser):
         super().delete(using, keep_parents)
         settings.delete()
 
+    def get_full_name(self):
+        return f'{self.first_name} {self.last_name}'
+
 
 class RoleManager(models.Manager):
     """
@@ -1669,6 +1678,7 @@ class RoleManager(models.Manager):
     @transaction.atomic
     def create_role(self,
                     name: str,
+                    description: str = '',
                     permissions: List[Permission] | List[str] | List[int] = None,
                     course: Course = None) -> Role:
         """
@@ -1677,6 +1687,8 @@ class RoleManager(models.Manager):
 
         :param name: Name of the role.
         :type name: str
+        :param description: Description of the role.
+        :type description: str
         :param permissions: Permissions which should be assigned to the role. The permissions can be
             specified as either the permission objects, their codenames or their ids. If no
             permissions are specified, the role will be created without any permissions.
@@ -1692,7 +1704,7 @@ class RoleManager(models.Manager):
         else:
             permissions = ModelsRegistry.get_permissions(permissions)
 
-        role = self.model(name=name)
+        role = self.model(name=name, description=description)
         role.save()
 
         for permission in permissions:
@@ -1759,6 +1771,12 @@ class Role(models.Model):
         max_length=100,
         blank=False,
         null=False
+    )
+    #: Description of the role.
+    description = models.TextField(
+        verbose_name=_('role description'),
+        blank=True,
+        null=True
     )
     #: Permissions assigned to the role.
     permissions = models.ManyToManyField(
@@ -1981,6 +1999,21 @@ class Role(models.Model):
         self.user_set.clear()
         self.permissions.clear()
         super().delete()
+
+    def get_data(self) -> dict:
+        """
+        Returns the contents of a Role object's fields as a dictionary. Used to send role data to
+        the frontend.
+
+        :return: Dictionary containing the role's data.
+        :rtype: dict
+        """
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'course': self.course.short_name if self.course else None,
+        }
 
 
 class RolePresetManager(models.Manager):

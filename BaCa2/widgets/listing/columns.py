@@ -16,6 +16,7 @@ class Column(Widget):
         - :class:`widgets.listing.base.TableWidget`
         - :class:`TextColumn`
     """
+
     def __init__(self,
                  *,
                  name: str,
@@ -91,6 +92,7 @@ class TextColumn(Column):
         - :class:`widgets.listing.base.TableWidget`
         - :class:`Column`
     """
+
     def __init__(self,
                  *,
                  name: str,
@@ -127,6 +129,58 @@ class TextColumn(Column):
                          width=width)
 
 
+class DatetimeColumn(Column):
+    """
+        Basic column type for displaying text data.
+
+        See also:
+            - :class:`widgets.listing.base.TableWidget`
+            - :class:`Column`
+        """
+
+    def __init__(self,
+                 *,
+                 name: str,
+                 header: str | None = None,
+                 formatter: str = 'dd/MM/yyyy H:mm',
+                 searchable: bool = True,
+                 sortable: bool = True,
+                 auto_width: bool = True,
+                 width: str | None = None) -> None:
+        """
+        :param name: The name of the column. This should be the same as the key under which
+            the column's data can be found in the data dictionary retrieved by the table widget.
+        :type name: str
+        :param header: The text to be displayed in the column header. If not set, the column name
+            will be used instead.
+        :type header: str
+        :param searchable: Whether values in the column should be searchable.
+        :type searchable: bool
+        :param sortable: Whether the column should be sortable.
+        :type sortable: bool
+        :param auto_width: Whether the column width should be determined automatically. If set to
+            False, the width parameter must be set.
+        :type auto_width: bool
+        :param width: The width of the column. This parameter should only be set if auto_width is
+            set to False.
+        :type width: str
+        """
+        super().__init__(name=name,
+                         col_type='datetime',
+                         data_null=False,
+                         header=header,
+                         searchable=searchable,
+                         sortable=sortable,
+                         auto_width=auto_width,
+                         width=width)
+        self.formatter = formatter
+
+    def get_context(self) -> Dict[str, Any]:
+        return super().get_context() | {
+            'formatter': self.formatter
+        }
+
+
 class SelectColumn(Column):
     """
     Column used for displaying checkboxes for row selection.
@@ -135,6 +189,7 @@ class SelectColumn(Column):
         - :class:`widgets.listing.base.TableWidget`
         - :class:`Column`
     """
+
     def __init__(self) -> None:
         super().__init__(name='select',
                          col_type='select',
@@ -154,6 +209,7 @@ class DeleteColumn(Column):
         - :class:`widgets.listing.base.TableWidget`
         - :class:`Column`
     """
+
     def __init__(self) -> None:
         super().__init__(name='delete',
                          col_type='delete',

@@ -20,7 +20,6 @@ Wejście:
 ```
 
 Wyjście:
-
 ```
 TAK
 ```

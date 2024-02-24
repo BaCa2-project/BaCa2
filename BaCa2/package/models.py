@@ -10,6 +10,8 @@ from django.utils import timezone
 
 from baca2PackageManager import Package
 from baca2PackageManager.validators import isStr
+from core.tools.files import DocFileHandler
+from core.tools.misc import random_id
 from main.models import User
 from util.models_registry import ModelsRegistry
 
@@ -18,23 +20,6 @@ class PackageSourceManager(models.Manager):
     """
     PackageSourceManager is a manager for the PackageSource class
     """
-
-    def get_unique_name(self, name: str) -> str:
-        """
-        It returns a unique name for the package source
-
-        :param name: The name of the package source
-        :type name: str
-
-        :return: The unique name of the package source.
-        """
-        if not self.model.exists(name):
-            return name
-
-        i = 1
-        while self.model.exists(f'{name}{i}'):
-            i += 1
-        return f'{name}{i}'
 
     @transaction.atomic
     def create_package_source(self, name: str) -> PackageSource:
@@ -53,10 +38,14 @@ class PackageSourceManager(models.Manager):
         return package_source
 
     @transaction.atomic
-    def create_package_source_from_zip(self,
-                                       name: str,
-                                       zip_file: Path,
-                                       creator: int | str | User = None) -> PackageSource:
+    def create_package_source_from_zip(
+        self,
+        name: str,
+        zip_file: Path,
+        creator: int | str | User = None,
+        safe_name: bool = True,
+        return_package_instance: bool = False
+    ) -> PackageSource | PackageInstance:
         """
         Create a new package source from the given zip file
 
@@ -66,9 +55,17 @@ class PackageSourceManager(models.Manager):
         :type zip_file: Path
         :param creator: The creator of the package (optional)
         :type creator: int | str | User
+        :param safe_name: If True, make the name unique
+        :type safe_name: bool
+        :param return_package_instance: If True, return the package instance instead of the package
+            source
+        :type return_package_instance: bool
 
         :return: A new PackageSource object.
         """
+        if safe_name:
+            name = name.replace(' ', '_')
+            name = f'{name}_{random_id()}'
         package_source = self.model(name=name)
         package_source.save()
         if not package_source.path.exists():
@@ -80,6 +77,9 @@ class PackageSourceManager(models.Manager):
         package_instance.save()
         if creator:
             PackageInstanceUser.objects.create_package_instance_user(creator, package_instance)
+
+        if return_package_instance:
+            return package_instance
         return package_source
 
     @transaction.atomic
@@ -286,19 +286,31 @@ class PackageInstanceManager(models.Manager):
         commit_msg = PackageInstance.commit_msg(package_instance.package_source, new_commit)
         settings.PACKAGES[commit_msg] = new_package
 
-        new_instance = self.model(
-            package_source=package_instance.package_source,
-            commit=new_commit
-        )
-        new_instance.save()
+        try:
+            pdf_docs = new_package.doc_path('pdf')
+            doc = DocFileHandler(pdf_docs, 'pdf')
+            static_path = doc.save_as_static()
+        except FileNotFoundError:
+            static_path = None
 
-        if copy_permissions:
-            for user in package_instance.permitted_users:
-                new_instance.add_permitted_user(user)
-        elif creator:
-            PackageInstanceUser.objects.create_package_instance_user(creator, new_instance)
+        try:
+            new_instance = self.model(
+                package_source=package_instance.package_source,
+                commit=new_commit,
+                pdf_docs=static_path
+            )
+            new_instance.save()
 
-        return new_instance
+            if copy_permissions:
+                for user in package_instance.permitted_users:
+                    new_instance.add_permitted_user(user)
+            elif creator:
+                PackageInstanceUser.objects.create_package_instance_user(creator, new_instance)
+
+            return new_instance
+        except Exception as e:
+            DocFileHandler.delete_doc(static_path)
+            raise e
 
     @transaction.atomic
     def delete_package_instance(self,
@@ -338,23 +350,38 @@ class PackageInstanceManager(models.Manager):
         :param creator: The creator of the package (optional)
         :type creator: int | str | User
 
-
         :return: A new PackageInstance object.
         """
         package_source = ModelsRegistry.get_package_source(package_source)
-        commit_name = f'from_zip_{timezone.now().timestamp()}'
+        commit_name = f'from_zip_{random_id()}'
         pkg = Package.create_from_zip(package_source.path, commit_name, zip_file, overwrite)
-        package_instance = self.model(package_source=package_source, commit=commit_name)
         settings.PACKAGES[PackageInstance.commit_msg(package_source, commit_name)] = pkg
-        package_instance.save()
-        if permissions_from_instance:
-            permissions_from_instance = ModelsRegistry.get_package_instance(
-                permissions_from_instance)
-            for user in permissions_from_instance.permitted_users:
-                PackageInstanceUser.objects.create_package_instance_user(user, package_instance)
-        if creator:
-            PackageInstanceUser.objects.create_package_instance_user(creator, package_instance)
-        return package_instance
+
+        try:
+            pdf_docs = pkg.doc_path('pdf')
+            doc = DocFileHandler(pdf_docs, 'pdf')
+            static_path = doc.save_as_static()
+        except FileNotFoundError:
+            static_path = None
+        try:
+            package_instance = self.model(
+                package_source=package_source,
+                commit=commit_name,
+                pdf_docs=static_path
+            )
+
+            package_instance.save()
+            if permissions_from_instance:
+                permissions_from_instance = ModelsRegistry.get_package_instance(
+                    permissions_from_instance)
+                for user in permissions_from_instance.permitted_users:
+                    PackageInstanceUser.objects.create_package_instance_user(user, package_instance)
+            if creator:
+                PackageInstanceUser.objects.create_package_instance_user(creator, package_instance)
+            return package_instance
+        except Exception as e:
+            DocFileHandler.delete_doc(static_path)
+            raise e
 
     def exists_validator(self, pkg_id: int) -> bool:
         """
@@ -377,6 +404,9 @@ class PackageInstance(models.Model):
     package_source = models.ForeignKey(PackageSource, on_delete=models.CASCADE)
     #: unique identifier for every package instance
     commit = models.CharField(max_length=2047)
+    #: pdf docs file path
+    pdf_docs = models.FilePathField(path=settings.TASK_DESCRIPTIONS_DIR, null=True, blank=True,
+                                    default=None, max_length=2047)
 
     #: manager for the PackageInstance class
     objects = PackageInstanceManager()
@@ -437,6 +467,15 @@ class PackageInstance(models.Model):
         from course.models import Task
         return Task.check_instance(self)
 
+    @property
+    def pdf_docs_path(self) -> Path:
+        """
+        It returns the path to the pdf docs file
+
+        :return: The path to the pdf docs file.
+        """
+        return Path(str(self.pdf_docs))
+
     def delete(self, delete_files: bool = False, using=None, keep_parents=False):
         """
         If the task is not in the database, raise an exception.
@@ -454,6 +493,8 @@ class PackageInstance(models.Model):
             # deleting instance in source directory
             if delete_files:
                 self.package.delete()
+            if self.pdf_docs:
+                DocFileHandler.delete_doc(Path(self.pdf_docs))
             settings.PACKAGES.pop(self.key)
             # self delete instance
             super().delete(using, keep_parents)

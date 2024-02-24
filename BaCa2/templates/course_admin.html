@@ -15,29 +15,53 @@
             {% endwith %}
         </div>
     </div>
+    <div class="tab-wrapper" id="view-roles-tab">
+        <div class="side-nav-tab">
+            {% with widgets.TableWidget.roles_table_widget as table_widget %}
+                {% include "widget_templates/table.html" %}
+            {% endwith %}
+        </div>
+    </div>
+    <div class="tab-wrapper" id="add-role-tab">
+        <div class="side-nav-tab">
+            {% with widgets.FormWidget.add_role_form_widget as form_widget %}
+                {% include "widget_templates/forms/default.html" %}
+            {% endwith %}
+        </div>
+    </div>
     <div class="tab-wrapper" id="view-rounds-tab">
         <div class="side-nav-tab">
-            View Rounds
+            {% with widgets.TableWidget.rounds_table_widget as table_widget %}
+                {% include "widget_templates/table.html" %}
+            {% endwith %}
         </div>
     </div>
     <div class="tab-wrapper" id="add-round-tab">
         <div class="side-nav-tab">
-            Add Round
+            {% with widgets.FormWidget.create_round_form_widget as form_widget %}
+                {% include "widget_templates/forms/default.html" %}
+            {% endwith %}
         </div>
     </div>
     <div class="tab-wrapper" id="view-tasks-tab">
         <div class="side-nav-tab">
-            View Tasks
+            {% with widgets.TableWidget.tasks_table_widget as table_widget %}
+                {% include "widget_templates/table.html" %}
+            {% endwith %}
         </div>
     </div>
     <div class="tab-wrapper" id="add-task-tab">
         <div class="side-nav-tab">
-            Add Task
+            {% with widgets.FormWidget.create_task_form_widget as form_widget %}
+                {% include "widget_templates/forms/default.html" %}
+            {% endwith %}
         </div>
     </div>
     <div class="tab-wrapper" id="results-tab">
         <div class="side-nav-tab">
-            Results
+            {% with widgets.TableWidget.results_table_widget as table_widget %}
+                {% include "widget_templates/table.html" %}
+            {% endwith %}
         </div>
     </div>
 {% endblock %}

@@ -1,13 +1,20 @@
-$(document).ready(function () {
+function sideNavSetup() {
     $('.side-nav-link').click(function () {
         clickSidenavLink($(this));
     });
-    clickSidenavLink($(document.body)
-        .find('.side-nav-content')
-        .find('.tab-button:last')
-        .find('.side-nav-link:first')
-    );
-});
+
+    let link;
+    const tab = new URL(window.location.href).searchParams.get('tab');
+
+    if (tab !== null)
+        link = $(document.body).find('.side-nav-link[data-id="' + tab + '"]');
+    if (link === undefined || link.length === 0)
+        link = $(document.body).find('.side-nav-content')
+                               .find('.tab-button:last')
+                               .find('.side-nav-link:first');
+
+    clickSidenavLink(link);
+}
 
 function clickSidenavLink(link) {
     const clicked_button = link.closest('.side-nav-button');
@@ -42,6 +49,7 @@ function clickSidenavLink(link) {
     $(document.body).find('#' + active_link.data('id')).removeClass('active');
     $(document.body).find('#' + activated_link.data('id')).addClass('active');
     active_button.removeClass('active');
+    addURLParameter(activated_link.data('id'));
 }
 
 function toggleSidenavButton(button, textCollapsed, textExpanded) {
@@ -50,9 +58,15 @@ function toggleSidenavButton(button, textCollapsed, textExpanded) {
         side_nav.removeClass('collapsed');
         side_nav.addClass('expanded');
         $(button).text(textExpanded);
-    }  else {
+    } else {
         side_nav.removeClass('expanded');
         side_nav.addClass('collapsed');
         $(button).text(textCollapsed);
     }
+}
+
+function addURLParameter(param) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', param);
+    window.history.replaceState({}, '', url);
 }

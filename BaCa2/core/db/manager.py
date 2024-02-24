@@ -298,6 +298,7 @@ class DBManager:
                     with self.databases_access_lock:
                         self.databases[db.name] = db.to_dict()
         logger.info('Databases loaded from cache.')
+        self.save_cache()
 
     def save_cache(self, with_locks: bool = True) -> None:
         """
@@ -316,3 +317,5 @@ class DBManager:
             databases.pop('default')
         with open(self.cache_file, 'wt') as f:
             json.dump(databases, f, indent=4)
+
+        logger.info('Databases saved to cache.')

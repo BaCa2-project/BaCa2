@@ -1,18 +1,29 @@
 import logging
-from typing import List
+from typing import Any, Dict, List
 
 from django.contrib.auth import logout
 from django.contrib.auth.mixins import UserPassesTestMixin
+from django.contrib.auth.models import Permission
 from django.contrib.auth.views import LoginView
+from django.db import models
 from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse_lazy
 from django.views.generic.base import RedirectView, View
 
-from main.models import Course, User
+from main.models import Course, Role, User
+from util import decode_url_to_dict, encode_dict_to_url
+from util.models_registry import ModelsRegistry
 from util.responses import BaCa2ModelResponse
 from util.views import BaCa2ContextMixin, BaCa2LoggedInView, BaCa2ModelView
 from widgets.forms import FormWidget
-from widgets.forms.course import CreateCourseForm, CreateCourseFormWidget, DeleteCourseForm
+from widgets.forms.course import (
+    AddMembersForm,
+    AddRoleForm,
+    CreateCourseForm,
+    CreateCourseFormWidget,
+    DeleteCourseForm,
+    DeleteRoleForm
+)
 from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.columns import TextColumn
 from widgets.navigation import SideNav
@@ -79,12 +90,34 @@ class CourseModelView(BaCa2ModelView):
             strings.
         :rtype: :class:`BaCa2ModelResponse`
         """
-        if request.POST.get('form_name') == 'add_course_form':
-            return CreateCourseForm.handle_post_request(request)
-        if request.POST.get('form_name') == 'delete_course_form':
-            return DeleteCourseForm.handle_post_request(request)
+        params = request.GET.dict()
+
+        if params.get('course'):
+            request.course = decode_url_to_dict(params.get('course'))
         else:
-            return self.handle_unknown_form(request, **kwargs)
+            request.course = {}
+
+        form_name = request.POST.get('form_name')
+
+        if form_name == f'{Course.BasicAction.ADD.label}_form':
+            return CreateCourseForm.handle_post_request(request)
+        elif form_name == f'{Course.BasicAction.DEL.label}_form':
+            return DeleteCourseForm.handle_post_request(request)
+        elif form_name == f'{Course.CourseAction.ADD_MEMBER.label}_form':
+            return AddMembersForm.handle_post_request(request)
+        elif form_name == f'{Course.CourseAction.ADD_ROLE.label}_form':
+            return AddRoleForm.handle_post_request(request)
+        elif form_name == f'{Course.CourseAction.DEL_ROLE.label}_form':
+            return DeleteRoleForm.handle_post_request(request)
+
+        return self.handle_unknown_form(request, **kwargs)
+
+    @classmethod
+    def post_url(cls, **kwargs) -> str:
+        url = super().post_url(**kwargs)
+        if 'course_id' in kwargs:
+            url += f'?{encode_dict_to_url("course", {"course_id": kwargs["course_id"]})}'
+        return url
 
 
 class UserModelView(BaCa2ModelView):
@@ -143,6 +176,73 @@ class UserModelView(BaCa2ModelView):
         pass
 
 
+class RoleModelView(BaCa2ModelView):
+    MODEL = Role
+
+    def check_get_filtered_permission(self,
+                                      query_params: dict,
+                                      query_result: List[Role],
+                                      request,
+                                      **kwargs) -> bool:
+        if self.check_get_all_permission(request, **kwargs):
+            return True
+        for role in query_result:
+            course = role.course
+            if all((not course.user_is_admin(request.user),
+                    not course.user_has_role(request.user, role)
+                    )):
+                return False
+        return True
+
+    def check_get_excluded_permission(self,
+                                      query_params: dict,
+                                      query_result: List[Role],
+                                      request,
+                                      **kwargs) -> bool:
+        return self.check_get_filtered_permission(query_params, query_result, request, **kwargs)
+
+    def post(self, request, **kwargs) -> JsonResponse:
+        pass
+
+
+class PermissionModelView(BaCa2ModelView):
+    @staticmethod
+    def get_data(instance: Permission, **kwargs) -> Dict[str, Any]:
+        return {
+            'id': instance.id,
+            'name': instance.name,
+            'content_type_id': instance.content_type.id,
+            'codename': instance.codename,
+        }
+
+    MODEL = Permission
+    GET_DATA_METHOD = get_data
+
+    def check_get_filtered_permission(self,
+                                      query_params: dict,
+                                      query_result: List[models.Model],
+                                      request,
+                                      **kwargs) -> bool:
+        return True
+
+    def check_get_excluded_permission(self,
+                                      query_params: dict,
+                                      query_result: List[models.Model],
+                                      request,
+                                      **kwargs) -> bool:
+        return self.check_get_filtered_permission(query_params, query_result, request, **kwargs)
+
+    def post(self, request, **kwargs) -> JsonResponse:
+        pass
+
+    @classmethod
+    def _url(cls, **kwargs) -> str:
+        """
+        :return: Base url for the view. Used by :meth:`get_url` method.
+        """
+        return f'/main/models/{cls.MODEL._meta.model_name}/'
+
+
 # --------------------------------------- Authentication --------------------------------------- #
 
 class LoginRedirectView(RedirectView):
@@ -160,11 +260,6 @@ class BaCa2LoginView(BaCa2ContextMixin, LoginView):
     successful login or if user is already logged in (redirect target is set using the
     'LOGIN_REDIRECT_URL' variable in project's 'settings.py' file).
     """
-    logger.debug('This is a debug message')
-    logger.info('This is an info message')
-    logger.warning('This is a warning message')
-    logger.error('This is an error message')
-    logger.critical('This is a critical message')
 
     template_name = 'login.html'
     redirect_authenticated_user = True
@@ -203,7 +298,7 @@ class BaCa2LogoutView(RedirectView):
 class UJLogin(View):
     @staticmethod
     def post(request, *args, **kwargs) -> None:
-        logger.debug(f'{request.POST}')
+        logger.warning(f'{request.POST}')
 
 
 # ----------------------------------------- Admin view ----------------------------------------- #
@@ -246,7 +341,7 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
             name='courses_table_widget',
             title='Courses',
             request=self.request,
-            data_source_url=CourseModelView.get_url(),
+            data_source=CourseModelView.get_url(),
             cols=[
                 TextColumn(name='id',
                            header='ID',
@@ -264,7 +359,9 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
             allow_select=True,
             allow_delete=True,
             delete_form=DeleteCourseForm(),
+            data_post_url=CourseModelView.post_url(),
             paging=TableWidgetPaging(10, False),
+            link_format_string='/course/[[id]]/',
         ))
 
         return context
@@ -303,18 +400,34 @@ class CoursesView(BaCa2LoggedInView):
             name='courses_table_widget',
             request=self.request,
             title='Your courses',
-            data_source_url=CourseModelView.get_url(mode=BaCa2ModelView.GetMode.FILTER,
-                                                    query_params={'role_set__user': user_id},
-                                                    serialize_kwargs={'user': user_id}),
+            data_source=CourseModelView.get_url(mode=BaCa2ModelView.GetMode.FILTER,
+                                                query_params={'role_set__user': user_id},
+                                                serialize_kwargs={'user': user_id}),
             allow_column_search=True,
             cols=[
                 TextColumn(name='name', header='Name', searchable=True),
                 TextColumn(name='USOS_term_code', header='Semester', searchable=True),
                 TextColumn(name='user_role', header='Your role', searchable=True),
             ],
-            highlight_rows_on_hover=True,
+            link_format_string='/course/[[id]]/',
         ))
         return context
+
+
+class RoleView(BaCa2LoggedInView, UserPassesTestMixin):
+    template_name = 'course_role.html'
+
+    def test_func(self) -> bool:
+        course = ModelsRegistry.get_role(self.kwargs['role_id']).course
+        user = self.request.user
+
+        if course.user_is_admin(user) or user.is_superuser:
+            return True
+
+        if user.has_course_permission(Course.CourseAction.VIEW_ROLE.label, course):
+            return True
+
+        return False
 
 
 # ----------------------------------------- Util views ----------------------------------------- #
