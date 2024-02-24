@@ -21,6 +21,7 @@ from widgets.forms.course import (
     CreateCourseFormWidget,
     DeleteCourseForm
 )
+from widgets.forms.main import CreateUser, CreateUserWidget
 from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.columns import TextColumn
 from widgets.navigation import SideNav
@@ -164,7 +165,10 @@ class UserModelView(BaCa2ModelView):
             strings.
         :rtype: :class:`BaCa2ModelResponse`
         """
-        pass
+        if request.POST.get('form_name') == f'{User.BasicAction.ADD.label}_form':
+            return CreateUser.handle_post_request(request)
+        else:
+            return self.handle_unknown_form(request, **kwargs)
 
 
 class RoleModelView(BaCa2ModelView):
@@ -348,6 +352,9 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
             paging=TableWidgetPaging(10, False),
             link_format_string='/course/[[id]]/',
         ))
+
+        add_user_form = CreateUserWidget(request=self.request)
+        self.add_widget(context, add_user_form)
 
         return context
 
