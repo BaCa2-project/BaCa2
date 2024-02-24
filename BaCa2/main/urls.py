@@ -7,6 +7,7 @@ from .views import (
     DashboardView,
     PermissionModelView,
     RoleModelView,
+    RoleView,
     UserModelView,
     change_theme
 )
@@ -24,6 +25,7 @@ urlpatterns = [
     path('admin/', AdminView.as_view(), name='admin'),
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
     path('courses/', CoursesView.as_view(), name='courses'),
+    path('role/<int:role_id>/', RoleView.as_view(), name='role'),
 
     path('change_theme', change_theme, name='change-theme'),
 ]

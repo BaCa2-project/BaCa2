@@ -12,6 +12,7 @@ from django.views.generic.base import RedirectView, View
 
 from main.models import Course, Role, User
 from util import decode_url_to_dict, encode_dict_to_url
+from util.models_registry import ModelsRegistry
 from util.responses import BaCa2ModelResponse
 from util.views import BaCa2ContextMixin, BaCa2LoggedInView, BaCa2ModelView
 from widgets.forms import FormWidget
@@ -411,6 +412,22 @@ class CoursesView(BaCa2LoggedInView):
             link_format_string='/course/[[id]]/',
         ))
         return context
+
+
+class RoleView(BaCa2LoggedInView, UserPassesTestMixin):
+    template_name = 'course_role.html'
+
+    def test_func(self) -> bool:
+        course = ModelsRegistry.get_role(self.kwargs['role_id']).course
+        user = self.request.user
+
+        if course.user_is_admin(user) or user.is_superuser:
+            return True
+
+        if user.has_course_permission(Course.CourseAction.VIEW_ROLE.label, course):
+            return True
+
+        return False
 
 
 # ----------------------------------------- Util views ----------------------------------------- #
