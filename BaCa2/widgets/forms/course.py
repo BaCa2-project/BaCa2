@@ -77,6 +77,8 @@ class CourseActionForm(BaCa2ModelForm):
         - :class:`Course.CourseAction`
     """
 
+    #: Actions performed by this type of form always concern the :class:`Course` model.
+    MODEL = Course
     #: Course action to be performed by the form.
     ACTION: Course.CourseAction = None
 
@@ -142,7 +144,7 @@ class CreateCourseForm(BaCa2ModelForm):
     ACTION = Course.BasicAction.ADD
 
     #: New course's name.
-    name = CourseName(label=_('Course name'), required=True)
+    course_name = CourseName(label=_('Course name'), required=True)
 
     #: New course's short name.
     short_name = CourseShortName()
@@ -172,12 +174,14 @@ class CreateCourseForm(BaCa2ModelForm):
         :rtype: Dict[str, str]
         """
         Course.objects.create_course(
-            name=request.POST.get('name'),
+            name=request.POST.get('course_name'),
             short_name=request.POST.get('short_name'),
             usos_course_code=request.POST.get('USOS_course_code'),
             usos_term_code=request.POST.get('USOS_term_code')
         )
-        return {'message': _('Course ') + request.POST.get('name') + _(' created successfully')}
+
+        message = _('Course ') + request.POST.get('course_name') + _(' created successfully')
+        return {'message': message}
 
 
 class CreateCourseFormWidget(FormWidget):
@@ -320,7 +324,6 @@ class AddMembersForm(CourseActionForm):
         - :class: `Role`
     """
 
-    MODEL = Course
     ACTION = Course.CourseAction.ADD_MEMBER
 
     #: Users to be added to the course.
@@ -384,11 +387,32 @@ class AddMembersForm(CourseActionForm):
 
 
 class AddMembersFormWidget(FormWidget):
+    """
+    Form widget for adding members to a course with a specified role.
+
+    See also:
+        - :class:`FormWidget`
+        - :class:`AddMembersForm`
+    """
+
     def __init__(self,
                  request,
                  course_id: int,
                  form: AddMembersForm = None,
                  **kwargs) -> None:
+        """
+        :param request: HTTP request object received by the view this form widget is rendered in.
+        :type request: HttpRequest
+        :param course_id: ID of the course the view this form widget is rendered in is associated
+            with.
+        :type course_id: int
+        :param form: AddMembersForm to be base the widget on. If not provided, a new form will be
+            created.
+        :type form: :class:`AddMembers`
+        :param kwargs: Additional keyword arguments to be passed to the :class:`FormWidget`
+            super constructor.
+        :type kwargs: dict
+        """
         from main.views import CourseModelView, RoleModelView, UserModelView
         from util.views import BaCa2ModelView
 
@@ -423,7 +447,7 @@ class CreateRoundForm(CourseModelForm):
     MODEL = Round
     ACTION = Round.BasicAction.ADD
 
-    name = AlphanumericStringField(label=_('Round name'), required=True)
+    round_name = AlphanumericStringField(label=_('Round name'), required=True)
     start_date = DateTimeField(label=_('Start date'), required=True)
     end_date = DateTimeField(label=_('End date'), required=False)
     deadline_date = DateTimeField(label=_('Deadline date'), required=True)
@@ -440,14 +464,15 @@ class CreateRoundForm(CourseModelForm):
             reveal_date = None
 
         Round.objects.create_round(
-            name=request.POST.get('name'),
+            name=request.POST.get('round_name'),
             start_date=request.POST.get('start_date'),
             end_date=end_date,
             deadline_date=request.POST.get('deadline_date'),
             reveal_date=reveal_date
         )
 
-        return {'message': _('Round ') + request.POST.get('name') + _(' created successfully')}
+        message = _('Round ') + request.POST.get('round_name') + _(' created successfully')
+        return {'message': message}
 
 
 class CreateRoundFormWidget(FormWidget):
@@ -485,7 +510,7 @@ class EditRoundForm(CourseModelForm):
     MODEL = Round
     ACTION = Round.BasicAction.EDIT
 
-    name = AlphanumericStringField(label=_('Round name'), required=True)
+    round_name = AlphanumericStringField(label=_('Round name'), required=True)
     start_date = DateTimeField(label=_('Start date'), required=True)
     end_date = DateTimeField(label=_('End date'), required=False)
     deadline_date = DateTimeField(label=_('Deadline date'), required=True)
@@ -497,14 +522,15 @@ class EditRoundForm(CourseModelForm):
         round_ = ModelsRegistry.get_round(int(request.POST.get('round_id')))
 
         round_.update(
-            name=request.POST.get('name'),
+            name=request.POST.get('round_name'),
             start_date=request.POST.get('start_date'),
             end_date=request.POST.get('end_date'),
             deadline_date=request.POST.get('deadline_date'),
             reveal_date=request.POST.get('reveal_date'),
         )
 
-        return {'message': _('Round ') + request.POST.get('name') + _(' edited successfully')}
+        message = _('Round ') + request.POST.get('round_name') + _(' edited successfully')
+        return {'message': message}
 
 
 class EditRoundFormWidget(FormWidget):
@@ -532,7 +558,7 @@ class EditRoundFormWidget(FormWidget):
             name=f'edit_round{round_obj.pk}_form_widget',
             request=request,
             form=form,
-            post_target=RoundModelView.post_url(course_id=course_id),
+            post_target=RoundModelView.post_url(**{'course_id': course_id}),
             button_text=f"{_('Edit round')} {round_obj.name}",
             **kwargs
         )
@@ -800,7 +826,7 @@ class CreateSubmitFormWidget(FormWidget):
             name='create_submit_form_widget',
             request=request,
             form=form,
-            post_target=SubmitModelView.post_url(course_id=course_id),
+            post_target=SubmitModelView.post_url(**{'course_id': course_id}),
             button_text=_('New submission'),
             **kwargs
         )
