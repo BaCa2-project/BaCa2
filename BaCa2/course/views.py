@@ -10,6 +10,7 @@ from django.utils.translation import gettext_lazy as _
 
 from course.models import Result, Round, Submit, Task
 from course.routing import InCourse
+from main.views import CourseModelView as CourseModelManagerView
 from main.views import RoleModelView, UserModelView
 from util.models_registry import ModelsRegistry
 from util.views import BaCa2LoggedInView, BaCa2ModelView
@@ -22,6 +23,7 @@ from widgets.forms.course import (
     CreateSubmitFormWidget,
     CreateTaskForm,
     CreateTaskFormWidget,
+    DeleteRoleForm,
     DeleteRoundForm,
     DeleteTaskForm,
     EditRoundForm,
@@ -351,6 +353,9 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
             cols=[TextColumn(name='name', header=_('Role name')),
                   TextColumn(name='description', header=_('Description'))],
             refresh_button=True,
+            allow_delete=True,
+            delete_form=DeleteRoleForm(),
+            data_post_url=CourseModelManagerView.post_url(course_id=course_id),
             # TODO: link to role edit
         )
         self.add_widget(context, roles_table)

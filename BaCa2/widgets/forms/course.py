@@ -500,6 +500,31 @@ class AddRoleFormWidget(FormWidget):
         )
 
 
+# ----------------------------------------- delete role ---------------------------------------- #
+
+class DeleteRoleForm(CourseActionForm):
+    """
+    Form for deleting existing :py:class:`main.Role` objects.
+    """
+
+    ACTION = Course.CourseAction.DEL_ROLE
+
+    #: ID of the role to be deleted.
+    role_id = forms.IntegerField(
+        label=_('Role ID'),
+        widget=forms.HiddenInput(attrs={'class': 'model-id', 'data-reset-on-refresh': 'true'}),
+        required=True
+    )
+
+    @classmethod
+    def handle_valid_request(cls, request) -> Dict[str, str]:
+        course = cls.get_context_course(request)
+        role = ModelsRegistry.get_role(int(request.POST.get('role_id')))
+        role_name = role.name
+        course.remove_role(role)
+        return {'message': _('Role ') + role_name + _(' deleted successfully')}
+
+
 # ============================================ ROUND =========================================== #
 
 # ---------------------------------------- create round ---------------------------------------- #
