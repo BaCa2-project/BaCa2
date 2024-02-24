@@ -10,6 +10,7 @@ function formsSetup() {
     choiceFieldSetup();
     modelChoiceFieldSetup();
     tableSelectFieldSetup();
+    textAreaFieldSetup();
     liveValidationSetup();
 }
 
@@ -38,11 +39,23 @@ function liveValidationSetup() {
                 return $(this).val() !== undefined && $(this).val().length > 0;
             }).addClass('is-valid');
 
+            $(this).find('textarea').filter(function () {
+                return $(this).val() !== undefined && $(this).val().length > 0;
+            }).addClass('is-valid');
+
             $(this).find('select').filter(function () {
                 return $(this).val() !== null && $(this).val().length > 0;
             }).addClass('is-valid');
         })
         submitButtonRefresh($(this));
+    });
+}
+
+function textAreaFieldSetup() {
+    $('.form-floating textarea').each(function () {
+        const rows = $(this).attr('rows');
+        const height = `${rows * 2.1}rem`;
+        $(this).css('height', height);
     });
 }
 
@@ -227,6 +240,7 @@ function formRefresh(form) {
 function clearValidation(form) {
     form.find('input').removeClass('is-valid').removeClass('is-invalid');
     form.find('select').removeClass('is-valid').removeClass('is-invalid');
+    form.find('textarea').removeClass('is-valid').removeClass('is-invalid');
     form.find('.invalid-feedback').remove();
 }
 
@@ -416,7 +430,7 @@ function tableSelectFieldSetup() {
         form.on('submit-complete', function () {
             const tableWidget = window.tableWidgets[`#${tableId}`];
             tableWidget.table.one('draw.dt', function () {
-               console.log('draw.dt')
+                console.log('draw.dt')
                 tableWidget.updateSelectHeader();
             });
             tableWidget.table.ajax.reload();
