@@ -10,17 +10,20 @@ from django.utils.translation import gettext_lazy as _
 
 from course.models import Result, Round, Submit, Task
 from course.routing import InCourse
+from main.views import CourseModelView as CourseModelManagerView
 from main.views import RoleModelView, UserModelView
 from util.models_registry import ModelsRegistry
 from util.views import BaCa2LoggedInView, BaCa2ModelView
 from widgets.forms.course import (
     AddMembersFormWidget,
+    AddRoleFormWidget,
     CreateRoundForm,
     CreateRoundFormWidget,
     CreateSubmitForm,
     CreateSubmitFormWidget,
     CreateTaskForm,
     CreateTaskFormWidget,
+    DeleteRoleForm,
     DeleteRoundForm,
     DeleteTaskForm,
     EditRoundForm,
@@ -350,9 +353,15 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
             cols=[TextColumn(name='name', header=_('Role name')),
                   TextColumn(name='description', header=_('Description'))],
             refresh_button=True,
-            # TODO: link to role edit
+            allow_delete=True,
+            delete_form=DeleteRoleForm(),
+            data_post_url=CourseModelManagerView.post_url(course_id=course_id),
+            link_format_string='/main/role/[[id]]/',
         )
         self.add_widget(context, roles_table)
+
+        add_role_form = AddRoleFormWidget(request=self.request, course_id=course_id)
+        self.add_widget(context, add_role_form)
 
         # rounds ---------------------------------------------------------------
         rounds_table = TableWidget(
@@ -390,6 +399,7 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
                   TextColumn(name='judging_mode', header=_('Judging mode')),
                   TextColumn(name='points', header=_('Max points'))],
             allow_delete=True,
+            allow_select=True,
             delete_form=DeleteTaskForm(),
             data_post_url=TaskModelView.post_url(course_id=course_id),
             refresh_button=True,

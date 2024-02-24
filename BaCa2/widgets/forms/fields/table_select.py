@@ -20,6 +20,7 @@ class TableSelectField(IntegerArrayField):
                  data_source_url: str,
                  cols: List[Column],
                  allow_column_search: bool = True,
+                 table_widget_kwargs: dict = None,
                  **kwargs) -> None:
         """
         :param label: The label of the field. Will appear as the title of the table widget.
@@ -33,6 +34,9 @@ class TableSelectField(IntegerArrayField):
         :param allow_column_search: Whether to display separate search fields for each searchable
             column.
         :type allow_column_search: bool
+        :param table_widget_kwargs: Additional keyword arguments to pass to the table widget
+            constructor.
+        :type table_widget_kwargs: dict
         :param kwargs: Additional keyword arguments to pass to the superclass constructor of the
             :class:`IntegerArrayField`.
         :type kwargs: dict
@@ -50,6 +54,7 @@ class TableSelectField(IntegerArrayField):
             allow_select=True,
             deselect_on_filter=False,
             highlight_rows_on_hover=True,
+            **(table_widget_kwargs or {})
         )
         self.table_widget = table_widget.get_context()
         self.table_widget_id = table_widget_name

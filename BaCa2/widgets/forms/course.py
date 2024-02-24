@@ -10,7 +10,7 @@ from core.choices import TaskJudgingMode
 from core.tools.files import FileHandler
 from course.models import Round, Submit, Task
 from course.routing import InCourse
-from main.models import Course
+from main.models import Course, Role
 from util.models_registry import ModelsRegistry
 from widgets.forms.base import BaCa2ModelForm, FormElementGroup, FormWidget, ModelFormPostTarget
 from widgets.forms.fields import (
@@ -28,12 +28,16 @@ from widgets.popups.forms import SubmitConfirmationPopup
 logger = logging.getLogger(__name__)
 
 
-# -------------------------------------- course model form ------------------------------------- #
+# ---------------------------------- course form base classes ---------------------------------- #
 
 class CourseModelForm(BaCa2ModelForm):
     """
     Base class for all forms in the BaCa2 app which are used to create, delete or modify course
     database model objects.
+
+    See also:
+        - :class:`BaCa2ModelForm`
+        - :class:`CourseActionForm`
     """
 
     @classmethod
@@ -60,6 +64,69 @@ class CourseModelForm(BaCa2ModelForm):
         return request.user.has_course_permission(cls.ACTION.label, InCourse.get_context_course())
 
 
+class CourseActionForm(BaCa2ModelForm):
+    """
+    Base class for all forms in the BaCa2 app which are used to perform course-specific actions
+    on default database model objects (such as adding or removing members, creating roles, etc.).
+    All form widgets wrapping this form should post to the course model view url with a specified
+    `course_id` parameter. The form's `is_permissible` checks if the requesting user has the
+    permission to perform its action within the scope of the course with the given ID.
+
+    See also:
+        - :class:`BaCa2ModelForm`
+        - :class:`Course.CourseAction`
+    """
+
+    #: Actions performed by this type of form always concern the :class:`Course` model.
+    MODEL = Course
+    #: Course action to be performed by the form.
+    ACTION: Course.CourseAction = None
+
+    @classmethod
+    def handle_valid_request(cls, request) -> Dict[str, Any]:
+        """
+        Handles the POST request received by the view this form's data was posted to if the request
+        is permissible and the form data is valid.
+
+        :param request: Request object.
+        :type request: HttpRequest
+        :return: Dictionary containing a success message and any additional data to be included in
+            the response.
+        :rtype: Dict[str, Any]
+        """
+        raise NotImplementedError('This method has to be implemented by inheriting classes.')
+
+    @staticmethod
+    def get_context_course(request) -> Course:
+        """
+        :return: Course object matching the course ID provided in the request.
+        :rtype: Course
+        :raises ValueError: If the request object does not have a course attribute or the course ID
+            is not provided in the request.
+        """
+        if not hasattr(request, 'course'):
+            raise ValueError('Request object does not have a course attribute')
+
+        course_id = request.course.get('course_id')
+
+        if not course_id:
+            raise ValueError('Course ID not provided in the request')
+
+        return ModelsRegistry.get_course(int(course_id))
+
+    @classmethod
+    def is_permissible(cls, request) -> bool:
+        """
+        :param request: Request object.
+        :type request: HttpRequest
+        :return: `True` if the user has the permission to perform the action specified by the form
+            within the scope of the course with the ID provided in the request, `False` otherwise.
+        :rtype: bool
+        """
+        course = cls.get_context_course(request)
+        return request.user.has_course_permission(cls.ACTION.label, course)
+
+
 # =========================================== COURSE =========================================== #
 
 # ---------------------------------------- create course --------------------------------------- #
@@ -77,7 +144,7 @@ class CreateCourseForm(BaCa2ModelForm):
     ACTION = Course.BasicAction.ADD
 
     #: New course's name.
-    name = CourseName(label=_('Course name'), required=True)
+    course_name = CourseName(label=_('Course name'), required=True)
 
     #: New course's short name.
     short_name = CourseShortName()
@@ -107,12 +174,14 @@ class CreateCourseForm(BaCa2ModelForm):
         :rtype: Dict[str, str]
         """
         Course.objects.create_course(
-            name=request.POST.get('name'),
+            name=request.POST.get('course_name'),
             short_name=request.POST.get('short_name'),
             usos_course_code=request.POST.get('USOS_course_code'),
             usos_term_code=request.POST.get('USOS_term_code')
         )
-        return {'message': _('Course ') + request.POST.get('name') + _(' created successfully')}
+
+        message = _('Course ') + request.POST.get('course_name') + _(' created successfully')
+        return {'message': message}
 
 
 class CreateCourseFormWidget(FormWidget):
@@ -246,10 +315,18 @@ class DeleteCourseFormWidget(FormWidget):
 
 # ----------------------------------------- add members ---------------------------------------- #
 
-class AddMembersForm(BaCa2ModelForm):
-    MODEL = Course
+class AddMembersForm(CourseActionForm):
+    """
+    Form for adding members to a course with a specified role.
+
+    See also:
+        - :class:`CourseActionForm`
+        - :class: `Role`
+    """
+
     ACTION = Course.CourseAction.ADD_MEMBER
 
+    #: Users to be added to the course.
     users = TableSelectField(
         label=_('Choose users to add'),
         table_widget_name='add_members_table_widget',
@@ -259,6 +336,7 @@ class AddMembersForm(BaCa2ModelForm):
               TextColumn(name='last_name', header=_('Last name'))],
     )
 
+    #: Role to be assigned to the newly added members.
     role = ModelChoiceField(
         label=_('Role'),
         data_source_url='',
@@ -268,11 +346,17 @@ class AddMembersForm(BaCa2ModelForm):
 
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
-        course_id = int(request.course.get('course_id'))
+        """
+        Adds the users selected in the form to the course with the role specified in the form.
+
+        :param request: POST request containing the users and role data.
+        :type request: HttpRequest
+        :return: Dictionary containing a success message.
+        :rtype: Dict[str, str]
+        """
+        course = cls.get_context_course(request)
         users = TableSelectField.parse_value(request.POST.get('users'))
         role = int(request.POST.get('role'))
-
-        course = ModelsRegistry.get_course(course_id)
 
         if role == course.admin_role.id:
             course.add_admins(users)
@@ -283,12 +367,15 @@ class AddMembersForm(BaCa2ModelForm):
 
     @classmethod
     def is_permissible(cls, request) -> bool:
-        course_id = int(request.course.get('course_id'))
-
-        if not course_id:
-            raise ValueError('Course ID not provided in the request')
-
-        course = ModelsRegistry.get_course(course_id)
+        """
+        :param request: Request object.
+        :type request: HttpRequest
+        :return: `True` if the requesting user has the permission to add members to the course
+            specified in the request, `False` otherwise. If the role specified in the request is the
+            admin role, the user must have the `ADD_ADMIN` permission.
+        :rtype: bool
+        """
+        course = cls.get_context_course(request)
         role = int(request.POST.get('role'))
 
         if role == course.admin_role.id:
@@ -298,11 +385,32 @@ class AddMembersForm(BaCa2ModelForm):
 
 
 class AddMembersFormWidget(FormWidget):
+    """
+    Form widget for adding members to a course with a specified role.
+
+    See also:
+        - :class:`FormWidget`
+        - :class:`AddMembersForm`
+    """
+
     def __init__(self,
                  request,
                  course_id: int,
                  form: AddMembersForm = None,
                  **kwargs) -> None:
+        """
+        :param request: HTTP request object received by the view this form widget is rendered in.
+        :type request: HttpRequest
+        :param course_id: ID of the course the view this form widget is rendered in is associated
+            with.
+        :type course_id: int
+        :param form: AddMembersForm to be base the widget on. If not provided, a new form will be
+            created.
+        :type form: :class:`AddMembers`
+        :param kwargs: Additional keyword arguments to be passed to the :class:`FormWidget`
+            super constructor.
+        :type kwargs: dict
+        """
         from main.views import CourseModelView, RoleModelView, UserModelView
         from util.views import BaCa2ModelView
 
@@ -329,6 +437,94 @@ class AddMembersFormWidget(FormWidget):
         )
 
 
+# ============================================ ROLE ============================================ #
+
+# ----------------------------------------- create role ---------------------------------------- #
+
+class AddRoleForm(CourseActionForm):
+    ACTION = Course.CourseAction.ADD_ROLE
+
+    role_name = AlphanumericStringField(label=_('Role name'),
+                                        required=True,
+                                        min_length=4,
+                                        max_length=Role._meta.get_field('name').max_length)
+
+    role_description = forms.CharField(label=_('Description'),
+                                       required=False,
+                                       widget=forms.Textarea(attrs={'rows': 3}))
+
+    role_permissions = TableSelectField(label=_('Choose role permissions'),
+                                        table_widget_name='role_permissions_table_widget',
+                                        data_source_url='',
+                                        cols=[TextColumn(name='codename', header=_('Codename')),
+                                              TextColumn(name='name', header=_('Description'))],
+                                        table_widget_kwargs={'height_limit': 25})
+
+    @ classmethod
+    def handle_valid_request(cls, request) -> Dict[str, Any]:
+        course = cls.get_context_course(request)
+        role_name = request.POST.get('role_name')
+        role_description = request.POST.get('role_description', '')
+        permissions = TableSelectField.parse_value(request.POST.get('role_permissions'))
+
+        course.create_role(name=role_name, description=role_description, permissions=permissions)
+
+        return {'message': _('Role ') + role_name + _(' created successfully')}
+
+
+class AddRoleFormWidget(FormWidget):
+    def __init__(self,
+                 request,
+                 course_id: int,
+                 form: AddRoleForm = None,
+                 **kwargs) -> None:
+        from main.views import CourseModelView, PermissionModelView
+
+        if not form:
+            form = AddRoleForm()
+
+        codenames = [action.label for action in Course.CourseAction]
+
+        form.fields['role_permissions'].update_data_source_url(PermissionModelView.get_url(
+            mode=PermissionModelView.GetMode.FILTER,
+            query_params={'codename__in': codenames}
+        ))
+
+        super().__init__(
+            name='add_role_form_widget',
+            request=request,
+            form=form,
+            post_target=CourseModelView.post_url(**{'course_id': course_id}),
+            button_text=_('Add role'),
+            **kwargs
+        )
+
+
+# ----------------------------------------- delete role ---------------------------------------- #
+
+class DeleteRoleForm(CourseActionForm):
+    """
+    Form for deleting existing :py:class:`main.Role` objects.
+    """
+
+    ACTION = Course.CourseAction.DEL_ROLE
+
+    #: ID of the role to be deleted.
+    role_id = forms.IntegerField(
+        label=_('Role ID'),
+        widget=forms.HiddenInput(attrs={'class': 'model-id', 'data-reset-on-refresh': 'true'}),
+        required=True
+    )
+
+    @classmethod
+    def handle_valid_request(cls, request) -> Dict[str, str]:
+        course = cls.get_context_course(request)
+        role = ModelsRegistry.get_role(int(request.POST.get('role_id')))
+        role_name = role.name
+        course.remove_role(role)
+        return {'message': _('Role ') + role_name + _(' deleted successfully')}
+
+
 # ============================================ ROUND =========================================== #
 
 # ---------------------------------------- create round ---------------------------------------- #
@@ -337,7 +533,7 @@ class CreateRoundForm(CourseModelForm):
     MODEL = Round
     ACTION = Round.BasicAction.ADD
 
-    name = AlphanumericStringField(label=_('Round name'), required=True)
+    round_name = AlphanumericStringField(label=_('Round name'), required=True)
     start_date = DateTimeField(label=_('Start date'), required=True)
     end_date = DateTimeField(label=_('End date'), required=False)
     deadline_date = DateTimeField(label=_('Deadline date'), required=True)
@@ -354,14 +550,15 @@ class CreateRoundForm(CourseModelForm):
             reveal_date = None
 
         Round.objects.create_round(
-            name=request.POST.get('name'),
+            name=request.POST.get('round_name'),
             start_date=request.POST.get('start_date'),
             end_date=end_date,
             deadline_date=request.POST.get('deadline_date'),
             reveal_date=reveal_date
         )
 
-        return {'message': _('Round ') + request.POST.get('name') + _(' created successfully')}
+        message = _('Round ') + request.POST.get('round_name') + _(' created successfully')
+        return {'message': message}
 
 
 class CreateRoundFormWidget(FormWidget):
@@ -399,7 +596,7 @@ class EditRoundForm(CourseModelForm):
     MODEL = Round
     ACTION = Round.BasicAction.EDIT
 
-    name = AlphanumericStringField(label=_('Round name'), required=True)
+    round_name = AlphanumericStringField(label=_('Round name'), required=True)
     start_date = DateTimeField(label=_('Start date'), required=True)
     end_date = DateTimeField(label=_('End date'), required=False)
     deadline_date = DateTimeField(label=_('Deadline date'), required=True)
@@ -411,14 +608,15 @@ class EditRoundForm(CourseModelForm):
         round_ = ModelsRegistry.get_round(int(request.POST.get('round_id')))
 
         round_.update(
-            name=request.POST.get('name'),
+            name=request.POST.get('round_name'),
             start_date=request.POST.get('start_date'),
             end_date=request.POST.get('end_date'),
             deadline_date=request.POST.get('deadline_date'),
             reveal_date=request.POST.get('reveal_date'),
         )
 
-        return {'message': _('Round ') + request.POST.get('name') + _(' edited successfully')}
+        message = _('Round ') + request.POST.get('round_name') + _(' edited successfully')
+        return {'message': message}
 
 
 class EditRoundFormWidget(FormWidget):
@@ -446,7 +644,7 @@ class EditRoundFormWidget(FormWidget):
             name=f'edit_round{round_obj.pk}_form_widget',
             request=request,
             form=form,
-            post_target=RoundModelView.post_url(course_id=course_id),
+            post_target=RoundModelView.post_url(**{'course_id': course_id}),
             button_text=f"{_('Edit round')} {round_obj.name}",
             **kwargs
         )
@@ -714,7 +912,7 @@ class CreateSubmitFormWidget(FormWidget):
             name='create_submit_form_widget',
             request=request,
             form=form,
-            post_target=SubmitModelView.post_url(course_id=course_id),
+            post_target=SubmitModelView.post_url(**{'course_id': course_id}),
             button_text=_('New submission'),
             **kwargs
         )
