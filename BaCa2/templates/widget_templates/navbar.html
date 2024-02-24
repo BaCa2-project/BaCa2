@@ -31,14 +31,14 @@
                         {% include 'util/theme_button.html' %}
                     </div>
                 </li>
-                <li class="nav-item">
+                {% comment %}<li class="nav-item">
                     <!-- TODO -->
                     <a class="nav-link hover-highlight" href="#">
                         <div class="icon-wrapper icon-m d-flex">
                             {% include 'icons/bell.svg' %}
                         </div>
                     </a>
-                </li>
+                </li>{% endcomment %}
                 <li class="nav-item dropdown">
                     <!-- TODO -->
                     <a class="nav-link dropdown-toggle hover-highlight"
@@ -50,8 +50,7 @@
                         </div>
                     </a>
                     <div class="dropdown-menu">
-                        <a class="dropdown-item" href="#">Profil</a>
-                        <a class="dropdown-item" href="#">Ustawienia</a>
+                        <a class="dropdown-item" href="{% url 'main:profile' %}">Profil</a>
                         <div class="dropdown-divider"></div>
                         <a class="dropdown-item" href="{% url 'logout' %}">Wyloguj</a>
                     </div>
