@@ -19,6 +19,15 @@
             </div>
         </div>
     {% endif %}
+    {% if remove_members_tab %}
+        <div class="tab-wrapper" id="{{ remove_members_tab }}">
+            <div class="side-nav-tab">
+                {% with widgets.FormWidget.remove_members_form_widget as form_widget %}
+                    {% include "widget_templates/forms/default.html" %}
+                {% endwith %}
+            </div>
+        </div>
+    {% endif %}
     {% if view_roles_tab %}
         <div class="tab-wrapper" id="{{ view_roles_tab }}">
             <div class="side-nav-tab">
