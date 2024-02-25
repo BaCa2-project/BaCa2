@@ -76,6 +76,10 @@
 
 <body data-bs-theme="{{ data_bs_theme }}">
 
+<script>
+    preInitCommon();
+</script>
+
 {% if display_navbar %}
     {% with widgets.NavBar.navbar as navbar_widget %}
         {% include 'widget_templates/navbar.html' %}

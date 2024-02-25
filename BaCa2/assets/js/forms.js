@@ -1,5 +1,9 @@
 // ---------------------------------------- forms setup --------------------------------------- //
 
+function formsPreSetup() {
+    tableSelectFieldSetup();
+}
+
 function formsSetup() {
     ajaxPostSetup();
     toggleableGroupSetup();
@@ -9,7 +13,6 @@ function formsSetup() {
     refreshButtonSetup();
     choiceFieldSetup();
     modelChoiceFieldSetup();
-    tableSelectFieldSetup();
     textAreaFieldSetup();
     liveValidationSetup();
 }
@@ -406,37 +409,37 @@ function renderValidationErrors(popup, errors) {
 // ------------------------------------ table select field ------------------------------------ //
 
 function tableSelectFieldSetup() {
-    $('.table-select-field').each(function () {
-        const tableSelectField = $(this);
-        const table = tableSelectField.find('table').filter(function () {
-            return $(this).attr('id') !== undefined;
-        });
-        const tableId = table.attr('id');
-        const input = tableSelectField.find('.input-group input');
-        const form = tableSelectField.closest('form');
+    $(document).on('init.dt', function (e) {
+        console.log(e.target);
+        const table = $(e.target);
 
-        table.DataTable().on('init.dt', function () {
+        table.closest('.table-select-field').each(function () {
+            const tableSelectField = $(this);
+            const tableId = table.attr('id');
+            const input = tableSelectField.find('.input-group input');
+            const form = tableSelectField.closest('form');
+
             table.find('.select').on('change', function () {
                 tableSelectFieldCheckboxClickHandler(tableSelectField, input)
             });
-        });
 
-        input.on('validation-complete', function () {
-            if ($(this).hasClass('is-valid'))
-                tableSelectField.removeClass('is-invalid').addClass('is-valid');
-            else if ($(this).hasClass('is-invalid'))
-                tableSelectField.removeClass('is-valid').addClass('is-invalid');
-            else
-                tableSelectField.removeClass('is-valid').removeClass('is-invalid');
-        });
-
-        form.on('submit-complete', function () {
-            const tableWidget = window.tableWidgets[`#${tableId}`];
-            tableWidget.table.one('draw.dt', function () {
-                tableWidget.updateSelectHeader();
+            input.on('validation-complete', function () {
+                if ($(this).hasClass('is-valid'))
+                    tableSelectField.removeClass('is-invalid').addClass('is-valid');
+                else if ($(this).hasClass('is-invalid'))
+                    tableSelectField.removeClass('is-valid').addClass('is-invalid');
+                else
+                    tableSelectField.removeClass('is-valid').removeClass('is-invalid');
             });
-            tableWidget.table.ajax.reload();
-        })
+
+            form.on('submit-complete', function () {
+                const tableWidget = window.tableWidgets[`#${tableId}`];
+                tableWidget.table.one('draw.dt', function () {
+                    tableWidget.updateSelectHeader();
+                });
+                tableWidget.table.ajax.reload();
+            })
+        });
     });
 }
 

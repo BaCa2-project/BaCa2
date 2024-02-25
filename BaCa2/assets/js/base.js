@@ -1,3 +1,7 @@
+function preInitCommon() {
+    formsPreSetup();
+}
+
 function initCommon() {
     if (!window.location.href.includes("login")) {
         sessionStorage.removeItem("loginFormRefresh");
