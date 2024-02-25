@@ -13,6 +13,7 @@ function formsSetup() {
     refreshButtonSetup();
     choiceFieldSetup();
     modelChoiceFieldSetup();
+    tableSelectFieldValidationSetup();
     textAreaFieldSetup();
     liveValidationSetup();
 }
@@ -330,7 +331,7 @@ function updateSelectFieldValidationStatus(field) {
 function submitButtonRefresh(form) {
     if (form.find('.live-validation').filter(function () {
         return ($(this)).find('input:not(:disabled):not(.is-valid):required').length > 0 ||
-               $(this).find('select:not(:disabled):not(.is-valid)').length > 0;
+            $(this).find('select:not(:disabled):not(.is-valid)').length > 0;
     }).length > 0)
         form.find('.submit-btn').attr('disabled', true);
     else
@@ -410,7 +411,6 @@ function renderValidationErrors(popup, errors) {
 
 function tableSelectFieldSetup() {
     $(document).on('init.dt', function (e) {
-        console.log(e.target);
         const table = $(e.target);
 
         table.closest('.table-select-field').each(function () {
@@ -423,22 +423,33 @@ function tableSelectFieldSetup() {
                 tableSelectFieldCheckboxClickHandler(tableSelectField, input)
             });
 
-            input.on('validation-complete', function () {
-                if ($(this).hasClass('is-valid'))
-                    tableSelectField.removeClass('is-invalid').addClass('is-valid');
-                else if ($(this).hasClass('is-invalid'))
-                    tableSelectField.removeClass('is-valid').addClass('is-invalid');
-                else
-                    tableSelectField.removeClass('is-valid').removeClass('is-invalid');
-            });
-
             form.on('submit-complete', function () {
                 const tableWidget = window.tableWidgets[`#${tableId}`];
+
                 tableWidget.table.one('draw.dt', function () {
                     tableWidget.updateSelectHeader();
                 });
-                tableWidget.table.ajax.reload();
+
+                tableWidget.table.ajax.reload(function () {
+                    $(`#${tableId}`).trigger('init.dt')
+                });
             })
+        });
+    });
+}
+
+function tableSelectFieldValidationSetup() {
+    $('.table-select-field').each(function () {
+        const tableSelectField = $(this);
+        const input = tableSelectField.find('.input-group input');
+
+        input.on('validation-complete', function () {
+            if ($(this).hasClass('is-valid'))
+                tableSelectField.removeClass('is-invalid').addClass('is-valid');
+            else if ($(this).hasClass('is-invalid'))
+                tableSelectField.removeClass('is-valid').addClass('is-invalid');
+            else
+                tableSelectField.removeClass('is-valid').removeClass('is-invalid');
         });
     });
 }
