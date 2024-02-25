@@ -5,9 +5,9 @@ from typing import Any, Callable, Dict, List, Union
 import django.db.models
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
-from django.shortcuts import redirect
 from django.utils.translation import gettext_lazy as _
 
+from core.choices import BasicModelAction
 from course.models import Result, Round, Submit, Task
 from course.routing import InCourse
 from main.models import Course
@@ -34,6 +34,7 @@ from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.columns import DatetimeColumn, TextColumn
 from widgets.navigation import SideNav
 from widgets.text_display import TextDisplayer
+
 
 # ----------------------------------- Course views abstraction ---------------------------------- #
 
@@ -152,6 +153,13 @@ class CourseModelView(BaCa2ModelView, ABC, metaclass=ReadCourseViewMeta):
 
         return f'/course/{course_id}/models/{cls.MODEL._meta.model_name}/'
 
+    def check_get_all_permission(self, request, **kwargs) -> bool:
+        user = getattr(request, 'user')
+        course_id = self.kwargs.get('course_id')
+        return user.has_basic_course_model_permissions(model=self.MODEL,
+                                                       course=course_id,
+                                                       permissions=BasicModelAction.VIEW)
+
 
 # ----------------------------------------- Model views ----------------------------------------- #
 
@@ -232,14 +240,6 @@ class ResultModelView(CourseModelView):
     class MissingSubmitId(Exception):
         pass
 
-    # @classmethod
-    # def _url(cls, **kwargs) -> str:
-    #     url = super()._url(**kwargs)
-    #     submit_id = kwargs.get('submit_id')
-    #     if not submit_id:
-    #         raise cls.MissingSubmitId('Submit id required to construct URL')
-    #     return f'{url}/submit/{submit_id}'
-
     def check_get_filtered_permission(self,
                                       query_params: dict,
                                       query_result: List[django.db.models.Model],
@@ -256,69 +256,70 @@ class ResultModelView(CourseModelView):
         pass
 
 
-# ----------------------------------------- User views ----------------------------------------- #
+# ------------------------------------- course member mixin ------------------------------------ #
 
-class CourseView(BaCa2LoggedInView):
+class CourseMemberMixin(UserPassesTestMixin):
     """
-    View for non-admin members of a course. Only accessible if the user is a member of the course.
-    For course admins and superusers, redirects to the course admin page.
-    """
+    Mixin for views which require the user to be a member of a specific course referenced in the
+    URL of the view being accessed (as a `course_id` parameter). The mixin also allows superusers
+    to access the view.
 
-    template_name = 'course.html'
-
-    def get(self, request, *args, **kwargs) -> HttpResponse:
-        """
-        Checks if the user is an admin of the course or a superuser. If so, redirects to the course
-        admin page. If not, checks if the user is a member of the course. If so, returns the course
-        page. If not, returns an HTTP 403 Forbidden error.
-        """
-        course = ModelsRegistry.get_course(self.kwargs.get('course_id'))
-        if course.user_is_admin(request.user) or request.user.is_superuser:
-            return redirect('course:course-admin', course_id=course.id)
-        if not course.user_is_member(request.user):
-            return HttpResponseForbidden(_('You are neither a member of this course nor an admin.\n'
-                                           'You are not allowed to view this page.'))
-        return super().get(request, *args, **kwargs)
-
-    def get_context_data(self, **kwargs) -> dict:
-        context = super().get_context_data(**kwargs)
-        sidenav = SideNav(request=self.request,
-                          collapsed=False,
-                          toggle_button=False,
-                          tabs=['My results', 'Tasks', 'Members'])
-        self.add_widget(context, sidenav)
-        return context
-
-
-class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
-    """
-    View for admins of a course. Only accessible if the user is an admin of the course or a
-    superuser.
+    The mixin also allows for a specific role to be required for the user to access the view If the
+    `REQUIRED_ROLE` class attribute is set.
     """
 
-    template_name = 'course_admin.html'
+    #: The required role for the user to access the view. If `None`, the user only needs to be a
+    #: member of the course. If not `None`, the user needs to have the specified role in the course.
+    #: Should be a string with the name of the role.
+    REQUIRED_ROLE = None
 
     def test_func(self) -> bool:
         """
-        Test function for UserPassesTestMixin.
-
-        :return: `True` if the user is an admin of the course or a superuser, `False` otherwise.
+        :return: `True` if the user is a member of the course or a superuser, `False` otherwise. If
+            the `REQUIRED_ROLE` attribute is set, non-superusers also need to have the specified
+            role in the course to pass the test.
         :rtype: bool
         """
-        course = ModelsRegistry.get_course(self.kwargs.get('course_id'))
-        return course.user_is_admin(self.request.user) or self.request.user.is_superuser
+        kwargs = getattr(self, 'kwargs')
+        request = getattr(self, 'request')
+
+        if not kwargs or not request:
+            raise TypeError('CourseMemberMixin requires "kwargs" and "request" attrs to be set')
+
+        course_id = kwargs.get('course_id')
+
+        if not course_id:
+            raise TypeError('CourseMemberMixin should only be used with views that have a '
+                            '"course_id" parameter in their URL')
+
+        course = ModelsRegistry.get_course(course_id)
+
+        if request.user.is_superuser:
+            return True
+        if not self.REQUIRED_ROLE:
+            return course.user_is_member(request.user)
+        if self.REQUIRED_ROLE == 'admin':
+            return course.user_is_admin(request.user)
+
+        return course.user_has_role(request.user, self.REQUIRED_ROLE)
+
+
+# ----------------------------------------- User views ----------------------------------------- #
+
+class CourseView(BaCa2LoggedInView, CourseMemberMixin):
+    template_name = 'course_admin.html'
 
     def get_context_data(self, **kwargs) -> dict:
         context = super().get_context_data(**kwargs)
+        user = getattr(self.request, 'user')
         course_id = self.kwargs.get('course_id')
-        user = self.request.user
         course = ModelsRegistry.get_course(course_id)
         sidenav_tabs = ['Members', 'Roles', 'Rounds', 'Tasks', 'Results']
         sidenav_sub_tabs = {tab: [] for tab in sidenav_tabs}
 
         # members --------------------------------------------------------------------------------
 
-        if user.has_course_permission(course, Course.CourseAction.VIEW_MEMBER.label):
+        if user.has_course_permission(Course.CourseAction.VIEW_MEMBER.label, course):
             sidenav_sub_tabs.get('Members').append('View members')
             context['view_members_tab'] = 'view-members-tab'
 
@@ -335,10 +336,11 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
                       TextColumn(name='last_name', header=_('Last name')),
                       TextColumn(name='email', header=_('Email address')),
                       TextColumn(name='user_role', header=_('Role'))],
+                refresh_button=True,
             )
             self.add_widget(context, members_table)
 
-        if user.has_course_permission(course, Course.CourseAction.ADD_MEMBER.label):
+        if user.has_course_permission(Course.CourseAction.ADD_MEMBER.label, course):
             sidenav_sub_tabs.get('Members').append('Add members')
             context['add_members_tab'] = 'add-members-tab'
 
@@ -347,29 +349,37 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
 
         # roles ----------------------------------------------------------------------------------
 
-        if user.has_course_permission(course, Course.CourseAction.VIEW_ROLE.label):
+        if user.has_course_permission(Course.CourseAction.VIEW_ROLE.label, course):
             sidenav_sub_tabs.get('Roles').append('View roles')
             context['view_roles_tab'] = 'view-roles-tab'
 
-            roles_table = TableWidget(
-                name='roles_table_widget',
-                title=_('Roles'),
-                request=self.request,
-                data_source=RoleModelView.get_url(
+            roles_table_kwargs = {
+                'name': 'roles_table_widget',
+                'title': _('Roles'),
+                'request': self.request,
+                'data_source': RoleModelView.get_url(
                     mode=BaCa2ModelView.GetMode.FILTER,
                     query_params={'course': course_id},
                 ),
-                cols=[TextColumn(name='name', header=_('Role name')),
-                      TextColumn(name='description', header=_('Description'))],
-                refresh_button=True,
-                allow_delete=True,
-                delete_form=DeleteRoleForm(),
-                data_post_url=CourseModelManagerView.post_url(**{'course_id': course_id}),
-                link_format_string='/main/role/[[id]]/',
-            )
-            self.add_widget(context, roles_table)
+                'cols': [TextColumn(name='name', header=_('Role name')),
+                         TextColumn(name='description', header=_('Description'))],
+                'refresh_button': True,
+            }
 
-        if user.has_course_permission(course, Course.CourseAction.ADD_ROLE.label):
+            if user.has_course_permission(Course.CourseAction.EDIT_ROLE.label, course):
+                roles_table_kwargs['link_format_string'] = '/main/role/[[id]]/'
+
+            if user.has_course_permission(Course.CourseAction.DEL_ROLE.label, course):
+                roles_table_kwargs = roles_table_kwargs | {
+                    'allow_select': True,
+                    'allow_delete': True,
+                    'delete_form': DeleteRoleForm(),
+                    'data_post_url': CourseModelManagerView.post_url(**{'course_id': course_id}),
+                }
+
+            self.add_widget(context, TableWidget(**roles_table_kwargs))
+
+        if user.has_course_permission(Course.CourseAction.ADD_ROLE.label, course):
             sidenav_sub_tabs.get('Roles').append('Add role')
             context['add_role_tab'] = 'add-role-tab'
 
@@ -378,32 +388,40 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
 
         # rounds ---------------------------------------------------------------------------------
 
-        if user.has_course_permission(course, Course.CourseAction.VIEW_ROUND.label):
+        if user.has_course_permission(Course.CourseAction.VIEW_ROUND.label, course):
             sidenav_sub_tabs.get('Rounds').append('View rounds')
             context['view_rounds_tab'] = 'view-rounds-tab'
 
-            rounds_table = TableWidget(
-                name='rounds_table_widget',
-                title=_('Rounds'),
-                request=self.request,
-                data_source=RoundModelView.get_url(**{'course_id': course_id}),
-                cols=[TextColumn(name='name', header=_('Round name')),
-                      DatetimeColumn(name='start_date', header=_('Start date')),
-                      DatetimeColumn(name='end_date', header=_('End date')),
-                      DatetimeColumn(name='deadline_date', header=_('Deadline date')),
-                      DatetimeColumn(name='reveal_date', header=_('Reveal date'))],
-                allow_select=True,
-                allow_delete=True,
-                delete_form=DeleteRoundForm(),
-                data_post_url=RoundModelView.post_url(**{'course_id': course_id}),
-                refresh_button=True,
-                default_order_col='start_date',
-                default_order_asc=False,
-                link_format_string=f'/course/{course_id}/round-edit/?tab=[[normalized_name]]-tab#'
-            )
-            self.add_widget(context, rounds_table)
+            rounds_table_kwargs = {
+                'name': 'rounds_table_widget',
+                'title': _('Rounds'),
+                'request': self.request,
+                'data_source': RoundModelView.get_url(**{'course_id': course_id}),
+                'cols': [TextColumn(name='name', header=_('Round name')),
+                         DatetimeColumn(name='start_date', header=_('Start date')),
+                         DatetimeColumn(name='end_date', header=_('End date')),
+                         DatetimeColumn(name='deadline_date', header=_('Deadline date')),
+                         DatetimeColumn(name='reveal_date', header=_('Reveal date'))],
+                'refresh_button': True,
+                'default_order_col': 'start_date',
+                'default_order_asc': False,
+            }
 
-        if user.has_course_permission(course, Course.CourseAction.ADD_ROUND.label):
+            if user.has_course_permission(Course.CourseAction.EDIT_ROUND.label, course):
+                rounds_table_kwargs['link_format_string'] = (f'/course/{course_id}/round-edit/'
+                                                             f'?tab=[[normalized_name]]-tab#')
+
+            if user.has_course_permission(Course.CourseAction.DEL_ROUND.label, course):
+                rounds_table_kwargs = rounds_table_kwargs | {
+                    'allow_select': True,
+                    'allow_delete': True,
+                    'delete_form': DeleteRoundForm(),
+                    'data_post_url': RoundModelView.post_url(**{'course_id': course_id}),
+                }
+
+            self.add_widget(context, TableWidget(**rounds_table_kwargs))
+
+        if user.has_course_permission(Course.CourseAction.ADD_ROUND.label, course):
             sidenav_sub_tabs.get('Rounds').append('Add round')
             context['add_round_tab'] = 'add-round-tab'
 
@@ -412,30 +430,35 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
 
         # tasks ----------------------------------------------------------------------------------
 
-        if user.has_course_permission(course, Course.CourseAction.VIEW_TASK.label):
+        if user.has_course_permission(Course.CourseAction.VIEW_TASK.label, course):
             sidenav_sub_tabs.get('Tasks').append('View tasks')
             context['view_tasks_tab'] = 'view-tasks-tab'
 
-            tasks_table = TableWidget(
-                name='tasks_table_widget',
-                title=_('Tasks'),
-                request=self.request,
-                data_source=TaskModelView.get_url(**{'course_id': course_id}),
-                cols=[TextColumn(name='name', header=_('Task name')),
-                      TextColumn(name='round_name', header=_('Round')),
-                      TextColumn(name='judging_mode', header=_('Judging mode')),
-                      TextColumn(name='points', header=_('Max points'))],
-                allow_delete=True,
-                allow_select=True,
-                delete_form=DeleteTaskForm(),
-                data_post_url=TaskModelView.post_url(**{'course_id': course_id}),
-                refresh_button=True,
-                default_order_col='round_name',
-                link_format_string=f'/course/{course_id}/task/[[id]]',
-            )
-            self.add_widget(context, tasks_table)
+            tasks_table_kwargs = {
+                'name': 'tasks_table_widget',
+                'title': _('Tasks'),
+                'request': self.request,
+                'data_source': TaskModelView.get_url(**{'course_id': course_id}),
+                'cols': [TextColumn(name='name', header=_('Task name')),
+                         TextColumn(name='round_name', header=_('Round')),
+                         TextColumn(name='judging_mode', header=_('Judging mode')),
+                         TextColumn(name='points', header=_('Max points'))],
+                'refresh_button': True,
+                'default_order_col': 'round_name',
+                'link_format_string': f'/course/{course_id}/task/[[id]]',
+            }
 
-        if user.has_course_permission(course, Course.CourseAction.ADD_TASK.label):
+            if user.has_course_permission(Course.CourseAction.DEL_TASK.label, course):
+                tasks_table_kwargs = tasks_table_kwargs | {
+                    'allow_select': True,
+                    'allow_delete': True,
+                    'delete_form': DeleteTaskForm(),
+                    'data_post_url': TaskModelView.post_url(**{'course_id': course_id}),
+                }
+
+            self.add_widget(context, TableWidget(**tasks_table_kwargs))
+
+        if user.has_course_permission(Course.CourseAction.ADD_TASK.label, course):
             sidenav_sub_tabs.get('Tasks').append('Add task')
             context['add_task_tab'] = 'add-task-tab'
 
@@ -444,36 +467,49 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
 
         # results --------------------------------------------------------------------------------
 
-        if user.has_course_permission(course, Course.CourseAction.VIEW_RESULT.label):
+        if user.has_course_permission(Course.CourseAction.VIEW_SUBMIT.label, course):
+            sidenav_sub_tabs.get('Results').append('View results')
             context['results_tab'] = 'results-tab'
 
-            results_table = TableWidget(
-                name='results_table_widget',
-                request=self.request,
-                data_source=SubmitModelView.get_url(serialize_kwargs={'add_round_task_name': True,
-                                                                      'add_summary_score': True, },
-                                                    **{'course_id': course_id}),
-                cols=[TextColumn(name='task_name', header=_('Task name')),
-                      DatetimeColumn(name='submit_date', header=_('Submit time')),
-                      TextColumn(name='user_first_name', header=_('Submitter first name')),
-                      TextColumn(name='user_last_name', header=_('Submitter last name')),
-                      TextColumn(name='summary_score', header=_('Score'))],
-                title=_('All results'),
-                refresh_button=True,
-                paging=TableWidgetPaging(page_length=50,
-                                         allow_length_change=True,
-                                         length_change_options=[10, 25, 50, 100]),
-                link_format_string=f'/course/{course_id}/submit/[[id]]/',
-            )
-            self.add_widget(context, results_table)
+            results_table_kwargs = {
+                'name': 'results_table_widget',
+                'title': _('Results'),
+                'request': self.request,
+                'data_source': SubmitModelView.get_url(
+                    serialize_kwargs={'add_round_task_name': True,
+                                      'add_summary_score': True, },
+                    **{'course_id': course_id}
+                ),
+                'cols': [TextColumn(name='task_name', header=_('Task name')),
+                         DatetimeColumn(name='submit_date', header=_('Submit time')),
+                         TextColumn(name='user_first_name', header=_('Submitter first name')),
+                         TextColumn(name='user_last_name', header=_('Submitter last name')),
+                         TextColumn(name='summary_score', header=_('Score'))],
+                'refresh_button': True,
+                'paging': TableWidgetPaging(page_length=50,
+                                            allow_length_change=True,
+                                            length_change_options=[10, 25, 50, 100]),
+            }
+
+            if user.has_course_permission(Course.CourseAction.VIEW_RESULT.label, course):
+                results_table_kwargs['link_format_string'] = f'/course/{course_id}/submit/[[id]]/'
+
+            self.add_widget(context, TableWidget(**results_table_kwargs))
 
         # side nav -------------------------------------------------------------------------------
 
+        sidenav_tabs = [tab for tab in sidenav_tabs if sidenav_sub_tabs.get(tab)]
         sidenav_sub_tabs = {tab: sub_tabs for tab, sub_tabs in sidenav_sub_tabs.items()
                             if len(sub_tabs) > 1}
+
+        if len(sidenav_sub_tabs) > 1:
+            toggle_button = True
+        else:
+            toggle_button = False
+
         sidenav = SideNav(request=self.request,
                           collapsed=False,
-                          toggle_button=True,
+                          toggle_button=toggle_button,
                           tabs=sidenav_tabs,
                           sub_tabs=sidenav_sub_tabs)
         self.add_widget(context, sidenav)
@@ -501,28 +537,17 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
         return context
 
 
-class CourseTask(BaCa2LoggedInView):
+class CourseTask(BaCa2LoggedInView, CourseMemberMixin):
     template_name = 'course_task.html'
-
-    def get(self, request, *args, **kwargs) -> HttpResponse:
-        """
-        Checks if the user is an admin of the course or a superuser. If so, redirects to the course
-        admin page. If not, checks if the user is a member of the course. If so, returns the course
-        page. If not, returns an HTTP 403 Forbidden error.
-        """
-        course = ModelsRegistry.get_course(self.kwargs.get('course_id'))
-        # if course.user_is_admin(request.user) or request.user.is_superuser:
-        #     return redirect('course:course-admin', course_id=course.id)
-        if not course.user_is_member(request.user) and not request.user.is_superuser:
-            return HttpResponseForbidden(_('You are neither a member of this course nor an admin.\n'
-                                           'You are not allowed to view this page.'))
-        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs) -> dict:
         context = super().get_context_data(**kwargs)
+        user = getattr(self.request, 'user')
         course_id = self.kwargs.get('course_id')
         task_id = self.kwargs.get('task_id')
         task = ModelsRegistry.get_task(task_id, course_id)
+
+        # sidenav --------------------------------------------------------------------------------
 
         sidenav = SideNav(request=self.request,
                           collapsed=True,
@@ -530,7 +555,7 @@ class CourseTask(BaCa2LoggedInView):
 
         self.add_widget(context, sidenav)
 
-        # description
+        # description ----------------------------------------------------------------------------
         package = task.package_instance.package
 
         description_extension = package.doc_extension()
@@ -550,20 +575,20 @@ class CourseTask(BaCa2LoggedInView):
                                               **kwargs)
         self.add_widget(context, description_displayer)
 
-        # submit
+        # submit form ----------------------------------------------------------------------------
         submit_form = CreateSubmitFormWidget(request=self.request,
                                              course_id=course_id,
                                              task_id=task_id)
         self.add_widget(context, submit_form)
 
-        # results list
+        # results list ---------------------------------------------------------------------------
         results_table = TableWidget(
             name='results_table_widget',
             request=self.request,
             data_source=SubmitModelView.get_url(
                 mode=BaCa2ModelView.GetMode.FILTER,
                 query_params={'task__pk': task_id,
-                              'usr': self.request.user.id},
+                              'usr': user.id},
                 serialize_kwargs={'show_user': False},
                 course_id=course_id,
             ),
@@ -581,23 +606,14 @@ class CourseTask(BaCa2LoggedInView):
         return context
 
 
-class CourseTaskAdmin(BaCa2LoggedInView, UserPassesTestMixin):
+class CourseTaskAdmin(BaCa2LoggedInView, CourseMemberMixin):
     """
     View for admins of a course. Only accessible if the user is an admin of the course or a
     superuser.
     """
 
     template_name = 'course_task_admin.html'
-
-    def test_func(self) -> bool:
-        """
-        Test function for UserPassesTestMixin.
-
-        :return: `True` if the user is an admin of the course or a superuser, `False` otherwise.
-        :rtype: bool
-        """
-        course = ModelsRegistry.get_course(self.kwargs.get('course_id'))
-        return course.user_is_admin(self.request.user) or self.request.user.is_superuser
+    REQUIRED_ROLE = 'admin'
 
     def get_context_data(self, **kwargs) -> dict:
         context = super().get_context_data(**kwargs)
@@ -635,18 +651,9 @@ class CourseTaskAdmin(BaCa2LoggedInView, UserPassesTestMixin):
         return context
 
 
-class RoundEditView(BaCa2LoggedInView, UserPassesTestMixin):
+class RoundEditView(BaCa2LoggedInView, CourseMemberMixin):
     template_name = 'course_edit_round.html'
-
-    def test_func(self) -> bool:
-        """
-        Test function for UserPassesTestMixin.
-
-        :return: `True` if the user is an admin of the course or a superuser, `False` otherwise.
-        :rtype: bool
-        """
-        course = ModelsRegistry.get_course(self.kwargs.get('course_id'))
-        return course.user_is_admin(self.request.user) or self.request.user.is_superuser
+    REQUIRED_ROLE = 'admin'
 
     def get_context_data(self, **kwargs) -> dict:
         context = super().get_context_data(**kwargs)

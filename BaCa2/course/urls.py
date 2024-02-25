@@ -1,10 +1,9 @@
 from django.urls import path
 
 from .views import (
-    CourseAdmin,
+    CourseView,
     CourseTask,
     CourseTaskAdmin,
-    CourseView,
     ResultModelView,
     RoundEditView,
     RoundModelView,
@@ -17,7 +16,6 @@ app_name = 'course'
 
 urlpatterns = [
     path('', CourseView.as_view(), name='course-view'),
-    path('admin/', CourseAdmin.as_view(), name='course-admin'),
     path('round-edit/', RoundEditView.as_view(), name='round-edit-view'),
     path('task/<int:task_id>/', CourseTask.as_view(), name='task-view'),
     path('task/<int:task_id>/admin/', CourseTaskAdmin.as_view(), name='task-admin'),

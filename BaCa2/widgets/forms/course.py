@@ -633,7 +633,7 @@ class EditRoundFormWidget(FormWidget):
 
         round_obj = ModelsRegistry.get_round(round_, course_id)
 
-        form.fields['name'].initial = round_obj.name
+        form.fields['round_name'].initial = round_obj.name
         form.fields['start_date'].initial = round_obj.start_date
         form.fields['end_date'].initial = round_obj.end_date
         form.fields['deadline_date'].initial = round_obj.deadline_date
