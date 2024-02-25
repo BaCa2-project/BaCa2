@@ -1442,6 +1442,17 @@ class User(AbstractBaseUser):
         """
         return self.groups.filter(permissions=ModelsRegistry.get_permission(permission)).exists()
 
+    def has_role_permission(self, permission: Permission | str | int) -> bool:
+        """
+        :param permission: Permission to check for. The permission can be specified as either the
+            permission object, its codename or its id.
+        :type permission: Permission | str | int
+        :return: `True` if the user belongs to any role with the specified permission, `False`
+            otherwise.
+        :rtype: bool
+        """
+        return self.roles.filter(permissions=ModelsRegistry.get_permission(permission)).exists()
+
     def has_permission(self, permission: Permission | str | int) -> bool:
         """
         Check whether the user possesses a given permission. The method checks both individual and
