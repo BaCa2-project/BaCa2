@@ -371,10 +371,8 @@ class CourseView(BaCa2LoggedInView, CourseMemberMixin):
                 'cols': [TextColumn(name='name', header=_('Role name')),
                          TextColumn(name='description', header=_('Description'))],
                 'refresh_button': True,
+                'link_format_string': '/main/role/[[id]]/'
             }
-
-            if user.has_course_permission(Course.CourseAction.EDIT_ROLE.label, course):
-                roles_table_kwargs['link_format_string'] = '/main/role/[[id]]/'
 
             if user.has_course_permission(Course.CourseAction.DEL_ROLE.label, course):
                 roles_table_kwargs = roles_table_kwargs | {

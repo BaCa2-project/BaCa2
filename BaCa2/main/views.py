@@ -10,6 +10,7 @@ from django.db import models
 from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse_lazy
 from django.views.generic.base import RedirectView, View
+from django.utils.translation import gettext_lazy as _
 
 from main.models import Course, Role, User
 from util import decode_url_to_dict, encode_dict_to_url
@@ -161,7 +162,7 @@ class UserModelView(BaCa2ModelView):
             course = Course.objects.get(pk=course_id)
 
             if user.has_course_permission(Course.CourseAction.VIEW_MEMBER.label, course) and \
-               all([course.user_is_member(usr) for usr in query_result]):
+                all([course.user_is_member(usr) for usr in query_result]):
                 return True
 
         return False
@@ -435,8 +436,8 @@ class RoleView(BaCa2LoggedInView, UserPassesTestMixin):
     template_name = 'course_role.html'
 
     def test_func(self) -> bool:
-        course = ModelsRegistry.get_role(self.kwargs['role_id']).course
-        user = self.request.user
+        course = ModelsRegistry.get_role(self.kwargs.get('role_id')).course
+        user = getattr(self.request, 'user')
 
         if course.user_is_admin(user) or user.is_superuser:
             return True
@@ -445,6 +446,58 @@ class RoleView(BaCa2LoggedInView, UserPassesTestMixin):
             return True
 
         return False
+
+    def get_context_data(self, **kwargs) -> dict:
+        context = super().get_context_data(**kwargs)
+        role = ModelsRegistry.get_role(self.kwargs.get('role_id'))
+        course = role.course
+        user = getattr(self.request, 'user')
+        sidenav_tabs = ['Overview', 'Members']
+
+        # overview -------------------------------------------------------------------------------
+
+        permissions_table = TableWidget(
+            name='permissions_table_widget',
+            title=_('Permissions'),
+            request=self.request,
+            data_source=PermissionModelView.get_url(
+                mode=BaCa2ModelView.GetMode.FILTER,
+                query_params={'role': role.id}
+            ),
+            cols=[TextColumn(name='codename', header=_('Codename')),
+                  TextColumn(name='name', header=_('Name'))],
+            refresh_button=True
+        )
+        self.add_widget(context, permissions_table)
+
+        # members --------------------------------------------------------------------------------
+
+        members_table = TableWidget(
+            name='members_table_widget',
+            title=_('Members'),
+            request=self.request,
+            data_source=UserModelView.get_url(
+                mode=BaCa2ModelView.GetMode.FILTER,
+                query_params={'roles': role.id}
+            ),
+            cols=[TextColumn(name='email', header=_('Email')),
+                  TextColumn(name='first_name', header=_('First name')),
+                  TextColumn(name='last_name', header=_('Last name'))],
+            refresh_button=True
+        )
+        self.add_widget(context, members_table)
+
+        # TODO: add permission editing if requesting user has change role permission
+
+        # sidenav --------------------------------------------------------------------------------
+
+        sidenav = SideNav(request=self.request,
+                          collapsed=False,
+                          toggle_button=False,
+                          tabs=sidenav_tabs)
+        self.add_widget(context, sidenav)
+
+        return context
 
 
 # ----------------------------------------- Util views ----------------------------------------- #
