@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Any, Dict, List
 
 from django.contrib.auth import logout
@@ -142,12 +143,26 @@ class UserModelView(BaCa2ModelView):
             the only user retrieved by the query is the requesting user, `False` otherwise.
         :rtype: bool
         """
+        user = request.user
+
         if self.check_get_all_permission(request, **kwargs):
             return True
-        if request.user.is_course_admin():
+        if user.has_role_permission(Course.CourseAction.ADD_MEMBER.label):
             return True
-        if len(query_result) == 1 and query_result[0] == request.user:
+        if len(query_result) == 1 and query_result[0] == user:
             return True
+
+        refer_url = request.META.get('HTTP_REFERER')
+
+        if bool(re.search(r'course/\d+/', refer_url)):
+            course_id = re.search(r'course/(\d+)/', refer_url).group(1)
+            course = Course.objects.get(pk=course_id)
+
+            if user.has_course_permission(Course.CourseAction.VIEW_MEMBER.label, course) and \
+               all([course.user_is_member(usr) for usr in query_result]):
+                return True
+
+        return False
 
     def check_get_excluded_permission(self, query_params, query_result, request, **kwargs) -> bool:
         """
@@ -186,12 +201,12 @@ class RoleModelView(BaCa2ModelView):
                                       **kwargs) -> bool:
         if self.check_get_all_permission(request, **kwargs):
             return True
+
         for role in query_result:
             course = role.course
-            if all((not course.user_is_admin(request.user),
-                    not course.user_has_role(request.user, role)
-                    )):
+            if not request.user.has_course_permission(Course.CourseAction.VIEW_ROLE.label, course):
                 return False
+
         return True
 
     def check_get_excluded_permission(self,
