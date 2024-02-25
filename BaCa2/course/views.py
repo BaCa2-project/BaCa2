@@ -10,6 +10,7 @@ from django.utils.translation import gettext_lazy as _
 
 from course.models import Result, Round, Submit, Task
 from course.routing import InCourse
+from main.models import Course
 from main.views import CourseModelView as CourseModelManagerView
 from main.views import RoleModelView, UserModelView
 from util.models_registry import ModelsRegistry
@@ -310,127 +311,192 @@ class CourseAdmin(BaCa2LoggedInView, UserPassesTestMixin):
     def get_context_data(self, **kwargs) -> dict:
         context = super().get_context_data(**kwargs)
         course_id = self.kwargs.get('course_id')
+        user = self.request.user
+        course = ModelsRegistry.get_course(course_id)
+        sidenav_tabs = ['Members', 'Roles', 'Rounds', 'Tasks', 'Results']
+        sidenav_sub_tabs = {tab: [] for tab in sidenav_tabs}
 
+        # members --------------------------------------------------------------------------------
+
+        if user.has_course_permission(course, Course.CourseAction.VIEW_MEMBER.label):
+            sidenav_sub_tabs.get('Members').append('View members')
+            context['view_members_tab'] = 'view-members-tab'
+
+            members_table = TableWidget(
+                name='members_table_widget',
+                title=_('Course members'),
+                request=self.request,
+                data_source=UserModelView.get_url(
+                    mode=BaCa2ModelView.GetMode.FILTER,
+                    query_params={'roles__course': course_id},
+                    serialize_kwargs={'course': course_id},
+                ),
+                cols=[TextColumn(name='first_name', header=_('First name')),
+                      TextColumn(name='last_name', header=_('Last name')),
+                      TextColumn(name='email', header=_('Email address')),
+                      TextColumn(name='user_role', header=_('Role'))],
+            )
+            self.add_widget(context, members_table)
+
+        if user.has_course_permission(course, Course.CourseAction.ADD_MEMBER.label):
+            sidenav_sub_tabs.get('Members').append('Add members')
+            context['add_members_tab'] = 'add-members-tab'
+
+            add_members_form = AddMembersFormWidget(request=self.request, course_id=course_id)
+            self.add_widget(context, add_members_form)
+
+        # roles ----------------------------------------------------------------------------------
+
+        if user.has_course_permission(course, Course.CourseAction.VIEW_ROLE.label):
+            sidenav_sub_tabs.get('Roles').append('View roles')
+            context['view_roles_tab'] = 'view-roles-tab'
+
+            roles_table = TableWidget(
+                name='roles_table_widget',
+                title=_('Roles'),
+                request=self.request,
+                data_source=RoleModelView.get_url(
+                    mode=BaCa2ModelView.GetMode.FILTER,
+                    query_params={'course': course_id},
+                ),
+                cols=[TextColumn(name='name', header=_('Role name')),
+                      TextColumn(name='description', header=_('Description'))],
+                refresh_button=True,
+                allow_delete=True,
+                delete_form=DeleteRoleForm(),
+                data_post_url=CourseModelManagerView.post_url(**{'course_id': course_id}),
+                link_format_string='/main/role/[[id]]/',
+            )
+            self.add_widget(context, roles_table)
+
+        if user.has_course_permission(course, Course.CourseAction.ADD_ROLE.label):
+            sidenav_sub_tabs.get('Roles').append('Add role')
+            context['add_role_tab'] = 'add-role-tab'
+
+            add_role_form = AddRoleFormWidget(request=self.request, course_id=course_id)
+            self.add_widget(context, add_role_form)
+
+        # rounds ---------------------------------------------------------------------------------
+
+        if user.has_course_permission(course, Course.CourseAction.VIEW_ROUND.label):
+            sidenav_sub_tabs.get('Rounds').append('View rounds')
+            context['view_rounds_tab'] = 'view-rounds-tab'
+
+            rounds_table = TableWidget(
+                name='rounds_table_widget',
+                title=_('Rounds'),
+                request=self.request,
+                data_source=RoundModelView.get_url(**{'course_id': course_id}),
+                cols=[TextColumn(name='name', header=_('Round name')),
+                      DatetimeColumn(name='start_date', header=_('Start date')),
+                      DatetimeColumn(name='end_date', header=_('End date')),
+                      DatetimeColumn(name='deadline_date', header=_('Deadline date')),
+                      DatetimeColumn(name='reveal_date', header=_('Reveal date'))],
+                allow_select=True,
+                allow_delete=True,
+                delete_form=DeleteRoundForm(),
+                data_post_url=RoundModelView.post_url(**{'course_id': course_id}),
+                refresh_button=True,
+                default_order_col='start_date',
+                default_order_asc=False,
+                link_format_string=f'/course/{course_id}/round-edit/?tab=[[normalized_name]]-tab#'
+            )
+            self.add_widget(context, rounds_table)
+
+        if user.has_course_permission(course, Course.CourseAction.ADD_ROUND.label):
+            sidenav_sub_tabs.get('Rounds').append('Add round')
+            context['add_round_tab'] = 'add-round-tab'
+
+            add_round_form = CreateRoundFormWidget(request=self.request, course_id=course_id)
+            self.add_widget(context, add_round_form)
+
+        # tasks ----------------------------------------------------------------------------------
+
+        if user.has_course_permission(course, Course.CourseAction.VIEW_TASK.label):
+            sidenav_sub_tabs.get('Tasks').append('View tasks')
+            context['view_tasks_tab'] = 'view-tasks-tab'
+
+            tasks_table = TableWidget(
+                name='tasks_table_widget',
+                title=_('Tasks'),
+                request=self.request,
+                data_source=TaskModelView.get_url(**{'course_id': course_id}),
+                cols=[TextColumn(name='name', header=_('Task name')),
+                      TextColumn(name='round_name', header=_('Round')),
+                      TextColumn(name='judging_mode', header=_('Judging mode')),
+                      TextColumn(name='points', header=_('Max points'))],
+                allow_delete=True,
+                allow_select=True,
+                delete_form=DeleteTaskForm(),
+                data_post_url=TaskModelView.post_url(**{'course_id': course_id}),
+                refresh_button=True,
+                default_order_col='round_name',
+                link_format_string=f'/course/{course_id}/task/[[id]]',
+            )
+            self.add_widget(context, tasks_table)
+
+        if user.has_course_permission(course, Course.CourseAction.ADD_TASK.label):
+            sidenav_sub_tabs.get('Tasks').append('Add task')
+            context['add_task_tab'] = 'add-task-tab'
+
+            add_task_form = CreateTaskFormWidget(request=self.request, course_id=course_id)
+            self.add_widget(context, add_task_form)
+
+        # results --------------------------------------------------------------------------------
+
+        if user.has_course_permission(course, Course.CourseAction.VIEW_RESULT.label):
+            context['results_tab'] = 'results-tab'
+
+            results_table = TableWidget(
+                name='results_table_widget',
+                request=self.request,
+                data_source=SubmitModelView.get_url(serialize_kwargs={'add_round_task_name': True,
+                                                                      'add_summary_score': True, },
+                                                    **{'course_id': course_id}),
+                cols=[TextColumn(name='task_name', header=_('Task name')),
+                      DatetimeColumn(name='submit_date', header=_('Submit time')),
+                      TextColumn(name='user_first_name', header=_('Submitter first name')),
+                      TextColumn(name='user_last_name', header=_('Submitter last name')),
+                      TextColumn(name='summary_score', header=_('Score'))],
+                title=_('All results'),
+                refresh_button=True,
+                paging=TableWidgetPaging(page_length=50,
+                                         allow_length_change=True,
+                                         length_change_options=[10, 25, 50, 100]),
+                link_format_string=f'/course/{course_id}/submit/[[id]]/',
+            )
+            self.add_widget(context, results_table)
+
+        # side nav -------------------------------------------------------------------------------
+
+        sidenav_sub_tabs = {tab: sub_tabs for tab, sub_tabs in sidenav_sub_tabs.items()
+                            if len(sub_tabs) > 1}
         sidenav = SideNav(request=self.request,
                           collapsed=False,
                           toggle_button=True,
-                          tabs=['Members', 'Roles', 'Rounds', 'Tasks', 'Results'],
-                          sub_tabs={'Members': ['View members', 'Add members'],
-                                    'Roles': ['View roles', 'Add role'],
-                                    'Rounds': ['View rounds', 'Add round'],
-                                    'Tasks': ['View tasks', 'Add task']}, )
+                          tabs=sidenav_tabs,
+                          sub_tabs=sidenav_sub_tabs)
         self.add_widget(context, sidenav)
 
-        # members --------------------------------------------------------------
-        members_table = TableWidget(
-            name='members_table_widget',
-            title=_('Course members'),
-            request=self.request,
-            data_source=UserModelView.get_url(
-                mode=BaCa2ModelView.GetMode.FILTER,
-                query_params={'roles__course': course_id},
-                serialize_kwargs={'course': course_id},
-            ),
-            cols=[TextColumn(name='first_name', header=_('First name')),
-                  TextColumn(name='last_name', header=_('Last name')),
-                  TextColumn(name='email', header=_('Email address')),
-                  TextColumn(name='user_role', header=_('Role'))],
-        )
-        self.add_widget(context, members_table)
+        if context.get('view_members_tab') and 'Members' not in sidenav_sub_tabs:
+            context['view_members_tab'] = 'members-tab'
+        if context.get('add_members_tab') and 'Members' not in sidenav_sub_tabs:
+            context['add_members_tab'] = 'members-tab'
 
-        add_members_form = AddMembersFormWidget(request=self.request, course_id=course_id)
-        self.add_widget(context, add_members_form)
+        if context.get('view_roles_tab') and 'Roles' not in sidenav_sub_tabs:
+            context['view_roles_tab'] = 'roles-tab'
+        if context.get('add_role_tab') and 'Roles' not in sidenav_sub_tabs:
+            context['add_role_tab'] = 'roles-tab'
 
-        # roles ----------------------------------------------------------------
-        roles_table = TableWidget(
-            name='roles_table_widget',
-            title=_('Roles'),
-            request=self.request,
-            data_source=RoleModelView.get_url(
-                mode=BaCa2ModelView.GetMode.FILTER,
-                query_params={'course': course_id},
-            ),
-            cols=[TextColumn(name='name', header=_('Role name')),
-                  TextColumn(name='description', header=_('Description'))],
-            refresh_button=True,
-            allow_delete=True,
-            delete_form=DeleteRoleForm(),
-            data_post_url=CourseModelManagerView.post_url(course_id=course_id),
-            link_format_string='/main/role/[[id]]/',
-        )
-        self.add_widget(context, roles_table)
+        if context.get('view_rounds_tab') and 'Rounds' not in sidenav_sub_tabs:
+            context['view_rounds_tab'] = 'rounds-tab'
+        if context.get('add_round_tab') and 'Rounds' not in sidenav_sub_tabs:
+            context['add_round_tab'] = 'rounds-tab'
 
-        add_role_form = AddRoleFormWidget(request=self.request, course_id=course_id)
-        self.add_widget(context, add_role_form)
-
-        # rounds ---------------------------------------------------------------
-        rounds_table = TableWidget(
-            name='rounds_table_widget',
-            title=_('Rounds'),
-            request=self.request,
-            data_source=RoundModelView.get_url(course_id=course_id),
-            cols=[TextColumn(name='name', header=_('Round name')),
-                  DatetimeColumn(name='start_date', header=_('Start date')),
-                  DatetimeColumn(name='end_date', header=_('End date')),
-                  DatetimeColumn(name='deadline_date', header=_('Deadline date')),
-                  DatetimeColumn(name='reveal_date', header=_('Reveal date'))],
-            allow_select=True,
-            allow_delete=True,
-            delete_form=DeleteRoundForm(),
-            data_post_url=RoundModelView.post_url(course_id=course_id),
-            refresh_button=True,
-            default_order_col='start_date',
-            default_order_asc=False,
-            link_format_string=f'/course/{course_id}/round-edit/?tab=[[normalized_name]]-tab#'
-        )
-        self.add_widget(context, rounds_table)
-
-        add_round_form = CreateRoundFormWidget(request=self.request, course_id=course_id)
-        self.add_widget(context, add_round_form)
-
-        # tasks ----------------------------------------------------------------
-        tasks_table = TableWidget(
-            name='tasks_table_widget',
-            title=_('Tasks'),
-            request=self.request,
-            data_source=TaskModelView.get_url(course_id=course_id),
-            cols=[TextColumn(name='name', header=_('Task name')),
-                  TextColumn(name='round_name', header=_('Round')),
-                  TextColumn(name='judging_mode', header=_('Judging mode')),
-                  TextColumn(name='points', header=_('Max points'))],
-            allow_delete=True,
-            allow_select=True,
-            delete_form=DeleteTaskForm(),
-            data_post_url=TaskModelView.post_url(course_id=course_id),
-            refresh_button=True,
-            default_order_col='round_name',
-            link_format_string=f'/course/{course_id}/task/[[id]]',
-        )
-        self.add_widget(context, tasks_table)
-
-        add_task_form = CreateTaskFormWidget(request=self.request, course_id=course_id)
-        self.add_widget(context, add_task_form)
-
-        results_table = TableWidget(
-            name='results_table_widget',
-            request=self.request,
-            data_source=SubmitModelView.get_url(
-                serialize_kwargs={'add_round_task_name': True,
-                                  'add_summary_score': True, },
-                course_id=course_id, ),
-            cols=[TextColumn(name='task_name', header=_('Task name')),
-                  DatetimeColumn(name='submit_date', header=_('Submit time')),
-                  TextColumn(name='user_first_name', header=_('Submitter first name')),
-                  TextColumn(name='user_last_name', header=_('Submitter last name')),
-                  TextColumn(name='summary_score', header=_('Score'))],
-            title=_('All results'),
-            refresh_button=True,
-            paging=TableWidgetPaging(page_length=50,
-                                     allow_length_change=True,
-                                     length_change_options=[10, 25, 50, 100]),
-            link_format_string=f'/course/{course_id}/submit/[[id]]/',
-        )
-        self.add_widget(context, results_table)
+        if context.get('view_tasks_tab') and 'Tasks' not in sidenav_sub_tabs:
+            context['view_tasks_tab'] = 'tasks-tab'
+        if context.get('add_task_tab') and 'Tasks' not in sidenav_sub_tabs:
+            context['add_task_tab'] = 'tasks-tab'
 
         return context
 
