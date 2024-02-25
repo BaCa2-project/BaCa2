@@ -1046,7 +1046,7 @@ class Course(models.Model):
         role = ModelsRegistry.get_role(role)
         if role.course is not None:
             raise Course.CourseRoleError(f'Role {role.name} is already assigned to a course')
-        if self.role_exists(role.name):
+        if self.role_exists(str(role.name)):
             raise Course.CourseRoleError(f'A role with name {role.name} is already assigned to '
                                          f'the course. Role names must be unique within the scope '
                                          f'of a course.')
