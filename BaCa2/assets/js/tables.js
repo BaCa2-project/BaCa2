@@ -256,6 +256,7 @@ function refreshButtonClickHandler(button) {
     const tableWidget = window.tableWidgets[`#${tableId}`];
     tableWidget.table.ajax.reload(function () {
         tableWidget.table.columns.adjust().draw();
+        $(`#${tableId}`).trigger('init.dt');
     });
 }
 
