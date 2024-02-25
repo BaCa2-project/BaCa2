@@ -23,7 +23,7 @@ from widgets.forms.course import (
     CreateCourseForm,
     CreateCourseFormWidget,
     DeleteCourseForm,
-    DeleteRoleForm
+    DeleteRoleForm, RemoveMembersForm
 )
 from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.columns import TextColumn
@@ -110,6 +110,8 @@ class CourseModelView(BaCa2ModelView):
             return AddRoleForm.handle_post_request(request)
         elif form_name == f'{Course.CourseAction.DEL_ROLE.label}_form':
             return DeleteRoleForm.handle_post_request(request)
+        elif form_name == f'{Course.CourseAction.DEL_MEMBER.label}_form':
+            return RemoveMembersForm.handle_post_request(request)
 
         return self.handle_unknown_form(request, **kwargs)
 

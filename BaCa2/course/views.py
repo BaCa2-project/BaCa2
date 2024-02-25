@@ -28,7 +28,7 @@ from widgets.forms.course import (
     DeleteRoundForm,
     DeleteTaskForm,
     EditRoundForm,
-    EditRoundFormWidget
+    EditRoundFormWidget, RemoveMembersFormWidget
 )
 from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.columns import DatetimeColumn, TextColumn
@@ -347,6 +347,13 @@ class CourseView(BaCa2LoggedInView, CourseMemberMixin):
             add_members_form = AddMembersFormWidget(request=self.request, course_id=course_id)
             self.add_widget(context, add_members_form)
 
+        if user.has_course_permission(Course.CourseAction.DEL_MEMBER.label, course):
+            sidenav_sub_tabs.get('Members').append('Remove members')
+            context['remove_members_tab'] = 'remove-members-tab'
+
+            remove_members_form = RemoveMembersFormWidget(request=self.request, course_id=course_id)
+            self.add_widget(context, remove_members_form)
+
         # roles ----------------------------------------------------------------------------------
 
         if user.has_course_permission(Course.CourseAction.VIEW_ROLE.label, course):
@@ -518,6 +525,8 @@ class CourseView(BaCa2LoggedInView, CourseMemberMixin):
             context['view_members_tab'] = 'members-tab'
         if context.get('add_members_tab') and 'Members' not in sidenav_sub_tabs:
             context['add_members_tab'] = 'members-tab'
+        if context.get('remove_members_tab') and 'Members' not in sidenav_sub_tabs:
+            context['remove_members_tab'] = 'members-tab'
 
         if context.get('view_roles_tab') and 'Roles' not in sidenav_sub_tabs:
             context['view_roles_tab'] = 'roles-tab'
