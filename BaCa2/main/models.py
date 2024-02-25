@@ -410,9 +410,6 @@ class Course(models.Model):
             ('edit_course_role', _('Can edit course role')),
             ('add_course_role', _('Can add course role')),
             ('delete_course_role', _('Can delete course role')),
-
-            # Solution related permissions
-            ('submit_task_solution', _('Can submit solutions to tasks in the course')),
         ]
 
     class BasicAction(ModelAction):
@@ -447,7 +444,10 @@ class Course(models.Model):
         EDIT_RESULT = 'edit_result', 'change_result'
         DEL_RESULT = 'delete_result', 'delete_result'
 
-        SUBMIT_SOLUTION = 'submit_solution', 'submit_task_solution'
+        VIEW_SUBMIT = 'view_submit', 'view_submit'
+        ADD_SUBMIT = 'add_submit', 'add_submit'
+        EDIT_SUBMIT = 'edit_submit', 'change_submit'
+        DEL_SUBMIT = 'delete_submit', 'delete_submit'
 
     # ---------------------------------- Course representation --------------------------------- #
 
