@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+    <div class="tab-wrapper" id="profile-tab">
+        <div class="side-nav-tab">
+            <div class="mb-3">
+                {% with widgets.TableWidget.personal_data_table_widget as table_widget %}
+                    {% include "widget_templates/table.html" %}
+                {% endwith %}
+            </div>
+            {% with widgets.FormWidget.change_personal_data_form_widget as form_widget %}
+                {% include "widget_templates/forms/default.html" %}
+            {% endwith %}
+        </div>
+    </div>
+    <div class="tab-wrapper" id="security-tab">
+        <div class="side-nav-tab">
+            <div class="card">
+                <div class="card-header">
+                    <h2>{{ change_password_title }}</h2>
+                </div>
+                <div class="card-body">
+                    {% with widgets.FormWidget.change_password_form_widget as form_widget %}
+                        {% include "widget_templates/forms/default.html" %}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+
+{% endblock %}
