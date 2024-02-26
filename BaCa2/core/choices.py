@@ -18,6 +18,7 @@ class ResultStatus(models.TextChoices):
     MEM = 'MEM', _('Memory exceeded')
     CME = 'CME', _('Compilation error')
     EXT = 'EXT', _('Unknown extension')
+    ITL = 'ITL', _('Internal timeout')
     INT = 'INT', _('Internal error')
 
     @classmethod
@@ -26,7 +27,7 @@ class ResultStatus(models.TextChoices):
         return order.index(status1) - order.index(status2)
 
 
-EMPTY_FINAL_STATUSES = [ResultStatus.EXT, ResultStatus.INT]
+EMPTY_FINAL_STATUSES = [ResultStatus.EXT, ResultStatus.ITL, ResultStatus.INT]
 
 
 class PermissionCheck(models.TextChoices):

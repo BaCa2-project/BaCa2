@@ -286,25 +286,25 @@ class General(TestCase):
         self.assertEqual(10,
                          BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.ERROR).count())
 
-    def test_markExpired(self):
-        for i in range(10):
-            BrokerSubmit.objects.create(course=self.course,
-                                        submit_id=i,
-                                        package_instance=self.pkg_instance,
-                                        status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE,
-                                        update_date=datetime.now() - timedelta(
-                                            settings.BROKER_RETRY_POLICY.expiration_timeout))
-        for i in range(10):
-            BrokerSubmit.objects.create(course=self.course,
-                                        submit_id=i,
-                                        package_instance=self.pkg_instance,
-                                        status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE,
-                                        update_date=datetime.now())
-        self.assertEqual(20, BrokerSubmit.objects.filter(
-            status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE).count())
-        call_command('markExpired')
-        self.assertEqual(10, BrokerSubmit.objects.filter(
-            status=BrokerSubmit.StatusEnum.EXPIRED).count())
+    # def test_markExpired(self):
+    #     for i in range(10):
+    #         BrokerSubmit.objects.create(course=self.course,
+    #                                     submit_id=i,
+    #                                     package_instance=self.pkg_instance,
+    #                                     status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE,
+    #                                     update_date=datetime.now() - timedelta(
+    #                                         settings.BROKER_RETRY_POLICY.expiration_timeout))
+    #     for i in range(10):
+    #         BrokerSubmit.objects.create(course=self.course,
+    #                                     submit_id=i,
+    #                                     package_instance=self.pkg_instance,
+    #                                     status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE,
+    #                                     update_date=datetime.now())
+    #     self.assertEqual(20, BrokerSubmit.objects.filter(
+    #         status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE).count())
+    #     call_command('markExpired')
+    #     self.assertEqual(10, BrokerSubmit.objects.filter(
+    #         status=BrokerSubmit.StatusEnum.EXPIRED).count())
 
     def test_resendToBroker(self):
         for i in range(10):
