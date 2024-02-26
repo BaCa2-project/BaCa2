@@ -936,7 +936,10 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
     #: Datetime when submit took place.
     submit_date = models.DateTimeField(auto_now_add=True)
     #: Field submitted to the task
-    source_code = models.FilePathField(path=settings.SUBMITS_DIR, allow_files=True, null=True)
+    source_code = models.FilePathField(path=settings.SUBMITS_DIR,
+                                       allow_files=True,
+                                       null=True,
+                                       max_length=2047)
     #: :py:class:`Task` model, to which submit is assigned.
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
     #: Pseudo-foreign key to :py:class:`main.models.User` model (user), who submitted to the task.
