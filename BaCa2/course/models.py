@@ -1183,7 +1183,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         :rtype: str
         """
         score = round(score * 100, rnd)
-        return f'{score:.{rnd}f}' if score > -1 else 'PND'
+        return f'{score:.{rnd}f}' if score > -1 else '---'
 
     @property
     def task_score(self) -> float:
@@ -1198,7 +1198,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
     @property
     def summary_score(self) -> str:
         score = self.score()
-        return f'{self.task_score} ({self.format_score(score, 1)} %)' if score > -1 else 'PND'
+        return f'{self.task_score} ({self.format_score(score, 1)} %)' if score > -1 else '---'
 
     @property
     def formatted_submit_status(self) -> str:
@@ -1225,7 +1225,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
             'submit_date': self.submit_date,
             'source_code': self.source_code,
             'task_name': self.task.task_name,
-            'task_score': task_score if score > -1 else 'PND',
+            'task_score': task_score if score > -1 else '---',
             'final_score': self.format_score(score),
             'submit_status': self.formatted_submit_status,
         }
