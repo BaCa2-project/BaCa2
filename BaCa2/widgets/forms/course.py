@@ -10,7 +10,7 @@ from core.choices import TaskJudgingMode
 from core.tools.files import FileHandler
 from course.models import Round, Submit, Task
 from course.routing import InCourse
-from main.models import Course, Role, User
+from main.models import Course, Role
 from util.models_registry import ModelsRegistry
 from widgets.forms.base import BaCa2ModelForm, FormElementGroup, FormWidget, ModelFormPostTarget
 from widgets.forms.fields import (
@@ -516,7 +516,7 @@ class AddRoleForm(CourseActionForm):
                                               TextColumn(name='name', header=_('Description'))],
                                         table_widget_kwargs={'height_limit': 35})
 
-    @ classmethod
+    @classmethod
     def handle_valid_request(cls, request) -> Dict[str, Any]:
         course = cls.get_context_course(request)
         role_name = request.POST.get('role_name')
@@ -936,6 +936,13 @@ class CreateSubmitForm(BaCa2ModelForm):
                                        request.FILES['source_code'])
         source_code_file.save()
         task_id = int(request.POST.get('task_id'))
+        task = ModelsRegistry.get_task(task_id)
+        if not task:
+            source_code_file.delete()
+            raise ValueError('Task not found')
+
+        task.package_instance.package.check_source(source_code_file.path)
+
         user = request.user
 
         try:
@@ -963,6 +970,13 @@ class CreateSubmitFormWidget(FormWidget):
             form = CreateSubmitForm()
 
         form.fields['task_id'].initial = task_id
+        course = ModelsRegistry.get_course(course_id)
+        task = course.get_task(task_id)
+        allowed_extensions = task.package_instance.package['allowedExtensions']
+        form.fields['source_code'].help_text = (
+            f'{_("Allowed extensions:")} [{", ".join(allowed_extensions)}] '
+            f'{_("and zips containing these files")}'
+        )
 
         super().__init__(
             name='create_submit_form_widget',
