@@ -7,6 +7,7 @@ from django.utils import timezone
 
 import baca2PackageManager.broker_communication as brcom
 import requests
+from core.choices import ResultStatus
 from course.models import Result, Submit
 from course.routing import InCourse
 from main.models import Course
@@ -47,6 +48,9 @@ class BrokerSubmit(models.Model):
     #: amount of times this submit was resent to broker
     retry_amount = models.IntegerField(default=0)
 
+    def __repr__(self):
+        return f'BrokerSubmit({self.broker_id})'
+
     @property
     def broker_id(self):
         """
@@ -56,6 +60,14 @@ class BrokerSubmit(models.Model):
         :rtype: str
         """
         return brcom.create_broker_submit_id(self.course.short_name, int(self.submit_id))
+
+    @property
+    def submit(self) -> Submit:
+        """
+        :return: Submit object from course database
+        :rtype: Submit
+        """
+        return self.course.get_submit(self.submit_id)
 
     def hash_password(self, password: str) -> str:
         """
@@ -225,6 +237,7 @@ class BrokerSubmit(models.Model):
         """
         broker_submit = cls.authenticate(response)
         broker_submit.update_status(cls.StatusEnum.ERROR)
+        broker_submit.submit.end_with_error(ResultStatus.INT, response.error)
 
     @property
     def solution(self):
