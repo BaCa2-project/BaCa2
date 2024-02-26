@@ -28,7 +28,9 @@ from widgets.forms.course import (
     CreateCourseFormWidget,
     DeleteCourseForm,
     DeleteRoleForm,
-    RemoveMembersForm
+    RemoveMembersForm,
+    RemoveRolePermissionsForm,
+    RemoveRolePermissionsFormWidget
 )
 from widgets.forms.main import (
     ChangePersonalData,
@@ -126,6 +128,8 @@ class CourseModelView(BaCa2ModelView):
         elif form_name == f'{Course.CourseAction.EDIT_ROLE.label}_form':
             if 'permissions_to_add' in request.POST:
                 return AddRolePermissionsForm.handle_post_request(request)
+            elif 'permissions_to_remove' in request.POST:
+                return RemoveRolePermissionsForm.handle_post_request(request)
 
         return self.handle_unknown_form(request, **kwargs)
 
@@ -533,6 +537,12 @@ class RoleView(BaCa2LoggedInView, UserPassesTestMixin):
                                                                 course_id=course.id,
                                                                 role_id=role.id)
             self.add_widget(context, add_permissions_form)
+
+            sidenav_tabs.append('Remove permissions')
+            remove_permissions_form = RemoveRolePermissionsFormWidget(request=self.request,
+                                                                      course_id=course.id,
+                                                                      role_id=role.id)
+            self.add_widget(context, remove_permissions_form)
 
         # sidenav --------------------------------------------------------------------------------
 
