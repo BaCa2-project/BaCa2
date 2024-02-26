@@ -14,14 +14,13 @@ BROKER_PASSWORD = os.getenv('BROKER_PASSWORD')
 
 class BrokerRetryPolicy:
     """Broker retry policy settings"""
-    # (In seconds) specify how many retries and how often should an
     # HTTP post request be sent to the broker for one submit
     individual_submit_retry_interval = 0.05
     individual_max_retries = 5
 
     # (In seconds) how long it should take for a submit to become expired
-    expiration_timeout = 180.0
-    # (In seconds) how many times a submit should be resent after it expires
+    expiration_timeout = 60 * 20
+    # how many times a submit should be resent after it expires
     resend_max_retries = 2
     # (In minutes) how often should expiration check be performed
     retry_check_interval = 60.0
@@ -29,7 +28,7 @@ class BrokerRetryPolicy:
     # (In minutes) specify how old should error submits be before they are deleted
     deletion_timeout = 60.0 * 24
     # (In minutes) specify how often should the deletion check be performed
-    deletion_check_interval = 60.0 * 6
+    deletion_check_interval = 60.0
 
     # Auto start broker daemons
     auto_start = True

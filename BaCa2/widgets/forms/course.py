@@ -1049,6 +1049,13 @@ class CreateSubmitForm(CourseModelForm):
                                        request.FILES['source_code'])
         source_code_file.save()
         task_id = int(request.POST.get('task_id'))
+        task = ModelsRegistry.get_task(task_id)
+        if not task:
+            source_code_file.delete()
+            raise ValueError('Task not found')
+
+        task.package_instance.package.check_source(source_code_file.path)
+
         user = request.user
 
         try:
@@ -1076,6 +1083,13 @@ class CreateSubmitFormWidget(FormWidget):
             form = CreateSubmitForm()
 
         form.fields['task_id'].initial = task_id
+        course = ModelsRegistry.get_course(course_id)
+        task = course.get_task(task_id)
+        allowed_extensions = task.package_instance.package['allowedExtensions']
+        form.fields['source_code'].help_text = (
+            f'{_("Allowed extensions:")} [{", ".join(allowed_extensions)}] '
+            f'{_("and zips containing these files")}'
+        )
 
         super().__init__(
             name='create_submit_form_widget',
