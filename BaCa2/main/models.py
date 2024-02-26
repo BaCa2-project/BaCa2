@@ -410,6 +410,10 @@ class Course(models.Model):
             ('edit_course_role', _('Can edit course role')),
             ('add_course_role', _('Can add course role')),
             ('delete_course_role', _('Can delete course role')),
+
+            # Solution related permissions
+            ('view_own_submit', _('Can view own submits')),
+            ('view_own_result', _('Can view own results')),
         ]
 
     class BasicAction(ModelAction):
@@ -419,35 +423,43 @@ class Course(models.Model):
         VIEW = 'view', 'view_course'
 
     class CourseAction(ModelAction):
+        # Member related actions
         VIEW_MEMBER = 'view_member', 'view_course_member'
         ADD_MEMBER = 'add_member', 'add_course_member'
         DEL_MEMBER = 'remove_member', 'remove_course_member'
         CHANGE_MEMBER_ROLE = 'change_member_role', 'change_course_member_role'
         ADD_ADMIN = 'add_admin', 'add_course_admin'
 
+        # Role related actions
         VIEW_ROLE = 'view_role', 'view_course_role'
         ADD_ROLE = 'add_role', 'add_course_role'
         EDIT_ROLE = 'edit_role', 'edit_course_role'
         DEL_ROLE = 'delete_role', 'delete_course_role'
 
+        # Solution related actions
         VIEW_ROUND = 'view_round', 'view_round'
         ADD_ROUND = 'add_round', 'add_round'
         EDIT_ROUND = 'edit_round', 'change_round'
         DEL_ROUND = 'delete_round', 'delete_round'
 
+        # Task related actions
         VIEW_TASK = 'view_task', 'view_task'
         ADD_TASK = 'add_task', 'add_task'
         EDIT_TASK = 'edit_task', 'change_task'
         DEL_TASK = 'delete_task', 'delete_task'
 
-        VIEW_RESULT = 'view_result', 'view_result'
-        EDIT_RESULT = 'edit_result', 'change_result'
-        DEL_RESULT = 'delete_result', 'delete_result'
-
+        # Submit related actions
         VIEW_SUBMIT = 'view_submit', 'view_submit'
+        VIEW_OWN_SUBMIT = 'view_own_submit', 'view_own_submit'
         ADD_SUBMIT = 'add_submit', 'add_submit'
         EDIT_SUBMIT = 'edit_submit', 'change_submit'
         DEL_SUBMIT = 'delete_submit', 'delete_submit'
+
+        # Result related actions
+        VIEW_RESULT = 'view_result', 'view_result'
+        VIEW_OWN_RESULT = 'view_own_result', 'view_own_result'
+        EDIT_RESULT = 'edit_result', 'change_result'
+        DEL_RESULT = 'delete_result', 'delete_result'
 
     # ---------------------------------- Course representation --------------------------------- #
 
