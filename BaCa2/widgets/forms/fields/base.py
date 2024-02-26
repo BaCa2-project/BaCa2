@@ -469,6 +469,7 @@ class ChoiceField(forms.ChoiceField):
     Adds option to specify a default placeholder option which is displayed when no option is
     selected.
     """
+
     def __init__(self,
                  placeholder_default_option: bool = True,
                  placeholder_option: str = '---',

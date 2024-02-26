@@ -7,7 +7,7 @@ from django.contrib.auth.mixins import UserPassesTestMixin
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.utils.translation import gettext_lazy as _
 
-from core.choices import BasicModelAction, ResultStatus
+from core.choices import EMPTY_FINAL_STATUSES, BasicModelAction, ResultStatus
 from course.models import Result, Round, Submit, Task
 from course.routing import InCourse
 from main.models import Course
@@ -489,11 +489,14 @@ class CourseView(BaCa2LoggedInView, CourseMemberMixin):
                          DatetimeColumn(name='submit_date', header=_('Submit time')),
                          TextColumn(name='user_first_name', header=_('Submitter first name')),
                          TextColumn(name='user_last_name', header=_('Submitter last name')),
+                         TextColumn(name='submit_status', header=_('Submit status')),
                          TextColumn(name='summary_score', header=_('Score'))],
                 'refresh_button': True,
                 'paging': TableWidgetPaging(page_length=50,
                                             allow_length_change=True,
                                             length_change_options=[10, 25, 50, 100]),
+                'default_order_col': 'submit_date',
+                'default_order_asc': False,
             }
 
             if user.has_course_permission(Course.CourseAction.VIEW_RESULT.label, course):
@@ -602,11 +605,14 @@ class CourseTask(BaCa2LoggedInView, CourseMemberMixin):
             cols=[
                 DatetimeColumn(name='submit_date', header=_('Submit time')),
                 TextColumn(name='final_score', header=_('Percentage')),
+                TextColumn(name='submit_status', header=_('Submit status')),
                 TextColumn(name='task_score', header=_('Task score')),
             ],
             title=f"{_('My results')} - {task.task_name}",
             refresh_button=True,
             link_format_string=f'/course/{course_id}/submit/[[id]]/',
+            default_order_col='submit_date',
+            default_order_asc=False,
         )
         self.add_widget(context, results_table)
 
@@ -647,11 +653,14 @@ class CourseTaskAdmin(BaCa2LoggedInView, CourseMemberMixin):
                 DatetimeColumn(name='submit_date', header=_('Submit time')),
                 TextColumn(name='user_first_name', header=_('Submitter name')),
                 TextColumn(name='user_last_name', header=_('Submitter last name')),
+                TextColumn(name='submit_status', header=_('Submit status')),
                 TextColumn(name='summary_score', header=_('Score')),
             ],
             title=_('Submissions'),
             refresh_button=True,
             link_format_string=f'/course/{course_id}/submit/[[id]]/',
+            default_order_col='submit_date',
+            default_order_asc=False,
         )
         self.add_widget(context, submissions_table)
 
@@ -747,7 +756,7 @@ class SubmitSummaryView(BaCa2LoggedInView):
             default_sorting=False,
         )
         self.add_widget(context, summary_table)
-        if submit.submit_status == ResultStatus.PND:
+        if submit.submit_status in EMPTY_FINAL_STATUSES + [ResultStatus.PND]:
             context['sets'] = []
             return context
 
