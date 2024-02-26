@@ -17,11 +17,9 @@
     </div>
     <div class="tab-wrapper" id="my-results-tab">
         <div class="side-nav-tab">
-            <div class="side-nav-tab">
-                {% with widgets.TableWidget.results_table_widget as table_widget %}
-                    {% include "widget_templates/table.html" %}
-                {% endwith %}
-            </div>
+            {% with widgets.TableWidget.results_table_widget as table_widget %}
+                {% include "widget_templates/table.html" %}
+            {% endwith %}
         </div>
     </div>
 {% endblock %}
