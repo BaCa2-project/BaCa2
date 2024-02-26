@@ -7,7 +7,7 @@ from django.contrib.auth.mixins import UserPassesTestMixin
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.utils.translation import gettext_lazy as _
 
-from core.choices import BasicModelAction
+from core.choices import BasicModelAction, ResultStatus
 from course.models import Result, Round, Submit, Task
 from course.routing import InCourse
 from main.models import Course
@@ -28,13 +28,13 @@ from widgets.forms.course import (
     DeleteRoundForm,
     DeleteTaskForm,
     EditRoundForm,
-    EditRoundFormWidget, RemoveMembersFormWidget
+    EditRoundFormWidget,
+    RemoveMembersFormWidget
 )
 from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.columns import DatetimeColumn, TextColumn
 from widgets.navigation import SideNav
 from widgets.text_display import TextDisplayer
-
 
 # ----------------------------------- Course views abstraction ---------------------------------- #
 
@@ -720,6 +720,18 @@ class SubmitSummaryView(BaCa2LoggedInView):
             task = submit.task
         course = ModelsRegistry.get_course(course_id)
 
+        submit_summary = [
+            {'title': _('Course'), 'value': course.name},
+            {'title': _('Round'), 'value': task.round_.name},
+            {'title': _('Task'), 'value': task.task_name},
+            {'title': _('User'), 'value': submit.user.get_full_name()},
+            {'title': _('Submit time'),
+             'value': submit.submit_date.strftime('%Y-%m-%d %H:%M:%S')},
+            {'title': _('Submit status'), 'value': submit.formatted_submit_status},
+        ]
+        if submit.submit_status != ResultStatus.PND:
+            submit_summary.append({'title': _('Score'), 'value': submit.summary_score}, )
+
         summary_table = TableWidget(
             name='summary_table_widget',
             request=self.request,
@@ -727,16 +739,7 @@ class SubmitSummaryView(BaCa2LoggedInView):
                 TextColumn(name='title', sortable=False),
                 TextColumn(name='value', sortable=False)
             ],
-            data_source=[
-                {'title': _('Course'), 'value': course.name},
-                {'title': _('Round'), 'value': task.round_.name},
-                {'title': _('Task'), 'value': task.task_name},
-                {'title': _('User'), 'value': submit.user.get_full_name()},
-                {'title': _('Submit time'),
-                 'value': submit.submit_date.strftime('%Y-%m-%d %H:%M:%S')},
-                {'title': _('Submit status'), 'value': submit.formatted_submit_status},
-                {'title': _('Score'), 'value': submit.summary_score},
-            ],
+            data_source=submit_summary,
             title=_('Summary') + f' - {_("submit")} #{submit.pk}',
             allow_global_search=False,
             allow_column_search=False,
@@ -744,6 +747,9 @@ class SubmitSummaryView(BaCa2LoggedInView):
             default_sorting=False,
         )
         self.add_widget(context, summary_table)
+        if submit.submit_status == ResultStatus.PND:
+            context['sets'] = []
+            return context
 
         sets = task.sets
         sets = sorted(sets, key=lambda x: x.short_name)
