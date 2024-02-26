@@ -4,10 +4,10 @@ from typing import Any, Callable, Dict, List, Union
 
 import django.db.models
 from django.contrib.auth.mixins import UserPassesTestMixin
-from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
+from django.http import JsonResponse
 from django.utils.translation import gettext_lazy as _
 
-from core.choices import BasicModelAction
+from core.choices import BasicModelAction, SubmitType
 from course.models import Result, Round, Submit, Task
 from course.routing import InCourse
 from main.models import Course
@@ -28,13 +28,13 @@ from widgets.forms.course import (
     DeleteRoundForm,
     DeleteTaskForm,
     EditRoundForm,
-    EditRoundFormWidget, RemoveMembersFormWidget
+    EditRoundFormWidget,
+    RemoveMembersFormWidget
 )
 from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.columns import DatetimeColumn, TextColumn
 from widgets.navigation import SideNav
 from widgets.text_display import TextDisplayer
-
 
 # ----------------------------------- Course views abstraction ---------------------------------- #
 
@@ -472,7 +472,16 @@ class CourseView(BaCa2LoggedInView, CourseMemberMixin):
 
         # results --------------------------------------------------------------------------------
 
-        if user.has_course_permission(Course.CourseAction.VIEW_SUBMIT.label, course):
+        view_all_submits = user.has_course_permission(Course.CourseAction.VIEW_SUBMIT.label,
+                                                      course)
+        view_own_submits = user.has_course_permission(Course.CourseAction.VIEW_OWN_SUBMIT.label,
+                                                      course)
+        view_all_results = user.has_course_permission(Course.CourseAction.VIEW_RESULT.label,
+                                                      course)
+        view_own_results = user.has_course_permission(Course.CourseAction.VIEW_OWN_RESULT.label,
+                                                      course)
+
+        if view_all_submits or view_own_submits:
             sidenav_sub_tabs.get('Results').append('View results')
             context['results_tab'] = 'results-tab'
 
@@ -480,15 +489,8 @@ class CourseView(BaCa2LoggedInView, CourseMemberMixin):
                 'name': 'results_table_widget',
                 'title': _('Results'),
                 'request': self.request,
-                'data_source': SubmitModelView.get_url(
-                    serialize_kwargs={'add_round_task_name': True,
-                                      'add_summary_score': True, },
-                    **{'course_id': course_id}
-                ),
                 'cols': [TextColumn(name='task_name', header=_('Task name')),
                          DatetimeColumn(name='submit_date', header=_('Submit time')),
-                         TextColumn(name='user_first_name', header=_('Submitter first name')),
-                         TextColumn(name='user_last_name', header=_('Submitter last name')),
                          TextColumn(name='summary_score', header=_('Score'))],
                 'refresh_button': True,
                 'paging': TableWidgetPaging(page_length=50,
@@ -496,7 +498,27 @@ class CourseView(BaCa2LoggedInView, CourseMemberMixin):
                                             length_change_options=[10, 25, 50, 100]),
             }
 
-            if user.has_course_permission(Course.CourseAction.VIEW_RESULT.label, course):
+            if view_all_submits:
+                results_table_kwargs['data_source'] = SubmitModelView.get_url(
+                    serialize_kwargs={'add_round_task_name': True,
+                                      'add_summary_score': True},
+                    course_id=course_id
+                )
+                results_table_kwargs['cols'].extend([
+                    TextColumn(name='user_first_name', header=_('Submitter first name')),
+                    TextColumn(name='user_last_name', header=_('Submitter last name'))
+                ])
+            else:
+                results_table_kwargs['data_source'] = SubmitModelView.get_url(
+                    mode=BaCa2ModelView.GetMode.FILTER,
+                    query_params={'usr': user.id,
+                                  'submit_type': SubmitType.STD},
+                    serialize_kwargs={'add_round_task_name': True,
+                                      'add_summary_score': True},
+                    course_id=course_id
+                )
+
+            if view_all_results or view_own_results:
                 results_table_kwargs['link_format_string'] = f'/course/{course_id}/submit/[[id]]/'
 
             self.add_widget(context, TableWidget(**results_table_kwargs))
@@ -693,23 +715,27 @@ class RoundEditView(BaCa2LoggedInView, CourseMemberMixin):
         return context
 
 
-class SubmitSummaryView(BaCa2LoggedInView):
+class SubmitSummaryView(BaCa2LoggedInView, CourseMemberMixin):
     template_name = 'course_submit_summary.html'
 
-    def get(self, request, *args, **kwargs) -> HttpResponse:
+    def test_func(self) -> bool:
+        if not super().test_func():
+            return False
+
         course_id = self.kwargs.get('course_id')
-        submit_id = self.kwargs.get('submit_id')
         course = ModelsRegistry.get_course(course_id)
-        submit = course.get_submit(submit_id)
+        user = getattr(self.request, 'user')
 
-        if course.user_is_admin(request.user) or request.user.is_superuser:
-            self.kwargs['admin_access'] = True
-        elif submit.user == request.user:
-            self.kwargs['admin_access'] = False
-        else:
-            return HttpResponseForbidden(_('You are not allowed to view this page.'))
+        if user.has_course_permission(Course.CourseAction.VIEW_RESULT.label, course):
+            return True
 
-        return super().get(request, *args, **kwargs)
+        submit_id = self.kwargs.get('submit_id')
+        submit = ModelsRegistry.get_submit(submit_id, course_id)
+
+        if not submit.user == user:
+            return False
+
+        return user.has_course_permission(Course.CourseAction.VIEW_OWN_RESULT.label, course)
 
     def get_context_data(self, **kwargs) -> Dict[str, Any]:
         context = super().get_context_data(**kwargs)
