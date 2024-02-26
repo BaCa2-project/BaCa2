@@ -516,7 +516,7 @@ class AddRoleForm(CourseActionForm):
                                               TextColumn(name='name', header=_('Description'))],
                                         table_widget_kwargs={'height_limit': 35})
 
-    @ classmethod
+    @classmethod
     def handle_valid_request(cls, request) -> Dict[str, Any]:
         course = cls.get_context_course(request)
         role_name = request.POST.get('role_name')
@@ -579,6 +579,64 @@ class DeleteRoleForm(CourseActionForm):
         role_name = role.name
         course.remove_role(role)
         return {'message': _('Role ') + role_name + _(' deleted successfully')}
+
+
+# ------------------------------------ add role permissions ------------------------------------ #
+
+class AddRolePermissionsForm(CourseActionForm):
+    ACTION = Course.CourseAction.EDIT_ROLE
+
+    role_id = forms.IntegerField(label=_('Task ID'),
+                                 widget=forms.HiddenInput(),
+                                 required=True)
+
+    permissions_to_add = TableSelectField(
+        label=_('Choose permissions to add'),
+        table_widget_name='permissions_to_remove_table_widget',
+        data_source_url='',
+        cols=[TextColumn(name='codename', header=_('Codename')),
+              TextColumn(name='name', header=_('Description'))],
+        table_widget_kwargs={'height_limit': 35}
+    )
+
+    @classmethod
+    def handle_valid_request(cls, request) -> Dict[str, Any]:
+        role = ModelsRegistry.get_role(int(request.POST.get('role_id')))
+        perms = TableSelectField.parse_value(request.POST.get('permissions_to_add'))
+        role.add_permissions(perms)
+        return {'message': _('Permissions added successfully')}
+
+
+class AddRolePermissionsFormWidget(FormWidget):
+    def __init__(self,
+                 *,
+                 request,
+                 course_id: int,
+                 role_id: int,
+                 form: AddRolePermissionsForm = None,
+                 **kwargs) -> None:
+        from main.views import CourseModelView, PermissionModelView
+
+        if not form:
+            form = AddRolePermissionsForm()
+
+        codenames = Course.CourseAction.labels
+
+        form.fields['permissions_to_add'].update_data_source_url(PermissionModelView.get_url(
+            mode=PermissionModelView.GetMode.FILTER,
+            query_params={'codename__in': codenames},
+            exclude_params={'role': role_id}
+        ))
+        form.fields['role_id'].initial = role_id
+
+        super().__init__(
+            name='add_role_permissions_form_widget',
+            request=request,
+            form=form,
+            post_target=CourseModelView.post_url(**{'course_id': course_id}),
+            button_text=_('Add permissions'),
+            **kwargs
+        )
 
 
 # ============================================ ROUND =========================================== #

@@ -10,9 +10,8 @@ from django.contrib.auth.views import LoginView
 from django.db import models
 from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse_lazy
-from django.utils.translation import gettext as _
-from django.views.generic.base import RedirectView, View
 from django.utils.translation import gettext_lazy as _
+from django.views.generic.base import RedirectView, View
 
 from main.models import Course, Role, User
 from util import decode_url_to_dict, encode_dict_to_url
@@ -23,10 +22,13 @@ from widgets.forms import FormWidget
 from widgets.forms.course import (
     AddMembersForm,
     AddRoleForm,
+    AddRolePermissionsForm,
+    AddRolePermissionsFormWidget,
     CreateCourseForm,
     CreateCourseFormWidget,
     DeleteCourseForm,
-    DeleteRoleForm, RemoveMembersForm
+    DeleteRoleForm,
+    RemoveMembersForm
 )
 from widgets.forms.main import (
     ChangePersonalData,
@@ -121,6 +123,9 @@ class CourseModelView(BaCa2ModelView):
             return DeleteRoleForm.handle_post_request(request)
         elif form_name == f'{Course.CourseAction.DEL_MEMBER.label}_form':
             return RemoveMembersForm.handle_post_request(request)
+        elif form_name == f'{Course.CourseAction.EDIT_ROLE.label}_form':
+            if 'permissions_to_add' in request.POST:
+                return AddRolePermissionsForm.handle_post_request(request)
 
         return self.handle_unknown_form(request, **kwargs)
 
@@ -169,8 +174,8 @@ class UserModelView(BaCa2ModelView):
             course_id = re.search(r'course/(\d+)/', refer_url).group(1)
             course = Course.objects.get(pk=course_id)
 
-            if user.has_course_permission(Course.CourseAction.VIEW_MEMBER.label, course) and \
-                all([course.user_is_member(usr) for usr in query_result]):
+            if user.has_course_permission(Course.CourseAction.VIEW_MEMBER.label, course) \
+               and all([course.user_is_member(usr) for usr in query_result]):
                 return True
 
         return False
@@ -498,7 +503,8 @@ class RoleView(BaCa2LoggedInView, UserPassesTestMixin):
             ),
             cols=[TextColumn(name='codename', header=_('Codename')),
                   TextColumn(name='name', header=_('Name'))],
-            refresh_button=True
+            refresh_button=True,
+            height_limit=35
         )
         self.add_widget(context, permissions_table)
 
@@ -519,7 +525,14 @@ class RoleView(BaCa2LoggedInView, UserPassesTestMixin):
         )
         self.add_widget(context, members_table)
 
-        # TODO: add permission editing if requesting user has change role permission
+        # add/remove permissions -----------------------------------------------------------------
+
+        if user.has_course_permission(Course.CourseAction.EDIT_ROLE.label, course):
+            sidenav_tabs.append('Add permissions')
+            add_permissions_form = AddRolePermissionsFormWidget(request=self.request,
+                                                                course_id=course.id,
+                                                                role_id=role.id)
+            self.add_widget(context, add_permissions_form)
 
         # sidenav --------------------------------------------------------------------------------
 
