@@ -1,0 +1,14 @@
+{% extends "mail/base.html" %}
+{% block content %}
+    <h1>Welcome to BaCa2!</h1>
+    <p>
+        You have been successfully registered to BaCa2. Here are your credentials:
+    </p>
+    <p>
+        <b>Username</b>: {{ email }}<br>
+        <b>Password</b>: {{ password }}
+    </p>
+    <p>
+        It is strongly recommended to change your password after your first login.
+    </p>
+{% endblock %}

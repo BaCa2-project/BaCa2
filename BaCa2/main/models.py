@@ -1237,6 +1237,18 @@ class User(AbstractBaseUser):
         related_name='user_set',
         related_query_name='user',
     )
+    nickname = models.CharField(
+        verbose_name=_('nickname'),
+        max_length=255,
+        blank=True,
+        null=True,
+    )
+
+    class BasicAction(ModelAction):
+        ADD = 'add', 'add_user'
+        DEL = 'delete', 'delete_user'
+        EDIT = 'edit', 'change_user'
+        VIEW = 'view', 'view_user'
 
     # ------------------------------------ Django settings ------------------------------------- #
 
@@ -1283,6 +1295,7 @@ class User(AbstractBaseUser):
             'last_name': self.last_name,
             'is_superuser': self.is_superuser,
             'date_joined': self.date_joined,
+            'f_is_superuser': _('YES') if self.is_superuser else _('NO'),
         }
         if course is not None:
             result['user_role'] = ModelsRegistry.get_course(course).user_role(self).name
