@@ -856,7 +856,8 @@ class SubmitManager(models.Manager):
                       auto_send: bool = True,
                       submit_type: SubmitType = SubmitType.STD,
                       submit_status: ResultStatus = ResultStatus.PND,
-                      error_msg: str = None) -> Submit:
+                      error_msg: str = None,
+                      retry: int = 0) -> Submit:
         """
         It creates a new submit object.
 
@@ -880,6 +881,8 @@ class SubmitManager(models.Manager):
         :type submit_status: ResultStatus
         :param error_msg: The error message of the submit, defaults to None (optional)
         :type error_msg: str
+        :param retry: The number of retry, defaults to 0 (optional)
+        :type retry: int
 
         :return: A new submit object.
         :rtype: Submit
@@ -894,7 +897,8 @@ class SubmitManager(models.Manager):
                                 final_score=final_score,
                                 submit_type=submit_type,
                                 submit_status=submit_status,
-                                error_msg=error_msg)
+                                error_msg=error_msg,
+                                retries=retry)
         new_submit.save()
         if auto_send:
             new_submit.send()
@@ -951,6 +955,8 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
                                      default=ResultStatus.PND)
     #: Error message, if submit ended with error
     error_msg = models.TextField(null=True, blank=True, default=None)
+    #: Retries count
+    retries = models.IntegerField(default=0)
     #: Final score (as percent), gained by user's submission. Before solution check score is set
     #: to ``-1``.
     final_score = models.FloatField(default=-1)
@@ -980,7 +986,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
                                  self.id,
                                  self.task.package_instance)
 
-    def resend(self) -> BrokerSubmit:
+    def resend(self, limit_retries: int = -1) -> BrokerSubmit:
         """
         It marks this submit as hidden, and creates new submit with the same data. New submit will
         be sent to broker.
@@ -989,6 +995,9 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         :rtype: BrokerSubmit
         """
         from broker_api.models import BrokerSubmit
+
+        if -1 < limit_retries < self.retries:
+            raise ValidationError(f'Submit ({self}): Limit of retries exceeded')
 
         sub_type = SubmitType[self.submit_type]
         self.submit_type = SubmitType.HID
@@ -1000,6 +1009,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
             user=self.usr,
             auto_send=False,
             submit_type=sub_type,
+            retry=self.retries + 1
         )
 
         return BrokerSubmit.send(ModelsRegistry.get_course(self._state.db),
