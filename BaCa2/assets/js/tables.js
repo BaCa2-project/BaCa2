@@ -253,7 +253,11 @@ function columnSearchInputHandler(inputField, table, tableWidget) {
 
 function refreshButtonClickHandler(button) {
     const tableId = button.data('refresh-target');
-    window.tableWidgets[`#${tableId}`].table.ajax.reload();
+    const tableWidget = window.tableWidgets[`#${tableId}`];
+    tableWidget.table.ajax.reload(function () {
+        tableWidget.table.columns.adjust().draw();
+        $(`#${tableId}`).trigger('init.dt');
+    });
 }
 
 

@@ -10,7 +10,7 @@ from core.choices import TaskJudgingMode
 from core.tools.files import FileHandler
 from course.models import Round, Submit, Task
 from course.routing import InCourse
-from main.models import Course, Role
+from main.models import Course, Role, User
 from util.models_registry import ModelsRegistry
 from widgets.forms.base import BaCa2ModelForm, FormElementGroup, FormWidget, ModelFormPostTarget
 from widgets.forms.fields import (
@@ -437,6 +437,62 @@ class AddMembersFormWidget(FormWidget):
         )
 
 
+# --------------------------------------- remove members --------------------------------------- #
+
+class RemoveMembersForm(CourseActionForm):
+    ACTION = Course.CourseAction.DEL_MEMBER
+
+    members = TableSelectField(
+        label=_('Choose members to remove'),
+        table_widget_name='remove_members_table_widget',
+        data_source_url='',
+        cols=[TextColumn(name='email', header=_('Email')),
+              TextColumn(name='first_name', header=_('First name')),
+              TextColumn(name='last_name', header=_('Last name')),
+              TextColumn(name='user_role', header=_('Role'))],
+    )
+
+    @classmethod
+    def handle_valid_request(cls, request) -> Dict[str, str]:
+        course = cls.get_context_course(request)
+        users = TableSelectField.parse_value(request.POST.get('members'))
+
+        if any([course.user_is_admin(user) for user in users]):
+            raise forms.ValidationError(_('You cannot remove an admin from the course'))
+        if any([user == request.user for user in users]):
+            raise forms.ValidationError(_('You cannot remove yourself from the course'))
+
+        course.remove_members(users)
+        return {'message': _('Members removed successfully')}
+
+
+class RemoveMembersFormWidget(FormWidget):
+    def __init__(self,
+                 request,
+                 course_id: int,
+                 form: RemoveMembersForm = None,
+                 **kwargs) -> None:
+        from main.views import CourseModelView, UserModelView
+
+        if not form:
+            form = RemoveMembersForm()
+
+        form.fields['members'].update_data_source_url(UserModelView.get_url(
+            mode=UserModelView.GetMode.FILTER,
+            query_params={'roles__course': course_id},
+            serialize_kwargs={'course': course_id}
+        ))  # TODO: exclude admins and self
+
+        super().__init__(
+            name='remove_members_form_widget',
+            request=request,
+            form=form,
+            post_target=CourseModelView.post_url(**{'course_id': course_id}),
+            button_text=_('Remove members'),
+            **kwargs
+        )
+
+
 # ============================================ ROLE ============================================ #
 
 # ----------------------------------------- create role ---------------------------------------- #
@@ -458,7 +514,7 @@ class AddRoleForm(CourseActionForm):
                                         data_source_url='',
                                         cols=[TextColumn(name='codename', header=_('Codename')),
                                               TextColumn(name='name', header=_('Description'))],
-                                        table_widget_kwargs={'height_limit': 25})
+                                        table_widget_kwargs={'height_limit': 35})
 
     @ classmethod
     def handle_valid_request(cls, request) -> Dict[str, Any]:
@@ -633,7 +689,7 @@ class EditRoundFormWidget(FormWidget):
 
         round_obj = ModelsRegistry.get_round(round_, course_id)
 
-        form.fields['name'].initial = round_obj.name
+        form.fields['round_name'].initial = round_obj.name
         form.fields['start_date'].initial = round_obj.start_date
         form.fields['end_date'].initial = round_obj.end_date
         form.fields['deadline_date'].initial = round_obj.deadline_date

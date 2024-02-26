@@ -45,17 +45,20 @@ class TableSelectField(IntegerArrayField):
 
         self.special_field_type = 'table_select'
         self.data_source_url = data_source_url
-        table_widget = TableWidget(
-            name=table_widget_name,
-            title=label,
-            data_source=data_source_url,
-            cols=cols,
-            allow_column_search=allow_column_search,
-            allow_select=True,
-            deselect_on_filter=False,
-            highlight_rows_on_hover=True,
-            **(table_widget_kwargs or {})
-        )
+
+        table_widget_kwargs = {
+            'name': table_widget_name,
+            'title': label,
+            'data_source': data_source_url,
+            'cols': cols,
+            'allow_column_search': allow_column_search,
+            'allow_select': True,
+            'deselect_on_filter': False,
+            'highlight_rows_on_hover': True,
+            'refresh_button': True
+        } | (table_widget_kwargs or {})
+
+        table_widget = TableWidget(**table_widget_kwargs)
         self.table_widget = table_widget.get_context()
         self.table_widget_id = table_widget_name
 
