@@ -1,5 +1,9 @@
 // ---------------------------------------- forms setup --------------------------------------- //
 
+function formsPreSetup() {
+    tableSelectFieldSetup();
+}
+
 function formsSetup() {
     ajaxPostSetup();
     toggleableGroupSetup();
@@ -9,7 +13,7 @@ function formsSetup() {
     refreshButtonSetup();
     choiceFieldSetup();
     modelChoiceFieldSetup();
-    tableSelectFieldSetup();
+    tableSelectFieldValidationSetup();
     textAreaFieldSetup();
     liveValidationSetup();
 }
@@ -327,7 +331,7 @@ function updateSelectFieldValidationStatus(field) {
 function submitButtonRefresh(form) {
     if (form.find('.live-validation').filter(function () {
         return ($(this)).find('input:not(:disabled):not(.is-valid):required').length > 0 ||
-               $(this).find('select:not(:disabled):not(.is-valid)').length > 0;
+            $(this).find('select:not(:disabled):not(.is-valid)').length > 0;
     }).length > 0)
         form.find('.submit-btn').attr('disabled', true);
     else
@@ -406,20 +410,38 @@ function renderValidationErrors(popup, errors) {
 // ------------------------------------ table select field ------------------------------------ //
 
 function tableSelectFieldSetup() {
-    $('.table-select-field').each(function () {
-        const tableSelectField = $(this);
-        const table = tableSelectField.find('table').filter(function () {
-            return $(this).attr('id') !== undefined;
-        });
-        const tableId = table.attr('id');
-        const input = tableSelectField.find('.input-group input');
-        const form = tableSelectField.closest('form');
+    $(document).on('init.dt', function (e) {
+        const table = $(e.target);
 
-        table.DataTable().on('init.dt', function () {
+        table.closest('.table-select-field').each(function () {
+            const tableSelectField = $(this);
+            const tableId = table.attr('id');
+            const input = tableSelectField.find('.input-group input');
+            const form = tableSelectField.closest('form');
+
             table.find('.select').on('change', function () {
                 tableSelectFieldCheckboxClickHandler(tableSelectField, input)
             });
+
+            form.on('submit-complete', function () {
+                const tableWidget = window.tableWidgets[`#${tableId}`];
+
+                tableWidget.table.one('draw.dt', function () {
+                    tableWidget.updateSelectHeader();
+                });
+
+                tableWidget.table.ajax.reload(function () {
+                    $(`#${tableId}`).trigger('init.dt')
+                });
+            })
         });
+    });
+}
+
+function tableSelectFieldValidationSetup() {
+    $('.table-select-field').each(function () {
+        const tableSelectField = $(this);
+        const input = tableSelectField.find('.input-group input');
 
         input.on('validation-complete', function () {
             if ($(this).hasClass('is-valid'))
@@ -429,14 +451,6 @@ function tableSelectFieldSetup() {
             else
                 tableSelectField.removeClass('is-valid').removeClass('is-invalid');
         });
-
-        form.on('submit-complete', function () {
-            const tableWidget = window.tableWidgets[`#${tableId}`];
-            tableWidget.table.one('draw.dt', function () {
-                tableWidget.updateSelectHeader();
-            });
-            tableWidget.table.ajax.reload();
-        })
     });
 }
 

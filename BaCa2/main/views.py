@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Any, Dict, List
 
 from django.contrib.auth import logout
@@ -9,6 +10,7 @@ from django.db import models
 from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse_lazy
 from django.views.generic.base import RedirectView, View
+from django.utils.translation import gettext_lazy as _
 
 from main.models import Course, Role, User
 from util import decode_url_to_dict, encode_dict_to_url
@@ -22,7 +24,7 @@ from widgets.forms.course import (
     CreateCourseForm,
     CreateCourseFormWidget,
     DeleteCourseForm,
-    DeleteRoleForm
+    DeleteRoleForm, RemoveMembersForm
 )
 from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.columns import TextColumn
@@ -109,6 +111,8 @@ class CourseModelView(BaCa2ModelView):
             return AddRoleForm.handle_post_request(request)
         elif form_name == f'{Course.CourseAction.DEL_ROLE.label}_form':
             return DeleteRoleForm.handle_post_request(request)
+        elif form_name == f'{Course.CourseAction.DEL_MEMBER.label}_form':
+            return RemoveMembersForm.handle_post_request(request)
 
         return self.handle_unknown_form(request, **kwargs)
 
@@ -142,12 +146,26 @@ class UserModelView(BaCa2ModelView):
             the only user retrieved by the query is the requesting user, `False` otherwise.
         :rtype: bool
         """
+        user = request.user
+
         if self.check_get_all_permission(request, **kwargs):
             return True
-        if request.user.is_course_admin():
+        if user.has_role_permission(Course.CourseAction.ADD_MEMBER.label):
             return True
-        if len(query_result) == 1 and query_result[0] == request.user:
+        if len(query_result) == 1 and query_result[0] == user:
             return True
+
+        refer_url = request.META.get('HTTP_REFERER')
+
+        if bool(re.search(r'course/\d+/', refer_url)):
+            course_id = re.search(r'course/(\d+)/', refer_url).group(1)
+            course = Course.objects.get(pk=course_id)
+
+            if user.has_course_permission(Course.CourseAction.VIEW_MEMBER.label, course) and \
+                all([course.user_is_member(usr) for usr in query_result]):
+                return True
+
+        return False
 
     def check_get_excluded_permission(self, query_params, query_result, request, **kwargs) -> bool:
         """
@@ -186,12 +204,12 @@ class RoleModelView(BaCa2ModelView):
                                       **kwargs) -> bool:
         if self.check_get_all_permission(request, **kwargs):
             return True
+
         for role in query_result:
             course = role.course
-            if all((not course.user_is_admin(request.user),
-                    not course.user_has_role(request.user, role)
-                    )):
+            if not request.user.has_course_permission(Course.CourseAction.VIEW_ROLE.label, course):
                 return False
+
         return True
 
     def check_get_excluded_permission(self,
@@ -418,8 +436,8 @@ class RoleView(BaCa2LoggedInView, UserPassesTestMixin):
     template_name = 'course_role.html'
 
     def test_func(self) -> bool:
-        course = ModelsRegistry.get_role(self.kwargs['role_id']).course
-        user = self.request.user
+        course = ModelsRegistry.get_role(self.kwargs.get('role_id')).course
+        user = getattr(self.request, 'user')
 
         if course.user_is_admin(user) or user.is_superuser:
             return True
@@ -428,6 +446,58 @@ class RoleView(BaCa2LoggedInView, UserPassesTestMixin):
             return True
 
         return False
+
+    def get_context_data(self, **kwargs) -> dict:
+        context = super().get_context_data(**kwargs)
+        role = ModelsRegistry.get_role(self.kwargs.get('role_id'))
+        course = role.course
+        user = getattr(self.request, 'user')
+        sidenav_tabs = ['Overview', 'Members']
+
+        # overview -------------------------------------------------------------------------------
+
+        permissions_table = TableWidget(
+            name='permissions_table_widget',
+            title=_('Permissions'),
+            request=self.request,
+            data_source=PermissionModelView.get_url(
+                mode=BaCa2ModelView.GetMode.FILTER,
+                query_params={'role': role.id}
+            ),
+            cols=[TextColumn(name='codename', header=_('Codename')),
+                  TextColumn(name='name', header=_('Name'))],
+            refresh_button=True
+        )
+        self.add_widget(context, permissions_table)
+
+        # members --------------------------------------------------------------------------------
+
+        members_table = TableWidget(
+            name='members_table_widget',
+            title=_('Members'),
+            request=self.request,
+            data_source=UserModelView.get_url(
+                mode=BaCa2ModelView.GetMode.FILTER,
+                query_params={'roles': role.id}
+            ),
+            cols=[TextColumn(name='email', header=_('Email')),
+                  TextColumn(name='first_name', header=_('First name')),
+                  TextColumn(name='last_name', header=_('Last name'))],
+            refresh_button=True
+        )
+        self.add_widget(context, members_table)
+
+        # TODO: add permission editing if requesting user has change role permission
+
+        # sidenav --------------------------------------------------------------------------------
+
+        sidenav = SideNav(request=self.request,
+                          collapsed=False,
+                          toggle_button=False,
+                          tabs=sidenav_tabs)
+        self.add_widget(context, sidenav)
+
+        return context
 
 
 # ----------------------------------------- Util views ----------------------------------------- #

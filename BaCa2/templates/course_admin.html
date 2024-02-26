@@ -1,67 +1,94 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <div class="tab-wrapper" id="view-members-tab">
-        <div class="side-nav-tab">
-            {% with widgets.TableWidget.members_table_widget as table_widget %}
-                {% include "widget_templates/table.html" %}
-            {% endwith %}
+    {% if view_members_tab %}
+        <div class="tab-wrapper" id="{{ view_members_tab }}">
+            <div class="side-nav-tab">
+                {% with widgets.TableWidget.members_table_widget as table_widget %}
+                    {% include "widget_templates/table.html" %}
+                {% endwith %}
+            </div>
         </div>
-    </div>
-    <div class="tab-wrapper" id="add-members-tab">
-        <div class="side-nav-tab">
-            {% with widgets.FormWidget.add_members_form_widget as form_widget %}
-                {% include "widget_templates/forms/default.html" %}
-            {% endwith %}
+    {% endif %}
+    {% if add_members_tab %}
+        <div class="tab-wrapper" id="{{ add_members_tab }}">
+            <div class="side-nav-tab">
+                {% with widgets.FormWidget.add_members_form_widget as form_widget %}
+                    {% include "widget_templates/forms/default.html" %}
+                {% endwith %}
+            </div>
         </div>
-    </div>
-    <div class="tab-wrapper" id="view-roles-tab">
-        <div class="side-nav-tab">
-            {% with widgets.TableWidget.roles_table_widget as table_widget %}
-                {% include "widget_templates/table.html" %}
-            {% endwith %}
+    {% endif %}
+    {% if remove_members_tab %}
+        <div class="tab-wrapper" id="{{ remove_members_tab }}">
+            <div class="side-nav-tab">
+                {% with widgets.FormWidget.remove_members_form_widget as form_widget %}
+                    {% include "widget_templates/forms/default.html" %}
+                {% endwith %}
+            </div>
         </div>
-    </div>
-    <div class="tab-wrapper" id="add-role-tab">
-        <div class="side-nav-tab">
-            {% with widgets.FormWidget.add_role_form_widget as form_widget %}
-                {% include "widget_templates/forms/default.html" %}
-            {% endwith %}
+    {% endif %}
+    {% if view_roles_tab %}
+        <div class="tab-wrapper" id="{{ view_roles_tab }}">
+            <div class="side-nav-tab">
+                {% with widgets.TableWidget.roles_table_widget as table_widget %}
+                    {% include "widget_templates/table.html" %}
+                {% endwith %}
+            </div>
         </div>
-    </div>
-    <div class="tab-wrapper" id="view-rounds-tab">
-        <div class="side-nav-tab">
-            {% with widgets.TableWidget.rounds_table_widget as table_widget %}
-                {% include "widget_templates/table.html" %}
-            {% endwith %}
+    {% endif %}
+    {% if add_role_tab %}
+        <div class="tab-wrapper" id="{{ add_role_tab }}">
+            <div class="side-nav-tab">
+                {% with widgets.FormWidget.add_role_form_widget as form_widget %}
+                    {% include "widget_templates/forms/default.html" %}
+                {% endwith %}
+            </div>
         </div>
-    </div>
-    <div class="tab-wrapper" id="add-round-tab">
-        <div class="side-nav-tab">
-            {% with widgets.FormWidget.create_round_form_widget as form_widget %}
-                {% include "widget_templates/forms/default.html" %}
-            {% endwith %}
+    {% endif %}
+    {% if view_rounds_tab %}
+        <div class="tab-wrapper" id="{{ view_rounds_tab }}">
+            <div class="side-nav-tab">
+                {% with widgets.TableWidget.rounds_table_widget as table_widget %}
+                    {% include "widget_templates/table.html" %}
+                {% endwith %}
+            </div>
         </div>
-    </div>
-    <div class="tab-wrapper" id="view-tasks-tab">
-        <div class="side-nav-tab">
-            {% with widgets.TableWidget.tasks_table_widget as table_widget %}
-                {% include "widget_templates/table.html" %}
-            {% endwith %}
+    {% endif %}
+    {% if add_round_tab %}
+        <div class="tab-wrapper" id="{{ add_round_tab }}">
+            <div class="side-nav-tab">
+                {% with widgets.FormWidget.create_round_form_widget as form_widget %}
+                    {% include "widget_templates/forms/default.html" %}
+                {% endwith %}
+            </div>
         </div>
-    </div>
-    <div class="tab-wrapper" id="add-task-tab">
-        <div class="side-nav-tab">
-            {% with widgets.FormWidget.create_task_form_widget as form_widget %}
-                {% include "widget_templates/forms/default.html" %}
-            {% endwith %}
+    {% endif %}
+    {% if view_tasks_tab %}
+        <div class="tab-wrapper" id="{{ view_tasks_tab }}">
+            <div class="side-nav-tab">
+                {% with widgets.TableWidget.tasks_table_widget as table_widget %}
+                    {% include "widget_templates/table.html" %}
+                {% endwith %}
+            </div>
         </div>
-    </div>
-    <div class="tab-wrapper" id="results-tab">
-        <div class="side-nav-tab">
-            {% with widgets.TableWidget.results_table_widget as table_widget %}
-                {% include "widget_templates/table.html" %}
-            {% endwith %}
+    {% endif %}
+    {% if add_task_tab %}
+        <div class="tab-wrapper" id="{{ add_task_tab }}">
+            <div class="side-nav-tab">
+                {% with widgets.FormWidget.create_task_form_widget as form_widget %}
+                    {% include "widget_templates/forms/default.html" %}
+                {% endwith %}
+            </div>
         </div>
-    </div>
+    {% endif %}
+    {% if results_tab %}
+        <div class="tab-wrapper" id="{{ results_tab }}">
+            <div class="side-nav-tab">
+                {% with widgets.TableWidget.results_table_widget as table_widget %}
+                    {% include "widget_templates/table.html" %}
+                {% endwith %}
+            </div>
+        </div>
+    {% endif %}
 {% endblock %}
