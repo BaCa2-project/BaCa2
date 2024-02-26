@@ -10,7 +10,7 @@ from core.choices import TaskJudgingMode
 from core.tools.files import FileHandler
 from course.models import Round, Submit, Task
 from course.routing import InCourse
-from main.models import Course, Role, User
+from main.models import Course, Role
 from util.models_registry import ModelsRegistry
 from widgets.forms.base import BaCa2ModelForm, FormElementGroup, FormWidget, ModelFormPostTarget
 from widgets.forms.fields import (
@@ -708,7 +708,7 @@ class EditRoundFormWidget(FormWidget):
 
 # ---------------------------------------- delete round ---------------------------------------- #
 
-class DeleteRoundForm(BaCa2ModelForm):
+class DeleteRoundForm(CourseModelForm):
     """
     Form for deleting existing :py:class:`course.Round` objects.
     """
@@ -741,7 +741,7 @@ class DeleteRoundForm(BaCa2ModelForm):
 
 # ----------------------------------------- create task ---------------------------------------- #
 
-class CreateTaskForm(BaCa2ModelForm):
+class CreateTaskForm(CourseModelForm):
     MODEL = Task
     ACTION = Task.BasicAction.ADD
 
@@ -846,7 +846,7 @@ class CreateTaskFormWidget(FormWidget):
 # ----------------------------------------- delete task ---------------------------------------- #
 
 
-class DeleteTaskForm(BaCa2ModelForm):
+class DeleteTaskForm(CourseModelForm):
     """
     Form for deleting existing :py:class:`course.Task` objects.
     """
@@ -921,7 +921,7 @@ class DeleteTaskFormWidget(FormWidget):
 
 # -------------------------------------- create submission ------------------------------------- #
 
-class CreateSubmitForm(BaCa2ModelForm):
+class CreateSubmitForm(CourseModelForm):
     MODEL = Submit
     ACTION = Submit.BasicAction.ADD
 
