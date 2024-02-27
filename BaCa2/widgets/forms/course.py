@@ -1039,6 +1039,7 @@ class CreateSubmitForm(CourseModelForm):
     ACTION = Submit.BasicAction.ADD
 
     source_code = FileUploadField(label=_('Source code'), required=True)
+    # amount = forms.IntegerField(label=_('Amount'), required=False)
     task_id = forms.IntegerField(label=_('Task ID'), widget=forms.HiddenInput(), required=True)
 
     @classmethod
