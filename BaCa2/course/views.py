@@ -1,8 +1,7 @@
 import inspect
 from abc import ABC, ABCMeta
-from typing import Any, Callable, Dict, List, Union
+from typing import Any, Callable, Dict, Union
 
-import django.db.models
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.http import JsonResponse
 from django.utils.translation import gettext_lazy as _
@@ -164,21 +163,8 @@ class CourseModelView(BaCa2ModelView, ABC, metaclass=ReadCourseViewMeta):
 # ----------------------------------------- Model views ----------------------------------------- #
 
 class RoundModelView(CourseModelView):
+
     MODEL = Round
-
-    def check_get_filtered_permission(self,
-                                      query_params: dict,
-                                      query_result: List[django.db.models.Model],
-                                      request,
-                                      **kwargs) -> bool:
-        return True
-
-    def check_get_excluded_permission(self,
-                                      query_params: dict,
-                                      query_result: List[django.db.models.Model],
-                                      request,
-                                      **kwargs) -> bool:
-        return True
 
     def post(self, request, **kwargs) -> JsonResponse:
         if request.POST.get('form_name') == 'add_round_form':
@@ -191,19 +177,8 @@ class RoundModelView(CourseModelView):
 
 
 class TaskModelView(CourseModelView):
+
     MODEL = Task
-
-    def check_get_filtered_permission(self,
-                                      query_params: dict,
-                                      query_result: List[django.db.models.Model],
-                                      request,
-                                      **kwargs) -> bool:
-        return True
-
-    def check_get_excluded_permission(self, query_params: dict,
-                                      query_result: List[django.db.models.Model], request,
-                                      **kwargs) -> bool:
-        return True
 
     def post(self, request, **kwargs) -> JsonResponse:
         if request.POST.get('form_name') == 'add_task_form':
@@ -214,19 +189,8 @@ class TaskModelView(CourseModelView):
 
 
 class SubmitModelView(CourseModelView):
+
     MODEL = Submit
-
-    def check_get_filtered_permission(self,
-                                      query_params: dict,
-                                      query_result: List[django.db.models.Model],
-                                      request,
-                                      **kwargs) -> bool:
-        return True
-
-    def check_get_excluded_permission(self, query_params: dict,
-                                      query_result: List[django.db.models.Model], request,
-                                      **kwargs) -> bool:
-        return True
 
     def post(self, request, **kwargs) -> JsonResponse:
         if request.POST.get('form_name') == 'add_submit_form':
@@ -235,22 +199,8 @@ class SubmitModelView(CourseModelView):
 
 
 class ResultModelView(CourseModelView):
+
     MODEL = Result
-
-    class MissingSubmitId(Exception):
-        pass
-
-    def check_get_filtered_permission(self,
-                                      query_params: dict,
-                                      query_result: List[django.db.models.Model],
-                                      request,
-                                      **kwargs) -> bool:
-        return True
-
-    def check_get_excluded_permission(self, query_params: dict,
-                                      query_result: List[django.db.models.Model], request,
-                                      **kwargs) -> bool:
-        return True
 
     def post(self, request, **kwargs) -> JsonResponse:
         pass
@@ -329,7 +279,7 @@ class CourseView(BaCa2LoggedInView, CourseMemberMixin):
                 request=self.request,
                 data_source=UserModelView.get_url(
                     mode=BaCa2ModelView.GetMode.FILTER,
-                    query_params={'roles__course': course_id},
+                    filter_params={'roles__course': course_id},
                     serialize_kwargs={'course': course_id},
                 ),
                 cols=[TextColumn(name='first_name', header=_('First name')),
@@ -366,7 +316,7 @@ class CourseView(BaCa2LoggedInView, CourseMemberMixin):
                 'request': self.request,
                 'data_source': RoleModelView.get_url(
                     mode=BaCa2ModelView.GetMode.FILTER,
-                    query_params={'course': course_id},
+                    filter_params={'course': course_id},
                 ),
                 'cols': [TextColumn(name='name', header=_('Role name')),
                          TextColumn(name='description', header=_('Description'))],
@@ -514,8 +464,8 @@ class CourseView(BaCa2LoggedInView, CourseMemberMixin):
             else:
                 results_table_kwargs['data_source'] = SubmitModelView.get_url(
                     mode=BaCa2ModelView.GetMode.FILTER,
-                    query_params={'usr': user.id,
-                                  'submit_type': SubmitType.STD},
+                    filter_params={'usr': user.id,
+                                   'submit_type': SubmitType.STD},
                     serialize_kwargs={'add_round_task_name': True,
                                       'add_summary_score': True},
                     course_id=course_id
@@ -664,8 +614,8 @@ class CourseTask(BaCa2LoggedInView, CourseMemberMixin):
             else:
                 results_table_kwargs['data_source'] = SubmitModelView.get_url(
                     mode=BaCa2ModelView.GetMode.FILTER,
-                    query_params={'usr': user.id,
-                                  'submit_type': SubmitType.STD},
+                    filter_params={'usr': user.id,
+                                   'submit_type': SubmitType.STD},
                     serialize_kwargs={'add_round_task_name': True,
                                       'add_summary_score': True},
                     course_id=course_id
@@ -712,7 +662,7 @@ class CourseTaskAdmin(BaCa2LoggedInView, CourseMemberMixin):
             request=self.request,
             data_source=SubmitModelView.get_url(
                 mode=BaCa2ModelView.GetMode.FILTER,
-                query_params={'task__id': task_id},
+                filter_params={'task__id': task_id},
                 serialize_kwargs={'add_summary_score': True},
                 course_id=course_id,
             ),
@@ -846,7 +796,7 @@ class SubmitSummaryView(BaCa2LoggedInView, CourseMemberMixin):
                 request=self.request,
                 data_source=ResultModelView.get_url(
                     mode=BaCa2ModelView.GetMode.FILTER,
-                    query_params={'submit': submit_id, 'test__test_set_id': s.pk},
+                    filter_params={'submit': submit_id, 'test__test_set_id': s.pk},
                     course_id=course_id,
                 ),
                 cols=[

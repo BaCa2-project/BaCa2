@@ -7,7 +7,6 @@ from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib.auth.models import Permission
 from django.contrib.auth.views import LoginView
-from django.db import models
 from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -58,41 +57,35 @@ class CourseModelView(BaCa2ModelView):
     MODEL = Course
 
     def check_get_filtered_permission(self,
-                                      query_params: dict,
+                                      filter_params: dict,
+                                      exclude_params: dict,
                                       query_result: List[Course],
                                       request,
                                       **kwargs) -> bool:
         """
-        :param query_params: Query parameters used to filter the retrieved query set.
-        :type query_params: dict
-        :param query_result: Query set retrieved using the query parameters evaluate to a list.
-        :type query_result: List[Course]
-        :param request: HTTP request received by the view.
+        Method used to evaluate requesting user's permission to view the model instances matching
+        the specified query parameters retrieved by the view if the user does not possess the 'view'
+        permission for all model instances.
+
+        :param filter_params: Query parameters used to construct the filter for the retrieved query
+            set.
+        :type filter_params: dict
+        :param exclude_params: Query parameters used to construct the exclude filter for the
+            retrieved query set.
+        :type exclude_params: dict
+        :param query_result: Query set retrieved using the specified query parameters evaluated to a
+            list.
+        :type query_result: List[:class:`Course`]
+        :param request: HTTP GET request object received by the view.
         :type request: HttpRequest
-        :return: `True` if the user has permission to view all courses or if the user is a member of
-            every course retrieved by the query, `False` otherwise.
+        :return: `True` if the user is a member of all courses retrieved by the query, `False`
+            otherwise.
         :rtype: bool
         """
-        if self.check_get_all_permission(request, **kwargs):
-            return True
         for course in query_result:
             if not course.user_is_member(request.user):
                 return False
         return True
-
-    def check_get_excluded_permission(self, query_params, query_result, request, **kwargs) -> bool:
-        """
-        :param query_params: Query parameters used to filter the retrieved query set.
-        :type query_params: dict
-        :param query_result: Query set retrieved using the query parameters evaluate to a list.
-        :type query_result: List[Course]
-        :param request: HTTP request received by the view.
-        :type request: HttpRequest
-        :return: `True` if the user has permission to view all courses or if the user is a member of
-            every course retrieved by the query, `False` otherwise.
-        :rtype: bool
-        """
-        return self.check_get_filtered_permission(query_params, query_result, request, **kwargs)
 
     def post(self, request, **kwargs) -> BaCa2ModelResponse:
         """
@@ -151,22 +144,36 @@ class UserModelView(BaCa2ModelView):
 
     MODEL = User
 
-    def check_get_filtered_permission(self, query_params, query_result, request, **kwargs) -> bool:
+    def check_get_filtered_permission(self,
+                                      filter_params: dict,
+                                      exclude_params: dict,
+                                      query_result: List[User],
+                                      request,
+                                      **kwargs) -> bool:
         """
-        :param query_params: Query parameters used to filter the retrieved query set.
-        :type query_params: dict
-        :param query_result: Query set retrieved using the query parameters evaluate to a list.
-        :type query_result: List[User]
-        :param request: HTTP request received by the view.
+        Method used to evaluate requesting user's permission to view the model instances matching
+        the specified query parameters retrieved by the view if the user does not possess the 'view'
+        permission for all model instances.
+
+        :param filter_params: Query parameters used to construct the filter for the retrieved query
+            set.
+        :type filter_params: dict
+        :param exclude_params: Query parameters used to construct the exclude filter for the
+            retrieved query set.
+        :type exclude_params: dict
+        :param query_result: Query set retrieved using the specified query parameters evaluated to a
+            list.
+        :type query_result: List[:class:`User`]
+        :param request: HTTP GET request object received by the view.
         :type request: HttpRequest
-        :return: `True` if the user has permission to view all users, is a course admin or if
-            the only user retrieved by the query is the requesting user, `False` otherwise.
+        :return: `True` if the user has the 'add_member' permission in one of their courses, if
+            the user is the only record retrieved by the query, or if the request originated from a
+            view related to a course the user has the 'view_member' permission for and all users
+            retrieved by the query are members of the course, `False` otherwise.
         :rtype: bool
         """
         user = request.user
 
-        if self.check_get_all_permission(request, **kwargs):
-            return True
         if user.has_role_permission(Course.CourseAction.ADD_MEMBER.label):
             return True
         if len(query_result) == 1 and query_result[0] == user:
@@ -177,26 +184,12 @@ class UserModelView(BaCa2ModelView):
         if bool(re.search(r'course/\d+/', refer_url)):
             course_id = re.search(r'course/(\d+)/', refer_url).group(1)
             course = Course.objects.get(pk=course_id)
+            view_member = user.has_course_permission(Course.CourseAction.VIEW_MEMBER.label, course)
 
-            if user.has_course_permission(Course.CourseAction.VIEW_MEMBER.label, course) \
-               and all([course.user_is_member(usr) for usr in query_result]):
+            if view_member and all([course.user_is_member(usr) for usr in query_result]):
                 return True
 
         return False
-
-    def check_get_excluded_permission(self, query_params, query_result, request, **kwargs) -> bool:
-        """
-        :param query_params: Query parameters used to filter the retrieved query set.
-        :type query_params: dict
-        :param query_result: Query set retrieved using the query parameters evaluate to a list.
-        :type query_result: List[User]
-        :param request: HTTP request received by the view.
-        :type request: HttpRequest
-        :return: `True` if the user has permission to view all users, is a course admin or if
-            the only user retrieved by the query is the requesting user, `False` otherwise.
-        :rtype: bool
-        """
-        return self.check_get_filtered_permission(query_params, query_result, request, **kwargs)
 
     def post(self, request, **kwargs) -> BaCa2ModelResponse:
         """
@@ -209,38 +202,50 @@ class UserModelView(BaCa2ModelView):
         :rtype: :class:`BaCa2ModelResponse`
         """
         form_name = request.POST.get('form_name')
+
         if form_name == f'{User.BasicAction.ADD.label}_form':
             return CreateUser.handle_post_request(request)
         if form_name == f'{User.BasicAction.EDIT.label}_form':
             return ChangePersonalData.handle_post_request(request)
-        else:
-            return self.handle_unknown_form(request, **kwargs)
+
+        return self.handle_unknown_form(request, **kwargs)
 
 
 class RoleModelView(BaCa2ModelView):
     MODEL = Role
 
     def check_get_filtered_permission(self,
-                                      query_params: dict,
+                                      filter_params: dict,
+                                      exclude_params: dict,
                                       query_result: List[Role],
                                       request,
                                       **kwargs) -> bool:
-        if self.check_get_all_permission(request, **kwargs):
-            return True
+        """
+        Method used to evaluate requesting user's permission to view the model instances matching
+        the specified query parameters retrieved by the view if the user does not possess the 'view'
+        permission for all model instances.
 
+        :param filter_params: Query parameters used to construct the filter for the retrieved query
+            set.
+        :type filter_params: dict
+        :param exclude_params: Query parameters used to construct the exclude filter for the
+            retrieved query set.
+        :type exclude_params: dict
+        :param query_result: Query set retrieved using the specified query parameters evaluated to a
+            list.
+        :type query_result: List[:class:`Role`]
+        :param request: HTTP GET request object received by the view.
+        :type request: HttpRequest
+        :return: `True` if all retrieved roles belong to a course the user has the 'view_role'
+            permission for, `False` otherwise.
+        :rtype: bool
+        """
         for role in query_result:
             course = role.course
             if not request.user.has_course_permission(Course.CourseAction.VIEW_ROLE.label, course):
                 return False
 
         return True
-
-    def check_get_excluded_permission(self,
-                                      query_params: dict,
-                                      query_result: List[Role],
-                                      request,
-                                      **kwargs) -> bool:
-        return self.check_get_filtered_permission(query_params, query_result, request, **kwargs)
 
     def post(self, request, **kwargs) -> JsonResponse:
         pass
@@ -258,20 +263,6 @@ class PermissionModelView(BaCa2ModelView):
 
     MODEL = Permission
     GET_DATA_METHOD = get_data
-
-    def check_get_filtered_permission(self,
-                                      query_params: dict,
-                                      query_result: List[models.Model],
-                                      request,
-                                      **kwargs) -> bool:
-        return True
-
-    def check_get_excluded_permission(self,
-                                      query_params: dict,
-                                      query_result: List[models.Model],
-                                      request,
-                                      **kwargs) -> bool:
-        return self.check_get_filtered_permission(query_params, query_result, request, **kwargs)
 
     def post(self, request, **kwargs) -> JsonResponse:
         pass
@@ -460,7 +451,7 @@ class CoursesView(BaCa2LoggedInView):
             request=self.request,
             title='Your courses',
             data_source=CourseModelView.get_url(mode=BaCa2ModelView.GetMode.FILTER,
-                                                query_params={'role_set__user': user_id},
+                                                filter_params={'role_set__user': user_id},
                                                 serialize_kwargs={'user': user_id}),
             allow_column_search=True,
             cols=[
@@ -503,7 +494,7 @@ class RoleView(BaCa2LoggedInView, UserPassesTestMixin):
             request=self.request,
             data_source=PermissionModelView.get_url(
                 mode=BaCa2ModelView.GetMode.FILTER,
-                query_params={'role': role.id}
+                filter_params={'role': role.id}
             ),
             cols=[TextColumn(name='codename', header=_('Codename')),
                   TextColumn(name='name', header=_('Name'))],
@@ -520,7 +511,7 @@ class RoleView(BaCa2LoggedInView, UserPassesTestMixin):
             request=self.request,
             data_source=UserModelView.get_url(
                 mode=BaCa2ModelView.GetMode.FILTER,
-                query_params={'roles': role.id}
+                filter_params={'roles': role.id}
             ),
             cols=[TextColumn(name='email', header=_('Email')),
                   TextColumn(name='first_name', header=_('First name')),
