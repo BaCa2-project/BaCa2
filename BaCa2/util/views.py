@@ -1,3 +1,4 @@
+from abc import ABC
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Type
 
@@ -251,7 +252,7 @@ class FieldValidationView(LoginRequiredMixin, View):
         )
 
 
-class BaCa2ModelView(LoginRequiredMixin, View):
+class BaCa2ModelView(LoginRequiredMixin, View, ABC):
     """
     Base class for all views used to manage models and retrieve their data from the front-end. GET
     requests directed at this view are used to retrieve serialized model data while POST requests

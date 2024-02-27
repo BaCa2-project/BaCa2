@@ -13,6 +13,7 @@ from main.models import Course
 from main.views import CourseModelView as CourseModelManagerView
 from main.views import RoleModelView, UserModelView
 from util.models_registry import ModelsRegistry
+from util.responses import BaCa2JsonResponse
 from util.views import BaCa2LoggedInView, BaCa2ModelView
 from widgets.forms.course import (
     AddMembersFormWidget,
@@ -141,11 +142,32 @@ class ReadCourseViewMeta(ABCMeta):
 
 
 class CourseModelView(BaCa2ModelView, ABC, metaclass=ReadCourseViewMeta):
+    """
+    Base class for all views used to manage course db models and retrieve their data from the
+    front-end. GET requests directed at this view are used to retrieve serialized model data
+    while POST requests are handled in accordance with the particular course model form from which
+    they originate.
+
+    See also:
+        - :py:class:`BaCa2ModelView`
+        - :py:class:`ReadCourseViewMeta`
+    """
+
     class MissingCourseId(Exception):
+        """
+        Raised when an attempt is made to construct a course model view URL without a course id.
+        """
         pass
 
     @classmethod
     def _url(cls, **kwargs) -> str:
+        """
+        :param kwargs: Keyword arguments to be used to construct the URL. Should contain a
+            `course_id` parameter.
+        :type kwargs: dict
+        :return: URL to the view
+        :rtype: str
+        """
         course_id = kwargs.get('course_id')
         if not course_id:
             raise cls.MissingCourseId('Course id required to construct URL')
@@ -153,6 +175,13 @@ class CourseModelView(BaCa2ModelView, ABC, metaclass=ReadCourseViewMeta):
         return f'/course/{course_id}/models/{cls.MODEL._meta.model_name}/'
 
     def check_get_all_permission(self, request, **kwargs) -> bool:
+        """
+        :param request: HTTP GET request object received by the view
+        :type request: HttpRequest
+        :return: `True` if the user has permission to view all instances of the model assigned to
+            them in the course, `False` otherwise
+        :rtype: bool
+        """
         user = getattr(request, 'user')
         course_id = self.kwargs.get('course_id')
         return user.has_basic_course_model_permissions(model=self.MODEL,
@@ -163,10 +192,24 @@ class CourseModelView(BaCa2ModelView, ABC, metaclass=ReadCourseViewMeta):
 # ----------------------------------------- Model views ----------------------------------------- #
 
 class RoundModelView(CourseModelView):
+    """
+    View used to retrieve serialized round model data to be displayed in the front-end and to
+    interface between POST requests and course model forms used to manage round instances.
+    """
 
     MODEL = Round
 
-    def post(self, request, **kwargs) -> JsonResponse:
+    def post(self, request, **kwargs) -> BaCa2JsonResponse:
+        """
+        Delegates the handling of the POST request to the appropriate form based on the `form_name`
+        parameter received in the request.
+
+        :param request: HTTP POST request object received by the view
+        :type request: HttpRequest
+        :return: JSON response to the POST request containing information about the success or
+            failure of the request
+        :rtype: :py:class:`BaCa2JsonResponse`
+        """
         form_name = request.POST.get('form_name')
 
         if form_name == f'{Course.CourseAction.ADD_ROUND.label}_form':
@@ -180,10 +223,24 @@ class RoundModelView(CourseModelView):
 
 
 class TaskModelView(CourseModelView):
+    """
+    View used to retrieve serialized task model data to be displayed in the front-end and to
+    interface between POST requests and course model forms used to manage task instances.
+    """
 
     MODEL = Task
 
     def post(self, request, **kwargs) -> JsonResponse:
+        """
+        Delegates the handling of the POST request to the appropriate form based on the `form_name`
+        parameter received in the request.
+
+        :param request: HTTP POST request object received by the view
+        :type request: HttpRequest
+        :return: JSON response to the POST request containing information about the success or
+            failure of the request
+        :rtype: :py:class:`JsonResponse`
+        """
         form_name = request.POST.get('form_name')
 
         if form_name == f'{Course.CourseAction.ADD_TASK.label}_form':
@@ -195,10 +252,24 @@ class TaskModelView(CourseModelView):
 
 
 class SubmitModelView(CourseModelView):
+    """
+    View used to retrieve serialized submit model data to be displayed in the front-end and to
+    interface between POST requests and course model forms used to manage submit instances.
+    """
 
     MODEL = Submit
 
     def post(self, request, **kwargs) -> JsonResponse:
+        """
+        Delegates the handling of the POST request to the appropriate form based on the `form_name`
+        parameter received in the request.
+
+        :param request: HTTP POST request object received by the view
+        :type request: HttpRequest
+        :return: JSON response to the POST request containing information about the success or
+            failure of the request
+        :rtype: :py:class:`JsonResponse`
+        """
         form_name = request.POST.get('form_name')
 
         if form_name == f'{Course.CourseAction.ADD_SUBMIT.label}_form':
@@ -208,6 +279,11 @@ class SubmitModelView(CourseModelView):
 
 
 class ResultModelView(CourseModelView):
+    """
+    View used to retrieve serialized result model data to be displayed in the front-end and to
+    interface between POST requests and course model forms used to manage result instances.
+    """
+
     MODEL = Result
 
 
