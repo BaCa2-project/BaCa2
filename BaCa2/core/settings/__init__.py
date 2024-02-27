@@ -21,6 +21,12 @@ if not LOCAL_SETTINGS_PATH:
 
 LOCAL_SETTINGS_PATH = LOCAL_SETTINGS_PATH.absolute()
 
+OS_NAME = 'unknown'
+if os.name == 'nt':
+    OS_NAME = 'windows'
+elif os.name == 'posix':
+    OS_NAME = 'unix'
+
 include(
     'security.py',
     'apps.py',
