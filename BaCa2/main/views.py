@@ -247,9 +247,6 @@ class RoleModelView(BaCa2ModelView):
 
         return True
 
-    def post(self, request, **kwargs) -> JsonResponse:
-        pass
-
 
 class PermissionModelView(BaCa2ModelView):
     @staticmethod
@@ -263,9 +260,6 @@ class PermissionModelView(BaCa2ModelView):
 
     MODEL = Permission
     GET_DATA_METHOD = get_data
-
-    def post(self, request, **kwargs) -> JsonResponse:
-        pass
 
     @classmethod
     def _url(cls, **kwargs) -> str:

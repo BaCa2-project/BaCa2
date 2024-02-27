@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Type
 
@@ -252,7 +251,7 @@ class FieldValidationView(LoginRequiredMixin, View):
         )
 
 
-class BaCa2ModelView(LoginRequiredMixin, View, ABC):
+class BaCa2ModelView(LoginRequiredMixin, View):
     """
     Base class for all views used to manage models and retrieve their data from the front-end. GET
     requests directed at this view are used to retrieve serialized model data while POST requests
@@ -522,17 +521,20 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
 
     # -------------------------------------- post methods -------------------------------------- #
 
-    @abstractmethod
-    def post(self, request, **kwargs) -> JsonResponse:
+    def post(self, request, **kwargs) -> BaCa2JsonResponse:
         """
-        Receives a post request from a model form and calls on its handle_post_request method to
-        validate and process the request.
+        Inheriting model views should implement this method to handle post requests from model forms
+        if necessary. The method should call on the handle_post_request method of the model form
+        class to validate and process the request.
 
+        :param request: HTTP POST request object received by the view.
+        :type: HttpRequest
         :return: JSON response with the result of the action in the form of status and message
             string
-        :rtype: JsonResponse
+        :rtype: :class:`BaCa2JsonResponse`
         """
-        raise NotImplementedError('This method has to be implemented by inheriting classes.')
+        return BaCa2JsonResponse(status=BaCa2JsonResponse.Status.INVALID,
+                                 message=_('This view does not handle post requests.'))
 
     @classmethod
     def handle_unknown_form(cls, request, **kwargs) -> BaCa2ModelResponse:
