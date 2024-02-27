@@ -639,8 +639,7 @@ class CourseTask(BaCa2LoggedInView, CourseMemberMixin):
                 'name': 'results_table_widget',
                 'title': _('Results'),
                 'request': self.request,
-                'cols': [TextColumn(name='task_name', header=_('Task name')),
-                         DatetimeColumn(name='submit_date', header=_('Submit time')),
+                'cols': [DatetimeColumn(name='submit_date', header=_('Submit time')),
                          TextColumn(name='submit_status', header=_('Submit status')),
                          TextColumn(name='summary_score', header=_('Score'))],
                 'refresh_button': True,
@@ -657,10 +656,11 @@ class CourseTask(BaCa2LoggedInView, CourseMemberMixin):
                                       'add_summary_score': True},
                     course_id=course_id
                 )
-                results_table_kwargs['cols'].extend([
-                    TextColumn(name='user_first_name', header=_('Submitter first name')),
-                    TextColumn(name='user_last_name', header=_('Submitter last name'))
-                ])
+                results_table_kwargs['cols'].insert(0, TextColumn(name='user_first_name',
+                                                                  header=_('Name')))
+                results_table_kwargs['cols'].insert(1, TextColumn(name='user_last_name',
+                                                                  header=_('Surname')))
+
             else:
                 results_table_kwargs['data_source'] = SubmitModelView.get_url(
                     mode=BaCa2ModelView.GetMode.FILTER,
