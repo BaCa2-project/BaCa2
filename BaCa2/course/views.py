@@ -167,12 +167,15 @@ class RoundModelView(CourseModelView):
     MODEL = Round
 
     def post(self, request, **kwargs) -> JsonResponse:
-        if request.POST.get('form_name') == 'add_round_form':
+        form_name = request.POST.get('form_name')
+
+        if form_name == f'{Course.CourseAction.ADD_ROUND.label}_form':
             return CreateRoundForm.handle_post_request(request)
-        elif request.POST.get('form_name') == 'change_round_form':
+        elif form_name == f'{Course.CourseAction.EDIT_ROUND.label}_form':
             return EditRoundForm.handle_post_request(request)
-        elif request.POST.get('form_name') == 'delete_round_form':
+        elif form_name == f'{Course.CourseAction.DEL_ROUND.label}_form':
             return DeleteRoundForm.handle_post_request(request)
+
         return self.handle_unknown_form(request, **kwargs)
 
 
@@ -181,10 +184,13 @@ class TaskModelView(CourseModelView):
     MODEL = Task
 
     def post(self, request, **kwargs) -> JsonResponse:
-        if request.POST.get('form_name') == 'add_task_form':
+        form_name = request.POST.get('form_name')
+
+        if form_name == f'{Course.CourseAction.ADD_TASK.label}_form':
             return CreateTaskForm.handle_post_request(request)
-        elif request.POST.get('form_name') == 'delete_task_form':
+        elif form_name == f'{Course.CourseAction.DEL_TASK.label}_form':
             return DeleteTaskForm.handle_post_request(request)
+
         return self.handle_unknown_form(request, **kwargs)
 
 
@@ -193,17 +199,16 @@ class SubmitModelView(CourseModelView):
     MODEL = Submit
 
     def post(self, request, **kwargs) -> JsonResponse:
-        if request.POST.get('form_name') == 'add_submit_form':
+        form_name = request.POST.get('form_name')
+
+        if form_name == f'{Course.CourseAction.ADD_SUBMIT.label}_form':
             return CreateSubmitForm.handle_post_request(request)
+
         return self.handle_unknown_form(request, **kwargs)
 
 
 class ResultModelView(CourseModelView):
-
     MODEL = Result
-
-    def post(self, request, **kwargs) -> JsonResponse:
-        pass
 
 
 # ------------------------------------- course member mixin ------------------------------------ #
