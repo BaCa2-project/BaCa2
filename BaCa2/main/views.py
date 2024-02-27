@@ -48,10 +48,8 @@ logger = logging.getLogger(__name__)
 
 class CourseModelView(BaCa2ModelView):
     """
-    View for managing courses and retrieving their data.
-
-    See:
-        - :class:`BaCa2ModelView`
+    View used to retrieve serialized course model data to be displayed in the front-end and to
+    interface between POST requests and model forms used to manage course instances.
     """
 
     MODEL = Course
@@ -89,13 +87,18 @@ class CourseModelView(BaCa2ModelView):
 
     def post(self, request, **kwargs) -> BaCa2ModelResponse:
         """
-        Handles a POST request received from a course model form. The method calls on the
-        handle_post_request method of the form class used to generate the widget from which the
-        request originated.
+        Delegates the handling of the POST request to the appropriate form based on the `form_name`
+        parameter received in the request.
 
-        :return: JSON response with the result of the action in the form of status and message
-            strings.
-        :rtype: :class:`BaCa2ModelResponse`
+        If the `course` parameter is present in the request, it is decoded and stored in the request
+        object as a dictionary under the `course` attribute (required for request handling by
+        course action forms).
+
+        :param request: HTTP POST request object received by the view
+        :type request: HttpRequest
+        :return: JSON response to the POST request containing information about the success or
+            failure of the request
+        :rtype: :py:class:`JsonResponse`
         """
         params = request.GET.dict()
 
@@ -128,6 +131,12 @@ class CourseModelView(BaCa2ModelView):
 
     @classmethod
     def post_url(cls, **kwargs) -> str:
+        """
+        :param kwargs: Additional parameters to be included in the url used in a POST request.
+        :type kwargs: dict
+        :return: URL to be used in a POST request.
+        :rtype: str
+        """
         url = super().post_url(**kwargs)
         if 'course_id' in kwargs:
             url += f'?{encode_dict_to_url("course", {"course_id": kwargs["course_id"]})}'
@@ -136,10 +145,8 @@ class CourseModelView(BaCa2ModelView):
 
 class UserModelView(BaCa2ModelView):
     """
-    View for managing users and retrieving their data.
-
-    See:
-        - :class:`BaCa2ModelView`
+    View used to retrieve serialized user model data to be displayed in the front-end and to
+    interface between POST requests and model forms used to manage user instances.
     """
 
     MODEL = User
@@ -193,13 +200,14 @@ class UserModelView(BaCa2ModelView):
 
     def post(self, request, **kwargs) -> BaCa2ModelResponse:
         """
-        Handles a POST request received from a user model form. The method calls on the
-        handle_post_request method of the form class used to generate the widget from which the
-        request originated.
+        Delegates the handling of the POST request to the appropriate form based on the `form_name`
+        parameter received in the request.
 
-        :return: JSON response with the result of the action in the form of status and message
-            strings.
-        :rtype: :class:`BaCa2ModelResponse`
+        :param request: HTTP POST request object received by the view
+        :type request: HttpRequest
+        :return: JSON response to the POST request containing information about the success or
+            failure of the request
+        :rtype: :py:class:`JsonResponse`
         """
         form_name = request.POST.get('form_name')
 
@@ -212,6 +220,11 @@ class UserModelView(BaCa2ModelView):
 
 
 class RoleModelView(BaCa2ModelView):
+    """
+    View used to retrieve serialized role model data to be displayed in the front-end and to
+    interface between POST requests and model forms used to manage role instances.
+    """
+
     MODEL = Role
 
     def check_get_filtered_permission(self,
@@ -249,8 +262,19 @@ class RoleModelView(BaCa2ModelView):
 
 
 class PermissionModelView(BaCa2ModelView):
+    """
+    View used to retrieve serialized permission model data to be displayed in the front-end and to
+    interface between POST requests and model forms used to manage permission instances.
+    """
+
     @staticmethod
     def get_data(instance: Permission, **kwargs) -> Dict[str, Any]:
+        """
+        :param instance: Permission instance to be serialized.
+        :type instance: Permission
+        :return: Serialized permission instance data.
+        :rtype: dict
+        """
         return {
             'id': instance.id,
             'name': instance.name,
