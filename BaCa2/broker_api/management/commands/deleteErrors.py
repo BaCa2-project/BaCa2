@@ -1,6 +1,5 @@
 import logging
 from datetime import timedelta
-from pathlib import Path
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
@@ -9,6 +8,7 @@ from django.utils import timezone
 from broker_api.models import BrokerSubmit
 
 logger = logging.getLogger(__name__)
+
 
 class Command(BaseCommand):
     help = 'Deletes old error submits'  # noqa: A003
@@ -22,4 +22,8 @@ class Command(BaseCommand):
         )
         delete_amount = len(submits_to_delete)
         submits_to_delete.delete()
-        logger.info(f'Command {Path(__file__).name} called - deleted {delete_amount} submits.')
+
+        if delete_amount:
+            logger.info(f'Deleted {delete_amount} submits.')
+        else:
+            logger.debug('No submits to delete.')

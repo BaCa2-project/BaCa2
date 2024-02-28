@@ -1,5 +1,4 @@
 import logging
-from pathlib import Path
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
@@ -30,5 +29,8 @@ class Command(BaseCommand):
                 submit.update_status(BrokerSubmit.StatusEnum.ERROR)
                 submits_exceeded += 1
 
-        logger.info(f'Command {Path(__file__).name} called - resent {submits_resent} submits, '
-                    f'{submits_exceeded} submits exceeded retry limit.')
+        if submits_resent > 0:
+            logger.info(f'Resent {submits_resent} submits, '
+                        f'{submits_exceeded} exceeded retry limit.')
+        else:
+            logger.debug('No submits to resend.')
