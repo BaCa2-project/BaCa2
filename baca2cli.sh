@@ -11,7 +11,7 @@ BROKER_LOG='/home/www/BaCa2-broker/logs/broker.log'
 
 # Function to display script usage
 usage() {
-    echo "Usage: $0 [--reboot --migrate --status --status-offset <offset>]" 1>&2
+    echo "Usage: $0 [--reboot --migrate --status [rows]]" 1>&2
     exit 1
 }
 
@@ -28,18 +28,13 @@ while [[ $# -gt 0 ]]; do
         --status)
             STATUS=true
             shift
+            if [[ $1 =~ ^[0-9]+$ ]]; then
+                LINES_AMOUNT=$1
+                shift
+            else
+                LINES_AMOUNT=4
+            fi
             ;;
-        --status-offset)
-          STATUS=true
-          shift
-          if [[ $1 =~ ^[0-9]+$ ]]; then
-            OFFSET=$1
-            shift
-          else
-            echo "Invalid offset value"
-            exit 1
-          fi
-          ;;
         *)
             usage
             ;;
@@ -78,48 +73,66 @@ print_status() {
 }
 
 print_extensive_status() {
-  total_lines=0
+  tput el
+  echo -e "BaCa2 status:"
 
   status=$(systemctl is-active apache2)
-      if [ "$status" = "active" ]; then
-          echo -e "    apache2 -------- ${GREEN}$status${NC}"
-      else
-          echo -e "    apache2 -------- ${RED}$status${NC}"
-      fi
+  tput el
+  if [ "$status" = "active" ]; then
+      echo -e "    apache2 -------- ${GREEN}$status${NC}"
+  else
+      echo -e "    apache2 -------- ${RED}$status${NC}"
+  fi
 
-    lines=$(tail $APACHE_LOG -n4 | wc -l)
-    echo -e "$(tail $APACHE_LOG -n4)"
-    total_lines=$((total_lines + lines))
+  for ((i=LINES_AMOUNT; i>0; i--)); do
+      tput el
+      echo -e "$(tail $APACHE_LOG -n $i | head -n1)"
+  done
 
-    echo ""
-      status=$(systemctl is-active baca2_gunicorn)
-      if [ "$status" = "active" ]; then
-          echo -e "    baca2 web app -- ${GREEN}$status${NC}"
-      else
-          echo -e "    baca2 web app -- ${RED}$status${NC}"
-      fi
-    lines=$(tail $GUNICORN_LOG -n4 | wc -l)
-    echo -e "$(tail $GUNICORN_LOG -n4)"
-    total_lines=$((total_lines + lines))
+  tput el
+  echo -e ""
+  tput el
+  echo -e ""
+  status=$(systemctl is-active baca2_gunicorn)
+  tput el
+  if [ "$status" = "active" ]; then
+      echo -e "    baca2 web app -- ${GREEN}$status${NC}"
+  else
+      echo -e "    baca2 web app -- ${RED}$status${NC}"
+  fi
 
-    echo ""
-      status=$(systemctl is-active baca2_broker)
-      if [ "$status" = "active" ]; then
-          echo -e "    baca2 broker --- ${GREEN}$status${NC}"
-      else
-          echo -e "    baca2 broker --- ${RED}$status${NC}"
-      fi
-    lines=$(tail $BROKER_LOG -n4 | wc -l)
-    echo -e "$(tail $BROKER_LOG -n4)"
-    total_lines=$((total_lines + lines))
+  for ((i=LINES_AMOUNT; i>0; i--)); do
+      tput el
+      echo -e "$(tail $GUNICORN_LOG -n $i | head -n1)"
+  done
 
-    total_lines=$((total_lines + 5))
-    total_lines=$((total_lines + OFFSET))
-
-    sleep 1
-
-    tput cuu $total_lines
+  tput el
+  echo -e ""
+  tput el
+  echo -e ""
+  status=$(systemctl is-active baca2_broker)
+  if [ "$status" = "active" ]; then
     tput el
+      echo -e "    baca2 broker --- ${GREEN}$status${NC}"
+  else
+      echo -e "    baca2 broker --- ${RED}$status${NC}"
+  fi
+
+  for ((i=LINES_AMOUNT; i>0; i--)); do
+      tput el
+      echo -e "$(tail $BROKER_LOG -n $i | head -n1)"
+  done
+  tput ed
+
+  terminal_width=$(tput cols)
+  apache2_lines=$(tail $APACHE_LOG -n$LINES_AMOUNT | awk -v width="$terminal_width" '{print int(length / width) + 1}' | awk '{s+=$1} END {print s}')
+  gunicorn_lines=$(tail $GUNICORN_LOG -n$LINES_AMOUNT | awk -v width="$terminal_width" '{print int(length / width) + 1}' | awk '{s+=$1} END {print s}')
+  broker_lines=$(tail $BROKER_LOG -n$LINES_AMOUNT | awk -v width="$terminal_width" '{print int(length / width) + 1}' | awk '{s+=$1} END {print s}')
+  lines=$((apache2_lines + gunicorn_lines + broker_lines + 4))
+
+  sleep 1
+
+  tput cuu $lines
 }
 
 # Parse command line options
@@ -186,6 +199,7 @@ if [ "$REBOOT" = true ]; then
 fi
 
 if [ "$STATUS" = true ]; then
+  clear
   echo -e "BaCa2 status:"
   while true; do
     print_extensive_status

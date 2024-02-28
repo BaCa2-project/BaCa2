@@ -1,6 +1,5 @@
 import logging
 from datetime import timedelta
-from pathlib import Path
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
@@ -25,5 +24,7 @@ class Command(BaseCommand):
             if submit.update_date <= timezone.now() - timedelta(seconds=self.retry_timeout):
                 submit.update_status(BrokerSubmit.StatusEnum.EXPIRED)
 
-        logger.info(f'Command {Path(__file__).name} called - marked {len(data)} '
-                    'submits as expired.')
+        if data:
+            logger.info(f'Marked {len(data)} submits as expired.')
+        else:
+            logger.debug('No submits to mark as expired.')
