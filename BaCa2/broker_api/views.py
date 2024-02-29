@@ -191,7 +191,7 @@ def handle_broker_error(request):
 
     # Try to parse the JSON body of the request
     try:
-        data = BrokerToBacaError.parse(json.loads(request.body))
+        data = BrokerToBacaError.parse_obj(json.loads(request.body))
 
         submit_check = check_submit_id(data.submit_id)
         if submit_check:
