@@ -87,9 +87,9 @@ class DummyBrokerHandler(server.BaseHTTPRequestHandler):
             content = BacaToBroker.parse(message)
             if content.pass_hash != make_hash(settings.BROKER_PASSWORD, content.submit_id):
                 out = BrokerToBacaError(
-                    make_hash(settings.BACA_PASSWORD, content.submit_id),
-                    content.submit_id,
-                    'Error'
+                    pass_hash=make_hash(settings.BACA_PASSWORD, content.submit_id),
+                    submit_id=content.submit_id,
+                    msg='Error'
                 )
                 DelayedAction.INSTANCE.put_func(content.submit_id, send,
                                                 '/broker_api/error', json.dumps(out.serialize()))
