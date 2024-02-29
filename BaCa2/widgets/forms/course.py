@@ -539,7 +539,7 @@ class AddRoleFormWidget(FormWidget):
         if not form:
             form = AddRoleForm()
 
-        codenames = [action.label for action in Course.CourseAction]
+        codenames = Course.CourseAction.labels
 
         form.fields['role_permissions'].update_data_source_url(PermissionModelView.get_url(
             mode=PermissionModelView.GetMode.FILTER,
@@ -579,6 +579,119 @@ class DeleteRoleForm(CourseActionForm):
         role_name = role.name
         course.remove_role(role)
         return {'message': _('Role ') + role_name + _(' deleted successfully')}
+
+
+# ------------------------------------ add role permissions ------------------------------------ #
+
+class AddRolePermissionsForm(CourseActionForm):
+    ACTION = Course.CourseAction.EDIT_ROLE
+
+    role_id = forms.IntegerField(label=_('Task ID'),
+                                 widget=forms.HiddenInput(),
+                                 required=True)
+
+    permissions_to_add = TableSelectField(
+        label=_('Choose permissions to add'),
+        table_widget_name='permissions_to_add_table_widget',
+        data_source_url='',
+        cols=[TextColumn(name='codename', header=_('Codename')),
+              TextColumn(name='name', header=_('Description'))],
+        table_widget_kwargs={'height_limit': 35}
+    )
+
+    @classmethod
+    def handle_valid_request(cls, request) -> Dict[str, Any]:
+        role = ModelsRegistry.get_role(int(request.POST.get('role_id')))
+        perms = TableSelectField.parse_value(request.POST.get('permissions_to_add'))
+        role.add_permissions(perms)
+        return {'message': _('Permissions added successfully')}
+
+
+class AddRolePermissionsFormWidget(FormWidget):
+    def __init__(self,
+                 *,
+                 request,
+                 course_id: int,
+                 role_id: int,
+                 form: AddRolePermissionsForm = None,
+                 **kwargs) -> None:
+        from main.views import CourseModelView, PermissionModelView
+
+        if not form:
+            form = AddRolePermissionsForm()
+
+        codenames = Course.CourseAction.labels
+
+        form.fields['permissions_to_add'].update_data_source_url(PermissionModelView.get_url(
+            mode=PermissionModelView.GetMode.FILTER,
+            query_params={'codename__in': codenames},
+            exclude_params={'role': role_id}
+        ))
+        form.fields['role_id'].initial = role_id
+
+        super().__init__(
+            name='add_role_permissions_form_widget',
+            request=request,
+            form=form,
+            post_target=CourseModelView.post_url(**{'course_id': course_id}),
+            button_text=_('Add permissions'),
+            **kwargs
+        )
+
+
+# ----------------------------------- remove role permissions ---------------------------------- #
+
+class RemoveRolePermissionsForm(CourseActionForm):
+    ACTION = Course.CourseAction.EDIT_ROLE
+
+    role_id = forms.IntegerField(label=_('Task ID'),
+                                 widget=forms.HiddenInput(),
+                                 required=True)
+
+    permissions_to_remove = TableSelectField(
+        label=_('Choose permissions to remove'),
+        table_widget_name='permissions_to_remove_table_widget',
+        data_source_url='',
+        cols=[TextColumn(name='codename', header=_('Codename')),
+              TextColumn(name='name', header=_('Description'))],
+        table_widget_kwargs={'height_limit': 35}
+    )
+
+    @classmethod
+    def handle_valid_request(cls, request) -> Dict[str, Any]:
+        role = ModelsRegistry.get_role(int(request.POST.get('role_id')))
+        perms = TableSelectField.parse_value(request.POST.get('permissions_to_remove'))
+        role.remove_permissions(perms)
+        return {'message': _('Permissions removed successfully')}
+
+
+class RemoveRolePermissionsFormWidget(FormWidget):
+    def __init__(self,
+                 *,
+                 request,
+                 course_id: int,
+                 role_id: int,
+                 form: RemoveRolePermissionsForm = None,
+                 **kwargs) -> None:
+        from main.views import CourseModelView, PermissionModelView
+
+        if not form:
+            form = RemoveRolePermissionsForm()
+
+        form.fields['permissions_to_remove'].update_data_source_url(PermissionModelView.get_url(
+            mode=PermissionModelView.GetMode.FILTER,
+            query_params={'role': role_id}
+        ))
+        form.fields['role_id'].initial = role_id
+
+        super().__init__(
+            name='remove_role_permissions_form_widget',
+            request=request,
+            form=form,
+            post_target=CourseModelView.post_url(**{'course_id': course_id}),
+            button_text=_('Remove permissions'),
+            **kwargs
+        )
 
 
 # ============================================ ROUND =========================================== #
@@ -708,7 +821,7 @@ class EditRoundFormWidget(FormWidget):
 
 # ---------------------------------------- delete round ---------------------------------------- #
 
-class DeleteRoundForm(BaCa2ModelForm):
+class DeleteRoundForm(CourseModelForm):
     """
     Form for deleting existing :py:class:`course.Round` objects.
     """
@@ -741,7 +854,7 @@ class DeleteRoundForm(BaCa2ModelForm):
 
 # ----------------------------------------- create task ---------------------------------------- #
 
-class CreateTaskForm(BaCa2ModelForm):
+class CreateTaskForm(CourseModelForm):
     MODEL = Task
     ACTION = Task.BasicAction.ADD
 
@@ -846,7 +959,7 @@ class CreateTaskFormWidget(FormWidget):
 # ----------------------------------------- delete task ---------------------------------------- #
 
 
-class DeleteTaskForm(BaCa2ModelForm):
+class DeleteTaskForm(CourseModelForm):
     """
     Form for deleting existing :py:class:`course.Task` objects.
     """
@@ -921,11 +1034,12 @@ class DeleteTaskFormWidget(FormWidget):
 
 # -------------------------------------- create submission ------------------------------------- #
 
-class CreateSubmitForm(BaCa2ModelForm):
+class CreateSubmitForm(CourseModelForm):
     MODEL = Submit
     ACTION = Submit.BasicAction.ADD
 
     source_code = FileUploadField(label=_('Source code'), required=True)
+    # amount = forms.IntegerField(label=_('Amount'), required=False)
     task_id = forms.IntegerField(label=_('Task ID'), widget=forms.HiddenInput(), required=True)
 
     @classmethod
@@ -950,7 +1064,7 @@ class CreateSubmitForm(BaCa2ModelForm):
                 source_code=source_code_file.path,
                 task=task_id,
                 user=user,
-                auto_send=False
+                auto_send=True
             )
         except Exception as e:
             source_code_file.delete()

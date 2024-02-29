@@ -445,7 +445,11 @@ class PackageInstance(models.Model):
         :return: The package object.
         """
         package_id = self.key
-        return settings.PACKAGES.get(package_id)
+        pkg = settings.PACKAGES.get(package_id)
+        if pkg is None:
+            pkg = Package(self.package_source.path, self.commit)
+            settings.PACKAGES[package_id] = pkg
+        return pkg
 
     @property
     def path(self) -> Path:
