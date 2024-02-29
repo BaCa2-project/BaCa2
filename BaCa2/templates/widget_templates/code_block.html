@@ -1,0 +1,11 @@
+{% load static %}
+<div class="code-block card" id="{{ codeblock.name }}">
+    {% if codeblock.title %}
+        <div class="card-header">
+            <h5 class="card-title">{{ codeblock.title }}</h5>
+        </div>
+    {% endif %}
+    <div class="card-body">
+        <pre class="code-block" data-src="{{ codeblock.src }}"></pre>
+    </div>
+</div>
