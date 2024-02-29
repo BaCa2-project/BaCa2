@@ -343,6 +343,11 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         else:
             query_params = {}
 
+        if get_params.get('exclude_params'):
+            exclude_params = decode_url_to_dict(get_params.get('exclude_params'))
+        else:
+            exclude_params = {}
+
         if get_params.get('serialize_kwargs'):
             serialize_kwargs = decode_url_to_dict(get_params.get('serialize_kwargs'))
         else:
@@ -351,7 +356,11 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         if mode == self.GetMode.ALL.value:
             return self.get_all(query_params, serialize_kwargs, request, **kwargs)
         if mode == self.GetMode.FILTER.value:
-            return self.get_filtered(query_params, serialize_kwargs, request, **kwargs)
+            return self.get_filtered(query_params,
+                                     exclude_params,
+                                     serialize_kwargs,
+                                     request,
+                                     **kwargs)
         if mode == self.GetMode.EXCLUDE.value:
             return self.get_excluded(query_params, serialize_kwargs, request, **kwargs)
 
@@ -405,6 +414,7 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
 
     def get_filtered(self,
                      query_params: dict,
+                     exclude_params: dict,
                      serialize_kwargs: dict,
                      request,
                      **kwargs) -> BaCa2ModelResponse:
@@ -426,7 +436,8 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
             - :meth:`BaCa2ModelView.get`
             - :class:`BaCa2ModelResponse`
         """
-        query_result = [obj for obj in self.MODEL.objects.filter(**query_params)]
+        query_result = [obj for obj in
+                        self.MODEL.objects.filter(**query_params).exclude(**exclude_params)]
 
         if not self.check_get_filtered_permission(query_params, query_result, request, **kwargs):
             return self.get_request_response(
@@ -596,8 +607,10 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
 
     @classmethod
     def get_url(cls,
+                *,
                 mode: GetMode = GetMode.ALL,
                 query_params: dict = None,
+                exclude_params: dict = None,
                 serialize_kwargs: dict = None,
                 **kwargs) -> str:
         """
@@ -625,10 +638,12 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
                 f'Query parameters must be specified when using {mode} get mode.'
             )
 
-        if query_params or serialize_kwargs:
+        if query_params or serialize_kwargs or exclude_params:
             url += '?'
         if query_params:
             url += encode_dict_to_url('query_params', query_params)
+        if exclude_params:
+            url += f'&{encode_dict_to_url("exclude_params", exclude_params)}'
         if serialize_kwargs:
             url += f'&{encode_dict_to_url("serialize_kwargs", serialize_kwargs)}'
 
