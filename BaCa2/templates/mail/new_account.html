@@ -2,13 +2,18 @@
 {% block content %}
     <h1>Welcome to BaCa2!</h1>
     <p>
-        You have been successfully registered to BaCa2. Here are your credentials:
+        You have been successfully registered to BaCa2. Confirm Your personal data:
+    </p>
+    <p style="font-style: oblique">
+        {% if first_name %}
+            Name: {{ first_name }}
+            Surname: {{ last_name }}
+        {% endif %}
+        e-mail: {{ email }}
     </p>
     <p>
-        <b>Username</b>: {{ email }}<br>
-        <b>Password</b>: {{ password }}
+        <a href="{{ ... }}">Confirm Your data and setup password</a>
     </p>
-    <p>
-        It is strongly recommended to change your password after your first login.
-    </p>
+    <p>If data is invalid please report this to your lecturer.</p>
+    
 {% endblock %}

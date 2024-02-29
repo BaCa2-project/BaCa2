@@ -3,6 +3,9 @@ from typing import Any, Dict
 
 from django import forms
 from django.utils.translation import gettext_lazy as _
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
 
 from core.tools.mailer import TemplateMailer
 from main.models import User
@@ -11,6 +14,7 @@ from widgets.forms.fields import AlphanumericField
 
 logger = logging.getLogger(__name__)
 
+token_generator = PasswordResetTokenGenerator()
 
 class CreateUser(BaCa2ModelForm):
     MODEL = User
@@ -29,26 +33,26 @@ class CreateUser(BaCa2ModelForm):
         first_name = request.POST.get('first_name')
         last_name = request.POST.get('last_name')
 
-        password = User.objects.make_random_password(length=20)
-
-        try:
-            user = User.objects.get(email=email)
-            if user:
-                raise ValueError(_('User with this email already exists.'))
-        except User.DoesNotExist:
-            pass
+        if User.objects.filter(email=email).exists():
+            raise ValueError(_('User with this email already exists.'))
 
         user = User.objects.create_user(email=email,
                                         first_name=first_name,
                                         last_name=last_name,
-                                        password=password)
+                                        password=None)
         user.save()
+
+        user_token = token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
 
         try:
             mailer = TemplateMailer(mail_to=email,
                                     subject=_('Your new BaCa2 account'),
                                     template='new_account',
-                                    context={'email': email, 'password': password}, )
+                                    context={'email': email,
+                                             'first_name': user.first_name,
+                                             'last_name': user.last_name,
+                                             'confirm_url': confirm_url}, )
             mailer.send()
         except TemplateMailer.MailNotSent as e:
             logger.error(f'Failed to send email to {email}')

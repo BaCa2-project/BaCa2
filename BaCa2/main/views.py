@@ -3,17 +3,20 @@ import re
 from typing import Any, Dict, List
 
 from django.contrib.auth import logout, update_session_auth_hash
-from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth.forms import PasswordChangeForm, SetPasswordForm
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib.auth.models import Permission
-from django.contrib.auth.views import LoginView
+from django.contrib.auth.views import LoginView, PasswordResetConfirmView
 from django.db import models
 from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse_lazy
 from django.utils.translation import gettext as _
+from django.utils.http import urlsafe_base64_decode
+from django.utils.encoding import force_str
 from django.views.generic.base import RedirectView, View
 from django.utils.translation import gettext_lazy as _
 
+from core.exceptions import InvalidTokenError
 from main.models import Course, Role, User
 from util import decode_url_to_dict, encode_dict_to_url
 from util.models_registry import ModelsRegistry
@@ -591,6 +594,38 @@ class ProfileView(BaCa2LoggedInView):
 
 
 # ----------------------------------------- Util views ----------------------------------------- #
+class PasswordResetConfirm(BaCa2ContextMixin, PasswordResetConfirmView):
+    template_name = 'password_reset.html'
+
+    def safe_get_user(self):
+        uid = force_str(urlsafe_base64_decode(self.kwargs['uidb64']))
+        user = self.get_user(uid)
+
+        if not self.token_generator.check_token(user, self.kwargs['token']):
+            raise InvalidTokenError()
+        return user
+
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+
+        try:
+            user = self.safe_get_user()
+            self.add_widget(context, FormWidget(
+                request=self.request,
+                form=SetPasswordForm(user),
+                button_text=_('Reset password'),
+                name='reset_password_form_widget',
+                live_validation=False,
+                display_field_errors=False,
+            ))
+        except (User.DoesNotExist, InvalidTokenError):
+            context['error'] = _('This link is invalid or expired.')
+
+        return context
+
+
+
+
 
 
 def change_theme(request) -> JsonResponse:
@@ -628,3 +663,4 @@ def change_password(request) -> BaCa2JsonResponse:
             return BaCa2JsonResponse(status=BaCa2JsonResponse.Status.INVALID,
                                      message=_('Password not changed.'),
                                      errors=validation_errors)
+

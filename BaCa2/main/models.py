@@ -76,7 +76,7 @@ class UserManager(BaseUserManager):
         return user
 
     @transaction.atomic
-    def create_user(self, email: str, password: str, **other_fields) -> 'User':
+    def create_user(self, email: str, password: str | None, **other_fields) -> 'User':
         """
         Create a new :py:class:`User` without moderation privileges.
 

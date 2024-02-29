@@ -13,6 +13,7 @@ urlpatterns = [
     path('login/', BaCa2LoginView.as_view(), name='login'),
     path('login/uj', UJLogin.as_view(), name='uj-login'),
     path('logout/', BaCa2LogoutView.as_view(), name='logout'),
+    path('reset/<uidb64>/<token>', )
 
     path('oidc/', include('mozilla_django_oidc.urls')),
 
