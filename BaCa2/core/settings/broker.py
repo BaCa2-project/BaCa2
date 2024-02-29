@@ -19,11 +19,11 @@ class BrokerRetryPolicy:
     individual_max_retries = 5
 
     # (In seconds) how long it should take for a submit to become expired
-    expiration_timeout = 60 * 20
+    expiration_timeout = 60.0 * 15
     # how many times a submit should be resent after it expires
-    resend_max_retries = 2
+    resend_max_retries = 5
     # (In minutes) how often should expiration check be performed
-    retry_check_interval = 60.0
+    retry_check_interval = 5
 
     # (In minutes) specify how old should error submits be before they are deleted
     deletion_timeout = 60.0 * 24
