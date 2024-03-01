@@ -123,7 +123,7 @@ def handle_broker_result(request):
 
     # Try to parse the JSON body of the request
     try:
-        data = BrokerToBaca.parse(json.loads(request.body))
+        data = BrokerToBaca.parse_obj(json.loads(request.body))
 
         submit_check = check_submit_id(data.submit_id)
         if submit_check:
@@ -143,7 +143,7 @@ def handle_broker_result(request):
         error = BrokerToBacaError(
             pass_hash=data.pass_hash,
             submit_id=data.submit_id,
-            error=f'Failed to handle result: {e}'
+            error_data={'message': f'Failed to handle result: {e}', 'traceback': ''}
         )
         # Try to handle the error
         try:
@@ -191,7 +191,7 @@ def handle_broker_error(request):
 
     # Try to parse the JSON body of the request
     try:
-        data = BrokerToBacaError.parse(json.loads(request.body))
+        data = BrokerToBacaError.parse_obj(json.loads(request.body))
 
         submit_check = check_submit_id(data.submit_id)
         if submit_check:
