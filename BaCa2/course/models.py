@@ -976,6 +976,14 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         EDIT = 'edit', 'change_submit'
         VIEW = 'view', 'view_submit'
 
+    @property
+    def source_code_path(self) -> Path:
+        """
+        :return: Path to the source code file.
+        :rtype: Path
+        """
+        return Path(self.source_code)
+
     def send(self) -> BrokerSubmit:
         """
         It sends the submit to the broker.

@@ -1005,6 +1005,18 @@ html, body {
   color: #212529 !important;
 }
 
+:root {
+  --bs-form-valid-border-color: $red;
+}
+
+[data-bs-theme=light] .code-block pre.code-block {
+  background: rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-bs-theme=dark] .code-block pre.code-block {
+  background: rgba(0, 0, 0, 0.3) !important;
+}
+
 /*!
  * Bootstrap Icons v1.11.3 (https://icons.getbootstrap.com/)
  * Copyright 2019-2024 The Bootstrap Authors

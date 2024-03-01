@@ -15,6 +15,7 @@ from main.views import CourseModelView as CourseModelManagerView
 from main.views import RoleModelView, UserModelView
 from util.models_registry import ModelsRegistry
 from util.views import BaCa2LoggedInView, BaCa2ModelView
+from widgets.code_block import CodeBlock
 from widgets.forms.course import (
     AddMembersFormWidget,
     AddRoleFormWidget,
@@ -800,6 +801,14 @@ class SubmitSummaryView(BaCa2LoggedInView, CourseMemberMixin):
             task = submit.task
         course = ModelsRegistry.get_course(course_id)
 
+        sidenav = SideNav(request=self.request,
+                          collapsed=True,
+                          tabs=['Summary', 'Code'], )
+
+        self.add_widget(context, sidenav)
+        context['summary_tab'] = 'summary-tab'
+        context['code_tab'] = 'code-tab'
+
         submit_summary = [
             {'title': _('Course'), 'value': course.name},
             {'title': _('Round'), 'value': task.round_.name},
@@ -827,6 +836,14 @@ class SubmitSummaryView(BaCa2LoggedInView, CourseMemberMixin):
             default_sorting=False,
         )
         self.add_widget(context, summary_table)
+
+        source_code = CodeBlock(
+            name='source_code_block',
+            title=_('Source code'),
+            code=submit.source_code_path
+        )
+        self.add_widget(context, source_code)
+
         if submit.submit_status in EMPTY_FINAL_STATUSES + [ResultStatus.PND]:
             context['sets'] = []
             return context
