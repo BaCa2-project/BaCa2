@@ -103,7 +103,7 @@ class BrokerSubmit(models.Model):
             submit_path=self.solution
         )
         try:
-            r = requests.post(url, json=message.serialize())
+            r = requests.post(url, json=message.model_dump_json())
         except requests.exceptions.ConnectionError:
             return message, -1
         except requests.exceptions.ChunkedEncodingError:
