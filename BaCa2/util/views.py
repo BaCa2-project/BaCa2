@@ -19,6 +19,7 @@ from util import (
 from util.models import model_cls
 from util.responses import BaCa2JsonResponse, BaCa2ModelResponse
 from widgets.base import Widget
+from widgets.code_block import CodeBlock
 from widgets.forms import FormWidget
 from widgets.forms.fields.validation import get_field_validation_status
 from widgets.listing import TableWidget
@@ -43,13 +44,16 @@ class BaCa2ContextMixin:
         pass
 
     #: List of all widget types used in BaCa2 views.
-    WIDGET_TYPES = [FormWidget,
-                    NavBar,
-                    SideNav,
-                    TableWidget,
-                    TextDisplayer,
-                    MarkupDisplayer,
-                    PDFDisplayer]
+    WIDGET_TYPES = [
+        FormWidget,
+        NavBar,
+        SideNav,
+        TableWidget,
+        TextDisplayer,
+        MarkupDisplayer,
+        PDFDisplayer,
+        CodeBlock,
+    ]
     #: List of all widgets which are unique (i.e. there can only be one instance of each widget type
     #: can exist in the context dictionary).
     UNIQUE_WIDGETS = [NavBar, SideNav]

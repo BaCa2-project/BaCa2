@@ -216,3 +216,14 @@ $datetimepicker_theme_variables: (
                 other_month_hover_text_color: $light,
         )
 );
+
+// ---------------------------------------- codeblock ---------------------------------------- //
+
+$codeblock_default_variables: (
+        bg_color: rgba(0, 0, 0, 0.3),
+);
+
+$codeblock_theme_variables: (
+        light: (),
+        dark: (),
+)
