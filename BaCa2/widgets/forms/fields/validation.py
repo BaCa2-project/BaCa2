@@ -1,18 +1,19 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Dict, List
 
 from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
 
 from widgets.forms.course import *
 from widgets.forms.main import *
+from widgets.forms.test import *
 
 
 def get_field_validation_status(request: HttpRequest,
                                 form_cls: str,
                                 field_name: str,
-                                value: Any,
+                                value: str,
                                 min_length: int | bool = False) -> Dict[str, str or List[str]]:
     """
     Runs validators for a given field class and value and returns a dictionary containing the status
@@ -37,8 +38,14 @@ def get_field_validation_status(request: HttpRequest,
     if min_length is None:
         min_length = False
 
-    field = eval(form_cls)(data=request.POST)[field_name].field
+    reconstruct_meth = getattr(eval(form_cls), 'reconstruct', None)
 
+    if reconstruct_meth and callable(reconstruct_meth):
+        form = reconstruct_meth(request)
+    else:
+        form = eval(form_cls)(data=request.POST)
+
+    field = form[field_name].field
     min_length = int(min_length) if min_length else False
 
     if hasattr(field.widget, 'input_type') and field.widget.input_type == 'file':

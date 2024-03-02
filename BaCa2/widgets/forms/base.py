@@ -79,6 +79,9 @@ class BaCa2FormMeta(DeclarativeFieldsMetaclass, ABCMeta):
         instance_id = request.POST.get('form_instance_id')
 
         if not instance_id:
+            instance_id = request.GET.get('form_instance_id')
+
+        if not instance_id:
             raise BaCa2FormMeta.SessionDataError('No form instance ID found in the request.')
 
         init_params = request.session.get('form_init_params', {}).get(name, {}).get(instance_id)
@@ -97,6 +100,16 @@ class BaCa2FormMeta(DeclarativeFieldsMetaclass, ABCMeta):
             return cls.reconstruct_from_session(request)
         except BaCa2FormMeta.SessionDataError:
             return super().__call__(data=request.POST, files=request.FILES)
+
+
+class BaCa2ModelFormMeta(BaCa2FormMeta):
+    def __init__(cls, name, bases, attrs) -> None:
+        super().__init__(name, bases, attrs)
+
+        action = getattr(cls, 'ACTION', None)
+
+        if action:
+            cls.FORM_NAME = f'{action.label}_form'
 
 
 # -------------------------------------- base form classes ------------------------------------- #
@@ -140,6 +153,18 @@ class BaCa2Form(forms.Form, ABC, metaclass=BaCa2FormMeta):
         self.fields['form_instance_id'].initial = form_instance_id
         self.request = request
 
+    def __repr__(self):
+        if self.errors is None:
+            is_valid = 'Unknown'
+        else:
+            is_valid = self.is_bound and not self.errors
+        return '<%(cls)s bound=%(bound)s, valid=%(valid)s, fields=(%(fields)s)>' % {
+            'cls': self.__class__.__name__,
+            'bound': self.is_bound,
+            'valid': is_valid,
+            'fields': ';'.join(self.fields),
+        }
+
     def fill_with_data(self, data: Dict[str, str]) -> Self:
         """
         Fills the form with the specified data.
@@ -153,7 +178,7 @@ class BaCa2Form(forms.Form, ABC, metaclass=BaCa2FormMeta):
         return self
 
 
-class BaCa2ModelForm(BaCa2Form, ABC):
+class BaCa2ModelForm(BaCa2Form, ABC, metaclass=BaCa2ModelFormMeta):
     """
     Base class for all forms in the BaCa2 app which are used to create, delete or modify model
     objects.
@@ -166,9 +191,6 @@ class BaCa2ModelForm(BaCa2Form, ABC):
     MODEL: model_cls = None
     #: Action which should be performed using the form data.
     ACTION: ModelAction = None
-    #: Name of the form. Used to identify the form class when receiving a POST request and to
-    #: reconstruct the form from (and save its init parameters to) the session.
-    FORM_NAME = f'{ACTION.label}_form' if ACTION else None
 
     def __init__(self, **kwargs):
         """
