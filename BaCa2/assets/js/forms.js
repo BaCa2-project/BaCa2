@@ -269,12 +269,13 @@ function resetHiddenFields(form) {
 
 // -------------------------------------- live validation ------------------------------------- //
 
-function updateValidationStatus(field, formCls, minLength, url) {
+function updateValidationStatus(field, formCls, formInstanceId, minLength, url) {
     const value = $(field).val();
     $.ajax({
                url: url,
                data: {
                    'formCls': formCls,
+                   'form_instance_id': formInstanceId,
                    'fieldName': $(field).attr('name'),
                    'value': value,
                    'minLength': minLength,
@@ -331,7 +332,7 @@ function updateSelectFieldValidationStatus(field) {
 function submitButtonRefresh(form) {
     if (form.find('.live-validation').filter(function () {
         return ($(this)).find('input:not(:disabled):not(.is-valid):required').length > 0 ||
-            $(this).find('select:not(:disabled):not(.is-valid)').length > 0;
+               $(this).find('select:not(:disabled):not(.is-valid)').length > 0;
     }).length > 0)
         form.find('.submit-btn').attr('disabled', true);
     else
