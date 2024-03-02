@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+import inspect
+from abc import ABC, ABCMeta, abstractmethod
 from enum import Enum
 from typing import Any, Dict, List, Self
 
 from django import forms
+from django.forms.forms import DeclarativeFieldsMetaclass
 from django.utils.translation import gettext_lazy as _
 
 from core.choices import ModelAction
@@ -15,9 +17,91 @@ from util.responses import BaCa2JsonResponse, BaCa2ModelResponse
 from widgets.base import Widget
 from widgets.popups.forms import SubmitConfirmationPopup, SubmitFailurePopup, SubmitSuccessPopup
 
+# --------------------------------------- baca2 form meta -------------------------------------- #
+
+class BaCa2FormMeta(DeclarativeFieldsMetaclass, ABCMeta):
+    class SessionDataError(Exception):
+        pass
+
+    def __init__(cls, name, bases, attrs) -> None:
+        super().__init__(name, bases, attrs)
+
+        if not issubclass(cls, ABC) and not hasattr(cls, 'FORM_NAME'):
+            raise ValueError('All non-abstract form classes must have a FORM_NAME attribute set to '
+                             'be used with the BaCa2FormMeta metaclass.')
+
+        signature = inspect.signature(cls.__init__)
+        param_names = list(signature.parameters.keys())
+
+        non_default_params = [param for param in param_names if param
+                              not in ['self', 'args', 'kwargs', 'form_instance_id', 'request']]
+
+        if non_default_params and 'request' not in param_names:
+            raise ValueError('BaCa2Form classes with custom init parameters must have a request '
+                             'parameter in their __init__ method to enable the form to be saved in '
+                             'the session and used to recreate the form upon receiving a post or '
+                             'validation request.')
+
+    def __call__(cls, *args, **kwargs) -> Self:
+        if not args and not kwargs:
+            return super().__call__()
+
+        signature = inspect.signature(cls.__init__)
+        param_names = list(signature.parameters.keys())
+        named_args = dict(zip(param_names[1:], args))
+        named_args.update(kwargs)
+        request = named_args.pop('request', None)
+        name = getattr(cls, 'FORM_NAME', None)
+
+        if not request:
+            raise BaCa2FormMeta.SessionDataError(
+                'If a BaCa2Form is instantiated with custom init parameters, a request object must '
+                'be passed along with them so that the parameters can be saved in the session and '
+                'used to recreate the form upon receiving a post or validation request.'
+            )
+
+        if len(named_args) == 0:
+            return cls.reconstruct_from_session(request)
+
+        request.session.setdefault('form_init_params', {})
+        form_init_params = request.session.get('form_init_params')
+        form_init_params.setdefault(name, {})
+        form_init_params = form_init_params.get(name)
+
+        form_instance = super().__call__(*args, **kwargs)
+        instance_id = form_instance.instance_id
+        form_init_params[instance_id] = named_args
+
+        return form_instance
+
+    def reconstruct_from_session(cls, request) -> Self:
+        name = getattr(cls, 'FORM_NAME', None)
+        instance_id = request.POST.get('form_instance_id')
+
+        if not instance_id:
+            raise BaCa2FormMeta.SessionDataError('No form instance ID found in the request.')
+
+        init_params = request.session.get('form_init_params', {}).get(name, {}).get(instance_id)
+
+        if not init_params:
+            raise BaCa2FormMeta.SessionDataError('No init parameters found in the session for the '
+                                                 'form with specified name and instance ID.')
+
+        init_params['data'] = request.POST
+        init_params['files'] = request.FILES
+
+        return super().__call__(**init_params)
+
+    def reconstruct(cls, request) -> Self:
+        try:
+            return cls.reconstruct_from_session(request)
+        except BaCa2FormMeta.SessionDataError:
+            return super().__call__(data=request.POST, files=request.FILES)
+
+
 # -------------------------------------- base form classes ------------------------------------- #
 
-class BaCa2Form(forms.Form):
+class BaCa2Form(forms.Form, ABC, metaclass=BaCa2FormMeta):
     """
     Base form for all forms in the BaCa2 system. Contains shared, hidden fields common to all forms.
 
@@ -26,8 +110,10 @@ class BaCa2Form(forms.Form):
         :class:`FormWidget`
     """
 
-    #: Form name used to identify the form for views which may receive post data from more than one
-    #: form.
+    #: Name of the form. Used to identify the form class when receiving a POST request and to
+    #: reconstruct the form from (and save its init parameters to) the session.
+    FORM_NAME = None
+
     form_name = forms.CharField(
         label=_('Form name'),
         max_length=100,
@@ -35,13 +121,24 @@ class BaCa2Form(forms.Form):
         required=True,
         initial='form'
     )
-    #: Informs the view receiving the post data about the action which should be performed using it.
+    form_instance_id = forms.IntegerField(
+        label=_('Form instance'),
+        widget=forms.HiddenInput(),
+        required=True
+    )
     action = forms.CharField(
         label=_('Action'),
         max_length=100,
         widget=forms.HiddenInput(),
         initial='',
     )
+
+    def __init__(self, form_instance_id: int = 0, request=None, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.fields['form_name'].initial = self.FORM_NAME
+        self.instance_id = form_instance_id
+        self.fields['form_instance_id'].initial = form_instance_id
+        self.request = request
 
     def fill_with_data(self, data: Dict[str, str]) -> Self:
         """
@@ -56,7 +153,7 @@ class BaCa2Form(forms.Form):
         return self
 
 
-class BaCa2ModelForm(BaCa2Form):
+class BaCa2ModelForm(BaCa2Form, ABC):
     """
     Base class for all forms in the BaCa2 app which are used to create, delete or modify model
     objects.
@@ -69,13 +166,16 @@ class BaCa2ModelForm(BaCa2Form):
     MODEL: model_cls = None
     #: Action which should be performed using the form data.
     ACTION: ModelAction = None
+    #: Name of the form. Used to identify the form class when receiving a POST request and to
+    #: reconstruct the form from (and save its init parameters to) the session.
+    FORM_NAME = f'{ACTION.label}_form' if ACTION else None
 
     def __init__(self, **kwargs):
         """
         Sets initial values for the form's hidden name and action fields.
         """
-        super().__init__(initial={'form_name': f'{self.ACTION.label}_form',
-                                  'action': self.ACTION.value}, **kwargs)
+        super().__init__(**kwargs)
+        self.fields['action'].initial = self.ACTION.value
 
     @classmethod
     def handle_post_request(cls, request) -> BaCa2ModelResponse:
@@ -98,7 +198,9 @@ class BaCa2ModelForm(BaCa2Form):
                 **cls.handle_impermissible_request(request)
             )
 
-        if cls(data=request.POST, files=request.FILES).is_valid():
+        form = cls.reconstruct(request)
+
+        if form.is_valid():
             try:
                 return BaCa2ModelResponse(
                     model=cls.MODEL,
@@ -119,7 +221,7 @@ class BaCa2ModelForm(BaCa2Form):
                     **cls.handle_error(request, e) | {'errors': messages}
                 )
 
-        validation_errors = cls(data=request.POST).errors
+        validation_errors = form.errors
 
         return BaCa2ModelResponse(
             model=cls.MODEL,
