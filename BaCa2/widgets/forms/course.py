@@ -418,13 +418,13 @@ class AddMembersFormWidget(FormWidget):
             form = AddMembersForm()
 
         form.fields['users'].update_data_source_url(UserModelView.get_url(
-            mode=BaCa2ModelView.GetMode.EXCLUDE,
-            query_params={'roles__course': course_id}
+            mode=BaCa2ModelView.GetMode.FILTER,
+            exclude_params={'roles__course': course_id}
         ))
 
         form.fields['role'].data_source_url = RoleModelView.get_url(
             mode=BaCa2ModelView.GetMode.FILTER,
-            query_params={'course': course_id}
+            filter_params={'course': course_id}
         )
 
         super().__init__(
@@ -479,9 +479,10 @@ class RemoveMembersFormWidget(FormWidget):
 
         form.fields['members'].update_data_source_url(UserModelView.get_url(
             mode=UserModelView.GetMode.FILTER,
-            query_params={'roles__course': course_id},
+            filter_params={'roles__course': course_id},
+            exclude_params={'id': request.user.id},
             serialize_kwargs={'course': course_id}
-        ))  # TODO: exclude admins and self
+        ))  # TODO: exclude admins
 
         super().__init__(
             name='remove_members_form_widget',
@@ -543,7 +544,7 @@ class AddRoleFormWidget(FormWidget):
 
         form.fields['role_permissions'].update_data_source_url(PermissionModelView.get_url(
             mode=PermissionModelView.GetMode.FILTER,
-            query_params={'codename__in': codenames}
+            filter_params={'codename__in': codenames}
         ))
 
         super().__init__(
@@ -624,7 +625,7 @@ class AddRolePermissionsFormWidget(FormWidget):
 
         form.fields['permissions_to_add'].update_data_source_url(PermissionModelView.get_url(
             mode=PermissionModelView.GetMode.FILTER,
-            query_params={'codename__in': codenames},
+            filter_params={'codename__in': codenames},
             exclude_params={'role': role_id}
         ))
         form.fields['role_id'].initial = role_id
@@ -680,7 +681,7 @@ class RemoveRolePermissionsFormWidget(FormWidget):
 
         form.fields['permissions_to_remove'].update_data_source_url(PermissionModelView.get_url(
             mode=PermissionModelView.GetMode.FILTER,
-            query_params={'role': role_id}
+            filter_params={'role': role_id}
         ))
         form.fields['role_id'].initial = role_id
 
