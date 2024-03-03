@@ -30,9 +30,10 @@ class BrokerSubmit(models.Model):
         ERROR = -2  # Error while sending or receiving submit
         EXPIRED = -1  # Submit was not checked in time
         NEW = 0  # Submit was created
-        AWAITING_RESPONSE = 1  # Submit was sent to broker and is awaiting response
-        CHECKED = 2  # Submit was checked and results are saved
-        SAVED = 3  # Results were saved
+        PROCESSING = 1  # Submit is being processed
+        AWAITING_RESPONSE = 2  # Submit was sent to broker and is awaiting response
+        CHECKED = 3  # Submit was checked and results are being saved
+        SAVED = 4  # Results were saved
 
     #: course foreign key
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
@@ -102,7 +103,7 @@ class BrokerSubmit(models.Model):
             submit_path=self.solution
         )
         try:
-            r = requests.post(url, json=message.serialize())
+            r = requests.post(url, json=message.model_dump_json())
         except requests.exceptions.ConnectionError:
             return message, -1
         except requests.exceptions.ChunkedEncodingError:
@@ -144,6 +145,7 @@ class BrokerSubmit(models.Model):
             package_instance=package_instance
         )
         new_submit.save()
+        new_submit.update_status(cls.StatusEnum.PROCESSING)
         code = -100
         for _ in range(settings.BROKER_RETRY_POLICY.individual_max_retries):
             _, code = cls.send_submit(new_submit, broker_url, broker_password)
@@ -152,6 +154,8 @@ class BrokerSubmit(models.Model):
             sleep(settings.BROKER_RETRY_POLICY.individual_submit_retry_interval)
         else:
             new_submit.update_status(cls.StatusEnum.ERROR)
+            new_submit.submit.end_with_error(ResultStatus.INT,
+                                             f'Cannot sent message to broker (error code: {code})')
             raise ConnectionError(f'Cannot sent message to broker (error code: {code})')
         new_submit.update_status(cls.StatusEnum.AWAITING_RESPONSE)
         return new_submit
@@ -167,6 +171,7 @@ class BrokerSubmit(models.Model):
         :param broker_password: password for broker
         :type broker_password: str
         """
+        self.status = self.StatusEnum.PROCESSING
         for _ in range(settings.BROKER_RETRY_POLICY.individual_max_retries):
             _, code = self.send_submit(broker_url, broker_password)
             if code == 200:
@@ -175,6 +180,7 @@ class BrokerSubmit(models.Model):
                 break
             sleep(settings.BROKER_RETRY_POLICY.individual_submit_retry_interval)
         else:
+            self.submit.end_with_error(ResultStatus.INT, 'Cannot sent message to broker')
             self.update_status(self.StatusEnum.ERROR)
 
     @classmethod

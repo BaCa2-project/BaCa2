@@ -7,6 +7,11 @@ FORMATTER = f'{FORMATTER_MODULE}.CustomFormatter'
 
 COLORED_FORMATTER = f'{FORMATTER_MODULE}.CustomColoredFormatter'
 
+VERBOSE_FORMATTER = {
+    'windows': FORMATTER,
+    'unix': COLORED_FORMATTER,
+}
+
 FORMATTERS = {
     'simple': {
         '()': COLORED_FORMATTER,
@@ -27,11 +32,9 @@ FORMATTERS = {
         'datefmt': '%Y-%m-%d %H:%M:%S',
     },
     'verbose': {
-        '()': FORMATTER,
+        '()': VERBOSE_FORMATTER[OS_NAME],  # noqa: F821
         'fmt': '%(levelname)s '
                '%(asctime)s '
-               '%(threadName)s '
-               '%(thread)d '
                '%(process)d '
                '%(pathname)s'
                '%(funcName)s'
