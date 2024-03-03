@@ -20,10 +20,29 @@ from widgets.popups.forms import SubmitConfirmationPopup, SubmitFailurePopup, Su
 # --------------------------------------- baca2 form meta -------------------------------------- #
 
 class BaCa2FormMeta(DeclarativeFieldsMetaclass, ABCMeta):
+    """
+    Metaclass for all forms inheriting from the :class:`BaCa2Form` base class. Used to handle the
+    initialization and reconstruction of dynamic form instances from the session data. Reinforces
+    the requirement for all non-abstract form classes to have a FORM_NAME attribute set and a
+    request parameter in their __init__ method if they have custom init parameters.
+    """
+
     class SessionDataError(Exception):
+        """
+        Exception raised when an error occurs while attempting to reconstruct a form from the
+        session data.
+        """
         pass
 
     def __init__(cls, name, bases, attrs) -> None:
+        """
+        Initializes the form class. Checks if the form class has appropriate attributes and init
+        signature.
+
+        :raises ValueError: If the form class is not abstract and does not have a FORM_NAME
+            attribute set or a request parameter is not present in its __init__ method when it has
+            custom init parameters.
+        """
         super().__init__(name, bases, attrs)
 
         if not issubclass(cls, ABC) and not hasattr(cls, 'FORM_NAME'):
@@ -43,6 +62,14 @@ class BaCa2FormMeta(DeclarativeFieldsMetaclass, ABCMeta):
                              'validation request.')
 
     def __call__(cls, *args, **kwargs) -> Self:
+        """
+        Initializes a new form instance. If the form is instantiated with custom init parameters,
+        saves the parameters to the session and returns the form instance. If the form is not
+        instantiated with custom init parameters, returns the form instance as usual.
+
+        :raises BaCa2FormMeta.SessionDataError: If the form is instantiated with custom init
+            parameters and no request object is passed along with them.
+        """
         if not args and not kwargs:
             return super().__call__()
 
@@ -75,6 +102,13 @@ class BaCa2FormMeta(DeclarativeFieldsMetaclass, ABCMeta):
         return form_instance
 
     def reconstruct_from_session(cls, request) -> Self:
+        """
+        Reconstructs a form instance from the session data based on a request object.
+
+        :raises BaCa2FormMeta.SessionDataError: If the form instance ID is not found in the request
+            or no init parameters are found in the session for the form with the specified name and
+            instance ID.
+        """
         name = getattr(cls, 'FORM_NAME', None)
         instance_id = request.POST.get('form_instance_id')
 
@@ -96,6 +130,10 @@ class BaCa2FormMeta(DeclarativeFieldsMetaclass, ABCMeta):
         return super().__call__(**init_params)
 
     def reconstruct(cls, request) -> Self:
+        """
+        Attempts to reconstruct a form instance from the session data based on a request object. If
+        the reconstruction fails, returns a new form instance based on the request's POST data.
+        """
         try:
             return cls.reconstruct_from_session(request)
         except BaCa2FormMeta.SessionDataError:
@@ -103,7 +141,16 @@ class BaCa2FormMeta(DeclarativeFieldsMetaclass, ABCMeta):
 
 
 class BaCa2ModelFormMeta(BaCa2FormMeta):
+    """
+    Metaclass for all forms inheriting from the :class:`BaCa2ModelForm` base class. Used to set the
+    FORM_NAME attribute based on the ACTION attribute during the initialization of the form class.
+    """
+
     def __init__(cls, name, bases, attrs) -> None:
+        """
+        Initializes the form class. Sets the FORM_NAME attribute based on the ACTION attribute if
+        present.
+        """
         super().__init__(name, bases, attrs)
 
         action = getattr(cls, 'ACTION', None)
@@ -147,13 +194,31 @@ class BaCa2Form(forms.Form, ABC, metaclass=BaCa2FormMeta):
     )
 
     def __init__(self, form_instance_id: int = 0, request=None, **kwargs) -> None:
+        """
+        :param form_instance_id: ID of the form instance. Used to identify the form instance when
+            saving its init parameters to the session and to reconstruct the form from the session.
+            Defaults to 0. Should be set to a unique value when creating a new form instance within
+            a single view with multiple instances of the same form class.
+        :type form_instance_id: int
+        :param request: HTTP request object received by the view the form is rendered in. Should be
+            passed to the constructor if the form is instantiated with custom init parameters.
+        :type request: HttpRequest
+        :param kwargs: Additional keyword arguments to be passed to the parent class constructor.
+        :type kwargs: dict
+        """
+
         super().__init__(**kwargs)
         self.fields['form_name'].initial = self.FORM_NAME
         self.instance_id = form_instance_id
         self.fields['form_instance_id'].initial = form_instance_id
         self.request = request
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """
+        :return: String representation of the form instance containing information about the form's
+            bound status, validity and fields.
+        :rtype: str
+        """
         if self.errors is None:
             is_valid = 'Unknown'
         else:
