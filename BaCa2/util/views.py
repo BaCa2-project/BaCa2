@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Type
 
@@ -255,29 +255,31 @@ class FieldValidationView(LoginRequiredMixin, View):
 class BaCa2ModelView(LoginRequiredMixin, View, ABC):
     """
     Base class for all views used to manage models and retrieve their data from the front-end. GET
-    requests directed at this view are used to retrieve data while POST requests are handled in
-    accordance with the particular model form from which they originate.
+    requests directed at this view are used to retrieve serialized model data while POST requests
+    are handled in accordance with the particular model form from which they originate.
 
     The view itself does not interface with model managers directly outside of retrieving data.
     Instead, it acts as an interface between POST requests and form classes which handle them.
 
+    Course db models are managed by views extending the inheriting `CourseModelView` class.
+
     see:
         - :class:`widgets.forms.base.BaCa2ModelForm`
         - :class:`widgets.forms.base.BaCa2ModelResponse`
+        - :class:`course.views.CourseModelView`
     """
 
     class GetMode(Enum):
         """
-        Enum containing all the available get modes for retrieving data from the view. The get mode
+        Enum containing available get modes for retrieving model data from the view. The get mode
         defines which method is used to construct the QuerySet to be serialized and returned to the
         front-end.
         """
         #: Retrieve data for all model instances.
         ALL = 'all'
-        #: Retrieve data for model instances matching the specified filter parameters.
+        #: Retrieve data for model instances matching the specified filter and/or exclude
+        #: parameters.
         FILTER = 'filter'
-        #: Retrieve data for model instances not matching the specified exclusion parameters.
-        EXCLUDE = 'exclude'
 
     class ModelViewException(Exception):
         """
@@ -297,6 +299,13 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
 
     @classmethod
     def get_data_method(cls) -> Callable[[model_cls, Optional[Dict[str, Any]]], Dict[str, Any]]:
+        """
+        :return: Serialization method for the model class instances from which the view retrieves
+            data.
+        :rtype: Callable[[model_cls, Optional[Dict[str, Any]]], Dict[str, Any]]
+        :raises ModelViewException: If no get_data method is defined in the model class and the
+            `GET_DATA_METHOD` is not specified.
+        """
         in_class_method = getattr(cls.MODEL, 'get_data', None)
         if in_class_method:
             return in_class_method
@@ -312,12 +321,10 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         parameters.
 
         - Get mode 'ALL' - Retrieves data for all model instances.
-        - Get mode 'FILTER' - Retrieves data for model instances matching the filter parameters
-            specified in the url.
-        - Get mode 'EXCLUDE' - Retrieves data for model instances not matching the exclusion
-            parameters specified in the url.
+        - Get mode 'FILTER' - Retrieves data for model instances matching the filter and/or exclude
+            parameters encoded in the request url.
 
-        :param request: HTTP request object received by the view.
+        :param request: HTTP GET request object received by the view.
         :type request: HttpRequest
         :return: JSON response with the result of the action in the form of status and message
             string (and data if the action was successful).
@@ -327,7 +334,7 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
             - :class:`BaCa2ModelView.GetMode`
             - :meth:`BaCa2ModelView.get_all`
             - :meth:`BaCa2ModelView.get_filtered`
-            - :meth:`BaCa2ModelView.get_excluded`
+            - :meth:`decode_url_to_dict`
         """
         get_params = request.GET.dict()
         mode = get_params.get('mode')
@@ -335,13 +342,13 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         if not mode:
             return self.get_request_response(
                 status=BaCa2JsonResponse.Status.INVALID,
-                message=_('Failed to retrieve data for model instances due to missing target.')
+                message=_('Failed to retrieve data for model instances due to missing mode param.')
             )
 
-        if get_params.get('query_params'):
-            query_params = decode_url_to_dict(get_params.get('query_params'))
+        if get_params.get('filter_params'):
+            filter_params = decode_url_to_dict(get_params.get('filter_params'))
         else:
-            query_params = {}
+            filter_params = {}
 
         if get_params.get('exclude_params'):
             exclude_params = decode_url_to_dict(get_params.get('exclude_params'))
@@ -354,15 +361,21 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
             serialize_kwargs = {}
 
         if mode == self.GetMode.ALL.value:
-            return self.get_all(query_params, serialize_kwargs, request, **kwargs)
+            if filter_params or exclude_params:
+                return self.get_request_response(
+                    status=BaCa2JsonResponse.Status.INVALID,
+                    message=_('Get all retrieval mode does not accept filter or exclude '
+                              'parameters.')
+                )
+
+            return self.get_all(serialize_kwargs=serialize_kwargs, request=request, **kwargs)
+
         if mode == self.GetMode.FILTER.value:
-            return self.get_filtered(query_params,
-                                     exclude_params,
-                                     serialize_kwargs,
-                                     request,
+            return self.get_filtered(filter_params=filter_params,
+                                     exclude_params=exclude_params,
+                                     serialize_kwargs=serialize_kwargs,
+                                     request=request,
                                      **kwargs)
-        if mode == self.GetMode.EXCLUDE.value:
-            return self.get_excluded(query_params, serialize_kwargs, request, **kwargs)
 
         return self.get_request_response(
             status=BaCa2JsonResponse.Status.INVALID,
@@ -370,22 +383,15 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
                       'parameter.')
         )
 
-    def get_all(self,
-                query_params: dict,
-                serialize_kwargs: dict,
-                request,
-                **kwargs) -> BaCa2ModelResponse:
+    def get_all(self, serialize_kwargs: dict, request, **kwargs) -> BaCa2ModelResponse:
         """
-        :param query_params: Query parameters received by the view (should be empty, if not, the
-            request is considered invalid).
-        :type query_params: dict
         :param serialize_kwargs: Kwargs to pass to the serialization method of the model class
             instances retrieved by the view when the JSON response is generated.
         :type serialize_kwargs: dict
-        :param request: HTTP request object received by the view.
+        :param request: HTTP GET request object received by the view.
         :type request: HttpRequest
-        :return: JSON response containing data for all model instances of the model class managed
-            by the view (provided the user has permission to view them).
+        :return: JSON response containing serialized data for all model instances of the model
+            class managed by the view (provided the user has permission to view them).
         :rtype: :class:`BaCa2ModelResponse`
 
         See also:
@@ -393,39 +399,43 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
             - :meth:`BaCa2ModelView.get`
             - :class:`BaCa2ModelResponse`
         """
-        if len(query_params) > 0:
-            return self.get_request_response(
-                status=BaCa2JsonResponse.Status.INVALID,
-                message=_('Get all retrieval mode does not accept query parameters.')
-            )
-
         if not self.check_get_all_permission(request, **kwargs):
             return self.get_request_response(
                 status=BaCa2JsonResponse.Status.IMPERMISSIBLE,
                 message=_('Permission denied.')
             )
 
-        return self.get_request_response(
-            status=BaCa2JsonResponse.Status.SUCCESS,
-            message=_('Successfully retrieved data for all model instances'),
-            data=[self.get_data_method()(instance, **serialize_kwargs)
-                  for instance in self.MODEL.objects.all()]
-        )
+        try:
+            return self.get_request_response(
+                status=BaCa2JsonResponse.Status.SUCCESS,
+                message=_('Successfully retrieved data for all model instances'),
+                data=[self.get_data_method()(instance, **serialize_kwargs)
+                      for instance in self.MODEL.objects.all()]
+            )
+        except Exception as e:
+            return self.get_request_response(
+                status=BaCa2JsonResponse.Status.ERROR,
+                message=_('An error occurred while retrieving data for all model instances.'),
+                data=[str(e)]
+            )
 
     def get_filtered(self,
-                     query_params: dict,
+                     filter_params: dict,
                      exclude_params: dict,
                      serialize_kwargs: dict,
                      request,
                      **kwargs) -> BaCa2ModelResponse:
         """
-        :param query_params: Query parameters used to construct the filter for the retrieved query
+        :param filter_params: Query parameters used to construct the filter for the retrieved query
             set.
-        :type query_params: dict
+        :type filter_params: dict
+        :param exclude_params: Query parameters used to construct the exclude filter for the
+            retrieved query set.
+        :type exclude_params: dict
         :param serialize_kwargs: Kwargs to pass to the serialization method of the model class
             instances retrieved by the view when the JSON response is generated.
         :type serialize_kwargs: dict
-        :param request: HTTP request object received by the view.
+        :param request: HTTP GET request object received by the view.
         :type request: HttpRequest
         :return: JSON response containing data for model instances matching the specified filter
             parameters (provided the user has permission to view them).
@@ -436,129 +446,96 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
             - :meth:`BaCa2ModelView.get`
             - :class:`BaCa2ModelResponse`
         """
-        query_result = [obj for obj in
-                        self.MODEL.objects.filter(**query_params).exclude(**exclude_params)]
+        query_set = self.MODEL.objects.filter(**filter_params).exclude(**exclude_params)
+        query_result = [obj for obj in query_set]
 
-        if not self.check_get_filtered_permission(query_params, query_result, request, **kwargs):
+        if not self.check_get_all_permission(request, **kwargs):
+            if not self.check_get_filtered_permission(filter_params=filter_params,
+                                                      exclude_params=exclude_params,
+                                                      query_result=query_result,
+                                                      request=request,
+                                                      **kwargs):
+                return self.get_request_response(
+                    status=BaCa2JsonResponse.Status.IMPERMISSIBLE,
+                    message=_('Permission denied.')
+                )
+
+        try:
             return self.get_request_response(
-                status=BaCa2JsonResponse.Status.IMPERMISSIBLE,
-                message=_('Permission denied.')
+                status=BaCa2JsonResponse.Status.SUCCESS,
+                message=_('Successfully retrieved data for model instances matching the specified '
+                          'filter parameters.'),
+                data=[self.get_data_method()(obj, **serialize_kwargs)
+                      for obj in query_result]
             )
-
-        return self.get_request_response(
-            status=BaCa2JsonResponse.Status.SUCCESS,
-            message=_('Successfully retrieved data for model instances matching the specified '
-                      'filter parameters.'),
-            data=[self.get_data_method()(obj, **serialize_kwargs)
-                  for obj in query_result]
-        )
-
-    def get_excluded(self,
-                     query_params: dict,
-                     serialize_kwargs: dict,
-                     request,
-                     **kwargs) -> BaCa2ModelResponse:
-        """
-        :param query_params: Query parameters used to construct the exclude filter for the
-            retrieved query set.
-        :type query_params: dict
-        :param serialize_kwargs: Kwargs to pass to the serialization method of the model class
-            instances retrieved by the view when the JSON response is generated.
-        :type serialize_kwargs: dict
-        :param request: HTTP request object received by the view.
-        :type request: HttpRequest
-        :return: JSON response containing data for model instances not matching the specified
-            exclusion parameters (provided the user has permission to view them).
-        :rtype: :class:`BaCa2ModelResponse`
-
-        See also:
-            - :meth:`BaCa2ModelView.check_get_excluded_permission`
-            - :meth:`BaCa2ModelView.get`
-            - :class:`BaCa2ModelResponse`
-        """
-        query_result = [obj for obj in self.MODEL.objects.exclude(**query_params)]
-
-        if not self.check_get_excluded_permission(query_params, query_result, request, **kwargs):
+        except Exception as e:
             return self.get_request_response(
-                status=BaCa2JsonResponse.Status.IMPERMISSIBLE,
-                message=_('Permission denied.')
+                status=BaCa2JsonResponse.Status.ERROR,
+                message=_('An error occurred while retrieving data for model instances matching '
+                          'the specified filter parameters.'),
+                data=[str(e)]
             )
-
-        return self.get_request_response(
-            status=BaCa2JsonResponse.Status.SUCCESS,
-            message=_('Successfully retrieved data for model instances not matching the specified '
-                      'exclusion parameters.'),
-            data=[self.get_data_method()(obj, **serialize_kwargs)
-                  for obj in query_result]
-        )
 
     # --------------------------------- get permission checks ---------------------------------- #
 
     def check_get_all_permission(self, request, **kwargs) -> bool:
         """
-        :param request: HTTP request object received by the view.
+        :param request: HTTP GET request object received by the view.
         :type request: HttpRequest
         :return: `True` if the user has the 'view' permission for the model class managed by the
             view, `False` otherwise.
         :rtype: bool
-
-        See also:
-            - :meth:`BaCa2ModelView.get_all`
         """
         return request.user.has_basic_model_permissions(self.MODEL, BasicModelAction.VIEW)
 
-    @abstractmethod
     def check_get_filtered_permission(self,
-                                      query_params: dict,
+                                      filter_params: dict,
+                                      exclude_params: dict,
                                       query_result: List[django.db.models.Model],
                                       request,
                                       **kwargs) -> bool:
         """
-        :param query_params: Query parameters used to filter the retrieved query set.
-        :type query_params: dict
+        Method used to evaluate requesting user's permission to view the model instances matching
+        the specified query parameters retrieved by the view if the user does not possess the 'view'
+        permission for all model instances.
+
+        By default, returns `False`. Inheriting classes should override this method if the view
+        should allow the user to view model instances matching the specified query parameters under
+        certain conditions.
+
+        :param filter_params: Query parameters used to construct the filter for the retrieved query
+            set.
+        :type filter_params: dict
+        :param exclude_params: Query parameters used to construct the exclude filter for the
+            retrieved query set.
+        :type exclude_params: dict
         :param query_result: Query set retrieved using the specified query parameters evaluated to a
             list.
         :type query_result: List[django.db.models.Model]
-        :param request: HTTP request object received by the view.
+        :param request: HTTP GET request object received by the view.
         :type request: HttpRequest
-        :return: `True` if the user has permission to view the model instances matching the
+        :return: `True` if the user has permission to view the model instances matching the query
+            parameters, `False` otherwise.
         :rtype: bool
         """
-        raise NotImplementedError('This method has to be implemented by inheriting classes.')
-
-    @abstractmethod
-    def check_get_excluded_permission(self,
-                                      query_params: dict,
-                                      query_result: List[django.db.models.Model],
-                                      request,
-                                      **kwargs) -> bool:
-        """
-        :param query_params: Query parameters used to filter the retrieved query set.
-        :type query_params: dict
-        :param query_result: Query set retrieved using the specified query parameters evaluated to
-            a list.
-        :type query_result: List[django.db.models.Model]
-        :param request: HTTP request object received by the view.
-        :type request: HttpRequest
-        :return: `True` if the user has permission to view the model instances not matching the
-            specified exclusion parameters, `False` otherwise.
-        :rtype: bool
-        """
-        raise NotImplementedError('This method has to be implemented by inheriting classes.')
+        return False
 
     # -------------------------------------- post methods -------------------------------------- #
 
-    @abstractmethod
-    def post(self, request, **kwargs) -> JsonResponse:
+    def post(self, request, **kwargs) -> BaCa2JsonResponse:
         """
-        Receives a post request from a model form and calls on its handle_post_request method to
-        validate and process the request.
+        Inheriting model views should implement this method to handle post requests from model forms
+        if necessary. The method should call on the handle_post_request method of the model form
+        class to validate and process the request.
 
+        :param request: HTTP POST request object received by the view.
+        :type: HttpRequest
         :return: JSON response with the result of the action in the form of status and message
             string
-        :rtype: JsonResponse
+        :rtype: :class:`BaCa2JsonResponse`
         """
-        raise NotImplementedError('This method has to be implemented by inheriting classes.')
+        return BaCa2JsonResponse(status=BaCa2JsonResponse.Status.INVALID,
+                                 message=_('This view does not handle post requests.'))
 
     @classmethod
     def handle_unknown_form(cls, request, **kwargs) -> BaCa2ModelResponse:
@@ -609,7 +586,7 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
     def get_url(cls,
                 *,
                 mode: GetMode = GetMode.ALL,
-                query_params: dict = None,
+                filter_params: dict = None,
                 exclude_params: dict = None,
                 serialize_kwargs: dict = None,
                 **kwargs) -> str:
@@ -619,29 +596,28 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
 
         :param mode: Get mode to use when retrieving data.
         :type mode: :class:`BaCa2ModelView.GetMode`
-        :param query_params: Query parameters to use when retrieving data. Required when using
-            :class:`BaCa2ModelView.GetMode.FILTER` or :class:`BaCa2ModelView.GetMode.EXCLUDE`.
-        :type query_params: dict
+        :param filter_params: Query parameters used to construct the filter for the retrieved query
+            set if the get mode is 'FILTER'.
+        :type filter_params: dict
+        :param exclude_params: Query parameters used to construct the exclude filter for the
+            retrieved query set if the get mode is 'FILTER'.
+        :type exclude_params: dict
         :param serialize_kwargs: Kwargs to pass to the serialization method of the model class
             instances retrieved by the view when the JSON response is generated.
         :type serialize_kwargs: dict
         :param kwargs: Additional keyword arguments to be added to the URL.
         :type kwargs: dict
-
-        See also:
-            - :class:`BaCa2ModelView.GetMode`
         """
         url = cls._url(**kwargs)
 
-        if mode != cls.GetMode.ALL and query_params is None:
-            raise BaCa2ModelView.ModelViewException(
-                f'Query parameters must be specified when using {mode} get mode.'
-            )
+        if mode == cls.GetMode.FILTER and not any([filter_params, exclude_params]):
+            raise BaCa2ModelView.ModelViewException('Query parameters must be specified when '
+                                                    'using filter get mode.')
 
-        if query_params or serialize_kwargs or exclude_params:
+        if any([filter_params, serialize_kwargs, exclude_params]):
             url += '?'
-        if query_params:
-            url += encode_dict_to_url('query_params', query_params)
+        if filter_params:
+            url += encode_dict_to_url('filter_params', filter_params)
         if exclude_params:
             url += f'&{encode_dict_to_url("exclude_params", exclude_params)}'
         if serialize_kwargs:
