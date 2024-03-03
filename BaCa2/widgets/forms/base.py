@@ -99,6 +99,8 @@ class BaCa2FormMeta(DeclarativeFieldsMetaclass, ABCMeta):
         instance_id = form_instance.instance_id
         form_init_params[instance_id] = named_args
 
+        request.session.save()
+
         return form_instance
 
     def reconstruct_from_session(cls, request) -> Self:
@@ -257,11 +259,20 @@ class BaCa2ModelForm(BaCa2Form, ABC, metaclass=BaCa2ModelFormMeta):
     #: Action which should be performed using the form data.
     ACTION: ModelAction = None
 
-    def __init__(self, **kwargs):
+    def __init__(self, form_instance_id: int = 0, request=None, **kwargs):
         """
-        Sets initial values for the form's hidden name and action fields.
+        :param form_instance_id: ID of the form instance. Used to identify the form instance when
+            saving its init parameters to the session and to reconstruct the form from the session.
+            Defaults to 0. Should be set to a unique value when creating a new form instance within
+            a single view with multiple instances of the same form class.
+        :type form_instance_id: int
+        :param request: HTTP request object received by the view the form is rendered in. Should be
+            passed to the constructor if the form is instantiated with custom init parameters.
+        :type request: HttpRequest
+        :param kwargs: Additional keyword arguments to be passed to the parent class constructor.
+        :type kwargs: dict
         """
-        super().__init__(**kwargs)
+        super().__init__(form_instance_id=form_instance_id, request=request, **kwargs)
         self.fields['action'].initial = self.ACTION.value
 
     @classmethod
