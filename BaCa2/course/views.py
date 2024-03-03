@@ -1,8 +1,7 @@
 import inspect
 from abc import ABC, ABCMeta
-from typing import Any, Callable, Dict, List, Union
+from typing import Any, Callable, Dict, Union
 
-import django.db.models
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.http import JsonResponse
 from django.utils.translation import gettext_lazy as _
@@ -14,6 +13,7 @@ from main.models import Course
 from main.views import CourseModelView as CourseModelManagerView
 from main.views import RoleModelView, UserModelView
 from util.models_registry import ModelsRegistry
+from util.responses import BaCa2JsonResponse
 from util.views import BaCa2LoggedInView, BaCa2ModelView
 from widgets.forms.course import (
     AddMembersFormWidget,
@@ -142,11 +142,32 @@ class ReadCourseViewMeta(ABCMeta):
 
 
 class CourseModelView(BaCa2ModelView, ABC, metaclass=ReadCourseViewMeta):
+    """
+    Base class for all views used to manage course db models and retrieve their data from the
+    front-end. GET requests directed at this view are used to retrieve serialized model data
+    while POST requests are handled in accordance with the particular course model form from which
+    they originate.
+
+    See also:
+        - :py:class:`BaCa2ModelView`
+        - :py:class:`ReadCourseViewMeta`
+    """
+
     class MissingCourseId(Exception):
+        """
+        Raised when an attempt is made to construct a course model view URL without a course id.
+        """
         pass
 
     @classmethod
     def _url(cls, **kwargs) -> str:
+        """
+        :param kwargs: Keyword arguments to be used to construct the URL. Should contain a
+            `course_id` parameter.
+        :type kwargs: dict
+        :return: URL to the view
+        :rtype: str
+        """
         course_id = kwargs.get('course_id')
         if not course_id:
             raise cls.MissingCourseId('Course id required to construct URL')
@@ -154,6 +175,13 @@ class CourseModelView(BaCa2ModelView, ABC, metaclass=ReadCourseViewMeta):
         return f'/course/{course_id}/models/{cls.MODEL._meta.model_name}/'
 
     def check_get_all_permission(self, request, **kwargs) -> bool:
+        """
+        :param request: HTTP GET request object received by the view
+        :type request: HttpRequest
+        :return: `True` if the user has permission to view all instances of the model assigned to
+            them in the course, `False` otherwise
+        :rtype: bool
+        """
         user = getattr(request, 'user')
         course_id = self.kwargs.get('course_id')
         return user.has_basic_course_model_permissions(model=self.MODEL,
@@ -164,96 +192,99 @@ class CourseModelView(BaCa2ModelView, ABC, metaclass=ReadCourseViewMeta):
 # ----------------------------------------- Model views ----------------------------------------- #
 
 class RoundModelView(CourseModelView):
+    """
+    View used to retrieve serialized round model data to be displayed in the front-end and to
+    interface between POST requests and course model forms used to manage round instances.
+    """
+
     MODEL = Round
 
-    def check_get_filtered_permission(self,
-                                      query_params: dict,
-                                      query_result: List[django.db.models.Model],
-                                      request,
-                                      **kwargs) -> bool:
-        return True
+    def post(self, request, **kwargs) -> BaCa2JsonResponse:
+        """
+        Delegates the handling of the POST request to the appropriate form based on the `form_name`
+        parameter received in the request.
 
-    def check_get_excluded_permission(self,
-                                      query_params: dict,
-                                      query_result: List[django.db.models.Model],
-                                      request,
-                                      **kwargs) -> bool:
-        return True
+        :param request: HTTP POST request object received by the view
+        :type request: HttpRequest
+        :return: JSON response to the POST request containing information about the success or
+            failure of the request
+        :rtype: :py:class:`BaCa2JsonResponse`
+        """
+        form_name = request.POST.get('form_name')
 
-    def post(self, request, **kwargs) -> JsonResponse:
-        if request.POST.get('form_name') == 'add_round_form':
+        if form_name == f'{Course.CourseAction.ADD_ROUND.label}_form':
             return CreateRoundForm.handle_post_request(request)
-        elif request.POST.get('form_name') == 'change_round_form':
+        elif form_name == f'{Course.CourseAction.EDIT_ROUND.label}_form':
             return EditRoundForm.handle_post_request(request)
-        elif request.POST.get('form_name') == 'delete_round_form':
+        elif form_name == f'{Course.CourseAction.DEL_ROUND.label}_form':
             return DeleteRoundForm.handle_post_request(request)
+
         return self.handle_unknown_form(request, **kwargs)
 
 
 class TaskModelView(CourseModelView):
+    """
+    View used to retrieve serialized task model data to be displayed in the front-end and to
+    interface between POST requests and course model forms used to manage task instances.
+    """
+
     MODEL = Task
 
-    def check_get_filtered_permission(self,
-                                      query_params: dict,
-                                      query_result: List[django.db.models.Model],
-                                      request,
-                                      **kwargs) -> bool:
-        return True
-
-    def check_get_excluded_permission(self, query_params: dict,
-                                      query_result: List[django.db.models.Model], request,
-                                      **kwargs) -> bool:
-        return True
-
     def post(self, request, **kwargs) -> JsonResponse:
-        if request.POST.get('form_name') == 'add_task_form':
+        """
+        Delegates the handling of the POST request to the appropriate form based on the `form_name`
+        parameter received in the request.
+
+        :param request: HTTP POST request object received by the view
+        :type request: HttpRequest
+        :return: JSON response to the POST request containing information about the success or
+            failure of the request
+        :rtype: :py:class:`JsonResponse`
+        """
+        form_name = request.POST.get('form_name')
+
+        if form_name == f'{Course.CourseAction.ADD_TASK.label}_form':
             return CreateTaskForm.handle_post_request(request)
-        elif request.POST.get('form_name') == 'delete_task_form':
+        elif form_name == f'{Course.CourseAction.DEL_TASK.label}_form':
             return DeleteTaskForm.handle_post_request(request)
+
         return self.handle_unknown_form(request, **kwargs)
 
 
 class SubmitModelView(CourseModelView):
+    """
+    View used to retrieve serialized submit model data to be displayed in the front-end and to
+    interface between POST requests and course model forms used to manage submit instances.
+    """
+
     MODEL = Submit
 
-    def check_get_filtered_permission(self,
-                                      query_params: dict,
-                                      query_result: List[django.db.models.Model],
-                                      request,
-                                      **kwargs) -> bool:
-        return True
-
-    def check_get_excluded_permission(self, query_params: dict,
-                                      query_result: List[django.db.models.Model], request,
-                                      **kwargs) -> bool:
-        return True
-
     def post(self, request, **kwargs) -> JsonResponse:
-        if request.POST.get('form_name') == 'add_submit_form':
+        """
+        Delegates the handling of the POST request to the appropriate form based on the `form_name`
+        parameter received in the request.
+
+        :param request: HTTP POST request object received by the view
+        :type request: HttpRequest
+        :return: JSON response to the POST request containing information about the success or
+            failure of the request
+        :rtype: :py:class:`JsonResponse`
+        """
+        form_name = request.POST.get('form_name')
+
+        if form_name == f'{Course.CourseAction.ADD_SUBMIT.label}_form':
             return CreateSubmitForm.handle_post_request(request)
+
         return self.handle_unknown_form(request, **kwargs)
 
 
 class ResultModelView(CourseModelView):
+    """
+    View used to retrieve serialized result model data to be displayed in the front-end and to
+    interface between POST requests and course model forms used to manage result instances.
+    """
+
     MODEL = Result
-
-    class MissingSubmitId(Exception):
-        pass
-
-    def check_get_filtered_permission(self,
-                                      query_params: dict,
-                                      query_result: List[django.db.models.Model],
-                                      request,
-                                      **kwargs) -> bool:
-        return True
-
-    def check_get_excluded_permission(self, query_params: dict,
-                                      query_result: List[django.db.models.Model], request,
-                                      **kwargs) -> bool:
-        return True
-
-    def post(self, request, **kwargs) -> JsonResponse:
-        pass
 
 
 # ------------------------------------- course member mixin ------------------------------------ #
@@ -329,7 +360,7 @@ class CourseView(BaCa2LoggedInView, CourseMemberMixin):
                 request=self.request,
                 data_source=UserModelView.get_url(
                     mode=BaCa2ModelView.GetMode.FILTER,
-                    query_params={'roles__course': course_id},
+                    filter_params={'roles__course': course_id},
                     serialize_kwargs={'course': course_id},
                 ),
                 cols=[TextColumn(name='first_name', header=_('First name')),
@@ -366,7 +397,7 @@ class CourseView(BaCa2LoggedInView, CourseMemberMixin):
                 'request': self.request,
                 'data_source': RoleModelView.get_url(
                     mode=BaCa2ModelView.GetMode.FILTER,
-                    query_params={'course': course_id},
+                    filter_params={'course': course_id},
                 ),
                 'cols': [TextColumn(name='name', header=_('Role name')),
                          TextColumn(name='description', header=_('Description'))],
@@ -514,8 +545,8 @@ class CourseView(BaCa2LoggedInView, CourseMemberMixin):
             else:
                 results_table_kwargs['data_source'] = SubmitModelView.get_url(
                     mode=BaCa2ModelView.GetMode.FILTER,
-                    query_params={'usr': user.id,
-                                  'submit_type': SubmitType.STD},
+                    filter_params={'usr': user.id,
+                                   'submit_type': SubmitType.STD},
                     serialize_kwargs={'add_round_task_name': True,
                                       'add_summary_score': True},
                     course_id=course_id
@@ -664,8 +695,8 @@ class CourseTask(BaCa2LoggedInView, CourseMemberMixin):
             else:
                 results_table_kwargs['data_source'] = SubmitModelView.get_url(
                     mode=BaCa2ModelView.GetMode.FILTER,
-                    query_params={'usr': user.id,
-                                  'submit_type': SubmitType.STD},
+                    filter_params={'usr': user.id,
+                                   'submit_type': SubmitType.STD},
                     serialize_kwargs={'add_round_task_name': True,
                                       'add_summary_score': True},
                     course_id=course_id
@@ -712,7 +743,7 @@ class CourseTaskAdmin(BaCa2LoggedInView, CourseMemberMixin):
             request=self.request,
             data_source=SubmitModelView.get_url(
                 mode=BaCa2ModelView.GetMode.FILTER,
-                query_params={'task__id': task_id},
+                filter_params={'task__id': task_id},
                 serialize_kwargs={'add_summary_score': True},
                 course_id=course_id,
             ),
@@ -846,7 +877,7 @@ class SubmitSummaryView(BaCa2LoggedInView, CourseMemberMixin):
                 request=self.request,
                 data_source=ResultModelView.get_url(
                     mode=BaCa2ModelView.GetMode.FILTER,
-                    query_params={'submit': submit_id, 'test__test_set_id': s.pk},
+                    filter_params={'submit': submit_id, 'test__test_set_id': s.pk},
                     course_id=course_id,
                 ),
                 cols=[
