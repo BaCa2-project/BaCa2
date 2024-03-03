@@ -840,7 +840,7 @@ class SubmitSummaryView(BaCa2LoggedInView, CourseMemberMixin):
         source_code = CodeBlock(
             name='source_code_block',
             title=_('Source code'),
-            code=submit.source_code_path
+            code=submit.source_code_path,
         )
         self.add_widget(context, source_code)
 

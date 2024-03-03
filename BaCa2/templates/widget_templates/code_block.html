@@ -6,8 +6,10 @@
         </div>
     {% endif %}
     <div class="card-body">
-        <pre class="code-block">
-            <code class="language-{{ codeblock.language }}">
+        <pre class="code-block" remove-initial-line-feed="true">
+            <code class="language-{{ codeblock.language }}
+                    {% if codeblock.show_line_numbers %}line-numbers{% endif %}"
+                  {% if highlight_lines %}data-line="{{ highlight_lines }}"{% endif %}>
                 {{ codeblock.code }}
             </code>
         </pre>

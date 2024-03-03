@@ -13,7 +13,8 @@ class CodeBlock(Widget):
                  name: str,
                  code: str | Path,
                  language: str = None,
-                 title: str = None, ):
+                 title: str = None,
+                 show_line_numbers: bool = True,):
         super().__init__(name=name)
         if not title:
             title = _('Code block')
@@ -31,10 +32,13 @@ class CodeBlock(Widget):
         if not self.language:
             raise self.UnknownLanguageError('Language must be provided if code is a string.')
 
+        self.show_line_numbers = show_line_numbers
+
     def get_context(self) -> dict:
         return super().get_context() | {
             'name': self.name,
             'title': self.title,
             'language': self.language,
             'code': self.code,
+            'show_line_numbers': self.show_line_numbers,
         }
