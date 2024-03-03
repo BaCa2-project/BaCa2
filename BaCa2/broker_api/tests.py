@@ -87,9 +87,9 @@ class DummyBrokerHandler(server.BaseHTTPRequestHandler):
             content = BacaToBroker.parse(message)
             if content.pass_hash != make_hash(settings.BROKER_PASSWORD, content.submit_id):
                 out = BrokerToBacaError(
-                    make_hash(settings.BACA_PASSWORD, content.submit_id),
-                    content.submit_id,
-                    'Error'
+                    pass_hash=make_hash(settings.BACA_PASSWORD, content.submit_id),
+                    submit_id=content.submit_id,
+                    msg='Error'
                 )
                 DelayedAction.INSTANCE.put_func(content.submit_id, send,
                                                 '/broker_api/error', json.dumps(out.serialize()))
@@ -286,25 +286,25 @@ class General(TestCase):
         self.assertEqual(10,
                          BrokerSubmit.objects.filter(status=BrokerSubmit.StatusEnum.ERROR).count())
 
-    # def test_markExpired(self):
-    #     for i in range(10):
-    #         BrokerSubmit.objects.create(course=self.course,
-    #                                     submit_id=i,
-    #                                     package_instance=self.pkg_instance,
-    #                                     status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE,
-    #                                     update_date=datetime.now() - timedelta(
-    #                                         settings.BROKER_RETRY_POLICY.expiration_timeout))
-    #     for i in range(10):
-    #         BrokerSubmit.objects.create(course=self.course,
-    #                                     submit_id=i,
-    #                                     package_instance=self.pkg_instance,
-    #                                     status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE,
-    #                                     update_date=datetime.now())
-    #     self.assertEqual(20, BrokerSubmit.objects.filter(
-    #         status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE).count())
-    #     call_command('markExpired')
-    #     self.assertEqual(10, BrokerSubmit.objects.filter(
-    #         status=BrokerSubmit.StatusEnum.EXPIRED).count())
+    def test_markExpired(self):
+        for i in range(10):
+            BrokerSubmit.objects.create(course=self.course,
+                                        submit_id=i,
+                                        package_instance=self.pkg_instance,
+                                        status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE,
+                                        update_date=datetime.now() - timedelta(
+                                            settings.BROKER_RETRY_POLICY.expiration_timeout))
+        for i in range(10):
+            BrokerSubmit.objects.create(course=self.course,
+                                        submit_id=i,
+                                        package_instance=self.pkg_instance,
+                                        status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE,
+                                        update_date=datetime.now())
+        self.assertEqual(20, BrokerSubmit.objects.filter(
+            status=BrokerSubmit.StatusEnum.AWAITING_RESPONSE).count())
+        call_command('markExpired')
+        self.assertEqual(10, BrokerSubmit.objects.filter(
+            status=BrokerSubmit.StatusEnum.EXPIRED).count())
 
     def test_resendToBroker(self):
         for i in range(10):

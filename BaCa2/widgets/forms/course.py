@@ -1064,7 +1064,7 @@ class CreateSubmitForm(CourseModelForm):
                 source_code=source_code_file.path,
                 task=task_id,
                 user=user,
-                auto_send=False
+                auto_send=True
             )
         except Exception as e:
             source_code_file.delete()
