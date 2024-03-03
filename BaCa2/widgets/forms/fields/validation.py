@@ -7,7 +7,6 @@ from django.utils.translation import gettext_lazy as _
 
 from widgets.forms.course import *
 from widgets.forms.main import *
-from widgets.forms.test import *
 
 
 def get_field_validation_status(request: HttpRequest,
