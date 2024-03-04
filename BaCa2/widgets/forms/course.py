@@ -133,11 +133,7 @@ class CourseActionForm(BaCa2ModelForm, ABC):
 
 class CreateCourseForm(BaCa2ModelForm):
     """
-    Form used to create a new :class:`Course` object.
-
-    See also:
-        - :class:`BaCa2ModelForm`
-        - :class:`Course`
+    Form for creating new :class:`main.Course` records.
     """
 
     MODEL = Course
@@ -186,11 +182,7 @@ class CreateCourseForm(BaCa2ModelForm):
 
 class CreateCourseFormWidget(FormWidget):
     """
-    Form widget for creating new courses.
-
-    See also:
-        - :class:`FormWidget`
-        - :class:`CreateCourseForm`
+    Form widget for the :class:`CreateCourseForm`.
     """
 
     def __init__(self,
@@ -245,7 +237,7 @@ class CreateCourseFormWidget(FormWidget):
 
 class DeleteCourseForm(BaCa2ModelForm):
     """
-    Form for deleting existing :py:class:`main.Course` objects.
+    Form for deleting :class:`main.Course` records.
     """
 
     MODEL = Course
@@ -274,11 +266,7 @@ class DeleteCourseForm(BaCa2ModelForm):
 
 class DeleteCourseFormWidget(FormWidget):
     """
-    Form widget for deleting courses.
-
-    See also:
-        - :class:`FormWidget`
-        - :class:`DeleteCourseForm`
+    Form widget for the :class:`DeleteCourseForm`.
     """
 
     def __init__(self,
@@ -321,10 +309,6 @@ class DeleteCourseFormWidget(FormWidget):
 class AddMembersForm(CourseActionForm):
     """
     Form for adding members to a course with a specified role.
-
-    See also:
-        - :class:`CourseActionForm`
-        - :class: `Role`
     """
 
     ACTION = Course.CourseAction.ADD_MEMBER
@@ -424,11 +408,7 @@ class AddMembersForm(CourseActionForm):
 
 class AddMembersFormWidget(FormWidget):
     """
-    Form widget for adding members to a course with a specified role.
-
-    See also:
-        - :class:`FormWidget`
-        - :class:`AddMembersForm`
+    Form widget for the :class:`AddMembersForm`.
     """
 
     def __init__(self,
@@ -467,8 +447,13 @@ class AddMembersFormWidget(FormWidget):
 # --------------------------------------- remove members --------------------------------------- #
 
 class RemoveMembersForm(CourseActionForm):
+    """
+    Form for removing members from a course.
+    """
+
     ACTION = Course.CourseAction.DEL_MEMBER
 
+    #: Users to be removed from the course.
     members = TableSelectField(
         label=_('Choose members to remove'),
         table_widget_name='remove_members_table_widget',
@@ -485,6 +470,21 @@ class RemoveMembersForm(CourseActionForm):
                  form_instance_id: int = 0,
                  request=None,
                  **kwargs) -> None:
+        """
+        :param course_id: ID of the course the form is associated with.
+        :type course_id: int
+        :param form_instance_id: ID of the form instance. Used to identify the form instance when
+            saving its init parameters to the session and to reconstruct the form from the session.
+            Defaults to 0. Should be set to a unique value when creating a new form instance within
+            a single view with multiple instances of the same form class.
+        :type form_instance_id: int
+        :param request: HTTP request object received by the view the form is rendered in. Should be
+            passed to the constructor if the form is instantiated with custom init parameters.
+        :type request: HttpRequest
+        :param kwargs: Additional keyword arguments to be passed to the :class:`CourseActionForm`
+            super constructor.
+        :type kwargs: dict
+        """
         from main.views import UserModelView
 
         super().__init__(form_instance_id=form_instance_id, request=request, **kwargs)
@@ -498,6 +498,17 @@ class RemoveMembersForm(CourseActionForm):
 
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
+        """
+        Removes the users selected in the form from the course.
+
+        :param request: POST request containing the form data.
+        :type request: HttpRequest
+        :return: Dictionary containing a success message.
+        :rtype: Dict[str, str]
+        :raises forms.ValidationError: If the request contains an attempt to remove an admin or the
+            requesting user.
+        """
+
         course = cls.get_context_course(request)
         users = TableSelectField.parse_value(request.POST.get('members'))
 
@@ -511,11 +522,28 @@ class RemoveMembersForm(CourseActionForm):
 
 
 class RemoveMembersFormWidget(FormWidget):
+    """
+    Form widget for the :class:`RemoveMembersForm`.
+    """
+
     def __init__(self,
                  request,
                  course_id: int,
                  form: RemoveMembersForm = None,
                  **kwargs) -> None:
+        """
+        :param request: HTTP request object received by the view this form widget is rendered in.
+        :type request: HttpRequest
+        :param course_id: ID of the course the view this form widget is rendered in is associated
+            with.
+        :type course_id: int
+        :param form: RemoveMembersForm to be base the widget on. If not provided, a new form will be
+            created.
+        :type form: :class:`RemoveMembersForm`
+        :param kwargs: Additional keyword arguments to be passed to the :class:`FormWidget`
+            super constructor.
+        :type kwargs: dict
+        """
         from main.views import CourseModelView
 
         if not form:
@@ -536,17 +564,24 @@ class RemoveMembersFormWidget(FormWidget):
 # ----------------------------------------- create role ---------------------------------------- #
 
 class AddRoleForm(CourseActionForm):
+    """
+    Form for adding new :class:`main.Role` objects to a course.
+    """
+
     ACTION = Course.CourseAction.ADD_ROLE
 
+    #: Name of the new role.
     role_name = AlphanumericStringField(label=_('Role name'),
                                         required=True,
                                         min_length=4,
                                         max_length=Role._meta.get_field('name').max_length)
 
+    #: Description of the new role.
     role_description = forms.CharField(label=_('Description'),
                                        required=False,
                                        widget=forms.Textarea(attrs={'rows': 3}))
 
+    #: Permissions to be assigned to the new role.
     role_permissions = TableSelectField(label=_('Choose role permissions'),
                                         table_widget_name='role_permissions_table_widget',
                                         data_source_url='',
@@ -565,7 +600,16 @@ class AddRoleForm(CourseActionForm):
         ))
 
     @classmethod
-    def handle_valid_request(cls, request) -> Dict[str, Any]:
+    def handle_valid_request(cls, request) -> Dict[str, str]:
+        """
+        Creates a new :class:`main.Role` object based on the data provided in the request and adds
+        it to the course.
+
+        :param request: POST request containing the form data.
+        :type request: HttpRequest
+        :return: Dictionary containing a success message.
+        :rtype: Dict[str, str]
+        """
         course = cls.get_context_course(request)
         role_name = request.POST.get('role_name')
         role_description = request.POST.get('role_description', '')
@@ -577,11 +621,28 @@ class AddRoleForm(CourseActionForm):
 
 
 class AddRoleFormWidget(FormWidget):
+    """
+    Form widget for the :class:`AddRoleForm`.
+    """
+
     def __init__(self,
                  request,
                  course_id: int,
                  form: AddRoleForm = None,
                  **kwargs) -> None:
+        """
+        :param request: HTTP request object received by the view this form widget is rendered in.
+        :type request: HttpRequest
+        :param course_id: ID of the course the view this form widget is rendered in is associated
+            with.
+        :type course_id: int
+        :param form: AddRoleForm to be base the widget on. If not provided, a new form will be
+            created.
+        :type form: :class:`AddRoleForm`
+        :param kwargs: Additional keyword arguments to be passed to the :class:`FormWidget`
+            super constructor.
+        :type kwargs: dict
+        """
         from main.views import CourseModelView
 
         if not form:
@@ -601,7 +662,7 @@ class AddRoleFormWidget(FormWidget):
 
 class DeleteRoleForm(CourseActionForm):
     """
-    Form for deleting existing :py:class:`main.Role` objects.
+    Form for deleting :class:`main.Role` records.
     """
 
     ACTION = Course.CourseAction.DEL_ROLE
@@ -615,6 +676,14 @@ class DeleteRoleForm(CourseActionForm):
 
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
+        """
+        Deletes the role with the ID provided in the request.
+
+        :param request: POST request containing the form data.
+        :type request: HttpRequest
+        :return: Dictionary containing a success message.
+        :rtype: Dict[str, str]
+        """
         course = cls.get_context_course(request)
         role = ModelsRegistry.get_role(int(request.POST.get('role_id')))
         role_name = role.name
@@ -740,17 +809,34 @@ class RemoveRolePermissionsFormWidget(FormWidget):
 # ---------------------------------------- create round ---------------------------------------- #
 
 class CreateRoundForm(CourseModelForm):
+    """
+    Form for creating new :class:`course.Round` records.
+    """
+
     MODEL = Round
     ACTION = Round.BasicAction.ADD
 
+    #: Name of the new round.
     round_name = AlphanumericStringField(label=_('Round name'), required=True)
+    #: Start date of the new round.
     start_date = DateTimeField(label=_('Start date'), required=True)
+    #: End date of the new round.
     end_date = DateTimeField(label=_('End date'), required=False)
+    #: Deadline date of the new round.
     deadline_date = DateTimeField(label=_('Deadline date'), required=True)
+    #: Reveal date of the new round.
     reveal_date = DateTimeField(label=_('Reveal date'), required=False)
 
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
+        """
+        Creates a new :class:`Round` record based on the data provided in the request.
+
+        :param request: POST request containing the form data.
+        :type request: HttpRequest
+        :return: Dictionary containing a success message.
+        :rtype: Dict[str, str]
+        """
         end_date = request.POST.get('end_date')
         reveal_date = request.POST.get('reveal_date')
 
@@ -772,11 +858,28 @@ class CreateRoundForm(CourseModelForm):
 
 
 class CreateRoundFormWidget(FormWidget):
+    """
+    Form widget for the :class:`CreateRoundForm`.
+    """
+
     def __init__(self,
                  request,
                  course_id: int,
                  form: CreateRoundForm = None,
                  **kwargs) -> None:
+        """
+        :param request: HTTP request object received by the view this form widget is rendered in.
+        :type request: HttpRequest
+        :param course_id: ID of the course the view this form widget is rendered in is associated
+            with.
+        :type course_id: int
+        :param form: CreateRoundForm to be base the widget on. If not provided, a new form will be
+            created.
+        :type form: :class:`CreateRoundForm`
+        :param kwargs: Additional keyword arguments to be passed to the :class:`FormWidget`
+            super constructor.
+        :type kwargs: dict
+        """
         from course.views import RoundModelView
 
         if not form:
@@ -803,14 +906,24 @@ class CreateRoundFormWidget(FormWidget):
 # ----------------------------------------- edit round ----------------------------------------- #
 
 class EditRoundForm(CourseModelForm):
+    """
+    Form for editing :class:`course.Round` records.
+    """
+
     MODEL = Round
     ACTION = Round.BasicAction.EDIT
 
+    #: Name of the round to be edited.
     round_name = AlphanumericStringField(label=_('Round name'), required=True)
+    #: Start date of the round to be edited.
     start_date = DateTimeField(label=_('Start date'), required=True)
+    #: End date of the round to be edited.
     end_date = DateTimeField(label=_('End date'), required=False)
+    #: Deadline date of the round to be edited.
     deadline_date = DateTimeField(label=_('Deadline date'), required=True)
+    #: Reveal date of the round to be edited.
     reveal_date = DateTimeField(label=_('Reveal date'), required=False)
+    #: ID of the round to be edited.
     round_id = forms.IntegerField(widget=forms.HiddenInput())
 
     def __init__(self,
@@ -820,6 +933,23 @@ class EditRoundForm(CourseModelForm):
                  form_instance_id: int = 0,
                  request=None,
                  **kwargs) -> None:
+        """
+        :param course_id: ID of the course the form is associated with.
+        :type course_id: int
+        :param round_: ID of the round to be edited.
+        :type round_: int
+        :param form_instance_id: ID of the form instance. Used to identify the form instance when
+            saving its init parameters to the session and to reconstruct the form from the session.
+            Defaults to 0. Should be set to a unique value when creating a new form instance within
+            a single view with multiple instances of the same form class.
+        :type form_instance_id: int
+        :param request: HTTP request object received by the view the form is rendered in. Should be
+            passed to the constructor if the form is instantiated with custom init parameters.
+        :type request: HttpRequest
+        :param kwargs: Additional keyword arguments to be passed to the :class:`CourseModelForm`
+            super constructor.
+        :type kwargs: dict
+        """
         super().__init__(form_instance_id=form_instance_id, request=request, **kwargs)
 
         round_obj = ModelsRegistry.get_round(round_, course_id)
@@ -833,6 +963,15 @@ class EditRoundForm(CourseModelForm):
 
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
+        """
+        Updates the :class:`Round` record with the ID provided in the request based on the submitted
+        form data.
+
+        :param request: POST request containing the form data.
+        :type request: HttpRequest
+        :return: Dictionary containing a success message.
+        :rtype: Dict[str, str]
+        """
         round_ = ModelsRegistry.get_round(int(request.POST.get('round_id')))
         end_date = request.POST.get('end_date')
         reveal_date = request.POST.get('reveal_date')
@@ -855,13 +994,37 @@ class EditRoundForm(CourseModelForm):
 
 
 class EditRoundFormWidget(FormWidget):
+    """
+    Form widget for the :class:`EditRoundForm`.
+    """
+
     def __init__(self,
                  request,
                  course_id: int,
                  round_: int | Round,
-                 form: CreateRoundForm = None,
+                 form: EditRoundForm = None,
                  form_instance_id: int = 0,
                  **kwargs) -> None:
+        """
+        :param request: HTTP request object received by the view this form widget is rendered in.
+        :type request: HttpRequest
+        :param course_id: ID of the course the view this form widget is rendered in is associated
+            with.
+        :type course_id: int
+        :param round_: ID of the round to be edited.
+        :type round_: int
+        :param form: EditRoundForm to be base the widget on. If not provided, a new form will be
+            created.
+        :type form: :class:`EditRoundForm`
+        :param form_instance_id: ID of the form instance. Used to identify the form instance when
+            saving its init parameters to the session and to reconstruct the form from the session.
+            Defaults to 0. Should be set to a unique value when creating a new form instance within
+            a single view with multiple instances of the same form class.
+        :type form_instance_id: int
+        :param kwargs: Additional keyword arguments to be passed to the :class:`FormWidget`
+            super constructor.
+        :type kwargs: dict
+        """
         from course.views import RoundModelView
 
         if isinstance(round_, Round):
@@ -899,7 +1062,7 @@ class EditRoundFormWidget(FormWidget):
 
 class DeleteRoundForm(CourseModelForm):
     """
-    Form for deleting existing :py:class:`course.Round` objects.
+    Form for deleting existing :class:`course.Round` objects.
     """
 
     MODEL = Round
@@ -931,28 +1094,41 @@ class DeleteRoundForm(CourseModelForm):
 # ----------------------------------------- create task ---------------------------------------- #
 
 class CreateTaskForm(CourseModelForm):
+    """
+    Form for creating new :class:`course.Task` records.
+    """
+
     MODEL = Task
     ACTION = Task.BasicAction.ADD
 
+    #: Name of the new task.
     task_name = AlphanumericStringField(
         label=_('Task name'),
         help_text=_('If not provided - task name will be taken from package.'),
         required=False,
     )
+
+    #: Round the new task is assigned to.
     round_ = ModelChoiceField(
         data_source_url='',
         label_format_string='[[name]] ([[f_start_date]] - [[f_deadline_date]])',
         label=_('Round'),
         required=True,
     )
+
+    #: Point value of the new task.
     points = forms.FloatField(label=_('Points'),
                               min_value=0,
                               required=False,
-                              help_text=_('If not provided - points will be taken from package.'), )
+                              help_text=_('If not provided - points will be taken from package.'))
+
+    #: Package containing the new task's definition.
     package = FileUploadField(label=_('Task package'),
                               allowed_extensions=['zip'],
                               required=True,
                               help_text=_('Only .zip files are allowed'))
+
+    #: Judging mode of the new task.
     judge_mode = ChoiceField(label=_('Judge mode'),
                              choices=TaskJudgingMode,
                              required=True,
@@ -964,6 +1140,21 @@ class CreateTaskForm(CourseModelForm):
                  form_instance_id: int = 0,
                  request=None,
                  **kwargs) -> None:
+        """
+        :param course_id: ID of the course the form is associated with.
+        :type course_id: int
+        :param form_instance_id: ID of the form instance. Used to identify the form instance when
+            saving its init parameters to the session and to reconstruct the form from the session.
+            Defaults to 0. Should be set to a unique value when creating a new form instance within
+            a single view with multiple instances of the same form class.
+        :type form_instance_id: int
+        :param request: HTTP request object received by the view the form is rendered in. Should be
+            passed to the constructor if the form is instantiated with custom init parameters.
+        :type request: HttpRequest
+        :param kwargs: Additional keyword arguments to be passed to the :class:`CourseModelForm`
+            super constructor.
+        :type kwargs: dict
+        """
         from course.views import RoundModelView
 
         super().__init__(form_instance_id=form_instance_id, request=request, **kwargs)
@@ -981,7 +1172,7 @@ class CreateTaskForm(CourseModelForm):
         uploaded package.
 
         :param request: POST request containing the task data.
-
+        :type request: HttpRequest
         :return: Dictionary containing a success message.
         :rtype: Dict[str, str]
         """
@@ -1019,11 +1210,28 @@ class CreateTaskForm(CourseModelForm):
 
 
 class CreateTaskFormWidget(FormWidget):
+    """
+    Form widget for the :class:`CreateTaskForm`.
+    """
+
     def __init__(self,
                  request,
                  course_id: int,
                  form: CreateTaskForm = None,
                  **kwargs) -> None:
+        """
+        :param request: HTTP request object received by the view this form widget is rendered in.
+        :type request: HttpRequest
+        :param course_id: ID of the course the view this form widget is rendered in is associated
+            with.
+        :type course_id: int
+        :param form: CreateTaskForm to be base the widget on. If not provided, a new form will be
+            created.
+        :type form: :class:`CreateTaskForm`
+        :param kwargs: Additional keyword arguments to be passed to the :class:`FormWidget`
+            super constructor.
+        :type kwargs: dict
+        """
         from course.views import TaskModelView
 
         if not form:
@@ -1047,7 +1255,7 @@ class CreateTaskFormWidget(FormWidget):
 
 class DeleteTaskForm(CourseModelForm):
     """
-    Form for deleting existing :py:class:`course.Task` objects.
+    Form for deleting :class:`course.Task` records.
     """
 
     MODEL = Task
@@ -1121,11 +1329,16 @@ class DeleteTaskFormWidget(FormWidget):
 # -------------------------------------- create submission ------------------------------------- #
 
 class CreateSubmitForm(CourseModelForm):
+    """
+    Form for creating new :class:`course.Submit` records.
+    """
+
     MODEL = Submit
     ACTION = Submit.BasicAction.ADD
 
+    #: Source code of the new submission.
     source_code = FileUploadField(label=_('Source code'), required=True)
-    # amount = forms.IntegerField(label=_('Amount'), required=False)
+    #: ID of the task the new submission is for.
     task_id = forms.IntegerField(label=_('Task ID'), widget=forms.HiddenInput(), required=True)
 
     def __init__(self,
@@ -1135,6 +1348,23 @@ class CreateSubmitForm(CourseModelForm):
                  form_instance_id: int = 0,
                  request=None,
                  **kwargs) -> None:
+        """
+        :param course_id: ID of the course the form is associated with.
+        :type course_id: int
+        :param task_id: ID of the task the submission is for.
+        :type task_id: int
+        :param form_instance_id: ID of the form instance. Used to identify the form instance when
+            saving its init parameters to the session and to reconstruct the form from the session.
+            Defaults to 0. Should be set to a unique value when creating a new form instance within
+            a single view with multiple instances of the same form class.
+        :type form_instance_id: int
+        :param request: HTTP request object received by the view the form is rendered in. Should be
+            passed to the constructor if the form is instantiated with custom init parameters.
+        :type request: HttpRequest
+        :param kwargs: Additional keyword arguments to be passed to the :class:`CourseModelForm`
+            super constructor.
+        :type kwargs: dict
+        """
         super().__init__(form_instance_id=form_instance_id, request=request, **kwargs)
 
         self.fields['task_id'].initial = task_id
@@ -1148,6 +1378,14 @@ class CreateSubmitForm(CourseModelForm):
 
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
+        """
+        Creates a new :class:`Submit` object based on the data provided in the request.
+
+        :param request: POST request containing the form data.
+        :type request: HttpRequest
+        :return: Dictionary containing a success message.
+        :rtype: Dict[str, str]
+        """
         file_extension = request.FILES['source_code'].name.split('.')[-1]
         source_code_file = FileHandler(settings.SUBMITS_DIR,
                                        file_extension,
@@ -1177,12 +1415,32 @@ class CreateSubmitForm(CourseModelForm):
 
 
 class CreateSubmitFormWidget(FormWidget):
+    """
+    Form widget for the :class:`CreateSubmitForm`.
+    """
+
     def __init__(self,
                  request,
                  course_id: int,
                  task_id: int | None = None,
                  form: CreateTaskForm = None,
                  **kwargs) -> None:
+        """
+        :param request: HTTP request object received by the view this form widget is rendered in.
+        :type request: HttpRequest
+        :param course_id: ID of the course the view this form widget is rendered in is associated
+            with.
+        :type course_id: int
+        :param task_id: ID of the task the submission is for.
+        :type task_id: int
+        :param form: CreateSubmitForm to be base the widget on. If not provided, a new form will be
+            created.
+        :type form: :class:`CreateSubmitForm`
+        :param kwargs: Additional keyword arguments to be passed to the :class:`FormWidget`
+            super constructor.
+        :type kwargs: dict
+        :raises ValueError: If the task ID is not provided when creating a new form.
+        """
         from course.views import SubmitModelView
 
         if not form and task_id:
