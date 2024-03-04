@@ -35,7 +35,7 @@
 
 <script>
     $(document).ready(function () {
-        $('#{{ field.name }}').datetimepicker(
+        $('#{{ form_widget.name }} #{{ field.name }}').datetimepicker(
             {% with field.field as field %}
                 {
                     format: '{{ field.format|safe }}',
