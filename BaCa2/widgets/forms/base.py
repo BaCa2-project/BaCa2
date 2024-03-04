@@ -40,8 +40,8 @@ class BaCa2FormMeta(DeclarativeFieldsMetaclass, ABCMeta):
         signature.
 
         :raises ValueError: If the form class is not abstract and does not have a FORM_NAME
-            attribute set or a request parameter is not present in its __init__ method when it has
-            custom init parameters.
+            attribute set, if a request parameter is not present in its __init__ method when it has
+            custom init parameters, or if it does not have a **kwargs parameter in its __init__
         """
         super().__init__(name, bases, attrs)
 
@@ -51,6 +51,11 @@ class BaCa2FormMeta(DeclarativeFieldsMetaclass, ABCMeta):
 
         signature = inspect.signature(cls.__init__)
         param_names = list(signature.parameters.keys())
+
+        if 'kwargs' not in param_names:
+            raise ValueError('BaCa2Form classes must have a **kwargs parameter in their __init__ '
+                             'method to enable the form to be reconstructed with bound data from a '
+                             'post request.')
 
         non_default_params = [param for param in param_names if param
                               not in ['self', 'args', 'kwargs', 'form_instance_id', 'request']]
@@ -128,6 +133,7 @@ class BaCa2FormMeta(DeclarativeFieldsMetaclass, ABCMeta):
 
         init_params['data'] = request.POST
         init_params['files'] = request.FILES
+        init_params['request'] = request
 
         return super().__call__(**init_params)
 
@@ -195,7 +201,7 @@ class BaCa2Form(forms.Form, ABC, metaclass=BaCa2FormMeta):
         initial='',
     )
 
-    def __init__(self, form_instance_id: int = 0, request=None, **kwargs) -> None:
+    def __init__(self, *, form_instance_id: int = 0, request=None, **kwargs) -> None:
         """
         :param form_instance_id: ID of the form instance. Used to identify the form instance when
             saving its init parameters to the session and to reconstruct the form from the session.
@@ -259,7 +265,7 @@ class BaCa2ModelForm(BaCa2Form, ABC, metaclass=BaCa2ModelFormMeta):
     #: Action which should be performed using the form data.
     ACTION: ModelAction = None
 
-    def __init__(self, form_instance_id: int = 0, request=None, **kwargs):
+    def __init__(self, *, form_instance_id: int = 0, request=None, **kwargs):
         """
         :param form_instance_id: ID of the form instance. Used to identify the form instance when
             saving its init parameters to the session and to reconstruct the form from the session.
