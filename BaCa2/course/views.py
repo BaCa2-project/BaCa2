@@ -783,18 +783,22 @@ class RoundEditView(BaCa2LoggedInView, CourseMemberMixin):
         self.add_widget(context, sidenav)
 
         rounds_context = []
+        form_instance_id = 0
 
         for r in rounds:
             round_edit_form = EditRoundFormWidget(
                 request=self.request,
                 course_id=course_id,
                 round_=r,
+                form_instance_id=form_instance_id,
             )
             rounds_context.append({
                 'tab_name': SideNav.normalize_tab_name(r.name),
                 'round_name': r.name,
                 'round_edit_form': round_edit_form,
             })
+            form_instance_id += 1
+
         context['rounds'] = rounds_context
 
         return context
