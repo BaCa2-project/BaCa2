@@ -1,5 +1,5 @@
 import logging
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import Any, Dict
 
 from django import forms
@@ -64,7 +64,7 @@ class CourseModelForm(BaCa2ModelForm):
         return request.user.has_course_permission(cls.ACTION.label, InCourse.get_context_course())
 
 
-class CourseActionForm(BaCa2ModelForm):
+class CourseActionForm(BaCa2ModelForm, ABC):
     """
     Base class for all forms in the BaCa2 app which are used to perform course-specific actions
     on default database model objects (such as adding or removing members, creating roles, etc.).
@@ -232,7 +232,10 @@ class CreateCourseFormWidget(FormWidget):
                 ),
                 confirm_button_text=_('Create course'),
                 input_summary=True,
-                input_summary_fields=['name', 'short_name', 'USOS_course_code', 'USOS_term_code'],
+                input_summary_fields=['course_name',
+                                      'short_name',
+                                      'USOS_course_code',
+                                      'USOS_term_code'],
             ),
             **kwargs
         )
@@ -344,6 +347,41 @@ class AddMembersForm(CourseActionForm):
         required=True,
     )
 
+    def __init__(self,
+                 *,
+                 course_id: int,
+                 form_instance_id: int = 0,
+                 request=None,
+                 **kwargs) -> None:
+        """
+        :param course_id: ID of the course the form is associated with.
+        :type course_id: int
+        :param form_instance_id: ID of the form instance. Used to identify the form instance when
+            saving its init parameters to the session and to reconstruct the form from the session.
+            Defaults to 0. Should be set to a unique value when creating a new form instance within
+            a single view with multiple instances of the same form class.
+        :type form_instance_id: int
+        :param request: HTTP request object received by the view the form is rendered in. Should be
+            passed to the constructor if the form is instantiated with custom init parameters.
+        :type request: HttpRequest
+        :param kwargs: Additional keyword arguments to be passed to the :class:`CourseActionForm`
+            super constructor.
+        :type kwargs: dict
+        """
+        from main.views import RoleModelView, UserModelView
+
+        super().__init__(form_instance_id=form_instance_id, request=request, **kwargs)
+
+        self.fields['users'].update_data_source_url(UserModelView.get_url(
+            mode=UserModelView.GetMode.FILTER,
+            exclude_params={'roles__course': course_id}
+        ))
+
+        self.fields['role'].data_source_url = RoleModelView.get_url(
+            mode=RoleModelView.GetMode.FILTER,
+            filter_params={'course': course_id}
+        )
+
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
         """
@@ -411,21 +449,10 @@ class AddMembersFormWidget(FormWidget):
             super constructor.
         :type kwargs: dict
         """
-        from main.views import CourseModelView, RoleModelView, UserModelView
-        from util.views import BaCa2ModelView
+        from main.views import CourseModelView
 
         if not form:
-            form = AddMembersForm()
-
-        form.fields['users'].update_data_source_url(UserModelView.get_url(
-            mode=BaCa2ModelView.GetMode.FILTER,
-            exclude_params={'roles__course': course_id}
-        ))
-
-        form.fields['role'].data_source_url = RoleModelView.get_url(
-            mode=BaCa2ModelView.GetMode.FILTER,
-            filter_params={'course': course_id}
-        )
+            form = AddMembersForm(course_id=course_id, request=request)
 
         super().__init__(
             name='add_members_form_widget',
@@ -452,6 +479,23 @@ class RemoveMembersForm(CourseActionForm):
               TextColumn(name='user_role', header=_('Role'))],
     )
 
+    def __init__(self,
+                 *,
+                 course_id: int,
+                 form_instance_id: int = 0,
+                 request=None,
+                 **kwargs) -> None:
+        from main.views import UserModelView
+
+        super().__init__(form_instance_id=form_instance_id, request=request, **kwargs)
+
+        self.fields['members'].update_data_source_url(UserModelView.get_url(
+            mode=UserModelView.GetMode.FILTER,
+            filter_params={'roles__course': course_id},
+            exclude_params={'id': request.user.id},
+            serialize_kwargs={'course': course_id}
+        ))  # TODO: exclude admins
+
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
         course = cls.get_context_course(request)
@@ -472,17 +516,10 @@ class RemoveMembersFormWidget(FormWidget):
                  course_id: int,
                  form: RemoveMembersForm = None,
                  **kwargs) -> None:
-        from main.views import CourseModelView, UserModelView
+        from main.views import CourseModelView
 
         if not form:
-            form = RemoveMembersForm()
-
-        form.fields['members'].update_data_source_url(UserModelView.get_url(
-            mode=UserModelView.GetMode.FILTER,
-            filter_params={'roles__course': course_id},
-            exclude_params={'id': request.user.id},
-            serialize_kwargs={'course': course_id}
-        ))  # TODO: exclude admins
+            form = RemoveMembersForm(course_id=course_id, request=request)
 
         super().__init__(
             name='remove_members_form_widget',
@@ -517,6 +554,16 @@ class AddRoleForm(CourseActionForm):
                                               TextColumn(name='name', header=_('Description'))],
                                         table_widget_kwargs={'height_limit': 35})
 
+    def __init__(self, **kwargs) -> None:
+        from main.views import PermissionModelView
+
+        super().__init__(**kwargs)
+
+        self.fields['role_permissions'].update_data_source_url(PermissionModelView.get_url(
+            mode=PermissionModelView.GetMode.FILTER,
+            filter_params={'codename__in': Course.CourseAction.labels}
+        ))
+
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, Any]:
         course = cls.get_context_course(request)
@@ -535,17 +582,10 @@ class AddRoleFormWidget(FormWidget):
                  course_id: int,
                  form: AddRoleForm = None,
                  **kwargs) -> None:
-        from main.views import CourseModelView, PermissionModelView
+        from main.views import CourseModelView
 
         if not form:
             form = AddRoleForm()
-
-        codenames = Course.CourseAction.labels
-
-        form.fields['role_permissions'].update_data_source_url(PermissionModelView.get_url(
-            mode=PermissionModelView.GetMode.FILTER,
-            filter_params={'codename__in': codenames}
-        ))
 
         super().__init__(
             name='add_role_form_widget',
@@ -746,7 +786,7 @@ class CreateRoundFormWidget(FormWidget):
             name='create_round_form_widget',
             request=request,
             form=form,
-            post_target=RoundModelView.post_url(course_id=course_id),
+            post_target=RoundModelView.post_url(**{'course_id': course_id}),
             button_text=_('Add round'),
             element_groups=[
                 FormElementGroup(name='start_dates',
@@ -773,16 +813,41 @@ class EditRoundForm(CourseModelForm):
     reveal_date = DateTimeField(label=_('Reveal date'), required=False)
     round_id = forms.IntegerField(widget=forms.HiddenInput())
 
+    def __init__(self,
+                 *,
+                 course_id: int,
+                 round_: int,
+                 form_instance_id: int = 0,
+                 request=None,
+                 **kwargs) -> None:
+        super().__init__(form_instance_id=form_instance_id, request=request, **kwargs)
+
+        round_obj = ModelsRegistry.get_round(round_, course_id)
+
+        self.fields['round_name'].initial = round_obj.name
+        self.fields['start_date'].initial = round_obj.start_date
+        self.fields['end_date'].initial = round_obj.end_date
+        self.fields['deadline_date'].initial = round_obj.deadline_date
+        self.fields['reveal_date'].initial = round_obj.reveal_date
+        self.fields['round_id'].initial = round_obj.pk
+
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
         round_ = ModelsRegistry.get_round(int(request.POST.get('round_id')))
+        end_date = request.POST.get('end_date')
+        reveal_date = request.POST.get('reveal_date')
+
+        if not end_date:
+            end_date = None
+        if not reveal_date:
+            reveal_date = None
 
         round_.update(
             name=request.POST.get('round_name'),
             start_date=request.POST.get('start_date'),
-            end_date=request.POST.get('end_date'),
+            end_date=end_date,
             deadline_date=request.POST.get('deadline_date'),
-            reveal_date=request.POST.get('reveal_date'),
+            reveal_date=reveal_date
         )
 
         message = _('Round ') + request.POST.get('round_name') + _(' edited successfully')
@@ -795,20 +860,22 @@ class EditRoundFormWidget(FormWidget):
                  course_id: int,
                  round_: int | Round,
                  form: CreateRoundForm = None,
+                 form_instance_id: int = 0,
                  **kwargs) -> None:
         from course.views import RoundModelView
 
+        if isinstance(round_, Round):
+            round_pk = round_.pk
+        else:
+            round_pk = round_
+
         if not form:
-            form = EditRoundForm()
+            form = EditRoundForm(course_id=course_id,
+                                 round_=round_pk,
+                                 form_instance_id=form_instance_id,
+                                 request=request)
 
         round_obj = ModelsRegistry.get_round(round_, course_id)
-
-        form.fields['round_name'].initial = round_obj.name
-        form.fields['start_date'].initial = round_obj.start_date
-        form.fields['end_date'].initial = round_obj.end_date
-        form.fields['deadline_date'].initial = round_obj.deadline_date
-        form.fields['reveal_date'].initial = round_obj.reveal_date
-        form.fields['round_id'].initial = round_obj.pk
 
         super().__init__(
             name=f'edit_round{round_obj.pk}_form_widget',
@@ -816,6 +883,14 @@ class EditRoundFormWidget(FormWidget):
             form=form,
             post_target=RoundModelView.post_url(**{'course_id': course_id}),
             button_text=f"{_('Edit round')} {round_obj.name}",
+            element_groups=[
+                FormElementGroup(name='start_dates',
+                                 elements=['start_date', 'reveal_date'],
+                                 layout=FormElementGroup.FormElementsLayout.HORIZONTAL),
+                FormElementGroup(name='end_dates',
+                                 elements=['end_date', 'deadline_date'],
+                                 layout=FormElementGroup.FormElementsLayout.HORIZONTAL)
+            ],
             **kwargs
         )
 
@@ -883,6 +958,21 @@ class CreateTaskForm(CourseModelForm):
                              required=True,
                              placeholder_default_option=False)
 
+    def __init__(self,
+                 *,
+                 course_id: int,
+                 form_instance_id: int = 0,
+                 request=None,
+                 **kwargs) -> None:
+        from course.views import RoundModelView
+
+        super().__init__(form_instance_id=form_instance_id, request=request, **kwargs)
+
+        self.fields['round_'].data_source_url = RoundModelView.get_url(
+            serialize_kwargs={'add_formatted_dates': True},
+            **{'course_id': course_id}
+        )
+
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
         """
@@ -934,15 +1024,10 @@ class CreateTaskFormWidget(FormWidget):
                  course_id: int,
                  form: CreateTaskForm = None,
                  **kwargs) -> None:
-        from course.views import RoundModelView, TaskModelView
+        from course.views import TaskModelView
 
         if not form:
-            form = CreateTaskForm()
-
-        form.fields['round_'].data_source_url = RoundModelView.get_url(
-            serialize_kwargs={'add_formatted_dates': True},
-            **{'course_id': course_id}
-        )
+            form = CreateTaskForm(course_id=course_id, request=request)
 
         super().__init__(
             name='create_task_form_widget',
@@ -1043,6 +1128,24 @@ class CreateSubmitForm(CourseModelForm):
     # amount = forms.IntegerField(label=_('Amount'), required=False)
     task_id = forms.IntegerField(label=_('Task ID'), widget=forms.HiddenInput(), required=True)
 
+    def __init__(self,
+                 *,
+                 course_id: int,
+                 task_id: int,
+                 form_instance_id: int = 0,
+                 request=None,
+                 **kwargs) -> None:
+        super().__init__(form_instance_id=form_instance_id, request=request, **kwargs)
+
+        self.fields['task_id'].initial = task_id
+        course = ModelsRegistry.get_course(course_id)
+        task = course.get_task(task_id)
+        allowed_extensions = task.package_instance.package['allowedExtensions']
+        self.fields['source_code'].help_text = (
+            f'{_("Allowed extensions:")} [{", ".join(allowed_extensions)}] '
+            f'{_("and zips containing these files")}'
+        )
+
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
         file_extension = request.FILES['source_code'].name.split('.')[-1]
@@ -1077,21 +1180,18 @@ class CreateSubmitFormWidget(FormWidget):
     def __init__(self,
                  request,
                  course_id: int,
-                 task_id: int,
+                 task_id: int | None = None,
                  form: CreateTaskForm = None,
                  **kwargs) -> None:
         from course.views import SubmitModelView
-        if not form:
-            form = CreateSubmitForm()
 
-        form.fields['task_id'].initial = task_id
-        course = ModelsRegistry.get_course(course_id)
-        task = course.get_task(task_id)
-        allowed_extensions = task.package_instance.package['allowedExtensions']
-        form.fields['source_code'].help_text = (
-            f'{_("Allowed extensions:")} [{", ".join(allowed_extensions)}] '
-            f'{_("and zips containing these files")}'
-        )
+        if not form and task_id:
+            raise ValueError('Task ID must be provided when creating a new submit form')
+
+        if not form:
+            form = CreateSubmitForm(course_id=course_id,
+                                    task_id=task_id,
+                                    request=request)
 
         super().__init__(
             name='create_submit_form_widget',
