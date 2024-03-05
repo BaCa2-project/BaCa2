@@ -21,3 +21,18 @@ def yaml_coerce(value):
 def random_id():
     with random_id_access_lock:
         return str(uuid.uuid4())
+
+
+def str_to_datetime(date_str: str, dt_format: str = None):
+    from datetime import datetime
+
+    from django.conf import settings
+    from django.utils import timezone
+
+    if not dt_format:
+        dt_format = settings.DATETIME_FORMAT
+
+    result = datetime.strptime(date_str, dt_format)
+    result = timezone.make_aware(result, timezone.get_current_timezone())
+
+    return result

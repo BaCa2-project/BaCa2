@@ -6,6 +6,7 @@ from typing import List
 
 from django import forms
 from django.core.validators import FileExtensionValidator
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from course.routing import InCourse
@@ -422,6 +423,8 @@ class DateTimeField(forms.DateTimeField):
         : param kwargs: Additional keyword arguments for the field.
         : type kwargs: dict
         """
+        from django.conf import settings
+
         if not datepicker and not timepicker:
             raise ValueError('At least one of datepicker and timepicker must be enabled.')
 
@@ -431,13 +434,13 @@ class DateTimeField(forms.DateTimeField):
         self.time_step = time_step
 
         if datepicker and timepicker:
-            kwargs.setdefault('input_formats', ['%Y-%m-%d %H:%M'])
+            kwargs.setdefault('input_formats', [settings.DATETIME_FORMAT])
             self.format = 'Y-m-d H:i'
         elif datepicker:
-            kwargs.setdefault('input_formats', ['%Y-%m-%d'])
+            kwargs.setdefault('input_formats', [settings.DATE_FORMAT])
             self.format = 'Y-m-d'
         elif timepicker:
-            kwargs.setdefault('input_formats', ['%H:%M'])
+            kwargs.setdefault('input_formats', [settings.TIME_FORMAT])
             self.format = 'H:i'
 
         super().__init__(**kwargs)
@@ -449,6 +452,7 @@ class DateTimeField(forms.DateTimeField):
         """
         if key == 'initial':
             if value:
+                value = timezone.localtime(value)
                 value = value.strftime(self.input_formats[0])
         super().__setattr__(key, value)
 
