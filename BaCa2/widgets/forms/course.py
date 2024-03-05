@@ -1443,7 +1443,7 @@ class CreateSubmitFormWidget(FormWidget):
         """
         from course.views import SubmitModelView
 
-        if not form and task_id:
+        if not form and not task_id:
             raise ValueError('Task ID must be provided when creating a new submit form')
 
         if not form:
