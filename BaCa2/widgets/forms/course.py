@@ -356,10 +356,10 @@ class AddMembersForm(CourseActionForm):
 
         super().__init__(form_instance_id=form_instance_id, request=request, **kwargs)
 
-        self.fields['users'].update_data_source_url(UserModelView.get_url(
+        self.fields['users'].data_source_url = UserModelView.get_url(
             mode=UserModelView.GetMode.FILTER,
             exclude_params={'roles__course': course_id}
-        ))
+        )
 
         self.fields['role'].data_source_url = RoleModelView.get_url(
             mode=RoleModelView.GetMode.FILTER,
@@ -489,12 +489,12 @@ class RemoveMembersForm(CourseActionForm):
 
         super().__init__(form_instance_id=form_instance_id, request=request, **kwargs)
 
-        self.fields['members'].update_data_source_url(UserModelView.get_url(
+        self.fields['members'].data_source_url = UserModelView.get_url(
             mode=UserModelView.GetMode.FILTER,
             filter_params={'roles__course': course_id},
             exclude_params={'id': request.user.id},
             serialize_kwargs={'course': course_id}
-        ))  # TODO: exclude admins
+        )  # TODO: exclude admins
 
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
@@ -594,10 +594,10 @@ class AddRoleForm(CourseActionForm):
 
         super().__init__(**kwargs)
 
-        self.fields['role_permissions'].update_data_source_url(PermissionModelView.get_url(
+        self.fields['role_permissions'].data_source_url = PermissionModelView.get_url(
             mode=PermissionModelView.GetMode.FILTER,
             filter_params={'codename__in': Course.CourseAction.labels}
-        ))
+        )
 
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
@@ -700,6 +700,7 @@ class AddRolePermissionsForm(CourseActionForm):
                                  widget=forms.HiddenInput(),
                                  required=True)
 
+    # noinspection PyTypeChecker
     permissions_to_add = TableSelectField(
         label=_('Choose permissions to add'),
         table_widget_name='permissions_to_add_table_widget',
@@ -732,11 +733,11 @@ class AddRolePermissionsFormWidget(FormWidget):
 
         codenames = Course.CourseAction.labels
 
-        form.fields['permissions_to_add'].update_data_source_url(PermissionModelView.get_url(
+        form.fields['permissions_to_add'].data_source_url = PermissionModelView.get_url(
             mode=PermissionModelView.GetMode.FILTER,
             filter_params={'codename__in': codenames},
             exclude_params={'role': role_id}
-        ))
+        )
         form.fields['role_id'].initial = role_id
 
         super().__init__(
@@ -788,10 +789,10 @@ class RemoveRolePermissionsFormWidget(FormWidget):
         if not form:
             form = RemoveRolePermissionsForm()
 
-        form.fields['permissions_to_remove'].update_data_source_url(PermissionModelView.get_url(
+        form.fields['permissions_to_remove'].data_source_url = PermissionModelView.get_url(
             mode=PermissionModelView.GetMode.FILTER,
             filter_params={'role': role_id}
-        ))
+        )
         form.fields['role_id'].initial = role_id
 
         super().__init__(
@@ -1122,6 +1123,7 @@ class CreateTaskForm(CourseModelForm):
                               required=False,
                               help_text=_('If not provided - points will be taken from package.'))
 
+    # noinspection PyTypeChecker
     #: Package containing the new task's definition.
     package = FileUploadField(label=_('Task package'),
                               allowed_extensions=['zip'],
@@ -1336,6 +1338,7 @@ class CreateSubmitForm(CourseModelForm):
     MODEL = Submit
     ACTION = Submit.BasicAction.ADD
 
+    # noinspection PyTypeChecker
     #: Source code of the new submission.
     source_code = FileUploadField(label=_('Source code'), required=True)
     #: ID of the task the new submission is for.

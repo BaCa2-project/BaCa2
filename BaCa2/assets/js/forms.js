@@ -13,9 +13,9 @@ function formsSetup() {
     refreshButtonSetup();
     choiceFieldSetup();
     modelChoiceFieldSetup();
-    tableSelectFieldValidationSetup();
     textAreaFieldSetup();
     liveValidationSetup();
+    tableSelectFieldValidationSetup();
 }
 
 function ajaxPostSetup() {
@@ -29,9 +29,9 @@ function ajaxPostSetup() {
 
 function refreshButtonSetup() {
     $('form').each(function () {
-        const form = $(this)
+        const form = $(this);
         form.find('.form-refresh-button').on('click', function () {
-            formRefresh(form)
+            formRefresh(form);
         });
     });
 }
@@ -73,14 +73,14 @@ function toggleableFieldSetup() {
     });
 
     buttons.on('click', function (e) {
-        toggleFieldButtonClickHandler(e, $(this))
+        toggleFieldButtonClickHandler(e, $(this));
     });
 }
 
 function toggleableFieldButtonInit(button) {
     let on = button.data('initial-state') !== 'off';
     if (button.hasClass('switch-on') && !on)
-        toggleTextSwitchBtn(button)
+        toggleTextSwitchBtn(button);
     toggleField(button.closest('.input-group').find('input'), on);
 }
 
@@ -88,19 +88,19 @@ function toggleableGroupSetup() {
     const buttons = $('.group-toggle-btn');
 
     buttons.each(function () {
-        toggleableGroupButtonInit($(this))
+        toggleableGroupButtonInit($(this));
     });
 
     buttons.on('click', function (e) {
-        toggleGroupButtonClickHandler(e, $(this))
+        toggleGroupButtonClickHandler(e, $(this));
     });
 }
 
 function toggleableGroupButtonInit(button) {
     let on = button.data('initial-state') !== 'off';
     if (button.hasClass('switch-on') && !on)
-        toggleTextSwitchBtn(button)
-    toggleFieldGroup(button.closest('.form-element-group'), on)
+        toggleTextSwitchBtn(button);
+    toggleFieldGroup(button.closest('.form-element-group'), on);
 }
 
 // ---------------------------------------- popup setup --------------------------------------- //
@@ -157,7 +157,7 @@ function handleAjaxSubmit(form) {
                success: function (data) {
                    formRefresh(form);
 
-                   form.trigger('submit-complete', [data])
+                   form.trigger('submit-complete', [data]);
 
                    if (data.status === 'success')
                        form.trigger('submit-success', [data]);
@@ -165,11 +165,11 @@ function handleAjaxSubmit(form) {
                        form.trigger('submit-failure', [data]);
 
                        if (data.status === 'invalid')
-                           form.trigger('submit-invalid', [data])
+                           form.trigger('submit-invalid', [data]);
                        else if (data.status === 'impermissible')
-                           form.trigger('submit-impermissible', [data])
+                           form.trigger('submit-impermissible', [data]);
                        else if (data.status === 'error')
-                           form.trigger('submit-error', [data])
+                           form.trigger('submit-error', [data]);
                    }
                }
            });
@@ -181,7 +181,7 @@ function toggleFieldButtonClickHandler(e, btn) {
     e.preventDefault();
     toggleTextSwitchBtn(btn);
     let on = false;
-    const input = btn.closest('.input-group').find('input')
+    const input = btn.closest('.input-group').find('input');
 
     if (btn.hasClass('switch-on'))
         on = true;
@@ -203,7 +203,7 @@ function toggleField(field, on) {
             field.closest('.input-block').find('.invalid-feedback').remove();
             field.removeClass('is-invalid');
         }
-        field.removeClass('is-valid')
+        field.removeClass('is-valid');
         $(field).attr('disabled', true);
     }
 }
@@ -217,17 +217,17 @@ function toggleGroupButtonClickHandler(e, btn) {
     if (btn.hasClass('switch-on'))
         on = true;
 
-    toggleFieldGroup(group, on)
+    toggleFieldGroup(group, on);
 
     if (on)
-        group.find('input:first').focus()
+        group.find('input:first').focus();
 
     submitButtonRefresh(btn.closest('form'));
 }
 
 function toggleFieldGroup(formElementGroup, on) {
     formElementGroup.find('input').each(function () {
-        toggleField($(this), on)
+        toggleField($(this), on);
     });
 }
 
@@ -386,7 +386,7 @@ function renderErrorMessages(popup, errors) {
 }
 
 function renderValidationErrors(popup, errors) {
-    const form = popup.closest('.form-wrapper').find('form')
+    const form = popup.closest('.form-wrapper').find('form');
     const messageBlock = popup.find('.popup-message-wrapper');
     const errorsBlock = $('<div class="popup-errors-wrapper"></div>');
 
@@ -418,23 +418,36 @@ function tableSelectFieldSetup() {
             const tableSelectField = $(this);
             const tableId = table.attr('id');
             const input = tableSelectField.find('.input-group input');
+            const inputVal = input.val();
             const form = tableSelectField.closest('form');
+            const tableWidget = window.tableWidgets[`#${tableId}`];
 
             table.find('.select').on('change', function () {
-                tableSelectFieldCheckboxClickHandler(tableSelectField, input)
+                tableSelectFieldCheckboxClickHandler(tableSelectField, input);
             });
 
             form.on('submit-complete', function () {
-                const tableWidget = window.tableWidgets[`#${tableId}`];
-
                 tableWidget.table.one('draw.dt', function () {
                     tableWidget.updateSelectHeader();
                 });
 
                 tableWidget.table.ajax.reload(function () {
-                    $(`#${tableId}`).trigger('init.dt')
+                    $(`#${tableId}`).trigger('init.dt');
                 });
             })
+
+            if (inputVal.length > 0) {
+                const recordIds = inputVal.split(',');
+
+                for (const id of recordIds) {
+                    const row = table.find(`tr[data-record-id="${id}"]`);
+                    const checkbox = row.find('.select .select-checkbox');
+                    row.addClass('row-selected');
+                    checkbox.prop('checked', true);
+                }
+
+                tableWidget.updateSelectHeader();
+            }
         });
     });
 }
