@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import List
 
 from widgets.forms.fields import IntegerArrayField
@@ -14,6 +12,7 @@ class TableSelectField(IntegerArrayField):
     See also:
     - :class:`IntegerArrayField`
     """
+
     def __init__(self,
                  label: str,
                  table_widget_name: str,
@@ -43,9 +42,6 @@ class TableSelectField(IntegerArrayField):
         """
         from widgets.listing import TableWidget
 
-        self.special_field_type = 'table_select'
-        self.data_source_url = data_source_url
-
         table_widget_kwargs = {
             'name': table_widget_name,
             'title': label,
@@ -58,21 +54,12 @@ class TableSelectField(IntegerArrayField):
             'refresh_button': True
         } | (table_widget_kwargs or {})
 
-        table_widget = TableWidget(**table_widget_kwargs)
-        self.table_widget = table_widget.get_context()
+        self.table_widget = TableWidget(**table_widget_kwargs).get_context()
         self.table_widget_id = table_widget_name
+        self.data_source_url = data_source_url
+        self.special_field_type = 'table_select'
 
         super().__init__(**kwargs)
-
-    def update_data_source_url(self, data_source_url: str) -> None:
-        """
-        Updates the data source url of the field's table widget.
-
-        :param data_source_url: The new data source url.
-        :type data_source_url: str
-        """
-        self.data_source_url = data_source_url
-        self.table_widget['data_source_url'] = data_source_url
 
     def widget_attrs(self, widget) -> dict:
         """
@@ -83,6 +70,30 @@ class TableSelectField(IntegerArrayField):
         attrs['class'] = 'table-select-field'
         attrs['data-table-id'] = self.table_widget_id
         return attrs
+
+    def __setattr__(self, key, value):
+        """
+        Overrides the default __setattr__ method to update table widget data source url when the
+        `data_source_url` attribute is set. If the `initial` attribute is set as a list,it is
+        converted to a comma-separated string of primary keys.
+
+        :raises ValueError: If the `initial` attribute is set as a list of non-integer values or
+            as a non-string, non-list value.
+        """
+        if key == 'data_source_url':
+            self.table_widget['data_source_url'] = value
+        if key == 'initial' and value is not None:
+            if isinstance(value, list):
+                if not isinstance(value[0], int):
+                    raise ValueError('The initial value of a TableSelectField must be a list of '
+                                     'integers (primary keys) or a comma-separated string of '
+                                     'integers.')
+                value = ','.join(str(pk) for pk in value)
+            elif not isinstance(value, str):
+                raise ValueError('The initial value of a TableSelectField must be a list of '
+                                 'integers (primary keys) or a comma-separated string of integers.')
+
+        super().__setattr__(key, value)
 
     @staticmethod
     def parse_value(value: str) -> List[int]:
