@@ -17,6 +17,7 @@ from baca2PackageManager.broker_communication import BrokerToBaca
 from baca2PackageManager.tools import bytes_from_str, bytes_to_str
 from core.choices import (
     EMPTY_FINAL_STATUSES,
+    HALF_EMPTY_FINAL_STATUSES,
     ModelAction,
     ResultStatus,
     SubmitType,
@@ -1273,6 +1274,9 @@ class ResultManager(models.Manager):
             test_set = TestSet.objects.get(task=submit.task, short_name=set_name)
             for test_name, test_result in set_result.tests.items():
                 test = Test.objects.get(test_set=test_set, short_name=test_name)
+                logs = test_result.logs
+                compile_log = logs.get('compile_log')
+                checker_log = logs.get('checker_log')
                 result = self.model(
                     test=test,
                     submit=submit,
@@ -1280,6 +1284,8 @@ class ResultManager(models.Manager):
                     time_real=test_result.time_real,
                     time_cpu=test_result.time_cpu,
                     runtime_memory=test_result.runtime_memory,
+                    compile_log=compile_log,
+                    checker_log=checker_log
                 )
                 result.save()
                 results_list.append(result)
@@ -1361,6 +1367,12 @@ class Result(models.Model, metaclass=ReadCourseMeta):
     time_cpu = models.FloatField(null=True, default=None)
     #: Memory used by test in bytes.
     runtime_memory = models.IntegerField(null=True, default=None)
+    #: Compile logs
+    compile_log = models.TextField(null=True, default=None)
+    #: Checker logs
+    checker_log = models.TextField(null=True, default=None)
+    #: User program's answer
+    answer = models.TextField(null=True, default=None)
 
     #: The manager for the Result model.
     objects = ResultManager()
@@ -1381,7 +1393,10 @@ class Result(models.Model, metaclass=ReadCourseMeta):
                  format_time: bool = True,
                  format_memory: bool = True,
                  translate_status: bool = True,
-                 add_limits: bool = True) -> dict:
+                 add_limits: bool = True,
+                 add_compile_log: bool = False,
+                 add_checker_log: bool = False,
+                 add_user_answer: bool = False,) -> dict:
         res = {
             'id': self.pk,
             'test_name': self.test.short_name,
@@ -1393,6 +1408,9 @@ class Result(models.Model, metaclass=ReadCourseMeta):
         if format_time:
             res['f_time_real'] = f'{self.time_real:.3f} s' if self.time_real else None
             res['f_time_cpu'] = f'{self.time_cpu:.3f} s' if self.time_cpu else None
+            if self.status in HALF_EMPTY_FINAL_STATUSES:
+                res['f_time_real'] = self.status
+                res['f_time_cpu'] = self.status
             if add_limits:
                 time_limit = round(self.test.package_test['time_limit'], 3)
                 res['f_time_real'] += f' / {time_limit} s'
@@ -1404,5 +1422,14 @@ class Result(models.Model, metaclass=ReadCourseMeta):
                 res['f_runtime_memory'] += f' / {bytes_to_str(bytes_from_str(memory_limit))}'
         if translate_status:
             res['f_status'] = f'{self.status} ({ResultStatus[self.status].label})'
+
+        if add_compile_log:
+            res['compile_log'] = self.compile_log
+
+        if add_checker_log:
+            res['checker_log'] = self.checker_log
+
+        if add_user_answer:
+            res['user_answer'] = self.answer
 
         return res

@@ -19,6 +19,7 @@ from util import (
 from util.models import model_cls
 from util.responses import BaCa2JsonResponse, BaCa2ModelResponse
 from widgets.base import Widget
+from widgets.brief_result_summary import BriefResultSummary
 from widgets.code_block import CodeBlock
 from widgets.forms import FormWidget
 from widgets.forms.fields.validation import get_field_validation_status
@@ -53,6 +54,7 @@ class BaCa2ContextMixin:
         MarkupDisplayer,
         PDFDisplayer,
         CodeBlock,
+        BriefResultSummary,
     ]
     #: List of all widgets which are unique (i.e. there can only be one instance of each widget type
     #: can exist in the context dictionary).

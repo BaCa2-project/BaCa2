@@ -1,0 +1,36 @@
+{% load static %}
+<div class="card" id="{{ brief_result_summary.name }}">
+    <div class="card-header">
+        <h5 class="card-title mb-0">{{ brief_result_summary.set_name }}/{{ brief_result_summary.test_name }}</h5>
+    </div>
+    <div class="card-body">
+        <div class="container text-center">
+            <div class="row mb-3">
+                <div class="col result-status-{{ brief_result_summary.result.status }}">
+                    {{ brief_result_summary.result.f_status }}
+                </div>
+            </div>
+            <div class="row result-time-{{ brief_result_summary.result.status }}">
+                <div class="col">
+                    {{ brief_result_summary.time_prompt }}
+                </div>
+                <div class="col">
+                    {{ brief_result_summary.memory_prompt }}
+                </div>
+            </div>
+            <div class="row result-memory-{{ brief_result_summary.result.status }}">
+                <div class="col">
+                    {{ brief_result_summary.result.f_time_real }}
+                </div>
+                <div class="col">
+                    {{ brief_result_summary.result.f_runtime_memory }}
+                </div>
+            </div>
+        </div>
+        {% if brief_result_summary.result.compile_log_widget %}
+            {% with brief_result_summary.result.compile_log_widget as codeblock %}
+                {% include "widget_templates/code_block.html" %}
+            {% endwith %}
+        {% endif %}
+    </div>
+</div>

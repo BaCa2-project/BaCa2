@@ -15,6 +15,7 @@ from main.views import CourseModelView as CourseModelManagerView
 from main.views import RoleModelView, UserModelView
 from util.models_registry import ModelsRegistry
 from util.views import BaCa2LoggedInView, BaCa2ModelView
+from widgets.brief_result_summary import BriefResultSummary
 from widgets.code_block import CodeBlock
 from widgets.forms.course import (
     AddMembersFormWidget,
@@ -805,7 +806,6 @@ class SubmitSummaryView(BaCa2LoggedInView, CourseMemberMixin):
                           collapsed=True,
                           tabs=['Summary', 'Code'], )
 
-        self.add_widget(context, sidenav)
         context['summary_tab'] = 'summary-tab'
         context['code_tab'] = 'code-tab'
 
@@ -846,17 +846,28 @@ class SubmitSummaryView(BaCa2LoggedInView, CourseMemberMixin):
 
         if submit.submit_status in EMPTY_FINAL_STATUSES + [ResultStatus.PND]:
             context['sets'] = []
+            self.add_widget(context, sidenav)
             return context
 
         sets = task.sets
         sets = sorted(sets, key=lambda x: x.short_name)
         sets_list = []
+
+        results_to_parse = sorted(submit.results, key=lambda x: x.test_.short_name)
+        results = {}
+        for res in results_to_parse:
+            test_set_id = res.test_.test_set_id
+            if test_set_id not in results:
+                results[test_set_id] = {}
+            results[test_set_id][res.test_id] = res
+
         for s in sets:
             set_context = {
                 'set_name': s.short_name,
                 'set_id': s.pk,
-                'widgets': {'TableWidget': {}},
+                'tests': [],
             }
+            sidenav.add_tab(tab_name=s.short_name, )
 
             set_summary = TableWidget(
                 name=f'set_{s.pk}_summary_table_widget',
@@ -876,10 +887,23 @@ class SubmitSummaryView(BaCa2LoggedInView, CourseMemberMixin):
                 allow_column_search=False,
                 default_order_col='test_name',
             )
-            self.add_widget(set_context, set_summary)
-            set_context['table_widget'] = list(set_context['widgets']['TableWidget'].values())[0]
+            set_context['table_widget'] = set_summary.get_context()
+
+            tests = sorted(s.tests, key=lambda x: x.short_name)
+
+            for test in tests:
+                brief_result_summary = BriefResultSummary(
+                    set_name=s.short_name,
+                    test_name=test.short_name,
+                    result=results[s.pk][test.pk],
+                    show_compile_log=True,
+                    show_checker_log=True,
+                )
+                set_context['tests'].append(brief_result_summary.get_context())
+
             sets_list.append(set_context)
 
         context['sets'] = sets_list
 
+        self.add_widget(context, sidenav)
         return context
