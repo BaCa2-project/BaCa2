@@ -24,6 +24,7 @@ from core.choices import (
     TaskJudgingMode
 )
 from core.exceptions import DataError
+from core.tools.misc import str_to_datetime
 from course.routing import InCourse, OptionalInCourse
 from util.models_registry import ModelsRegistry
 
@@ -134,8 +135,8 @@ class RoundManager(models.Manager):
 
     @transaction.atomic
     def create_round(self,
-                     start_date: datetime,
-                     deadline_date: datetime,
+                     start_date: datetime | str,
+                     deadline_date: datetime | str,
                      name: str = None,
                      end_date: datetime = None,
                      reveal_date: datetime = None,
@@ -156,11 +157,20 @@ class RoundManager(models.Manager):
         :param course: The course that the round is in, if None - acquired from external definition
             (optional)
         :type course: str | int | Course
-
         :return: A new round object.
         :rtype: Round
         """
+        if isinstance(start_date, str):
+            start_date = str_to_datetime(start_date)
+        if isinstance(deadline_date, str):
+            deadline_date = str_to_datetime(deadline_date)
+        if isinstance(end_date, str):
+            end_date = str_to_datetime(end_date)
+        if isinstance(reveal_date, str):
+            reveal_date = str_to_datetime(reveal_date)
+
         Round.validate_dates(start_date, deadline_date, end_date)
+
         if name is None:
             name = self.default_round_name
         with OptionalInCourse(course):
@@ -265,6 +275,9 @@ class Round(models.Model, metaclass=ReadCourseMeta):
         :type kwargs: dict
         """
         for key, value in kwargs.items():
+            if key in ('start_date', 'deadline_date', 'end_date',
+                       'reveal_date') and isinstance(value, str):
+                value = str_to_datetime(value)
             setattr(self, key, value)
         self.validate_dates(self.start_date, self.deadline_date, self.end_date)
         self.save()

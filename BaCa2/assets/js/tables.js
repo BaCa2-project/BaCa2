@@ -79,7 +79,7 @@ class TableWidget {
     }
 
     updateSelectHeader() {
-        const table = $(`#${this.tableId}`);
+        const table = $(`#${this.tableId}`).closest('.table-wrapper');
         const headerCheckbox = table.find('.select-header-checkbox');
         let allSelected = true;
         let noneSelected = true;
