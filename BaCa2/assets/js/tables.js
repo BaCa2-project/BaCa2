@@ -1,9 +1,11 @@
 // ------------------------------------ table widget class ------------------------------------ //
 
 class TableWidget {
-    constructor(tableId, table) {
+    constructor(tableId, DTObj) {
         this.tableId = tableId;
-        this.table = table;
+        this.DTObj = DTObj;
+        this.table = $(`#${tableId}`);
+        this.widgetWrapper = this.table.closest('.table-wrapper');
         this.lastSelectedRow = null;
         this.lastDeselectedRow = null;
     }
@@ -37,8 +39,8 @@ class TableWidget {
         const rows = this.getRowsInOrder();
         const currentIndex = this.getRowIndex(row)
         const lastIndex = on ?
-            this.getRowIndex(this.lastSelectedRow) :
-            this.getRowIndex(this.lastDeselectedRow);
+                          this.getRowIndex(this.lastSelectedRow) :
+                          this.getRowIndex(this.lastDeselectedRow);
 
         let selecting = false;
         let last = false;
@@ -79,13 +81,12 @@ class TableWidget {
     }
 
     updateSelectHeader() {
-        const table = $(`#${this.tableId}`).closest('.table-wrapper');
-        const headerCheckbox = table.find('.select-header-checkbox');
+        const headerCheckbox = this.widgetWrapper.find('.select-header-checkbox');
         let allSelected = true;
         let noneSelected = true;
         let rows = this.getRowsInOrder();
 
-        if (table.hasClass('filtered'))
+        if (this.table.hasClass('filtered'))
             rows = this.getCurrentRowsInOrder();
 
         rows.each(function () {
@@ -113,41 +114,27 @@ class TableWidget {
     // ------------------------------------ getter methods ------------------------------------ //
 
     getRowsInOrder() {
-        return this.table
-                   .rows({order: 'applied'})
-                   .nodes().to$();
+        return this.DTObj.rows({order: 'applied'}).nodes().to$();
     }
 
     getCurrentRowsInOrder() {
-        return this.table
+        return this.DTObj
                    .rows({order: 'applied', page: 'current', search: 'applied'})
                    .nodes().to$();
     }
 
-    getCurrentSelectedRows() {
-        return this.getCurrentRowsInOrder().filter(function () {
-            return $(this).hasClass('row-selected');
-        });
-    }
-
     getAllSelectedRows() {
-        return this.table.rows().nodes().to$().filter(function () {
+        return this.DTObj.rows().nodes().to$().filter(function () {
             return $(this).hasClass('row-selected');
         });
     }
 
     getFilteredOutRows() {
-        return this.table
-                   .rows({search: 'removed'})
-                   .nodes().to$();
+        return this.DTObj.rows({search: 'removed'}).nodes().to$();
     }
 
     getRowIndex(row) {
-        return this.table.row(row).index();
-    }
-
-    getColumnIndex(colHeader) {
-        return this.table.column(colHeader).index();
+        return this.DTObj.row(row).index();
     }
 
     // ----------------------------------- row check methods ---------------------------------- //
@@ -211,6 +198,7 @@ function globalSearchSetup(tableWrapper) {
     search.remove();
 }
 
+
 function globalSearchInputHandler(inputField, table, tableWidget) {
     if (table.data('deselect-on-filter'))
         tableWidget.toggleSelectRows(tableWidget.getFilteredOutRows(), false);
@@ -223,6 +211,7 @@ function globalSearchInputHandler(inputField, table, tableWidget) {
     tableWidget.updateSelectHeader();
 }
 
+
 function columnSearchSetup(tableWrapper) {
     const table = tableWrapper.find('table')
     const tableWidget = window.tableWidgets[`#${table.attr('id')}`]
@@ -233,6 +222,7 @@ function columnSearchSetup(tableWrapper) {
         columnSearchInputHandler($(this), table, tableWidget)
     });
 }
+
 
 function columnSearchInputHandler(inputField, table, tableWidget) {
     tableWidget.table.column(inputField.closest('th')).search(inputField.val()).draw();
@@ -268,6 +258,7 @@ function deleteRecordFormSetup(form, tableId) {
         window.tableWidgets[`#${tableId}`].table.ajax.reload();
     });
 }
+
 
 function recordLinkSetup(tableId) {
     $(`#${tableId}`).on('click', 'tbody tr', function () {
@@ -323,37 +314,13 @@ function initTable(
     });
     tableParams['columns'] = columns;
 
-    if (paging) {
-        tableParams['pageLength'] = paging['page_length'];
-
-        if (JSON.parse(paging['allow_length_change'])) {
-            const pagingMenuVals = [];
-            const pagingMenuLabels = [];
-
-            paging['length_change_options'].forEach(option => {
-                pagingMenuVals.push(option);
-                pagingMenuLabels.push(option === -1 ? 'All' : `${option}`);
-            })
-
-            tableParams['lengthMenu'] = [pagingMenuVals, pagingMenuLabels];
-        } else
-            tableParams['lengthChange'] = false;
-
-        if (JSON.parse(paging['deselect_on_page_change']))
-            table.on('page.dt', function () {
-                const selectHeaderCheckbox = $(`#${tableId}`).find('th .select-header-checkbox');
-                window.tableWidgets[`#${tableId}`].toggleSelectAll(false);
-                selectHeaderCheckbox.prop('checked', false);
-                selectHeaderCheckbox.prop('indeterminate', false);
-            });
-    } else
-        tableParams['paging'] = false;
-
     const columnDefs = [];
     cols.forEach(col => columnDefs.push(createColumnDef(col, cols.indexOf(col))));
     tableParams['columnDefs'] = columnDefs;
 
     tableParams['rowCallback'] = createRowCallback(linkFormatString);
+
+    createPagingDef(paging, tableParams, table, tableId);
 
     if (!window.tableWidgets)
         window.tableWidgets = {};
@@ -367,11 +334,42 @@ function initTable(
         setRefresh(tableId, refreshInterval);
 }
 
+
+function createPagingDef(paging, DTParams, table, tableId) {
+    if (paging) {
+        DTParams['pageLength'] = paging['page_length'];
+
+        if (JSON.parse(paging['allow_length_change'])) {
+            const pagingMenuVals = [];
+            const pagingMenuLabels = [];
+
+            paging['length_change_options'].forEach(option => {
+                pagingMenuVals.push(option);
+                pagingMenuLabels.push(option === -1 ? 'All' : `${option}`);
+            })
+
+            DTParams['lengthMenu'] = [pagingMenuVals, pagingMenuLabels];
+        } else
+            DTParams['lengthChange'] = false;
+
+        if (JSON.parse(paging['deselect_on_page_change']))
+            table.on('page.dt', function () {
+                const selectHeaderCheckbox = $(`#${tableId}`).find('th .select-header-checkbox');
+                window.tableWidgets[`#${tableId}`].toggleSelectAll(false);
+                selectHeaderCheckbox.prop('checked', false);
+                selectHeaderCheckbox.prop('indeterminate', false);
+            });
+    } else
+        DTParams['paging'] = false;
+}
+
+
 function setRefresh(tableId, interval) {
     setInterval(function () {
         window.tableWidgets[`#${tableId}`].table.ajax.reload();
     }, interval);
 }
+
 
 function createRowCallback(linkFormatString) {
     return function (row, data) {
