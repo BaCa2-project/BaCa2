@@ -32,5 +32,10 @@
                 {% include "widget_templates/code_block.html" %}
             {% endwith %}
         {% endif %}
+        {% if brief_result_summary.result.checker_log_widget %}
+            {% with brief_result_summary.result.checker_log_widget as codeblock %}
+                {% include "widget_templates/code_block.html" %}
+            {% endwith %}
+        {% endif %}
     </div>
 </div>

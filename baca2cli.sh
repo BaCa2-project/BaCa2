@@ -11,18 +11,41 @@ BROKER_LOG='/home/www/BaCa2-broker/logs/broker.log'
 
 # Function to display script usage
 usage() {
-    echo "Usage: $0 [--reboot --migrate --status [rows]]" 1>&2
+    echo "Usage: $0 [--reboot --update-poetry --rm-migrations --clear-db --migrate --status [rows]] --clear-submits" 1>&2
     exit 1
 }
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --rm-migrations)
+            RM_MIGRATIONS=true
+            CLEAR_DB=true
+            MIGRATE=true
+            REBOOT=true
+            CLEAR_SUBMITS=true
+            shift
+            ;;
+        --clear-db)
+            CLEAR_DB=true
+            MIGRATE=true
+            REBOOT=true
+            CLEAR_SUBMITS=true
+            shift
+            ;;
+        --clear-submits)
+            CLEAR_SUBMITS=true
+            shift
+            ;;
         --migrate)
             MIGRATE=true
             shift
             ;;
         --reboot)
             REBOOT=true
+            shift
+            ;;
+        --update-poetry)
+            UPDATE_POETRY=true
             shift
             ;;
         --status)
@@ -149,7 +172,67 @@ if [ "$REBOOT" = true ]; then
     echo ""
 fi
 
+if [ "$RM_MIGRATIONS" = true ]; then
+    echo "Removing migrations:"
+    echo -n "    broker_api..."
+    rm -rf /home/www/BaCa2/BaCa2/broker_api/migrations/0*.py
+    print_result
+    echo -n "    course..."
+    rm -rf /home/www/BaCa2/BaCa2/course/migrations/0*.py
+    print_result
+    echo -n "    main..."
+    rm -rf /home/www/BaCa2/BaCa2/main/migrations/0*.py
+    print_result
+    echo -n "    package..."
+    rm -rf /home/www/BaCa2/BaCa2/package/migrations/0*.py
+    print_result
+    echo ""
+fi
 
+if [ "$CLEAR_DB" = true ]; then
+    echo "Clearing database:"
+    echo -n "    drop baca2db..."
+    sudo -u postgres psql -c "DROP DATABASE IF EXISTS baca2db;" > /dev/null 2>&1
+    print_result
+    echo -n "    create empty baca2db..."
+    sudo -u postgres psql -c "CREATE DATABASE baca2db;" > /dev/null 2>&1
+    print_result
+    echo -n "    grant privileges to baca2 user..."
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE baca2db TO baca2;" > /dev/null 2>&1
+    print_result
+    echo -n "    grant privileges to root user..."
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE baca2db TO root;" > /dev/null 2>&1
+    print_result
+    echo -n "    clear db.cache..."
+    rm -f /home/www/BaCa2/BaCa2/core/db/db.cache
+    print_result
+    echo -n "    create empty db.cache..."
+    touch /home/www/BaCa2/BaCa2/core/db/db.cache
+    print_result
+    echo -n "    chmod db.cache..."
+    chmod 777 /home/www/BaCa2/BaCa2/core/db/db.cache
+    print_result
+    echo ""
+fi
+
+if [ "$CLEAR_SUBMITS" = true ]; then
+    echo "Clearing submits:"
+    echo -n "    from baca2 web app..."
+    rm -rf /home/www/BaCa2/BaCa2/aubmits/*
+    print_result
+    echo -n "    from baca2 broker..."
+    rm -rf /home/www/BaCa2-broker/submits/*
+    print_result
+
+    echo -n "clear package info..."
+    rm -rf /home/www/BaCa2/BaCa2/packages_source/*
+    print_result
+
+    echo -n "clear task descriptions..."
+    rm -rf /home/www/BaCa2/BaCa2/tasks/*
+    print_result
+    echo ""
+fi
 
 # If --migrate flag is provided, perform migration
 if [ "$MIGRATE" = true ]; then
@@ -168,6 +251,24 @@ if [ "$MIGRATE" = true ]; then
     else
         echo -e "${GREEN}error occurred during migration${NC}"
     fi
+    echo ""
+fi
+
+if [ "$CLEAR_DB" = true ]; then
+    echo -n "Creating superuser..."
+    echo "from main.models import User; User.objects.create_superuser(email='admin@baca2.ii.uj.edu.pl', password='9pBTR%7XzynBCWD', first_name='Administrator', last_name='Systemu')" | /home/www/.cache/pypoetry/virtualenvs/baca2-pMI66htX-py3.11/bin/python3.11 /home/www/BaCa2/BaCa2/manage.py shell > /dev/null 2>&1
+    print_result
+    echo ""
+fi
+
+if [ "$UPDATE_POETRY" = true ]; then
+    echo -n "Updating poetry environments"
+    echo -n "    baca2 web app..."
+    /home/www/.cache/pypoetry/virtualenvs/baca2-pMI66htX-py3.11/bin/poetry update > /dev/null 2>&1
+    print_result
+    echo -n "    baca2 broker..."
+    /home/www/.cache/pypoetry/virtualenvs/baca2-broker-5CIAXw5I-py3.11/bin/poetry update > /dev/null 2>&1
+    print_result
     echo ""
 fi
 
