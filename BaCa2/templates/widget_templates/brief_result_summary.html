@@ -1,10 +1,10 @@
 {% load static %}
-<div class="card" id="{{ brief_result_summary.name }}">
+<div class="card mb-3" id="{{ brief_result_summary.name }}">
     <div class="card-header">
         <h5 class="card-title mb-0">{{ brief_result_summary.set_name }}/{{ brief_result_summary.test_name }}</h5>
     </div>
     <div class="card-body">
-        <div class="container text-center">
+        <div class="container text-center mb-2">
             <div class="row mb-3">
                 <div class="col result-status-{{ brief_result_summary.result.status }}">
                     {{ brief_result_summary.result.f_status }}
@@ -28,14 +28,18 @@
             </div>
         </div>
         {% if brief_result_summary.result.compile_log_widget %}
-            {% with brief_result_summary.result.compile_log_widget as codeblock %}
-                {% include "widget_templates/code_block.html" %}
-            {% endwith %}
+            <div class="mb-1">
+                {% with brief_result_summary.result.compile_log_widget as codeblock %}
+                    {% include "widget_templates/code_block.html" %}
+                {% endwith %}
+            </div>
         {% endif %}
         {% if brief_result_summary.result.checker_log_widget %}
-            {% with brief_result_summary.result.checker_log_widget as codeblock %}
-                {% include "widget_templates/code_block.html" %}
-            {% endwith %}
+            <div class="mb-1">
+                {% with brief_result_summary.result.checker_log_widget as codeblock %}
+                    {% include "widget_templates/code_block.html" %}
+                {% endwith %}
+            </div>
         {% endif %}
     </div>
 </div>
