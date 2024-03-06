@@ -1,14 +1,38 @@
 {% extends "base.html" %}
 
 {% block content %}
-    {% with widgets.TableWidget.summary_table_widget as table_widget %}
-        {% include "widget_templates/table.html" %}
-    {% endwith %}
+    <div class="tab-wrapper" id="{{ summary_tab }}">
+        <div class="side-nav-tab">
+            {% with widgets.TableWidget.summary_table_widget as table_widget %}
+                {% include "widget_templates/table.html" %}
+            {% endwith %}
+
+            {% for s in sets %}
+                <br/>
+                {% with s.table_widget as table_widget %}
+                    {% include "widget_templates/table.html" %}
+                {% endwith %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="tab-wrapper" id="{{ code_tab }}">
+        <div class="side-nav-tab">
+            {% with widgets.CodeBlock.source_code_block as codeblock %}
+                {% include "widget_templates/code_block.html" %}
+            {% endwith %}
+        </div>
+    </div>
 
     {% for s in sets %}
-        <br />
-        {% with s.table_widget as table_widget %}
-            {% include "widget_templates/table.html" %}
-        {% endwith %}
+        <div class="tab-wrapper" id="{{ s.set_name }}-tab">
+            <div class="side-nav-tab">
+                {% for test_summary in s.tests %}
+                    {% with test_summary as brief_result_summary %}
+                        {% include "widget_templates/brief_result_summary.html" %}
+                    {% endwith %}
+                {% endfor %}
+            </div>
+        </div>
     {% endfor %}
 {% endblock %}

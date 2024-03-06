@@ -17,7 +17,7 @@ ENVVAR_SETTINGS_PREFIX = 'BACA2_WEB_'
 
 LOCAL_SETTINGS_PATH = os.getenv(f'{ENVVAR_SETTINGS_PREFIX}LOCAL_SETTINGS_PATH')
 if not LOCAL_SETTINGS_PATH:
-    LOCAL_SETTINGS_PATH = BASE_DIR / 'local' / 'settings.dev.py'
+    LOCAL_SETTINGS_PATH = BASE_DIR.parent / 'local' / 'settings.dev.py'
 
 LOCAL_SETTINGS_PATH = LOCAL_SETTINGS_PATH.absolute()
 
@@ -37,8 +37,8 @@ include(
     'authentication.py',
     'login.py',
     'packages.py',
-    'static_files.py',
     'broker.py',
+    'static_files.py',
     'usos.py',
     'email.py',
     optional(str(LOCAL_SETTINGS_PATH)),

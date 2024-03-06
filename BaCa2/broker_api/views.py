@@ -120,6 +120,7 @@ def handle_broker_result(request):
     initial_check = initial_request_check(request)
     if initial_check:
         return initial_check
+    logger.warning(request.body.decode())
 
     # Try to parse the JSON body of the request
     try:
@@ -192,6 +193,7 @@ def handle_broker_error(request):
     # Try to parse the JSON body of the request
     try:
         data = BrokerToBacaError.parse_obj(json.loads(request.body))
+        logger.warning(data)
 
         submit_check = check_submit_id(data.submit_id)
         if submit_check:
