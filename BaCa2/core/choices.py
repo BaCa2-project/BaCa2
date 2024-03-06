@@ -27,7 +27,8 @@ class ResultStatus(models.TextChoices):
         return order.index(status1) - order.index(status2)
 
 
-EMPTY_FINAL_STATUSES = [ResultStatus.EXT, ResultStatus.ITL, ResultStatus.INT]
+EMPTY_FINAL_STATUSES = [ResultStatus.EXT, ResultStatus.ITL, ResultStatus.INT, ResultStatus.EXT]
+HALF_EMPTY_FINAL_STATUSES = [ResultStatus.CME, ResultStatus.RTE]
 
 
 class PermissionCheck(models.TextChoices):
