@@ -2,6 +2,7 @@ import logging
 import re
 from typing import Any, Dict, List
 
+from django.conf import settings
 from django.contrib.auth import logout, update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.mixins import UserPassesTestMixin
@@ -10,7 +11,7 @@ from django.contrib.auth.views import LoginView
 from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic.base import RedirectView, View
+from django.views.generic.base import RedirectView
 
 from main.models import Course, Role, User
 from util import decode_url_to_dict, encode_dict_to_url
@@ -335,20 +336,26 @@ class BaCa2LogoutView(RedirectView):
     """
 
     # Redirect target.
-    url = reverse_lazy('login')
+    url_uj = settings.OIDC_OP_LOGOUT_URL
+    url_ext = reverse_lazy('login')
+
+    def get_redirect_url(self, *args, **kwargs):
+        """
+        :return: URL to redirect to after logout.
+        :rtype: str
+        """
+        if self.request.user.is_uj_user:
+            return self.url_uj
+        return self.url_ext
 
     def get(self, request, *args, **kwargs) -> HttpResponseRedirect:
         """
         Logs out the user and redirects to login page.
         """
+        resp = super().get(request, *args, **kwargs)
+        logger.info(f'{resp.url} {request.user.is_uj_user}')
         logout(request)
-        return super().get(request, *args, **kwargs)
-
-
-class UJLogin(View):
-    @staticmethod
-    def post(request, *args, **kwargs) -> None:
-        logger.warning(f'{request.POST}')
+        return resp
 
 
 # ----------------------------------------- Admin view ----------------------------------------- #

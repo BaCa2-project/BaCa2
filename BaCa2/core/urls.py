@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include, path
 
-from main.views import BaCa2LoginView, BaCa2LogoutView, LoginRedirectView, UJLogin
+from main.views import BaCa2LoginView, BaCa2LogoutView, LoginRedirectView
 from util.views import FieldValidationView
 
 urlpatterns = [
@@ -11,7 +11,6 @@ urlpatterns = [
     # ------------------------------------- Authentication ------------------------------------- #
     path('', LoginRedirectView.as_view(), name='login-redirect'),
     path('login/', BaCa2LoginView.as_view(), name='login'),
-    path('login/uj', UJLogin.as_view(), name='uj-login'),
     path('logout/', BaCa2LogoutView.as_view(), name='logout'),
 
     path('oidc/', include('mozilla_django_oidc.urls')),

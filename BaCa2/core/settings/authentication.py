@@ -15,7 +15,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 AUTHENTICATION_BACKENDS = [
     # Login UJ
-    'mozilla_django_oidc.auth.OIDCAuthenticationBackend',
+    'core.uj_oidc_auth.BaCa2UJAuth',
     # Custom authentication backend
     'core.auth_backend.BaCa2AuthBackend'
 ]
