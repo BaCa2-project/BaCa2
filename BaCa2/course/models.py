@@ -1430,6 +1430,8 @@ class Result(models.Model, metaclass=ReadCourseMeta):
                 res['f_time_cpu'] += f' / {time_limit} s'
         if format_memory and self.runtime_memory:
             res['f_runtime_memory'] = f'{bytes_to_str(self.runtime_memory)}'
+            if self.status in HALF_EMPTY_FINAL_STATUSES:
+                res['f_runtime_memory'] = self.status
             if add_limits:
                 memory_limit = self.test.package_test['memory_limit']
                 res['f_runtime_memory'] += f' / {bytes_to_str(bytes_from_str(memory_limit))}'
