@@ -15,4 +15,6 @@ OIDC_OP_USER_ENDPOINT = (
 OIDC_RP_SIGN_ALGO = 'RS256'
 OIDC_OP_JWKS_ENDPOINT = 'https://auth.dev.uj.edu.pl/auth/realms/uj/protocol/openid-connect/certs'
 
+OIDC_OP_LOGOUT_URL = 'https://auth.dev.uj.edu.pl/auth/realms/uj/protocol/openid-connect/logout'
+
 LOGOUT_REDIRECT_URL = '/login'

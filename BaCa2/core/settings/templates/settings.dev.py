@@ -9,3 +9,9 @@ try:
         'mozilla_django_oidc.auth.OIDCAuthenticationBackend')
 except ValueError:
     pass
+
+# Disable OIDC middleware
+try:
+    MIDDLEWARE.remove('mozilla_django_oidc.middleware.SessionRefresh')  # noqa: F821
+except ValueError:
+    pass
