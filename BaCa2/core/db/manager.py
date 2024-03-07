@@ -1,7 +1,6 @@
 import copy
 import json
 import logging
-import re
 from pathlib import Path
 from threading import Lock
 
@@ -95,24 +94,6 @@ class DBManager:
     A class to manage databases in the system. It allows you to create, delete and migrate
     databases on django runtime.
     """
-
-    #: A list of reserved database names. These databases cannot be created or deleted.
-    RESERVED_DB_KEYS = {'postgres', 'template0', 'template1'}
-
-    #: A set of reserved database names. These databases cannot be created or deleted.
-    SQL_KEYWORDS = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'DROP', 'CREATE', 'ALTER',
-                    'TRUNCATE', 'GRANT', 'REVOKE', 'EXEC', 'EXECUTE']
-
-    #: A set of reserved database char combinations. These databases cannot be created or deleted.
-    SPECIAL_CHARACTERS = [';', '--', '/*', '*/']
-
-    #: Precompiled regex pattern to detect SQL injection.
-    SQL_INJECTION_PATTERN = re.compile(
-        r'\b(?:{}|{}|{})\b'.format(
-            '|'.join(SQL_KEYWORDS),
-            '|'.join(map(lambda x: x.lower(), SQL_KEYWORDS)),
-            '|'.join(SPECIAL_CHARACTERS),
-        ))
 
     #: Maximum length of a database name. Used to detect SQL injection.
     MAX_DB_NAME_LENGTH = 63
@@ -210,9 +191,6 @@ class DBManager:
         if len(db_name) > self.MAX_DB_NAME_LENGTH:
             raise self.SQLInjectionError(
                 'Database name exceeds maximum length. Potential SQL injection.')
-
-        if self.SQL_INJECTION_PATTERN.search(db_name):
-            raise self.SQLInjectionError('SQL injection detected.')
 
         if db_name.lower() in self.RESERVED_DB_KEYS:
             raise self.SQLInjectionError(
