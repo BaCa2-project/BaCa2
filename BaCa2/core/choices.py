@@ -48,6 +48,13 @@ class BasicModelAction(ModelAction):
     VIEW = 'VIEW', 'view'
 
 
+class UserJob(models.TextChoices):
+    ST = 'ST', _('Student')
+    DC = 'DC', _('Doctoral')
+    EM = 'EM', _('Employee')
+    AD = 'AD', _('Admin')
+
+
 class TaskDescriptionExtension(models.TextChoices):
     PDF = 'PDF', _('PDF')
     MD = 'MD', _('Markdown')
