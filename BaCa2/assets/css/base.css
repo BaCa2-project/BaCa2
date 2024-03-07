@@ -696,6 +696,15 @@ html, body {
 .table-wrapper .table-responsive[data-paging=false] .dataTables_info {
   display: none;
 }
+.table-wrapper .resize-wrapper {
+  position: relative;
+}
+.table-wrapper .resize-wrapper .table-responsive, .table-wrapper .resize-wrapper .dataTables_wrapper, .table-wrapper .resize-wrapper .dataTables_scroll {
+  height: 100%;
+}
+.table-wrapper .resize-handle {
+  cursor: pointer;
+}
 
 [data-bs-theme=light] .table-wrapper .table-util-header {
   background-color: #f8f9fa;
@@ -712,6 +721,9 @@ html, body {
 [data-bs-theme=light] .table-wrapper .row-hover tr:hover td {
   background-color: rgba(0, 0, 0, 0.08);
 }
+[data-bs-theme=light] .table-wrapper .resize-handle {
+  background-color: #f8f9fa;
+}
 
 [data-bs-theme=dark] .table-wrapper .table-util-header {
   background-color: rgba(0, 0, 0, 0.3);
@@ -727,6 +739,9 @@ html, body {
 }
 [data-bs-theme=dark] .table-wrapper .row-hover tr:hover td {
   background-color: rgba(255, 255, 255, 0.03);
+}
+[data-bs-theme=dark] .table-wrapper .resize-handle {
+  background-color: rgba(0, 0, 0, 0.3);
 }
 
 :root {
@@ -1006,8 +1021,8 @@ html, body {
 }
 
 /*!
- * Bootstrap Icons v1.11.3 (https://icons.getbootstrap.com/)
- * Copyright 2019-2024 The Bootstrap Authors
+ * Bootstrap Icons v1.11.2 (https://icons.getbootstrap.com/)
+ * Copyright 2019-2023 The Bootstrap Authors
  * Licensed under MIT (https://github.com/twbs/icons/blob/main/LICENSE)
  */
 @font-face {
