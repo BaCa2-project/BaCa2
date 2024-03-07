@@ -2,10 +2,11 @@ import logging
 from typing import Any, Dict
 
 from django import forms
-from django.utils.translation import gettext_lazy as _
+from django.conf import settings
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes, force_str
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
+from django.utils.translation import gettext_lazy as _
 
 from core.tools.mailer import TemplateMailer
 from main.models import User
@@ -44,7 +45,7 @@ class CreateUser(BaCa2ModelForm):
 
         user_token = token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.pk))
-
+        confirm_url = f'http://{settings.HOST_NAME}/reset/{uid}/{user_token}/'
         try:
             mailer = TemplateMailer(mail_to=email,
                                     subject=_('Your new BaCa2 account'),

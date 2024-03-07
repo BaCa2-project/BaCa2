@@ -10,11 +10,8 @@ from django.contrib.auth.views import LoginView, PasswordResetConfirmView
 from django.db import models
 from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse_lazy
-from django.utils.translation import gettext as _
-from django.utils.http import urlsafe_base64_decode
-from django.utils.encoding import force_str
-from django.views.generic.base import RedirectView, View
 from django.utils.translation import gettext_lazy as _
+from django.views.generic.base import RedirectView, View
 
 from core.exceptions import InvalidTokenError
 from main.models import Course, Role, User
@@ -29,7 +26,8 @@ from widgets.forms.course import (
     CreateCourseForm,
     CreateCourseFormWidget,
     DeleteCourseForm,
-    DeleteRoleForm, RemoveMembersForm
+    DeleteRoleForm,
+    RemoveMembersForm
 )
 from widgets.forms.main import (
     ChangePersonalData,
@@ -172,8 +170,8 @@ class UserModelView(BaCa2ModelView):
             course_id = re.search(r'course/(\d+)/', refer_url).group(1)
             course = Course.objects.get(pk=course_id)
 
-            if user.has_course_permission(Course.CourseAction.VIEW_MEMBER.label, course) and \
-                all([course.user_is_member(usr) for usr in query_result]):
+            if all(user.has_course_permission(Course.CourseAction.VIEW_MEMBER.label, course) + [
+                    course.user_is_member(usr) for usr in query_result]):
                 return True
 
         return False
@@ -485,8 +483,8 @@ class RoleView(BaCa2LoggedInView, UserPassesTestMixin):
     def get_context_data(self, **kwargs) -> dict:
         context = super().get_context_data(**kwargs)
         role = ModelsRegistry.get_role(self.kwargs.get('role_id'))
-        course = role.course
-        user = getattr(self.request, 'user')
+        # course = role.course
+        # user = getattr(self.request, 'user')
         sidenav_tabs = ['Overview', 'Members']
 
         # overview -------------------------------------------------------------------------------
@@ -596,13 +594,14 @@ class ProfileView(BaCa2LoggedInView):
 # ----------------------------------------- Util views ----------------------------------------- #
 class PasswordResetConfirm(BaCa2ContextMixin, PasswordResetConfirmView):
     template_name = 'password_reset.html'
+    success_url = reverse_lazy('main:dashboard')
 
     def safe_get_user(self):
-        uid = force_str(urlsafe_base64_decode(self.kwargs['uidb64']))
-        user = self.get_user(uid)
+        user = self.get_user(self.kwargs['uidb64'])
 
+        # TODO: token is being changed to "set-password" string.
         if not self.token_generator.check_token(user, self.kwargs['token']):
-            raise InvalidTokenError()
+            raise InvalidTokenError('Invalid or expired token or no token provided')
         return user
 
     def get_context_data(self, **kwargs) -> Dict[str, Any]:
@@ -618,14 +617,20 @@ class PasswordResetConfirm(BaCa2ContextMixin, PasswordResetConfirmView):
                 live_validation=False,
                 display_field_errors=False,
             ))
+            context['password_reset_message'] = _('Set new password')
         except (User.DoesNotExist, InvalidTokenError):
             context['error'] = _('This link is invalid or expired.')
 
         return context
 
+    def form_valid(self, form):
+        try:
+            self.safe_get_user()
+        except (User.DoesNotExist, InvalidTokenError):
+            return BaCa2JsonResponse(status=BaCa2JsonResponse.Status.INVALID,
+                                     message=_('This link is invalid or expired'))
 
-
-
+        return super().form_valid(form)
 
 
 def change_theme(request) -> JsonResponse:
@@ -663,4 +668,3 @@ def change_password(request) -> BaCa2JsonResponse:
             return BaCa2JsonResponse(status=BaCa2JsonResponse.Status.INVALID,
                                      message=_('Password not changed.'),
                                      errors=validation_errors)
-

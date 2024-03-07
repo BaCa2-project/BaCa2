@@ -1,9 +1,9 @@
 from django.urls import path
 
 from .views import (
-    CourseView,
     CourseTask,
     CourseTaskAdmin,
+    CourseView,
     ResultModelView,
     RoundEditView,
     RoundModelView,
