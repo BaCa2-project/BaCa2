@@ -1,12 +1,15 @@
+import copy
 import json
 import logging
+import re
 from pathlib import Path
 from threading import Lock
-from typing import Self
 
 import psycopg2
+from libinjection import is_sql_injection
 
 logger = logging.getLogger(__name__)
+
 
 #: Postgres query to close all connections to a database
 CLOSE_ALL_DB_CONNECTIONS = """SELECT pg_terminate_backend(pg_stat_activity.pid)
@@ -39,14 +42,17 @@ class DB:
         """
         if defaults is None:
             defaults = {}
+        if not db_name:
+            raise ValueError('db_name must be a non-empty string.')
         self.db_name = db_name
         self.key_is_name = key_is_name
+        self.key = self.db_name if key_is_name else self.db_name + '_db'
         self.settings = defaults | kwargs | {'NAME': self.key}
         if key_is_name:
             self.settings['NAME'] = self.db_name
 
     @classmethod
-    def from_json(cls, db_dict: dict, db_name: str = None) -> Self:
+    def from_json(cls, db_dict: dict, db_name: str = None) -> 'DB':
         """
         It creates a DB object from a dictionary. If the db_name is not provided, it is taken from
         the dictionary, but without the '_db' suffix.
@@ -72,9 +78,9 @@ class DB:
 
     def to_dict(self) -> dict:
         """
-        It returns the copy of database settings as a dictionary.
+        It returns a deep copy of the database settings as a dictionary.
         """
-        return self.settings.copy()
+        return copy.deepcopy(self.settings)
 
     @property
     def name(self):
@@ -82,15 +88,6 @@ class DB:
         It returns the name of the database.
         """
         return self.db_name
-
-    @property
-    def key(self):
-        """
-        It returns the key of the database.
-        """
-        if self.key_is_name:
-            return self.db_name
-        return self.db_name + '_db'
 
 
 class DBManager:
@@ -100,7 +97,25 @@ class DBManager:
     """
 
     #: A list of reserved database names. These databases cannot be created or deleted.
-    RESERVED_DB_KEYS = ['postgres', 'template0', 'template1']
+    RESERVED_DB_KEYS = {'postgres', 'template0', 'template1'}
+
+    #: A set of reserved database names. These databases cannot be created or deleted.
+    SQL_KEYWORDS = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'DROP', 'CREATE', 'ALTER',
+                    'TRUNCATE', 'GRANT', 'REVOKE', 'EXEC', 'EXECUTE']
+
+    #: A set of reserved database char combinations. These databases cannot be created or deleted.
+    SPECIAL_CHARACTERS = [';', '--', '/*', '*/']
+
+    #: Precompiled regex pattern to detect SQL injection.
+    SQL_INJECTION_PATTERN = re.compile(
+        r'\b(?:{}|{}|{})\b'.format(
+            '|'.join(SQL_KEYWORDS),
+            '|'.join(map(lambda x: x.lower(), SQL_KEYWORDS)),
+            '|'.join(SPECIAL_CHARACTERS),
+        ))
+
+    #: Maximum length of a database name. Used to detect SQL injection.
+    MAX_DB_NAME_LENGTH = 63
 
     class SQLInjectionError(Exception):
         """
@@ -163,15 +178,17 @@ class DBManager:
 
         :return: A connection to the postgres database.
         """
-
-        conn = psycopg2.connect(
-            database='postgres',
-            user=self.root_user,
-            password=self.root_password,
-            host=self.db_host
-        )
-        conn.autocommit = True
-        return conn
+        try:
+            conn = psycopg2.connect(
+                database='postgres',
+                user=self.root_user,
+                password=self.root_password,
+                host=self.db_host
+            )
+            conn.autocommit = True
+            return conn
+        except psycopg2.OperationalError as e:
+            raise psycopg2.OperationalError(f'Error connecting to the database: {str(e)}')
 
     def detect_sql_injection(self, db_name: str) -> None:
         """
@@ -182,7 +199,26 @@ class DBManager:
 
         :raises self.SQLInjectionError: If the database name is a SQL injection.
         """
-        if len(db_name.split()) > 1 or len(db_name) > 63 or db_name in self.RESERVED_DB_KEYS:
+        db_name = db_name.strip()
+        if not db_name:
+            raise self.SQLInjectionError('Empty database name.')
+
+        if ' ' in db_name:
+            raise self.SQLInjectionError(
+                'Spaces detected in database name. Potential SQL injection.')
+
+        if len(db_name) > self.MAX_DB_NAME_LENGTH:
+            raise self.SQLInjectionError(
+                'Database name exceeds maximum length. Potential SQL injection.')
+
+        if self.SQL_INJECTION_PATTERN.search(db_name):
+            raise self.SQLInjectionError('SQL injection detected.')
+
+        if db_name.lower() in self.RESERVED_DB_KEYS:
+            raise self.SQLInjectionError(
+                'Reserved database name detected. Potential SQL injection.')
+
+        if is_sql_injection(db_name)['is_sqli']:
             raise self.SQLInjectionError('SQL injection detected.')
 
     def create_db(self, db_name: str, **kwargs) -> None:
@@ -204,15 +240,19 @@ class DBManager:
                 conn = self._raw_root_connection()
                 cursor = conn.cursor()
 
-                drop_if_exist = f' DROP DATABASE IF EXISTS {db.key}; '
-                sql = f' CREATE DATABASE {db.key}; '
+                drop_if_exist = ' DROP DATABASE IF EXISTS %s; '
+                sql = ' CREATE DATABASE %s; '
 
-                cursor.execute(drop_if_exist)
-                cursor.execute(sql)
+                try:
+                    cursor.execute(drop_if_exist, (db.key,))
+                    cursor.execute(sql, (db.key,))
+                except Exception as e:
+                    logger.error(f'Error executing SQL commands: {str(e)}')
 
-                conn.close()
+                finally:
+                    conn.close()
 
-                self.databases[db.name] = db.to_dict()
+                self.databases.setdefault(db.name, db.to_dict())
 
                 with self.cache_lock:
                     self.save_cache(with_locks=False)
@@ -264,10 +304,10 @@ class DBManager:
         db = DB(db_name, self.default_settings)
 
         with self.databases_access_lock:
-            try:
-                self.databases.pop(db.name)
-            except KeyError:
-                pass
+            if db.name not in self.databases:
+                raise ValueError(f'DB {db_name} does not exist.')
+
+            self.databases.pop(db.name, None)
 
             with self.cache_lock:
                 self.save_cache(with_locks=False)
@@ -275,9 +315,13 @@ class DBManager:
             with self.db_root_access_lock:
                 conn = self._raw_root_connection()
                 cursor = conn.cursor()
-                cursor.execute(CLOSE_ALL_DB_CONNECTIONS % db.key)
-                cursor.execute(f' DROP DATABASE IF EXISTS {db.key}; ')
-                conn.close()
+                try:
+                    cursor.execute(CLOSE_ALL_DB_CONNECTIONS, (db.key,))
+                    cursor.execute(' DROP DATABASE IF EXISTS %s; ', (db.key,))
+                except Exception as e:
+                    logger.error(f'Error deleting database: {str(e)}')
+                finally:
+                    conn.close()
         logger.info(f'Database {db_name} deleted.')
 
     def parse_cache(self) -> None:
@@ -286,19 +330,26 @@ class DBManager:
         Best to be called on django app startup to load the databases from the cache file.
         """
         with self.cache_lock:
-            if not self.cache_file.exists():
-                return
-            with open(self.cache_file, 'r') as f:
-                try:
+            try:
+                with self.cache_file.open('r') as f:
                     cache = json.load(f)
-                except json.JSONDecodeError:
-                    return
+            except FileNotFoundError:
+                logger.error('Cache file not found. Continuing with empty cache.')
+                cache = {}
+            except json.JSONDecodeError:
+                logger.error('Error loading JSON file. Continuing with empty cache.')
+                cache = {}
+
+            with self.databases_access_lock:
                 for db_name, db_settings in cache.items():
                     db = DB.from_json(db_settings, db_name=db_name)
-                    with self.databases_access_lock:
-                        self.databases[db.name] = db.to_dict()
+                    self.databases.setdefault(db.name, db.to_dict())
+
         logger.info('Databases loaded from cache.')
-        self.save_cache()
+
+        # Check if there were changes to the databases
+        if self.databases != {}:
+            self.save_cache()
 
     def save_cache(self, with_locks: bool = True) -> None:
         """
@@ -309,13 +360,13 @@ class DBManager:
         """
         if with_locks:
             with self.databases_access_lock:
-                databases = self.databases.copy()
+                databases = copy.deepcopy(self.databases)
         else:
-            databases = self.databases.copy()
+            databases = copy.deepcopy(self.databases)
 
-        if 'default' in databases:
-            databases.pop('default')
-        with open(self.cache_file, 'wt') as f:
-            json.dump(databases, f, indent=4)
-
-        logger.info('Databases saved to cache.')
+        databases.pop('default', None)
+        try:
+            self.cache_file.write_text(json.dumps(databases, indent=4))
+            logger.info('Databases saved to cache.')
+        except Exception as e:
+            logger.error(f'Error saving databases to cache: {str(e)}')
