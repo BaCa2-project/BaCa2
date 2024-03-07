@@ -587,7 +587,7 @@ class AddRoleForm(CourseActionForm):
                                         data_source_url='',
                                         cols=[TextColumn(name='codename', header=_('Codename')),
                                               TextColumn(name='name', header=_('Description'))],
-                                        table_widget_kwargs={'height_limit': 35})
+                                        table_widget_kwargs={'table_height': 35})
 
     def __init__(self, **kwargs) -> None:
         from main.views import PermissionModelView
@@ -707,7 +707,7 @@ class AddRolePermissionsForm(CourseActionForm):
         data_source_url='',
         cols=[TextColumn(name='codename', header=_('Codename')),
               TextColumn(name='name', header=_('Description'))],
-        table_widget_kwargs={'height_limit': 35}
+        table_widget_kwargs={'table_height': 35}
     )
 
     @classmethod
@@ -765,7 +765,7 @@ class RemoveRolePermissionsForm(CourseActionForm):
         data_source_url='',
         cols=[TextColumn(name='codename', header=_('Codename')),
               TextColumn(name='name', header=_('Description'))],
-        table_widget_kwargs={'height_limit': 35}
+        table_widget_kwargs={'table_height': 35}
     )
 
     @classmethod

@@ -2,7 +2,6 @@
 
 class TableWidget {
     constructor(tableId, DTObj) {
-        this.tableId = tableId;
         this.DTObj = DTObj;
         this.table = $(`#${tableId}`);
         this.widgetWrapper = this.table.closest('.table-wrapper');
@@ -150,6 +149,10 @@ class TableWidget {
 
 
 // --------------------------------------- tables setup --------------------------------------- //
+
+function tablesPreSetup() {
+    tableResizeSetup();
+}
 
 function tablesSetup() {
     $('th.select').each(function () {
@@ -302,6 +305,7 @@ function initTable(
         tableParams['order'] = [];
 
     if (limitHeight) {
+        tableParams['scrollResize'] = true;
         tableParams['scrollY'] = height;
         tableParams['scrollCollapse'] = true;
     }
@@ -451,6 +455,8 @@ function renderSelectHeader(header) {
 }
 
 
+// ------------------------------- special field click handlers ------------------------------- //
+
 function selectHeaderClickHandler(e, checkbox) {
     const table = checkbox.closest('table')
     const tableId = table.attr('id');
@@ -465,8 +471,6 @@ function selectHeaderClickHandler(e, checkbox) {
     }
 }
 
-
-// ------------------------------- special field click handlers ------------------------------- //
 
 function selectCheckboxClickHandler(e, checkbox) {
     e.stopPropagation();
@@ -495,4 +499,70 @@ function deleteButtonClickHandler(e, button) {
     console.log(input.val());
     console.log(form.find('.submit-btn'));
     form.find('.submit-btn')[0].click();
+}
+
+
+// -------------------------------------- resizable table ------------------------------------- //
+
+function tableResizeSetup() {
+    $(document).on('init.dt', function (e) {
+        const table = $(e.target);
+        const resizeWrapper = table.closest('.resize-wrapper');
+
+        if (!resizeWrapper.length) return;
+
+        const DTLength = resizeWrapper.find('.dataTables_length');
+        const DTInfo = resizeWrapper.find('.dataTables_info');
+        const DTPaging = resizeWrapper.find('.dataTables_paginate');
+
+        const lengthSelect = $('<div>').addClass('dataTables_wrapper');
+        lengthSelect.append(DTLength);
+        lengthSelect.insertBefore(resizeWrapper);
+
+        const pagingInfo = $('<div>').addClass('dataTables_wrapper')
+        pagingInfo.append(DTInfo);
+        pagingInfo.append(DTPaging);
+        pagingInfo.insertAfter(resizeWrapper);
+
+        const DTScroll = resizeWrapper.find('.dataTables_scroll');
+        const DTScrollHead = DTScroll.find('.dataTables_scrollHead');
+        const DTScrollBody = DTScroll.find('.dataTables_scrollBody');
+
+        const bodyHeight = DTScroll.height() - DTScrollHead.height();
+
+        DTScrollBody.height(bodyHeight);
+        DTScrollBody.css('max-height', bodyHeight);
+
+        const resizeHandle = $(this).find('.resize-handle');
+        const rowHeight = table.find('tbody tr').first().height();
+
+        resizeHandle.on('mousedown', function (e) {
+            e.preventDefault();
+            const startY = e.pageY;
+            const startHeight = resizeWrapper.height();
+
+
+            $(document).on('mousemove', function (e) {
+                e.preventDefault();
+                let newHeight = startHeight + e.pageY - startY;
+                let newBodyHeight = newHeight - DTScrollHead.height();
+
+                if (newBodyHeight < rowHeight) {
+                    newBodyHeight = rowHeight;
+                    newHeight = newBodyHeight + DTScrollHead.height();
+                }
+
+                if (newBodyHeight > table.height()) {
+                    newBodyHeight = table.height();
+                    newHeight = newBodyHeight + DTScrollHead.height();
+                }
+
+                resizeWrapper.height(newHeight);
+                DTScrollBody.height(newBodyHeight);
+                DTScrollBody.css('max-height', newBodyHeight);
+            }).on('mouseup', function () {
+                $(document).off('mousemove mouseup');
+            });
+        });
+    });
 }
