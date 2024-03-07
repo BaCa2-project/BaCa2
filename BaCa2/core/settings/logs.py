@@ -106,7 +106,14 @@ BACA2_LOGGERS = {
     } for app_name in ('broker_api', 'course', 'package', 'util', 'main', 'core')
 }
 
-LOGGERS = DJANGO_LOGGERS | BACA2_LOGGERS
+OIDC_LOGGERS = {
+    'mozilla_django_oidc': {
+        'handlers': ['console', 'info', 'error'],
+        'level': 'INFO',
+    }
+}
+
+LOGGERS = DJANGO_LOGGERS | BACA2_LOGGERS | OIDC_LOGGERS
 
 LOGGING = {
     'version': 1,
