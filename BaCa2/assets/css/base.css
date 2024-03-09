@@ -1033,6 +1033,34 @@ html, body {
   color: #212529 !important;
 }
 
+:root {
+  --bs-form-valid-border-color: $red;
+}
+
+::-webkit-scrollbar {
+  width: 20px;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 20px;
+  border: 6px solid transparent;
+  background-clip: content-box;
+}
+
+[data-bs-theme=light] ::-webkit-scrollbar-thumb {
+  background-color: #d0d0d0;
+}
+[data-bs-theme=light] ::-webkit-scrollbar-thumb:hover {
+  background-color: #a0a0a0;
+}
+
+[data-bs-theme=dark] ::-webkit-scrollbar-thumb {
+  background-color: #3e4042;
+}
+[data-bs-theme=dark] ::-webkit-scrollbar-thumb:hover {
+  background-color: #a0a0a0;
+}
+
 /*!
  * Bootstrap Icons v1.11.2 (https://icons.getbootstrap.com/)
  * Copyright 2019-2023 The Bootstrap Authors
