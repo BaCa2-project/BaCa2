@@ -175,6 +175,8 @@ function tablesSetup() {
     $('.link-records').each(function () {
         recordLinkSetup($(this).attr('id'));
     });
+
+    lengthMenuSetup();
 }
 
 
@@ -239,6 +241,19 @@ function columnSearchInputHandler(inputField, table, tableWidget) {
         table.addClass('filtered');
 
     tableWidget.updateSelectHeader();
+}
+
+
+// ---------------------------------------- length menu --------------------------------------- //
+
+function lengthMenuSetup() {
+    $('.dataTables_length').each(function () {
+        const label = $(this).find('label');
+        label.addClass('d-flex align-items-center');
+
+        const select = $(this).find('select');
+        select.addClass('form-select form-select-fm auto-width ms-2 me-2');
+    });
 }
 
 
@@ -515,11 +530,11 @@ function tableResizeSetup() {
         const DTInfo = resizeWrapper.find('.dataTables_info');
         const DTPaging = resizeWrapper.find('.dataTables_paginate');
 
-        const lengthSelect = $('<div>').addClass('dataTables_wrapper');
+        const lengthSelect = $('<div>').addClass('dataTables_wrapper mb-1');
         lengthSelect.append(DTLength);
         lengthSelect.insertBefore(resizeWrapper);
 
-        const pagingInfo = $('<div>').addClass('dataTables_wrapper')
+        const pagingInfo = $('<div>').addClass('dataTables_wrapper mb-1')
         pagingInfo.append(DTInfo);
         pagingInfo.append(DTPaging);
         pagingInfo.insertAfter(resizeWrapper);
