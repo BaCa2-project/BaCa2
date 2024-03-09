@@ -91,7 +91,22 @@ $card_sizes: (
         l: 40rem
 );
 
-// ------------------------------------------ navbar ------------------------------------------- //
+// ----------------------------------------- scrollbar ---------------------------------------- //
+
+$scrollbar_width: 20px;
+$scrollbar_default_variables: (
+        color: $pale_muted,
+        color_hover: $light_muted,
+);
+$scrollbar_theme_variables: (
+        light: (),
+        dark: (
+                color: $dark_muted,
+                color_hover: $light_muted,
+        )
+);
+
+// ------------------------------------------ navbar ------------------------------------------ //
 
 $navbar_default_variables: (
         bg: $light,
