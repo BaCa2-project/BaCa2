@@ -6,6 +6,7 @@ from core.choices import ResultStatus
 
 logger = logging.getLogger(__name__)
 
+
 def create_course(course_name: str):
     """
     This function creates a new course database and migrates it
