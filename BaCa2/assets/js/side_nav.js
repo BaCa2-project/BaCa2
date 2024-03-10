@@ -46,8 +46,8 @@ function clickSidenavLink(link) {
         expanded_button.removeClass('expanded');
     }
 
-    $(document.body).find('#' + active_link.data('id')).removeClass('active');
-    $(document.body).find('#' + activated_link.data('id')).addClass('active');
+    $(document.body).find('#' + active_link.data('id')).removeClass('active').slideUp();
+    $(document.body).find('#' + activated_link.data('id')).addClass('active').slideDown();
     active_button.removeClass('active');
     addURLParameter(activated_link.data('id'));
 }

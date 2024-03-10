@@ -456,11 +456,18 @@ html, body {
   box-sizing: border-box;
 }
 
+.tab-wrapper {
+  display: none;
+}
+.tab-wrapper .side-nav-tab {
+  overflow: auto;
+}
+
 .side-nav {
   padding: 0;
 }
 .side-nav .side-nav-content {
-  padding: 0;
+  padding: 0.5rem 0 0;
   margin: 0;
 }
 .side-nav .side-nav-content .tab-button {
@@ -482,6 +489,10 @@ html, body {
   padding: 0.7rem 1rem 0.7rem 2rem;
 }
 
+.tab-wrapper .side-nav-tab {
+  padding: 0.5rem;
+}
+
 .side-nav .tab-button .sub-tabs-wrapper {
   display: grid;
   grid-template-rows: 0fr;
@@ -494,27 +505,6 @@ html, body {
   grid-template-rows: 1fr;
 }
 
-.tab-wrapper {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.5s ease-out;
-}
-.tab-wrapper.active {
-  grid-template-rows: 1fr;
-}
-.tab-wrapper.active .side-nav-tab {
-  overflow: visible;
-  animation: 1.5s delay-overflow-visible;
-}
-.tab-wrapper .side-nav-tab {
-  overflow: hidden;
-}
-
-@keyframes delay-overflow-visible {
-  from {
-    overflow: hidden;
-  }
-}
 .side-nav {
   border-radius: 6px;
   height: 100%;
