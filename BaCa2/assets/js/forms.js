@@ -11,6 +11,7 @@ function formsSetup() {
     confirmationPopupSetup();
     responsePopupsSetup();
     refreshButtonSetup();
+    selectFieldSetup();
     choiceFieldSetup();
     modelChoiceFieldSetup();
     textAreaFieldSetup();
@@ -477,6 +478,28 @@ function tableSelectFieldCheckboxClickHandler(tableSelectField, input) {
         ids.push($(row).data('record-id'));
 
     input.val(ids.join(',')).trigger('input');
+}
+
+// --------------------------------------- select field --------------------------------------- //
+
+function selectFieldSetup() {
+    $('select.auto-width').each(function () {
+        const select = $(this);
+        const tempDiv = $('<div></div>').css({'position': 'absolute', 'visibility': 'hidden'});
+        const tempOption = $('<option class="d-flex"></option>');
+        tempDiv.appendTo('body');
+        tempOption.appendTo(tempDiv);
+        tempOption.text(select.data('placeholder-option'));
+
+        select.find('option').each(function () {
+            tempOption.text($(this).text());
+
+            if (tempOption.width() > select.width())
+                select.width(tempOption.width());
+        });
+
+        tempDiv.remove();
+    });
 }
 
 // ------------------------------------ model choice field ------------------------------------ //

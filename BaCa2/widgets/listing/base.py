@@ -56,7 +56,8 @@ class TableWidget(Widget):
                  delete_form: BaCa2ModelForm = None,
                  data_post_url: str = '',
                  paging: TableWidgetPaging = None,
-                 height_limit: int | None = None,
+                 table_height: int | None = None,
+                 resizable_height: bool = False,
                  link_format_string: str = '',
                  refresh_button: bool = False,
                  refresh: bool = False,
@@ -111,9 +112,12 @@ class TableWidget(Widget):
         :type data_post_url: str
         :param paging: Paging options for the table. If not set, paging is disabled.
         :type paging: :class:`TableWidgetPaging`
-        :param height_limit: The maximum height of the table in percent of the viewport height. If
-            not set, the table height is not limited.
-        :type height_limit: int | None
+        :param table_height: The height of the table in percent of the viewport height. If not set,
+            the table height is not limited.
+        :type table_height: int | None
+        :param resizable_height: Whether to allow for dynamic resizing of the table height (through
+            dragging a handle at the bottom of the table). Only relevant if table_height is set.
+        :type resizable_height: bool
         :param link_format_string: A format string used to generate links for the table rows. The
         format string can reference the fields of database records represented by the table rows
         using double square brackets. For example, if the format string is '/records/[[id]]', the
@@ -225,12 +229,14 @@ class TableWidget(Widget):
         else:
             self.default_order_col = 0
 
-        if height_limit:
+        if table_height:
             self.limit_height = True
-            self.height = f'{height_limit}vh'
+            self.table_height = f'{table_height}vh'
+            self.resizable_height = resizable_height
         else:
             self.limit_height = False
-            self.height = ''
+            self.table_height = ''
+            self.resizable_height = False
 
     @staticmethod
     def get_default_order_col_index(default_order_col: str, cols: List[Column]) -> int:
@@ -264,8 +270,9 @@ class TableWidget(Widget):
             'cols_num': len(self.cols),
             'table_buttons': self.table_buttons,
             'paging': self.paging.get_context() if self.paging else json.dumps(False),
+            'resizable_height': self.resizable_height,
             'limit_height': json.dumps(self.limit_height),
-            'height': self.height,
+            'table_height': self.table_height,
             'refresh': json.dumps(self.refresh),
             'refresh_interval': self.refresh_interval,
             'refresh_button': json.dumps(self.refresh_button),

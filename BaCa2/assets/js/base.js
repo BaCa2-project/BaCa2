@@ -1,5 +1,6 @@
 function preInitCommon() {
     formsPreSetup();
+    tablesPreSetup();
 }
 
 function initCommon() {
