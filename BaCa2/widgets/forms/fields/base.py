@@ -514,8 +514,8 @@ class ModelChoiceField(ChoiceField):
     """
 
     def __init__(self,
-                 data_source_url: str,
                  label_format_string: str,
+                 data_source_url: str = '',
                  value_format_string: str = '[[id]]',
                  placeholder_option: str = '---',
                  loading_placeholder_option: str = '',
