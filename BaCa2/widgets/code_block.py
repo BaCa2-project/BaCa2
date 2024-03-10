@@ -14,8 +14,11 @@ class CodeBlock(Widget):
                  code: str | Path,
                  language: str = None,
                  title: str = None,
-                 show_line_numbers: bool = True,):
+                 show_line_numbers: bool = True,
+                 wrap_lines: bool = True,
+                 display_wrapper: bool = True):
         super().__init__(name=name)
+
         if not title:
             title = _('Code block')
         self.title = title
@@ -29,10 +32,15 @@ class CodeBlock(Widget):
         else:
             self.code = code
             self.language = language
+
         if not self.language:
             raise self.UnknownLanguageError('Language must be provided if code is a string.')
 
         self.show_line_numbers = show_line_numbers
+        self.display_wrapper = display_wrapper
+
+        if wrap_lines:
+            self.add_class('wrap-lines')
 
     def get_context(self) -> dict:
         return super().get_context() | {
@@ -41,4 +49,5 @@ class CodeBlock(Widget):
             'language': self.language,
             'code': self.code,
             'show_line_numbers': self.show_line_numbers,
+            'display_wrapper': self.display_wrapper,
         }
