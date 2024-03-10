@@ -1065,9 +1065,23 @@ pre.code-block.wrap-lines code {
 [data-bs-theme=light] pre.code-block {
   background: rgba(0, 0, 0, 0.3) !important;
 }
+[data-bs-theme=light] .test-summary .compile-tabs-nav .nav-link.active {
+  background-color: rgba(0, 0, 0, 0.3);
+}
 
 [data-bs-theme=dark] pre.code-block {
   background: rgba(0, 0, 0, 0.3) !important;
+}
+[data-bs-theme=dark] .test-summary .compile-tabs-nav .nav-link.active {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.test-summary .compile-tabs .code-block {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+.test-summary .compile-tabs-nav {
+  overflow: hidden;
 }
 
 /*!
