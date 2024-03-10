@@ -21,6 +21,7 @@ from util.views import BaCa2ContextMixin, BaCa2LoggedInView, BaCa2ModelView
 from widgets.forms import FormWidget
 from widgets.forms.course import (
     AddMembersForm,
+    AddMembersFromCSVForm,
     AddRoleForm,
     AddRolePermissionsForm,
     AddRolePermissionsFormWidget,
@@ -116,6 +117,8 @@ class CourseModelView(BaCa2ModelView):
             return DeleteCourseForm.handle_post_request(request)
         elif form_name == f'{Course.CourseAction.ADD_MEMBER.label}_form':
             return AddMembersForm.handle_post_request(request)
+        elif form_name == f'{Course.CourseAction.ADD_MEMBERS_CSV.label}_form':
+            return AddMembersFromCSVForm.handle_post_request(request)
         elif form_name == f'{Course.CourseAction.ADD_ROLE.label}_form':
             return AddRoleForm.handle_post_request(request)
         elif form_name == f'{Course.CourseAction.DEL_ROLE.label}_form':
