@@ -1,7 +1,7 @@
 {% load custom_tags %}
 {% load i18n %}
 
-<div class="table-wrapper">
+<div class="table-wrapper" data-table-id="{{ table_widget.name }}">
 
     <div class="table-widget-forms-wrapper">
         {% if table_widget.allow_delete %}

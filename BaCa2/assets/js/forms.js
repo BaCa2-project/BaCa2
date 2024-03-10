@@ -494,9 +494,6 @@ function selectFieldSetup() {
         select.find('option').each(function () {
             tempOption.text($(this).text());
 
-            console.log($(this).text());
-            console.log(tempOption.width());
-
             if (tempOption.width() > select.width())
                 select.width(tempOption.width());
         });
