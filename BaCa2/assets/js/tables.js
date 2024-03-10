@@ -83,7 +83,7 @@ class TableWidget {
         const headerCheckbox = this.widgetWrapper.find('.select-header-checkbox');
         let allSelected = true;
         let noneSelected = true;
-        let rows = this.getRowsInOrder();
+        let rows = this.getCurrentPageRowsInOrder();
 
         if (this.table.hasClass('filtered'))
             rows = this.getCurrentRowsInOrder();
@@ -114,6 +114,10 @@ class TableWidget {
 
     getRowsInOrder() {
         return this.DTObj.rows({order: 'applied'}).nodes().to$();
+    }
+
+    getCurrentPageRowsInOrder() {
+        return this.DTObj.rows({order: 'applied', page: 'current'}).nodes().to$();
     }
 
     getCurrentRowsInOrder() {
@@ -155,10 +159,6 @@ function tablesPreSetup() {
 }
 
 function tablesSetup() {
-    $('th.select').each(function () {
-        renderSelectHeader($(this));
-    });
-
     $('.delete-record-form').each(function () {
         deleteRecordFormSetup($(this).find('form'), $(this).data('table-id'));
     });
@@ -168,6 +168,12 @@ function tablesSetup() {
     });
 
     $('.table-wrapper').each(function () {
+        const tableId = $(this).data('table-id');
+
+        $('th.select').each(function () {
+            renderSelectHeader($(this), tableId);
+        });
+
         globalSearchSetup($(this));
         columnSearchSetup($(this));
     });
@@ -190,8 +196,8 @@ function globalSearchSetup(tableWrapper) {
 
     const searchInput = search.find('input');
     const searchWrapper = tableWrapper.find('.table-util-header .table-search');
-    const table = tableWrapper.find('table')
-    const tableId = table.attr('id');
+    const tableId = tableWrapper.data('table-id');
+    const table = tableWrapper.find(`#${tableId}`);
     const tableWidget = window.tableWidgets[`#${tableId}`];
 
     searchInput.addClass('form-control').attr('placeholder', 'Search').attr('type', 'text');
@@ -218,7 +224,8 @@ function globalSearchInputHandler(inputField, table, tableWidget) {
 
 
 function columnSearchSetup(tableWrapper) {
-    const table = tableWrapper.find('table')
+    const tableId = tableWrapper.data('table-id');
+    const table = tableWrapper.find(`#${tableId}`);
     const tableWidget = window.tableWidgets[`#${table.attr('id')}`]
 
     tableWrapper.find('.column-search').on('click', function (e) {
@@ -230,7 +237,7 @@ function columnSearchSetup(tableWrapper) {
 
 
 function columnSearchInputHandler(inputField, table, tableWidget) {
-    tableWidget.table.column(inputField.closest('th')).search(inputField.val()).draw();
+    tableWidget.DTObj.column(inputField.closest('th')).search(inputField.val()).draw();
 
     if (table.data('deselect-on-filter'))
         tableWidget.toggleSelectRows(tableWidget.getFilteredOutRows(), false);
@@ -262,8 +269,9 @@ function lengthMenuSetup() {
 function refreshButtonClickHandler(button) {
     const tableId = button.data('refresh-target');
     const tableWidget = window.tableWidgets[`#${tableId}`];
-    tableWidget.table.ajax.reload(function () {
-        tableWidget.table.columns.adjust().draw();
+    tableWidget.DTObj.ajax.reload(function () {
+        tableWidget.DTObj.columns.adjust().draw();
+        tableWidget.updateSelectHeader();
         $(`#${tableId}`).trigger('init.dt');
     });
 }
@@ -458,13 +466,13 @@ function renderDeleteField(data, type, row, meta) {
 }
 
 
-function renderSelectHeader(header) {
+function renderSelectHeader(header, tableId) {
     const checkbox = $('<input>')
         .attr('type', 'checkbox')
         .attr('class', 'form-check-input select-header-checkbox')
         .attr('data-state', 'off')
-        .on('click', function (e) {
-            selectHeaderClickHandler(e, $(this));
+        .on('click', function () {
+            selectHeaderClickHandler($(this), tableId);
         });
     header.append(checkbox);
 }
@@ -472,9 +480,8 @@ function renderSelectHeader(header) {
 
 // ------------------------------- special field click handlers ------------------------------- //
 
-function selectHeaderClickHandler(e, checkbox) {
-    const table = checkbox.closest('table')
-    const tableId = table.attr('id');
+function selectHeaderClickHandler(checkbox, tableId) {
+    const table = checkbox.closest('.table-wrapper').find(`#${tableId}`);
     const tableWidget = window.tableWidgets[`#${tableId}`];
 
     tableWidget.toggleSelectAll(
