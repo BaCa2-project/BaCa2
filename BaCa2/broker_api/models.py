@@ -103,7 +103,8 @@ class BrokerSubmit(models.Model):
             submit_path=self.solution
         )
         try:
-            r = requests.post(url, json=message.model_dump_json())
+            r = requests.post(url, headers={'content-type': 'application/json'},
+                              data=message.model_dump_json())
         except requests.exceptions.ConnectionError:
             return message, -1
         except requests.exceptions.ChunkedEncodingError:
@@ -198,10 +199,8 @@ class BrokerSubmit(models.Model):
         :raises PermissionError: if password in response is wrong
         """
         course_name, submit_id = brcom.split_broker_submit_id(response.submit_id)
-        print(f'{course_name=}, {submit_id=}')
         broker_submit = cls.objects.filter(course__short_name=course_name,
                                            submit_id=submit_id).first()
-        print(f'{broker_submit=}')
         if broker_submit is None:
             raise ValueError(f'No submit with broker_id {response.submit_id} exists.')
         if response.pass_hash != broker_submit.hash_password(settings.BACA_PASSWORD):
@@ -243,7 +242,9 @@ class BrokerSubmit(models.Model):
         """
         broker_submit = cls.authenticate(response)
         broker_submit.update_status(cls.StatusEnum.ERROR)
-        broker_submit.submit.end_with_error(ResultStatus.INT, response.error)
+        broker_submit.submit.end_with_error(ResultStatus.INT,
+                                            response.error_data['message'] + '\n' +
+                                            response.error_data['traceback'])
 
     @property
     def solution(self):

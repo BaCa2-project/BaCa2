@@ -9,7 +9,7 @@ from django.db.models.query import QuerySet
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from core.choices import BasicModelAction, ModelAction, PermissionCheck
+from core.choices import BasicModelAction, ModelAction, PermissionCheck, UserJob
 from course.manager import create_course as create_course_db
 from course.manager import delete_course as delete_course_db
 from course.routing import InCourse
@@ -40,11 +40,11 @@ class UserManager(BaseUserManager):
 
     @transaction.atomic
     def _create_user(
-            self,
-            email: str,
-            password: str,
-            is_superuser: bool,
-            **other_fields
+        self,
+        email: str,
+        is_superuser: bool,
+        password: str | None,
+        **other_fields
     ) -> 'User':
         """
         Create a new :py:class:`User` object along with its :py:class:`Settings` object. This
@@ -71,12 +71,15 @@ class UserManager(BaseUserManager):
             user_settings=self._create_settings(),
             **other_fields
         )
-        user.set_password(password)
+        if password:
+            user.set_password(password)
+        else:
+            user.set_unusable_password()
         user.save(using='default')
         return user
 
     @transaction.atomic
-    def create_user(self, email: str, password: str, **other_fields) -> 'User':
+    def create_user(self, email: str, password: str = None, **other_fields) -> 'User':
         """
         Create a new :py:class:`User` without moderation privileges.
 
@@ -1208,6 +1211,21 @@ class User(AbstractBaseUser):
         blank=False
     )
 
+    usos_id = models.BigIntegerField(
+        verbose_name='USOS id',
+        null=True,
+        blank=True,
+    )
+
+    user_job = models.CharField(
+        verbose_name=_('user job'),
+        max_length=2,
+        blank=False,
+        null=False,
+        default='ST',
+        choices=UserJob.choices
+    )
+
     # ---------------------------------- Authentication data ----------------------------------- #
 
     #: Indicates whether user has all available moderation privileges.
@@ -1367,6 +1385,10 @@ class User(AbstractBaseUser):
                 return True
         return False
 
+    @property
+    def is_uj_user(self) -> bool:
+        return self.usos_id is not None
+
     # ---------------------------------- Permission editing ----------------------------------- #
 
     @transaction.atomic
@@ -1523,10 +1545,10 @@ class User(AbstractBaseUser):
         raise ValueError(f'Invalid permission check type: {permission_check}')
 
     def has_basic_model_permissions(
-            self,
-            model: model_cls,
-            permissions: BasicModelAction | List[BasicModelAction] = 'all',
-            permission_check: PermissionCheck = PermissionCheck.GEN
+        self,
+        model: model_cls,
+        permissions: BasicModelAction | List[BasicModelAction] = 'all',
+        permission_check: PermissionCheck = PermissionCheck.GEN
     ) -> bool:
         """
         Check whether a user possesses a specified basic permission/list of basic permissions for a
@@ -1607,10 +1629,10 @@ class User(AbstractBaseUser):
         return self.has_course_permission(action.label, course)
 
     def has_basic_course_model_permissions(
-            self,
-            model: model_cls,
-            course: Course | str | int,
-            permissions: BasicModelAction | List[BasicModelAction] = 'all'
+        self,
+        model: model_cls,
+        course: Course | str | int,
+        permissions: BasicModelAction | List[BasicModelAction] = 'all'
     ) -> bool:
         """
         Check whether a user possesses a specified permission/list of permissions for a given
@@ -1696,6 +1718,23 @@ class User(AbstractBaseUser):
         :rtype: List[:class:`Course`]
         """
         return Course.objects.filter(role_set__user=self)
+
+    @staticmethod
+    def get_user_job(
+        is_student: bool = False,
+        is_doctoral: bool = False,
+        is_employee: bool = False,
+        is_admin: bool = False,
+    ):
+        if is_admin:
+            return UserJob.AD
+        if is_employee:
+            return UserJob.EM
+        if is_doctoral:
+            return UserJob.DC
+        if is_student:
+            return UserJob.ST
+        return UserJob.ST
 
     # --------------------------------------- Deletion ----------------------------------------- #
 

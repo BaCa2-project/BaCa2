@@ -110,3 +110,23 @@ class SideNav(Widget):
 
     def get_context(self) -> Dict[str, Any]:
         return super().get_context() | {'tabs': self.tabs, 'toggle_button': self.toggle_button}
+
+    def add_tab(self, tab_name: str, sub_tabs: List[str] = None) -> None:
+        """
+        Adds a new tab to the side navigation.
+
+        :param tab_name: Name of the tab to add.
+        :type tab_name: str
+        :param sub_tabs: List of sub-tab names.
+        :type sub_tabs: List[str]
+        """
+        new_tab = {
+            'name': tab_name,
+            'data_id': SideNav.normalize_tab_name(tab_name) + '-tab',
+            'sub_tabs': []
+        }
+        if sub_tabs:
+            new_tab['sub_tabs'] = [{'name': sub_tab_name,
+                                    'data_id': SideNav.normalize_tab_name(sub_tab_name) + '-tab'}
+                                   for sub_tab_name in sub_tabs]
+        self.tabs.append(new_tab)

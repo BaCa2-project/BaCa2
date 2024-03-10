@@ -1,0 +1,16 @@
+{% load static %}
+<div class="code-block card" id="{{ codeblock.name }}">
+    {% if codeblock.title %}
+        <div class="card-header">
+            <h5 class="card-title mb-0">{{ codeblock.title }}</h5>
+        </div>
+    {% endif %}
+    <div class="card-body">
+        <pre class="code-block" remove-initial-line-feed="true">
+            <code class="language-{{ codeblock.language }}
+                    {% if codeblock.show_line_numbers %}line-numbers{% endif %}">
+                {{ codeblock.code }}
+            </code>
+        </pre>
+    </div>
+</div>
