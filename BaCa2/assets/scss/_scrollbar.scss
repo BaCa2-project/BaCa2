@@ -1,0 +1,24 @@
+@import "baca2_variables";
+@import "functions";
+
+::-webkit-scrollbar {
+    width: $scrollbar_width;
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: $scrollbar_width;
+    border: 6px solid transparent;
+    background-clip: content-box;
+}
+
+@each $theme, $map in $scrollbar_theme_variables {
+    [data-bs-theme="#{$theme}"] {
+        ::-webkit-scrollbar-thumb {
+            background-color: safe_get($map, $scrollbar_default_variables, color);
+
+            &:hover {
+                background-color: safe_get($map, $scrollbar_default_variables, color_hover);
+            }
+        }
+    }
+}

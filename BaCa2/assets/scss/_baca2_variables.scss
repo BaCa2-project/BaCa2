@@ -91,7 +91,22 @@ $card_sizes: (
         l: 40rem
 );
 
-// ------------------------------------------ navbar ------------------------------------------- //
+// ----------------------------------------- scrollbar ---------------------------------------- //
+
+$scrollbar_width: 20px;
+$scrollbar_default_variables: (
+        color: $pale_muted,
+        color_hover: $light_muted,
+);
+$scrollbar_theme_variables: (
+        light: (),
+        dark: (
+                color: $dark_muted,
+                color_hover: $light_muted,
+        )
+);
+
+// ------------------------------------------ navbar ------------------------------------------ //
 
 $navbar_default_variables: (
         bg: $light,
@@ -166,6 +181,8 @@ $table_default_variables: (
         selected_row_bg_color: rgba(0, 0, 0, 0.08),
         row_bg_color_hover: rgba(0, 0, 0, 0.08),
         util_header_bg_color: $light,
+        resize_handle_color: $light,
+        resize_handle_color_hover: rgba(0, 0, 0, 0.03),
 );
 $table_theme_variables: (
         light: (),
@@ -173,6 +190,8 @@ $table_theme_variables: (
                 util_header_bg_color: rgba(0, 0, 0, 0.3),
                 selected_row_bg_color: rgba(255, 255, 255, 0.03),
                 row_bg_color_hover: rgba(255, 255, 255, 0.03),
+                resize_handle_color: rgba(0, 0, 0, 0.3),
+                resize_handle_color_hover: rgba(0, 0, 0, 0.4),
         )
 );
 

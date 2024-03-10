@@ -1,9 +1,10 @@
 // ------------------------------------ table widget class ------------------------------------ //
 
 class TableWidget {
-    constructor(tableId, table) {
-        this.tableId = tableId;
-        this.table = table;
+    constructor(tableId, DTObj) {
+        this.DTObj = DTObj;
+        this.table = $(`#${tableId}`);
+        this.widgetWrapper = this.table.closest('.table-wrapper');
         this.lastSelectedRow = null;
         this.lastDeselectedRow = null;
     }
@@ -37,8 +38,8 @@ class TableWidget {
         const rows = this.getRowsInOrder();
         const currentIndex = this.getRowIndex(row)
         const lastIndex = on ?
-            this.getRowIndex(this.lastSelectedRow) :
-            this.getRowIndex(this.lastDeselectedRow);
+                          this.getRowIndex(this.lastSelectedRow) :
+                          this.getRowIndex(this.lastDeselectedRow);
 
         let selecting = false;
         let last = false;
@@ -79,13 +80,12 @@ class TableWidget {
     }
 
     updateSelectHeader() {
-        const table = $(`#${this.tableId}`).closest('.table-wrapper');
-        const headerCheckbox = table.find('.select-header-checkbox');
+        const headerCheckbox = this.widgetWrapper.find('.select-header-checkbox');
         let allSelected = true;
         let noneSelected = true;
-        let rows = this.getRowsInOrder();
+        let rows = this.getCurrentPageRowsInOrder();
 
-        if (table.hasClass('filtered'))
+        if (this.table.hasClass('filtered'))
             rows = this.getCurrentRowsInOrder();
 
         rows.each(function () {
@@ -113,41 +113,31 @@ class TableWidget {
     // ------------------------------------ getter methods ------------------------------------ //
 
     getRowsInOrder() {
-        return this.table
-                   .rows({order: 'applied'})
-                   .nodes().to$();
+        return this.DTObj.rows({order: 'applied'}).nodes().to$();
+    }
+
+    getCurrentPageRowsInOrder() {
+        return this.DTObj.rows({order: 'applied', page: 'current'}).nodes().to$();
     }
 
     getCurrentRowsInOrder() {
-        return this.table
+        return this.DTObj
                    .rows({order: 'applied', page: 'current', search: 'applied'})
                    .nodes().to$();
     }
 
-    getCurrentSelectedRows() {
-        return this.getCurrentRowsInOrder().filter(function () {
-            return $(this).hasClass('row-selected');
-        });
-    }
-
     getAllSelectedRows() {
-        return this.table.rows().nodes().to$().filter(function () {
+        return this.DTObj.rows().nodes().to$().filter(function () {
             return $(this).hasClass('row-selected');
         });
     }
 
     getFilteredOutRows() {
-        return this.table
-                   .rows({search: 'removed'})
-                   .nodes().to$();
+        return this.DTObj.rows({search: 'removed'}).nodes().to$();
     }
 
     getRowIndex(row) {
-        return this.table.row(row).index();
-    }
-
-    getColumnIndex(colHeader) {
-        return this.table.column(colHeader).index();
+        return this.DTObj.row(row).index();
     }
 
     // ----------------------------------- row check methods ---------------------------------- //
@@ -164,11 +154,11 @@ class TableWidget {
 
 // --------------------------------------- tables setup --------------------------------------- //
 
-function tablesSetup() {
-    $('th.select').each(function () {
-        renderSelectHeader($(this));
-    });
+function tablesPreSetup() {
+    tableResizeSetup();
+}
 
+function tablesSetup() {
     $('.delete-record-form').each(function () {
         deleteRecordFormSetup($(this).find('form'), $(this).data('table-id'));
     });
@@ -178,6 +168,12 @@ function tablesSetup() {
     });
 
     $('.table-wrapper').each(function () {
+        const tableId = $(this).data('table-id');
+
+        $('th.select').each(function () {
+            renderSelectHeader($(this), tableId);
+        });
+
         globalSearchSetup($(this));
         columnSearchSetup($(this));
     });
@@ -185,6 +181,8 @@ function tablesSetup() {
     $('.link-records').each(function () {
         recordLinkSetup($(this).attr('id'));
     });
+
+    lengthMenuSetup();
 }
 
 
@@ -198,8 +196,8 @@ function globalSearchSetup(tableWrapper) {
 
     const searchInput = search.find('input');
     const searchWrapper = tableWrapper.find('.table-util-header .table-search');
-    const table = tableWrapper.find('table')
-    const tableId = table.attr('id');
+    const tableId = tableWrapper.data('table-id');
+    const table = tableWrapper.find(`#${tableId}`);
     const tableWidget = window.tableWidgets[`#${tableId}`];
 
     searchInput.addClass('form-control').attr('placeholder', 'Search').attr('type', 'text');
@@ -210,6 +208,7 @@ function globalSearchSetup(tableWrapper) {
     searchWrapper.append(searchInput);
     search.remove();
 }
+
 
 function globalSearchInputHandler(inputField, table, tableWidget) {
     if (table.data('deselect-on-filter'))
@@ -223,8 +222,10 @@ function globalSearchInputHandler(inputField, table, tableWidget) {
     tableWidget.updateSelectHeader();
 }
 
+
 function columnSearchSetup(tableWrapper) {
-    const table = tableWrapper.find('table')
+    const tableId = tableWrapper.data('table-id');
+    const table = tableWrapper.find(`#${tableId}`);
     const tableWidget = window.tableWidgets[`#${table.attr('id')}`]
 
     tableWrapper.find('.column-search').on('click', function (e) {
@@ -234,8 +235,9 @@ function columnSearchSetup(tableWrapper) {
     });
 }
 
+
 function columnSearchInputHandler(inputField, table, tableWidget) {
-    tableWidget.table.column(inputField.closest('th')).search(inputField.val()).draw();
+    tableWidget.DTObj.column(inputField.closest('th')).search(inputField.val()).draw();
 
     if (table.data('deselect-on-filter'))
         tableWidget.toggleSelectRows(tableWidget.getFilteredOutRows(), false);
@@ -249,13 +251,27 @@ function columnSearchInputHandler(inputField, table, tableWidget) {
 }
 
 
+// ---------------------------------------- length menu --------------------------------------- //
+
+function lengthMenuSetup() {
+    $('.dataTables_length').each(function () {
+        const label = $(this).find('label');
+        label.addClass('d-flex align-items-center');
+
+        const select = $(this).find('select');
+        select.addClass('form-select form-select-fm auto-width ms-2 me-2');
+    });
+}
+
+
 // --------------------------------------- table buttons -------------------------------------- //
 
 function refreshButtonClickHandler(button) {
     const tableId = button.data('refresh-target');
     const tableWidget = window.tableWidgets[`#${tableId}`];
-    tableWidget.table.ajax.reload(function () {
-        tableWidget.table.columns.adjust().draw();
+    tableWidget.DTObj.ajax.reload(function () {
+        tableWidget.DTObj.columns.adjust().draw();
+        tableWidget.updateSelectHeader();
         $(`#${tableId}`).trigger('init.dt');
     });
 }
@@ -268,6 +284,7 @@ function deleteRecordFormSetup(form, tableId) {
         window.tableWidgets[`#${tableId}`].table.ajax.reload();
     });
 }
+
 
 function recordLinkSetup(tableId) {
     $(`#${tableId}`).on('click', 'tbody tr', function () {
@@ -311,6 +328,7 @@ function initTable(
         tableParams['order'] = [];
 
     if (limitHeight) {
+        tableParams['scrollResize'] = true;
         tableParams['scrollY'] = height;
         tableParams['scrollCollapse'] = true;
     }
@@ -323,37 +341,13 @@ function initTable(
     });
     tableParams['columns'] = columns;
 
-    if (paging) {
-        tableParams['pageLength'] = paging['page_length'];
-
-        if (JSON.parse(paging['allow_length_change'])) {
-            const pagingMenuVals = [];
-            const pagingMenuLabels = [];
-
-            paging['length_change_options'].forEach(option => {
-                pagingMenuVals.push(option);
-                pagingMenuLabels.push(option === -1 ? 'All' : `${option}`);
-            })
-
-            tableParams['lengthMenu'] = [pagingMenuVals, pagingMenuLabels];
-        } else
-            tableParams['lengthChange'] = false;
-
-        if (JSON.parse(paging['deselect_on_page_change']))
-            table.on('page.dt', function () {
-                const selectHeaderCheckbox = $(`#${tableId}`).find('th .select-header-checkbox');
-                window.tableWidgets[`#${tableId}`].toggleSelectAll(false);
-                selectHeaderCheckbox.prop('checked', false);
-                selectHeaderCheckbox.prop('indeterminate', false);
-            });
-    } else
-        tableParams['paging'] = false;
-
     const columnDefs = [];
     cols.forEach(col => columnDefs.push(createColumnDef(col, cols.indexOf(col))));
     tableParams['columnDefs'] = columnDefs;
 
     tableParams['rowCallback'] = createRowCallback(linkFormatString);
+
+    createPagingDef(paging, tableParams, table, tableId);
 
     if (!window.tableWidgets)
         window.tableWidgets = {};
@@ -367,11 +361,45 @@ function initTable(
         setRefresh(tableId, refreshInterval);
 }
 
+
+function createPagingDef(paging, DTParams, table, tableId) {
+    if (paging) {
+        DTParams['pageLength'] = paging['page_length'];
+
+        if (JSON.parse(paging['allow_length_change'])) {
+            const pagingMenuVals = [];
+            const pagingMenuLabels = [];
+
+            paging['length_change_options'].forEach(option => {
+                pagingMenuVals.push(option);
+                pagingMenuLabels.push(option === -1 ? 'All' : `${option}`);
+            })
+
+            DTParams['lengthMenu'] = [pagingMenuVals, pagingMenuLabels];
+        } else
+            DTParams['lengthChange'] = false;
+
+        if (JSON.parse(paging['deselect_on_page_change'])) {
+            const tableWrapper = table.closest('.table-wrapper');
+
+            table.on('page.dt', function () {
+                const selectHeaderCheckbox = tableWrapper.find('th .select-header-checkbox');
+                window.tableWidgets[`#${tableId}`].toggleSelectAll(false);
+                selectHeaderCheckbox.prop('checked', false);
+                selectHeaderCheckbox.prop('indeterminate', false);
+            });
+        }
+    } else
+        DTParams['paging'] = false;
+}
+
+
 function setRefresh(tableId, interval) {
     setInterval(function () {
         window.tableWidgets[`#${tableId}`].table.ajax.reload();
     }, interval);
 }
+
 
 function createRowCallback(linkFormatString) {
     return function (row, data) {
@@ -441,21 +469,22 @@ function renderDeleteField(data, type, row, meta) {
 }
 
 
-function renderSelectHeader(header) {
+function renderSelectHeader(header, tableId) {
     const checkbox = $('<input>')
         .attr('type', 'checkbox')
         .attr('class', 'form-check-input select-header-checkbox')
         .attr('data-state', 'off')
-        .on('click', function (e) {
-            selectHeaderClickHandler(e, $(this));
+        .on('click', function () {
+            selectHeaderClickHandler($(this), tableId);
         });
     header.append(checkbox);
 }
 
 
-function selectHeaderClickHandler(e, checkbox) {
-    const table = checkbox.closest('table')
-    const tableId = table.attr('id');
+// ------------------------------- special field click handlers ------------------------------- //
+
+function selectHeaderClickHandler(checkbox, tableId) {
+    const table = checkbox.closest('.table-wrapper').find(`#${tableId}`);
     const tableWidget = window.tableWidgets[`#${tableId}`];
 
     tableWidget.toggleSelectAll(
@@ -467,8 +496,6 @@ function selectHeaderClickHandler(e, checkbox) {
     }
 }
 
-
-// ------------------------------- special field click handlers ------------------------------- //
 
 function selectCheckboxClickHandler(e, checkbox) {
     e.stopPropagation();
@@ -497,4 +524,70 @@ function deleteButtonClickHandler(e, button) {
     console.log(input.val());
     console.log(form.find('.submit-btn'));
     form.find('.submit-btn')[0].click();
+}
+
+
+// -------------------------------------- resizable table ------------------------------------- //
+
+function tableResizeSetup() {
+    $(document).on('init.dt', function (e) {
+        const table = $(e.target);
+        const resizeWrapper = table.closest('.resize-wrapper');
+
+        if (!resizeWrapper.length) return;
+
+        const DTLength = resizeWrapper.find('.dataTables_length');
+        const DTInfo = resizeWrapper.find('.dataTables_info');
+        const DTPaging = resizeWrapper.find('.dataTables_paginate');
+
+        const lengthSelect = $('<div>').addClass('dataTables_wrapper mb-1');
+        lengthSelect.append(DTLength);
+        lengthSelect.insertBefore(resizeWrapper);
+
+        const pagingInfo = $('<div>').addClass('dataTables_wrapper mb-1')
+        pagingInfo.append(DTInfo);
+        pagingInfo.append(DTPaging);
+        pagingInfo.insertAfter(resizeWrapper);
+
+        const DTScroll = resizeWrapper.find('.dataTables_scroll');
+        const DTScrollHead = DTScroll.find('.dataTables_scrollHead');
+        const DTScrollBody = DTScroll.find('.dataTables_scrollBody');
+
+        const bodyHeight = DTScroll.height() - DTScrollHead.height();
+
+        DTScrollBody.height(bodyHeight);
+        DTScrollBody.css('max-height', bodyHeight);
+
+        const resizeHandle = $(this).find('.resize-handle');
+        const rowHeight = table.find('tbody tr').first().height();
+
+        resizeHandle.on('mousedown', function (e) {
+            e.preventDefault();
+            const startY = e.pageY;
+            const startHeight = resizeWrapper.height();
+
+
+            $(document).on('mousemove', function (e) {
+                e.preventDefault();
+                let newHeight = startHeight + e.pageY - startY;
+                let newBodyHeight = newHeight - DTScrollHead.height();
+
+                if (newBodyHeight < rowHeight) {
+                    newBodyHeight = rowHeight;
+                    newHeight = newBodyHeight + DTScrollHead.height();
+                }
+
+                if (newBodyHeight > table.height()) {
+                    newBodyHeight = table.height();
+                    newHeight = newBodyHeight + DTScrollHead.height();
+                }
+
+                resizeWrapper.height(newHeight);
+                DTScrollBody.height(newBodyHeight);
+                DTScrollBody.css('max-height', newBodyHeight);
+            }).on('mouseup', function () {
+                $(document).off('mousemove mouseup');
+            });
+        });
+    });
 }
