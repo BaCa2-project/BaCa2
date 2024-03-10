@@ -1,4 +1,6 @@
+import csv
 from pathlib import Path
+from typing import List, Optional, Sequence, Tuple
 
 from .misc import random_id
 
@@ -15,6 +17,12 @@ class FileHandler:
     :type file_data: Any
     :raises FileNotFoundError: If the path does not exist or is not a directory
     """
+
+    class FileContentError(Exception):
+        """
+        An exception raised when the file content is invalid.
+        """
+        pass
 
     def __init__(self, path: Path, extension: str, file_data):
         if not path.exists() or not path.is_dir():
@@ -38,6 +46,62 @@ class FileHandler:
         """
         self.path.unlink()
 
+
+class CsvFileHandler(FileHandler):
+    def __init__(self, path: Path, file_data, fieldnames: Optional[List[str]] = None):
+        super().__init__(path, 'csv', file_data)
+        self.fieldnames = fieldnames
+        self.data = None
+
+    def read_csv(self,
+                 force_fieldnames: Optional[List[str]] = None,
+                 restkey: Optional[str] = 'restkey',
+                 ignore_first_line: bool = False) -> Tuple[Sequence[str], List[dict]]:
+        """
+        Reads the csv file and returns the data as a list of dictionaries.
+
+        :param force_fieldnames: The field names of the csv file, if not provided the first row of
+            the csv file will be used as the field names.
+        :type force_fieldnames: Optional[List[str]]
+        :param restkey: The key used to collect all the non-matching fields. Default is 'restkey'.
+        :type restkey: Optional[str]
+        :param ignore_first_line: If True, the first line of the csv file will be ignored.
+        :type ignore_first_line: bool
+
+        :return: A tuple containing the field names and the data as list of dictionaries.
+        :rtype: Tuple[List[str], List[dict]]
+        """
+        with open(self.path, newline='', encoding='utf-8') as csvfile:
+            dialect = csv.Sniffer().sniff(csvfile.read(1024))
+            csvfile.seek(0)
+
+            if force_fieldnames and ignore_first_line:
+                csvfile.readline()
+
+            reader = csv.DictReader(csvfile,
+                                    restkey=restkey,
+                                    fieldnames=force_fieldnames,
+                                    dialect=dialect)
+            fieldnames = reader.fieldnames
+            data = [row for row in reader]
+
+        self.data = data
+        self.fieldnames = fieldnames
+        return fieldnames, data
+
+    def validate(self) -> None:
+        """
+        Validates the csv file.
+
+
+        """
+        if not self.data:
+            raise self.FileContentError('The csv file has not been read yet')
+        for row in self.data:
+            for field_name in self.fieldnames:
+                if field_name not in row:
+                    raise self.FileContentError(
+                        f'The field {field_name} is missing in the csv file (row: {row})')
 
 class DocFileHandler:
     """

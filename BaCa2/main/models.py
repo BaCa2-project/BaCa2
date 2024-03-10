@@ -116,6 +116,24 @@ class UserManager(BaseUserManager):
                                  is_superuser=True,
                                  **other_fields)
 
+    def get_or_create(self, email: str, **kwargs):
+        """
+        Get or create a user with given email. If a user with given email already exists, the user
+        is returned. If no user with given email exists, a new user is created with given email and
+        any other provided fields.
+
+        :param email: Email of the user to get or create.
+        :type email: str
+        :param kwargs: Values for non-required user fields.
+
+        :return: The user with given email or the newly created user.
+        :rtype: :py:class:`User`
+        """
+        try:
+            return self.get(email=email)
+        except self.model.DoesNotExist:
+            return self.create_user(email=email, **kwargs)
+
     @staticmethod
     @transaction.atomic
     def delete_user(user: str | int | User) -> None:
@@ -407,6 +425,7 @@ class Course(models.Model):
             ('remove_course_member', _('Can remove course members')),
             ('change_course_member_role', _('Can change course member\'s role')),
             ('add_course_admin', _('Can add course admins')),
+            ('add_course_members_csv', _('Can add course members from CSV')),
 
             # Role related permissions
             ('view_course_role', _('Can view course role')),
@@ -429,6 +448,7 @@ class Course(models.Model):
         # Member related actions
         VIEW_MEMBER = 'view_member', 'view_course_member'
         ADD_MEMBER = 'add_member', 'add_course_member'
+        ADD_MEMBERS_CSV = 'add_members_csv', 'add_course_members_csv'
         DEL_MEMBER = 'remove_member', 'remove_course_member'
         CHANGE_MEMBER_ROLE = 'change_member_role', 'change_course_member_role'
         ADD_ADMIN = 'add_admin', 'add_course_admin'
@@ -770,7 +790,8 @@ class Course(models.Model):
     @transaction.atomic
     def add_members(self,
                     users: List[str] | List[int] | List[User],
-                    role: str | int | Role) -> None:
+                    role: str | int | Role,
+                    ignore_errors: bool = False) -> None:
         """
         Assign given list of users to the course with given role. If no role is specified, the users
         are assigned to the course with the default role. Cannot be used to assign users to the
@@ -783,8 +804,11 @@ class Course(models.Model):
             assigned to the course with the default role. The role can be specified as either the
             role object, its id or its name.
         :type role: Role | str | int | None
+        :param ignore_errors: If set to True, the method will not raise an error if a user is not a
+            member of the course. Instead, the user will be skipped.
+        :type ignore_errors: bool
         """
-        ModelsRegistry.get_role(role, self).add_members(users)
+        ModelsRegistry.get_role(role, self).add_members(users, ignore_errors=ignore_errors)
 
     @transaction.atomic
     def add_admin(self, user: str | int | User) -> None:
@@ -2007,37 +2031,46 @@ class Role(models.Model):
         return self.user_set.filter(id=ModelsRegistry.get_user_id(user)).exists()
 
     @transaction.atomic
-    def add_member(self, user: str | int | User) -> None:
+    def add_member(self, user: str | int | User, ignore_errors: bool = False) -> None:
         """
         Add a user to the role.
 
         :param user: User to add. The user can be specified as either the user object, its email or
             its id.
         :type user: str | int | User
+        :param ignore_errors: If set to `True`, the method will not raise an error if the user is
+            already assigned to the role.
+        :type ignore_errors: bool
 
         :raises Role.RoleMemberError: If the user is already assigned to the role.
         """
         user = ModelsRegistry.get_user(user)
 
-        if self.user_is_member(user):
+        user_is_member = self.user_is_member(user)
+        if user_is_member and not ignore_errors:
             raise Role.RoleMemberError(f'Attempted to add user {user} to role {self} who is '
                                        f'already assigned to it')
-
-        self.user_set.add(user)
+        if not user_is_member:
+            self.user_set.add(user)
 
     @transaction.atomic
-    def add_members(self, users: List[str] | List[int] | List[User]) -> None:
+    def add_members(self,
+                    users: List[str] | List[int] | List[User],
+                    ignore_errors: bool = False) -> None:
         """
         Add multiple users to the role.
 
         :param users: List of users to add. The users can be specified as either the user objects,
             their emails or their ids.
         :type users: List[str] | List[int] | List[User]
+        :param ignore_errors: If set to `True`, the method will not raise an error if a user is
+            already assigned to the role.
+        :type ignore_errors: bool
         """
         users = ModelsRegistry.get_users(users)
 
         for user in users:
-            self.add_member(user)
+            self.add_member(user, ignore_errors=ignore_errors)
 
     @transaction.atomic
     def remove_member(self, user: str | int | User) -> None:
