@@ -1055,11 +1055,18 @@ html, body {
   --bs-form-valid-border-color: $red;
 }
 
-[data-bs-theme=light] .code-block pre.code-block {
+pre.code-block.wrap-lines {
+  overflow: hidden;
+}
+pre.code-block.wrap-lines code {
+  white-space: pre-wrap;
+}
+
+[data-bs-theme=light] pre.code-block {
   background: rgba(0, 0, 0, 0.3) !important;
 }
 
-[data-bs-theme=dark] .code-block pre.code-block {
+[data-bs-theme=dark] pre.code-block {
   background: rgba(0, 0, 0, 0.3) !important;
 }
 

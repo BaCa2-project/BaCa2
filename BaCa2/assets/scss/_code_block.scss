@@ -1,12 +1,37 @@
 @import "baca2_variables";
 @import "functions";
 
+pre.code-block {
+    &.wrap-lines {
+        overflow: hidden;
+
+        code {
+            white-space: pre-wrap;
+        }
+    }
+}
+
 @each $theme, $map in $codeblock_theme_variables {
     $bg_color: safe_get($map, $codeblock_default_variables, bg_color);
 
-    [data-bs-theme="#{$theme}"] .code-block {
+    [data-bs-theme="#{$theme}"] {
         pre.code-block {
             background: $bg_color !important;
         }
+
+        .test-summary .compile-tabs-nav .nav-link.active {
+            background-color: $bg_color;
+        }
+    }
+}
+
+.test-summary {
+    .compile-tabs .code-block {
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+    }
+
+    .compile-tabs-nav {
+        overflow: hidden;
     }
 }
