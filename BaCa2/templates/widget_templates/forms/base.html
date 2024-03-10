@@ -28,9 +28,9 @@
         {% endblock %}
 
         <div class="form-footer">
-            <div class="row">
+            <div class="row ms-0 me-0">
                 {% if form_widget.refresh_button %}
-                    <div class="col-10">
+                    <div class="col-10 ps-0">
                 {% endif %}
                 <button class="submit-btn btn btn-primary w-100
                             {% if form_widget.submit_confirmation_popup %}
@@ -47,7 +47,7 @@
                 </button>
                 {% if form_widget.refresh_button %}
                     </div>
-                    <div class="col d-flex">
+                    <div class="col d-flex pe-0">
                         <div class="icon-wrapper icon-m w-100">
                             <button class="btn btn-primary form-refresh-button w-100" type="button">
                                 {% include 'icons/refresh.svg' %}
