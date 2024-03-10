@@ -379,13 +379,16 @@ function createPagingDef(paging, DTParams, table, tableId) {
         } else
             DTParams['lengthChange'] = false;
 
-        if (JSON.parse(paging['deselect_on_page_change']))
+        if (JSON.parse(paging['deselect_on_page_change'])) {
+            const tableWrapper = table.closest('.table-wrapper');
+
             table.on('page.dt', function () {
-                const selectHeaderCheckbox = $(`#${tableId}`).find('th .select-header-checkbox');
+                const selectHeaderCheckbox = tableWrapper.find('th .select-header-checkbox');
                 window.tableWidgets[`#${tableId}`].toggleSelectAll(false);
                 selectHeaderCheckbox.prop('checked', false);
                 selectHeaderCheckbox.prop('indeterminate', false);
             });
+        }
     } else
         DTParams['paging'] = false;
 }
