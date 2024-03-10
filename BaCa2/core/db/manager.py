@@ -5,7 +5,6 @@ from pathlib import Path
 from threading import Lock
 
 import psycopg2
-from libinjection import is_sql_injection
 
 logger = logging.getLogger(__name__)
 
@@ -196,8 +195,8 @@ class DBManager:
             raise self.SQLInjectionError(
                 'Reserved database name detected. Potential SQL injection.')
 
-        if is_sql_injection(db_name)['is_sqli']:
-            raise self.SQLInjectionError('SQL injection detected.')
+        # if is_sql_injection(db_name)['is_sqli']:
+        #     raise self.SQLInjectionError('SQL injection detected.')
 
     def create_db(self, db_name: str, **kwargs) -> None:
         """
