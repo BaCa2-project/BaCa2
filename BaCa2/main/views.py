@@ -538,7 +538,7 @@ class RoleView(BaCa2LoggedInView, UserPassesTestMixin):
             cols=[TextColumn(name='codename', header=_('Codename')),
                   TextColumn(name='name', header=_('Name'))],
             refresh_button=True,
-            height_limit=35
+            table_height=35
         )
         self.add_widget(context, permissions_table)
 
