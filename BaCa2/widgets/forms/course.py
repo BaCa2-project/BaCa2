@@ -565,7 +565,7 @@ class AddMembersFromCSVFormWidget(FormWidget):
             with.
         :type course_id: int
         :param form: AddMembersFromCSVForm to be base the widget on. If not provided, a new form
-        will be created.
+            will be created.
         :type form: :class:`AddMembersFromCSVForm`
         :param kwargs: Additional keyword arguments to be passed to the :class:`FormWidget`
             super constructor.
