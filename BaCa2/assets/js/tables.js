@@ -170,7 +170,7 @@ function tablesSetup() {
     $('.table-wrapper').each(function () {
         const tableId = $(this).data('table-id');
 
-        $('th.select').each(function () {
+        $(this).find('th.select').each(function () {
             renderSelectHeader($(this), tableId);
         });
 
