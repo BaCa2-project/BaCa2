@@ -1469,6 +1469,187 @@ class DeleteTaskFormWidget(FormWidget):
         )
 
 
+# ----------------------------------------- edit task ------------------------------------------ #
+
+class EditTaskForm(CourseModelForm):
+    """
+    Form for editing :class:`course.Task` records.
+    """
+
+    MODEL = Task
+    ACTION = Task.BasicAction.EDIT
+
+    task_title = AlphanumericStringField(label=_('Task title'), required=True)
+    round_ = ModelChoiceField(
+        label_format_string='[[name]] ([[f_start_date]] - [[f_deadline_date]])',
+        label=_('Round'),
+        required=True,
+    )
+    task_judge_mode = ChoiceField(label=_('Task judge mode'),
+                                  choices=TaskJudgingMode,
+                                  required=True)
+
+    # package settings
+    task_points = forms.FloatField(label=_('Task points'), required=False)
+    memory_limit = forms.CharField(label=_('Memory limit'), required=False)
+    # TODO: add memory amount field (low prio)
+    time_limit = forms.FloatField(label=_('Time limit [s]'), required=False)
+
+    # TODO: multi select field
+    allowed_extensions = forms.CharField(label=_('Allowed extensions'), required=False)
+    cpus = forms.IntegerField(label=_('CPUs'), required=False)
+
+    def __init__(self, *,
+                 course_id: int,
+                 task_id: int,
+                 form_instance_id: int = 0,
+                 request=None,
+                 **kwargs) -> None:
+        from course.views import RoundModelView
+
+        super().__init__(form_instance_id=form_instance_id, request=request, **kwargs)
+
+        self.fields['round_'].data_source_url = RoundModelView.get_url(
+            serialize_kwargs={'add_formatted_dates': True},
+            **{'course_id': course_id}
+        )
+        course = ModelsRegistry.get_course(course_id)
+        task = course.get_task(task_id)
+        package = task.package_instance.package
+
+        # initials
+        self.fields['task_title'].initial = task.title
+        # TODO: model choice field need to support initial value
+        self.fields['task_judge_mode'].initial = task.judging_mode
+        self.fields['task_points'].initial = task.points
+        self.fields['memory_limit'].initial = package['memory_limit']
+        self.fields['time_limit'].initial = package['time_limit']
+        self.fields['allowed_extensions'].initial = ', '.join(package['allowedExtensions'])
+        self.fields['cpus'].initial = package['cpus']
+
+        # test sets
+        for t_set in task.sets:
+            package_ts = package.sets(t_set.short_name)
+
+            self.fields[f'ts_{t_set.pk}_name'] = AlphanumericStringField(
+                label=_('Test set name'),
+                required=True,
+                initial=t_set.name
+            )
+            self.fields[f'ts_{t_set.pk}_name'].initial = package_ts['name']
+
+            self.fields[f'ts_{t_set.pk}_weight'] = forms.FloatField(
+                label=_('Test set weight'),
+                required=True,
+                initial=t_set.weight
+            )
+            self.fields[f'ts_{t_set.pk}_weight'].initial = package_ts['weight']
+
+            # TODO: add memory amount field (low prio)
+            self.fields[f'ts_{t_set.pk}_memory_limit'] = forms.CharField(
+                label=_('Memory limit'),
+                required=True,
+                initial=t_set.package_instance.package['memory_limit']
+            )
+            self.fields[f'ts_{t_set.pk}_memory_limit'].initial = package_ts['memory_limit']
+
+            self.fields[f'ts_{t_set.pk}_time_limit'] = forms.FloatField(
+                label=_('Time limit [s]'),
+                required=True,
+                initial=t_set.package_instance.package['time_limit']
+            )
+            self.fields[f'ts_{t_set.pk}_time_limit'].initial = package_ts['time_limit']
+
+            # single tests
+            for test in t_set.tests:
+                package_ts_t = package_ts.tests(test.short_name)
+
+                self.fields[f'ts_{t_set.pk}_t_{test.pk}_name'] = AlphanumericStringField(
+                    label=_('Test name'),
+                    required=True,
+                    initial=test.name
+                )
+                self.fields[f'ts_{t_set.pk}_t_{test.pk}_name'].initial = package_ts_t['name']
+
+                # TODO: add memory amount field (low prio)
+                self.fields[f'ts_{t_set.pk}_t_{test.pk}_memory_limit'] = forms.CharField(
+                    label=_('Memory limit'),
+                    required=True,
+                    initial=test.package_instance.package['memory_limit']
+                )
+                self.fields[f'ts_{t_set.pk}_t_{test.pk}_memory_limit'].initial = package_ts_t[
+                    'memory_limit']
+
+                self.fields[f'ts_{t_set.pk}_t_{test.pk}_time_limit'] = forms.FloatField(
+                    label=_('Time limit [s]'),
+                    required=True,
+                    initial=test.package_instance.package['time_limit']
+                )
+                self.fields[f'ts_{t_set.pk}_t_{test.pk}_time_limit'].initial = package_ts_t[
+                    'time_limit']
+
+                self.fields[f'ts_{t_set.pk}_t_{test.pk}_input'] = FileUploadField(
+                    label=_('Change input file'),
+                    allowed_extensions=['in'],
+                    required=False,
+                )
+
+                self.fields[f'ts_{t_set.pk}_t_{test.pk}_output'] = FileUploadField(
+                    label=_('Change output file'),
+                    allowed_extensions=['out'],
+                    required=False,
+                )
+
+    @classmethod
+    def handle_valid_request(cls, request) -> Dict[str, Any]:
+        logger.error(f'Not implemented. Request.POST: \n{request.POST}')
+        raise NotImplementedError('Not implemented')
+
+
+class EditTaskFormWidget(FormWidget):
+    """
+    This class is a form widget for the :class:`EditTaskForm`.
+    """
+
+    def __init__(self,
+                 request,
+                 course_id: int,
+                 task_id: int | None = None,
+                 form: CreateTaskForm = None,
+                 **kwargs) -> None:
+        """
+        Initialize the EditTaskFormWidget instance.
+
+        :param request: The HTTP request object received by the view this form widget
+            is rendered in.
+        :type request: HttpRequest
+        :param course_id: The ID of the course the view this form widget is rendered in
+            is associated with.
+        :type course_id: int
+        :param task_id: The ID of the task to be edited. If not provided,
+            a new form will be created.
+        :type task_id: int, optional
+        :param form: The EditTaskForm to be base the widget on. If not provided,
+            a new form will be created.
+        :type form: EditTaskForm, optional
+        """
+        from course.views import TaskModelView
+
+        if not form:
+            form = EditTaskForm(course_id=course_id,
+                                request=request,
+                                task_id=task_id)
+
+        super().__init__(
+            name='edit_task_form_widget',
+            request=request,
+            form=form,
+            post_target=TaskModelView.post_url(**{'course_id': course_id}),
+            button_text=_('Edit task'),
+            **kwargs
+        )
+
+
 # ========================================= SUBMISSION ========================================= #
 
 # -------------------------------------- create submission ------------------------------------- #
