@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from django import forms
 from django.conf import settings
@@ -1499,6 +1499,13 @@ class EditTaskForm(CourseModelForm):
     allowed_extensions = forms.CharField(label=_('Allowed extensions'), required=False)
     cpus = forms.IntegerField(label=_('CPUs'), required=False)
 
+    def add_field(self,
+                  fields: List[str],
+                  field: forms.Field,
+                  name: str) -> None:
+        fields.append(name)
+        self.fields[name] = field
+
     def __init__(self, *,
                  course_id: int,
                  task_id: int,
@@ -1518,7 +1525,7 @@ class EditTaskForm(CourseModelForm):
         package = task.package_instance.package
 
         # initials
-        self.fields['task_title'].initial = task.title
+        self.fields['task_title'].initial = task.task_name
         # TODO: model choice field need to support initial value
         self.fields['task_judge_mode'].initial = task.judging_mode
         self.fields['task_points'].initial = task.points
@@ -1527,78 +1534,101 @@ class EditTaskForm(CourseModelForm):
         self.fields['allowed_extensions'].initial = ', '.join(package['allowedExtensions'])
         self.fields['cpus'].initial = package['cpus']
 
+        self.general_fields = list(self.fields.keys())
+
+        self.set_groups = []
         # test sets
         for t_set in task.sets:
             package_ts = package.sets(t_set.short_name)
+            set_fields = []
+            set_group = {'name': t_set.short_name}
 
-            self.fields[f'ts_{t_set.pk}_name'] = AlphanumericStringField(
+            t_set_name = AlphanumericStringField(
                 label=_('Test set name'),
                 required=True,
-                initial=t_set.name
+                initial=t_set.short_name
             )
-            self.fields[f'ts_{t_set.pk}_name'].initial = package_ts['name']
+            self.add_field(fields=set_fields, field=t_set_name, name=f'ts_{t_set.pk}_name')
 
-            self.fields[f'ts_{t_set.pk}_weight'] = forms.FloatField(
+            t_set_weight = forms.FloatField(
                 label=_('Test set weight'),
                 required=True,
                 initial=t_set.weight
             )
-            self.fields[f'ts_{t_set.pk}_weight'].initial = package_ts['weight']
+            self.add_field(fields=set_fields, field=t_set_weight, name=f'ts_{t_set.pk}_weight')
 
             # TODO: add memory amount field (low prio)
-            self.fields[f'ts_{t_set.pk}_memory_limit'] = forms.CharField(
+            t_set_memory_limit = forms.CharField(
                 label=_('Memory limit'),
                 required=True,
-                initial=t_set.package_instance.package['memory_limit']
+                initial=package_ts['memory_limit']
             )
-            self.fields[f'ts_{t_set.pk}_memory_limit'].initial = package_ts['memory_limit']
+            self.add_field(fields=set_fields, field=t_set_memory_limit,
+                           name=f'ts_{t_set.pk}_memory_limit')
 
-            self.fields[f'ts_{t_set.pk}_time_limit'] = forms.FloatField(
+            t_set_time_limit = forms.FloatField(
                 label=_('Time limit [s]'),
                 required=True,
-                initial=t_set.package_instance.package['time_limit']
+                initial=package_ts['time_limit']
             )
-            self.fields[f'ts_{t_set.pk}_time_limit'].initial = package_ts['time_limit']
+            self.add_field(fields=set_fields, field=t_set_time_limit,
+                           name=f'ts_{t_set.pk}_time_limit')
+
+            set_group['fields'] = set_fields
+            test_groups = []
 
             # single tests
             for test in t_set.tests:
                 package_ts_t = package_ts.tests(test.short_name)
+                test_group = {'name': test.short_name}
+                test_fields = []
 
-                self.fields[f'ts_{t_set.pk}_t_{test.pk}_name'] = AlphanumericStringField(
+                t_set_t_name = AlphanumericStringField(
                     label=_('Test name'),
                     required=True,
-                    initial=test.name
+                    initial=test.short_name
                 )
-                self.fields[f'ts_{t_set.pk}_t_{test.pk}_name'].initial = package_ts_t['name']
+                self.add_field(fields=test_fields, field=t_set_t_name,
+                               name=f'ts_{t_set.pk}_t_{test.pk}_name')
 
                 # TODO: add memory amount field (low prio)
-                self.fields[f'ts_{t_set.pk}_t_{test.pk}_memory_limit'] = forms.CharField(
+                t_set_t_memory_limit = forms.CharField(
                     label=_('Memory limit'),
                     required=True,
-                    initial=test.package_instance.package['memory_limit']
+                    initial=package_ts_t['memory_limit']
                 )
-                self.fields[f'ts_{t_set.pk}_t_{test.pk}_memory_limit'].initial = package_ts_t[
-                    'memory_limit']
+                self.add_field(fields=test_fields, field=t_set_t_memory_limit,
+                               name=f'ts_{t_set.pk}_t_{test.pk}_memory_limit')
 
-                self.fields[f'ts_{t_set.pk}_t_{test.pk}_time_limit'] = forms.FloatField(
+                t_set_t_time_limit = forms.FloatField(
                     label=_('Time limit [s]'),
                     required=True,
-                    initial=test.package_instance.package['time_limit']
+                    initial=package_ts_t['time_limit']
                 )
-                self.fields[f'ts_{t_set.pk}_t_{test.pk}_time_limit'].initial = package_ts_t[
-                    'time_limit']
+                self.add_field(fields=test_fields, field=t_set_t_time_limit,
+                               name=f'ts_{t_set.pk}_t_{test.pk}_time_limit')
 
-                self.fields[f'ts_{t_set.pk}_t_{test.pk}_input'] = FileUploadField(
+                t_set_t_input = FileUploadField(
                     label=_('Change input file'),
                     allowed_extensions=['in'],
                     required=False,
                 )
+                self.add_field(fields=test_fields, field=t_set_t_input,
+                               name=f'ts_{t_set.pk}_t_{test.pk}_input')
 
-                self.fields[f'ts_{t_set.pk}_t_{test.pk}_output'] = FileUploadField(
+                t_set_t_output = FileUploadField(
                     label=_('Change output file'),
                     allowed_extensions=['out'],
                     required=False,
                 )
+                self.add_field(fields=test_fields, field=t_set_t_output,
+                               name=f'ts_{t_set.pk}_t_{test.pk}_output')
+
+                test_group['fields'] = test_fields
+                test_groups.append(test_group)
+
+            set_group['test_groups'] = test_groups
+            self.set_groups.append(set_group)
 
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, Any]:
@@ -1615,7 +1645,7 @@ class EditTaskFormWidget(FormWidget):
                  request,
                  course_id: int,
                  task_id: int | None = None,
-                 form: CreateTaskForm = None,
+                 form: EditTaskForm = None,
                  **kwargs) -> None:
         """
         Initialize the EditTaskFormWidget instance.
@@ -1636,6 +1666,9 @@ class EditTaskFormWidget(FormWidget):
         from course.views import TaskModelView
 
         if not form:
+            if not task_id:
+                raise ValueError('Task ID must be provided when creating a new task form')
+
             form = EditTaskForm(course_id=course_id,
                                 request=request,
                                 task_id=task_id)
