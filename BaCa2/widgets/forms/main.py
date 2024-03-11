@@ -72,7 +72,7 @@ class CreateUserWidget(FormWidget):
             name='create_user_form_widget',
             request=request,
             form=form,
-            post_target=UserModelView.post_url(),
+            post_target_url=UserModelView.post_url(),
             button_text=_('Add new user'),
             **kwargs
         )
@@ -131,7 +131,7 @@ class ChangePersonalDataWidget(FormWidget):
             name='change_personal_data_form_widget',
             request=request,
             form=form,
-            post_target=UserModelView.post_url(),
+            post_target_url=UserModelView.post_url(),
             button_text=_('Save changes'),
             **kwargs
         )

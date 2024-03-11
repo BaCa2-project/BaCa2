@@ -398,7 +398,7 @@ class DeleteRecordFormWidget(FormWidget):
         """
         super().__init__(request=request,
                          form=form,
-                         post_target=post_url,
+                         post_target_url=post_url,
                          name=name,
                          submit_confirmation_popup=SubmitConfirmationPopup(
                              title=_('Confirm record deletion'),

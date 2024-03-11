@@ -12,7 +12,7 @@ from course.models import Round, Submit, Task
 from course.routing import InCourse
 from main.models import Course, Role, User
 from util.models_registry import ModelsRegistry
-from widgets.forms.base import BaCa2ModelForm, FormElementGroup, FormWidget, ModelFormPostTarget
+from widgets.forms.base import BaCa2ModelForm, FormElementGroup, FormWidget
 from widgets.forms.fields import (
     AlphanumericStringField,
     ChoiceField,
@@ -198,6 +198,8 @@ class CreateCourseFormWidget(FormWidget):
             super constructor.
         :type kwargs: dict
         """
+        from main.views import CourseModelView
+
         if not form:
             form = CreateCourseForm()
 
@@ -205,7 +207,7 @@ class CreateCourseFormWidget(FormWidget):
             name='create_course_form_widget',
             request=request,
             form=form,
-            post_target=ModelFormPostTarget(Course),
+            post_target_url=CourseModelView.post_url(),
             button_text=_('Add course'),
             toggleable_fields=['short_name'],
             element_groups=FormElementGroup(
@@ -282,6 +284,8 @@ class DeleteCourseFormWidget(FormWidget):
             super constructor.
         :type kwargs: dict
         """
+        from main.views import CourseModelView
+
         if not form:
             form = DeleteCourseForm()
 
@@ -289,7 +293,7 @@ class DeleteCourseFormWidget(FormWidget):
             name='delete_course_form_widget',
             request=request,
             form=form,
-            post_target=ModelFormPostTarget(Course),
+            post_target_url=CourseModelView.post_url(),
             button_text=_('Delete course'),
             submit_confirmation_popup=SubmitConfirmationPopup(
                 title=_('Confirm course deletion'),
@@ -438,7 +442,7 @@ class AddMembersFormWidget(FormWidget):
             name='add_members_form_widget',
             request=request,
             form=form,
-            post_target=CourseModelView.post_url(**{'course_id': course_id}),
+            post_target_url=CourseModelView.post_url(**{'course_id': course_id}),
             button_text=_('Add members'),
             **kwargs
         )
@@ -454,7 +458,7 @@ class AddMembersFromCSVForm(CourseActionForm):
     #: CSV file containing the members to be added to the course.
     members_csv = FileUploadField(label=_('Members CSV file'),
                                   allowed_extensions=['csv'],
-                                  required=True, )
+                                  required=True)
 
     #: Role to be assigned to the newly added members.
     role = ModelChoiceField(
@@ -580,7 +584,7 @@ class AddMembersFromCSVFormWidget(FormWidget):
             name='add_members_from_csv_form_widget',
             request=request,
             form=form,
-            post_target=CourseModelView.post_url(**{'course_id': course_id}),
+            post_target_url=CourseModelView.post_url(**{'course_id': course_id}),
             button_text=_('Add members from CSV'),
             **kwargs
         )
@@ -696,7 +700,7 @@ class RemoveMembersFormWidget(FormWidget):
             name='remove_members_form_widget',
             request=request,
             form=form,
-            post_target=CourseModelView.post_url(**{'course_id': course_id}),
+            post_target_url=CourseModelView.post_url(**{'course_id': course_id}),
             button_text=_('Remove members'),
             **kwargs
         )
@@ -795,7 +799,7 @@ class AddRoleFormWidget(FormWidget):
             name='add_role_form_widget',
             request=request,
             form=form,
-            post_target=CourseModelView.post_url(**{'course_id': course_id}),
+            post_target_url=CourseModelView.post_url(**{'course_id': course_id}),
             button_text=_('Add role'),
             **kwargs
         )
@@ -887,7 +891,7 @@ class AddRolePermissionsFormWidget(FormWidget):
             name='add_role_permissions_form_widget',
             request=request,
             form=form,
-            post_target=CourseModelView.post_url(**{'course_id': course_id}),
+            post_target_url=CourseModelView.post_url(**{'course_id': course_id}),
             button_text=_('Add permissions'),
             **kwargs
         )
@@ -942,7 +946,7 @@ class RemoveRolePermissionsFormWidget(FormWidget):
             name='remove_role_permissions_form_widget',
             request=request,
             form=form,
-            post_target=CourseModelView.post_url(**{'course_id': course_id}),
+            post_target_url=CourseModelView.post_url(**{'course_id': course_id}),
             button_text=_('Remove permissions'),
             **kwargs
         )
@@ -1033,7 +1037,7 @@ class CreateRoundFormWidget(FormWidget):
             name='create_round_form_widget',
             request=request,
             form=form,
-            post_target=RoundModelView.post_url(**{'course_id': course_id}),
+            post_target_url=RoundModelView.post_url(**{'course_id': course_id}),
             button_text=_('Add round'),
             element_groups=[
                 FormElementGroup(name='start_dates',
@@ -1188,7 +1192,7 @@ class EditRoundFormWidget(FormWidget):
             name=f'edit_round{round_obj.pk}_form_widget',
             request=request,
             form=form,
-            post_target=RoundModelView.post_url(**{'course_id': course_id}),
+            post_target_url=RoundModelView.post_url(**{'course_id': course_id}),
             button_text=f"{_('Edit round')} {round_obj.name}",
             element_groups=[
                 FormElementGroup(name='start_dates',
@@ -1386,7 +1390,7 @@ class CreateTaskFormWidget(FormWidget):
             name='create_task_form_widget',
             request=request,
             form=form,
-            post_target=TaskModelView.post_url(**{'course_id': course_id}),
+            post_target_url=TaskModelView.post_url(**{'course_id': course_id}),
             button_text=_('Add task'),
             element_groups=FormElementGroup(name='grading',
                                             elements=['points', 'judge_mode'],
@@ -1438,17 +1442,23 @@ class DeleteTaskFormWidget(FormWidget):
 
     def __init__(self,
                  request,
+                 course_id: int,
                  form: DeleteTaskForm = None,
                  **kwargs) -> None:
         """
         :param request: HTTP request object received by the view this form widget is rendered in.
         :type request: HttpRequest
+        :param course_id: ID of the course the view this form widget is rendered in is associated
+            with.
+        :type course_id: int
         :param form: Form to be base the widget on. If not provided, a new form will be created.
         :type form: :class:`DeleteTaskForm`
         :param kwargs: Additional keyword arguments to be passed to the :class:`FormWidget`
             super constructor.
         :type kwargs: dict
         """
+        from course.views import TaskModelView
+
         if not form:
             form = DeleteTaskForm()
 
@@ -1456,7 +1466,7 @@ class DeleteTaskFormWidget(FormWidget):
             name='delete_task_form_widget',
             request=request,
             form=form,
-            post_target=ModelFormPostTarget(Task),
+            post_target_url=TaskModelView.post_url(**{'course_id': course_id}),
             button_text=_('Delete task'),
             submit_confirmation_popup=SubmitConfirmationPopup(
                 title=_('Confirm task deletion'),
@@ -1677,7 +1687,7 @@ class EditTaskFormWidget(FormWidget):
             name='edit_task_form_widget',
             request=request,
             form=form,
-            post_target=TaskModelView.post_url(**{'course_id': course_id}),
+            post_target_url=TaskModelView.post_url(**{'course_id': course_id}),
             button_text=_('Edit task'),
             **kwargs
         )
@@ -1766,7 +1776,7 @@ class CreateSubmitForm(CourseModelForm):
                 source_code=source_code_file.path,
                 task=task_id,
                 user=user,
-                auto_send=True
+                auto_send=False
             )
         except Exception as e:
             source_code_file.delete()
@@ -1815,7 +1825,7 @@ class CreateSubmitFormWidget(FormWidget):
             name='create_submit_form_widget',
             request=request,
             form=form,
-            post_target=SubmitModelView.post_url(**{'course_id': course_id}),
+            post_target_url=SubmitModelView.post_url(**{'course_id': course_id}),
             button_text=_('New submission'),
             **kwargs
         )
