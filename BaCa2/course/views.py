@@ -769,9 +769,8 @@ class TaskEditView(BaCa2LoggedInView, CourseMemberMixin):
         task_id = self.kwargs.get('task_id')
         task_form = EditTaskFormWidget(request=self.request, course_id=course_id, task_id=task_id)
         self.add_widget(context, task_form)
+        self.add_widget(context, task_form.get_sidenav(self.request))
 
-        # noinspection PyTypeChecker
-        self.add_widget(context, self.get_sidenav(task_form.form))
         return context
 
 

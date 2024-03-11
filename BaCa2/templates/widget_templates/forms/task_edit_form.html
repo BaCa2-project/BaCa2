@@ -9,40 +9,11 @@
         {% endif %}
     {% endfor %}
 
-    <div class="tab-wrapper" id="general-settings-tab">
-        <div class="side-nav-tab">
-            {% for field_name in form_widget.form.general_fields %}
-                {% with form_widget.form|get_form_field:field_name as field %}
-                    {% include "widget_templates/forms/field.html" %}
-                {% endwith %}
-            {% endfor %}
-        </div>
-    </div>
-
-    {% for set_group in form_widget.form.set_groups %}
-        {% with set_group.name as set_group_name %}
-            <div class="tab-wrapper" id="{{ set_group_name }}-settings-tab">
-                <div class="side-nav-tab">
-                    {% for field_name in set_group.fields %}
-                        {% with form_widget.form|get_form_field:field_name as field %}
-                            {% include "widget_templates/forms/field.html" %}
-                        {% endwith %}
-                    {% endfor %}
-                </div>
+    {% for element_group in form_widget.elements.elements %}
+        <div class="tab-wrapper" id="{{ element_group.name }}-tab">
+            <div class="side-nav-tab">
+                {% include "widget_templates/forms/element_group.html" %}
             </div>
-            {% for test_group in set_group.test_groups %}
-                {% with test_group.name as test_group_name %}
-                    <div class="tab-wrapper" id="{{ test_group_name }}-tab">
-                        <div class="side-nav-tab">
-                            {% for field_name in test_group.fields %}
-                                {% with form_widget.form|get_form_field:field_name as field %}
-                                    {% include "widget_templates/forms/field.html" %}
-                                {% endwith %}
-                            {% endfor %}
-                        </div>
-                    </div>
-                {% endwith %}
-            {% endfor %}
-        {% endwith %}
+        </div>
     {% endfor %}
 {% endblock %}
