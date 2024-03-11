@@ -1,5 +1,7 @@
 import os
 
+MOCK_BROKER = False
+
 BROKER_URL = os.getenv('BROKER_URL')
 BROKER_TIMEOUT = 600  # seconds
 

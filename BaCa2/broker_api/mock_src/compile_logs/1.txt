@@ -1,0 +1,12 @@
+/var/lib/kolejka/task/results/dosko2a/solution/src/9c7535ff-86a9-482a-9390-62e8fb3ed759.cpp:12:15: warning: multi-character character constant [-Wmultichar]
+   12 |         print('TAK')
+      |               ^~~~~
+/var/lib/kolejka/task/results/dosko2a/solution/src/9c7535ff-86a9-482a-9390-62e8fb3ed759.cpp:14:15: warning: multi-character character constant [-Wmultichar]
+   14 |         print('NIE')
+      |               ^~~~~
+/var/lib/kolejka/task/results/dosko2a/solution/src/9c7535ff-86a9-482a-9390-62e8fb3ed759.cpp:17:16: warning: character constant too long for its type
+   17 | if __name__ == '__main__':
+      |                ^~~~~~~~~~
+/var/lib/kolejka/task/results/dosko2a/solution/src/9c7535ff-86a9-482a-9390-62e8fb3ed759.cpp:2:1: error: ‘def’ does not name a type
+    2 | def sumadziel(n):
+      | ^~~
