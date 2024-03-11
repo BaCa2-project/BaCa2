@@ -31,6 +31,8 @@ from widgets.forms.course import (
     DeleteTaskForm,
     EditRoundForm,
     EditRoundFormWidget,
+    EditTaskForm,
+    EditTaskFormWidget,
     RemoveMembersFormWidget
 )
 from widgets.listing import TableWidget, TableWidgetPaging
@@ -651,6 +653,13 @@ class CourseTask(BaCa2LoggedInView, CourseMemberMixin):
                                               **kwargs)
         self.add_widget(context, description_displayer)
 
+        # edit task ------------------------------------------------------------------------------
+
+        if user.has_course_permission(Course.CourseAction.EDIT_TASK.label, course):
+            sidenav_tabs.append('Edit')
+            context['edit_tab'] = 'edit-tab'
+            context['edit_form_url'] = f'/course/{course_id}/task/{task_id}/edit/'
+
         # submit form ----------------------------------------------------------------------------
 
         if user.has_course_permission(Course.CourseAction.ADD_SUBMIT.label, course):
@@ -727,51 +736,42 @@ class CourseTask(BaCa2LoggedInView, CourseMemberMixin):
         return context
 
 
-class CourseTaskAdmin(BaCa2LoggedInView, CourseMemberMixin):
-    """
-    View for admins of a course. Only accessible if the user is an admin of the course or a
-    superuser.
-    """
+class TaskEditView(BaCa2LoggedInView, CourseMemberMixin):
+    template_name = 'task_edit.html'
 
-    template_name = 'course_task_admin.html'
-    REQUIRED_ROLE = 'admin'
+    def test_func(self) -> bool:
+        if not super().test_func():
+            return False
+
+        user = getattr(self.request, 'user')
+        course_id = self.kwargs.get('course_id')
+
+        return user.has_course_permission(Course.CourseAction.EDIT_TASK.label, course_id)
+
+    def get_sidenav(self, task_form: EditTaskForm) -> SideNav:
+        sidenav = SideNav(request=self.request,
+                          collapsed=True,
+                          tabs=['General settings'], )
+        for test_set in task_form.set_groups:
+            sidenav.add_tab(
+                tab_name=test_set['name'],
+                sub_tabs=[f'{test_set["name"]} settings'] + [
+                    test_set_test['name']
+                    for test_set_test in
+                    test_set['test_groups']
+                ]
+            )
+        return sidenav
 
     def get_context_data(self, **kwargs) -> dict:
         context = super().get_context_data(**kwargs)
         course_id = self.kwargs.get('course_id')
         task_id = self.kwargs.get('task_id')
+        task_form = EditTaskFormWidget(request=self.request, course_id=course_id, task_id=task_id)
+        self.add_widget(context, task_form)
 
-        sidenav = SideNav(request=self.request,
-                          collapsed=True,
-                          tabs=['Description', 'Student submissions', 'Edit'], )
-
-        self.add_widget(context, sidenav)
-
-        # Add widget, generating task description from file
-        submissions_table = TableWidget(
-            name='submissions_table_widget',
-            request=self.request,
-            data_source=SubmitModelView.get_url(
-                mode=BaCa2ModelView.GetMode.FILTER,
-                filter_params={'task__id': task_id},
-                serialize_kwargs={'add_summary_score': True},
-                course_id=course_id,
-            ),
-            cols=[
-                DatetimeColumn(name='submit_date', header=_('Submit time')),
-                TextColumn(name='user_first_name', header=_('Submitter name')),
-                TextColumn(name='user_last_name', header=_('Submitter last name')),
-                TextColumn(name='submit_status', header=_('Submit status')),
-                TextColumn(name='summary_score', header=_('Score')),
-            ],
-            title=_('Submissions'),
-            refresh_button=True,
-            link_format_string=f'/course/{course_id}/submit/[[id]]/',
-            default_order_col='submit_date',
-            default_order_asc=False,
-        )
-        self.add_widget(context, submissions_table)
-
+        # noinspection PyTypeChecker
+        self.add_widget(context, self.get_sidenav(task_form.form))
         return context
 
 

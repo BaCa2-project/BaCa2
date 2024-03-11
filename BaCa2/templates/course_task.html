@@ -8,6 +8,14 @@
             {% endwith %}
         </div>
     </div>
+    {% if edit_tab %}
+        <div class="tab-wrapper" id="{{ edit_tab }}">
+            <div class="side-nav-tab">
+                <a href="{{ edit_form_url }}">Edit task</a>
+            </div>
+        </div>
+    {% endif %}
+
     {% if submit_tab %}
         <div class="tab-wrapper" id="{{ submit_tab }}">
             <div class="side-nav-tab">
