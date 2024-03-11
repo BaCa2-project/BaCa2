@@ -27,36 +27,8 @@
         {% block form_fields %}
         {% endblock %}
 
-        <div class="form-footer">
-            <div class="row ms-0 me-0">
-                {% if form_widget.refresh_button %}
-                    <div class="col-10 ps-0">
-                {% endif %}
-                <button class="submit-btn btn btn-primary w-100
-                            {% if form_widget.submit_confirmation_popup %}
-                                submit-confirmation-btn
-                            {% endif %}"
-                        {% if form_widget.submit_confirmation_popup %}
-                        type="button"
-                        data-bs-target="#{{ form_widget.submit_confirmation_popup.name }}"
-                        data-bs-toggle="modal"
-                        {% else %}
-                        type="submit"
-                        {% endif %}>
-                    {{ form_widget.button_text }}
-                </button>
-                {% if form_widget.refresh_button %}
-                    </div>
-                    <div class="col d-flex pe-0">
-                        <div class="icon-wrapper icon-m w-100">
-                            <button class="btn btn-primary form-refresh-button w-100" type="button">
-                                {% include 'icons/refresh.svg' %}
-                            </button>
-                        </div>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
+        {% block form_footer %}
+        {% endblock %}
     </form>
 
     {% with form_widget.submit_confirmation_popup as popup_widget %}
