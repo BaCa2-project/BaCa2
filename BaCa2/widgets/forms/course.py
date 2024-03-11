@@ -12,7 +12,7 @@ from course.models import Round, Submit, Task
 from course.routing import InCourse
 from main.models import Course, Role, User
 from util.models_registry import ModelsRegistry
-from widgets.forms.base import BaCa2ModelForm, FormElementGroup, FormWidget, ModelFormPostTarget
+from widgets.forms.base import BaCa2ModelForm, FormElementGroup, FormWidget
 from widgets.forms.fields import (
     AlphanumericStringField,
     ChoiceField,
@@ -23,6 +23,7 @@ from widgets.forms.fields import (
 from widgets.forms.fields.course import CourseName, CourseShortName, USOSCode
 from widgets.forms.fields.table_select import TableSelectField
 from widgets.listing.columns import TextColumn
+from widgets.navigation import SideNav
 from widgets.popups.forms import SubmitConfirmationPopup
 
 logger = logging.getLogger(__name__)
@@ -198,6 +199,8 @@ class CreateCourseFormWidget(FormWidget):
             super constructor.
         :type kwargs: dict
         """
+        from main.views import CourseModelView
+
         if not form:
             form = CreateCourseForm()
 
@@ -205,7 +208,7 @@ class CreateCourseFormWidget(FormWidget):
             name='create_course_form_widget',
             request=request,
             form=form,
-            post_target=ModelFormPostTarget(Course),
+            post_target_url=CourseModelView.post_url(),
             button_text=_('Add course'),
             toggleable_fields=['short_name'],
             element_groups=FormElementGroup(
@@ -282,6 +285,8 @@ class DeleteCourseFormWidget(FormWidget):
             super constructor.
         :type kwargs: dict
         """
+        from main.views import CourseModelView
+
         if not form:
             form = DeleteCourseForm()
 
@@ -289,7 +294,7 @@ class DeleteCourseFormWidget(FormWidget):
             name='delete_course_form_widget',
             request=request,
             form=form,
-            post_target=ModelFormPostTarget(Course),
+            post_target_url=CourseModelView.post_url(),
             button_text=_('Delete course'),
             submit_confirmation_popup=SubmitConfirmationPopup(
                 title=_('Confirm course deletion'),
@@ -438,7 +443,7 @@ class AddMembersFormWidget(FormWidget):
             name='add_members_form_widget',
             request=request,
             form=form,
-            post_target=CourseModelView.post_url(**{'course_id': course_id}),
+            post_target_url=CourseModelView.post_url(**{'course_id': course_id}),
             button_text=_('Add members'),
             **kwargs
         )
@@ -454,7 +459,7 @@ class AddMembersFromCSVForm(CourseActionForm):
     #: CSV file containing the members to be added to the course.
     members_csv = FileUploadField(label=_('Members CSV file'),
                                   allowed_extensions=['csv'],
-                                  required=True, )
+                                  required=True)
 
     #: Role to be assigned to the newly added members.
     role = ModelChoiceField(
@@ -580,7 +585,7 @@ class AddMembersFromCSVFormWidget(FormWidget):
             name='add_members_from_csv_form_widget',
             request=request,
             form=form,
-            post_target=CourseModelView.post_url(**{'course_id': course_id}),
+            post_target_url=CourseModelView.post_url(**{'course_id': course_id}),
             button_text=_('Add members from CSV'),
             **kwargs
         )
@@ -696,7 +701,7 @@ class RemoveMembersFormWidget(FormWidget):
             name='remove_members_form_widget',
             request=request,
             form=form,
-            post_target=CourseModelView.post_url(**{'course_id': course_id}),
+            post_target_url=CourseModelView.post_url(**{'course_id': course_id}),
             button_text=_('Remove members'),
             **kwargs
         )
@@ -795,7 +800,7 @@ class AddRoleFormWidget(FormWidget):
             name='add_role_form_widget',
             request=request,
             form=form,
-            post_target=CourseModelView.post_url(**{'course_id': course_id}),
+            post_target_url=CourseModelView.post_url(**{'course_id': course_id}),
             button_text=_('Add role'),
             **kwargs
         )
@@ -887,7 +892,7 @@ class AddRolePermissionsFormWidget(FormWidget):
             name='add_role_permissions_form_widget',
             request=request,
             form=form,
-            post_target=CourseModelView.post_url(**{'course_id': course_id}),
+            post_target_url=CourseModelView.post_url(**{'course_id': course_id}),
             button_text=_('Add permissions'),
             **kwargs
         )
@@ -942,7 +947,7 @@ class RemoveRolePermissionsFormWidget(FormWidget):
             name='remove_role_permissions_form_widget',
             request=request,
             form=form,
-            post_target=CourseModelView.post_url(**{'course_id': course_id}),
+            post_target_url=CourseModelView.post_url(**{'course_id': course_id}),
             button_text=_('Remove permissions'),
             **kwargs
         )
@@ -1033,7 +1038,7 @@ class CreateRoundFormWidget(FormWidget):
             name='create_round_form_widget',
             request=request,
             form=form,
-            post_target=RoundModelView.post_url(**{'course_id': course_id}),
+            post_target_url=RoundModelView.post_url(**{'course_id': course_id}),
             button_text=_('Add round'),
             element_groups=[
                 FormElementGroup(name='start_dates',
@@ -1188,7 +1193,7 @@ class EditRoundFormWidget(FormWidget):
             name=f'edit_round{round_obj.pk}_form_widget',
             request=request,
             form=form,
-            post_target=RoundModelView.post_url(**{'course_id': course_id}),
+            post_target_url=RoundModelView.post_url(**{'course_id': course_id}),
             button_text=f"{_('Edit round')} {round_obj.name}",
             element_groups=[
                 FormElementGroup(name='start_dates',
@@ -1386,7 +1391,7 @@ class CreateTaskFormWidget(FormWidget):
             name='create_task_form_widget',
             request=request,
             form=form,
-            post_target=TaskModelView.post_url(**{'course_id': course_id}),
+            post_target_url=TaskModelView.post_url(**{'course_id': course_id}),
             button_text=_('Add task'),
             element_groups=FormElementGroup(name='grading',
                                             elements=['points', 'judge_mode'],
@@ -1438,17 +1443,23 @@ class DeleteTaskFormWidget(FormWidget):
 
     def __init__(self,
                  request,
+                 course_id: int,
                  form: DeleteTaskForm = None,
                  **kwargs) -> None:
         """
         :param request: HTTP request object received by the view this form widget is rendered in.
         :type request: HttpRequest
+        :param course_id: ID of the course the view this form widget is rendered in is associated
+            with.
+        :type course_id: int
         :param form: Form to be base the widget on. If not provided, a new form will be created.
         :type form: :class:`DeleteTaskForm`
         :param kwargs: Additional keyword arguments to be passed to the :class:`FormWidget`
             super constructor.
         :type kwargs: dict
         """
+        from course.views import TaskModelView
+
         if not form:
             form = DeleteTaskForm()
 
@@ -1456,7 +1467,7 @@ class DeleteTaskFormWidget(FormWidget):
             name='delete_task_form_widget',
             request=request,
             form=form,
-            post_target=ModelFormPostTarget(Task),
+            post_target_url=TaskModelView.post_url(**{'course_id': course_id}),
             button_text=_('Delete task'),
             submit_confirmation_popup=SubmitConfirmationPopup(
                 title=_('Confirm task deletion'),
@@ -1499,10 +1510,7 @@ class EditTaskForm(CourseModelForm):
     allowed_extensions = forms.CharField(label=_('Allowed extensions'), required=False)
     cpus = forms.IntegerField(label=_('CPUs'), required=False)
 
-    def add_field(self,
-                  fields: List[str],
-                  field: forms.Field,
-                  name: str) -> None:
+    def add_field(self, fields: List[str], field: forms.Field, name: str) -> None:
         fields.append(name)
         self.fields[name] = field
 
@@ -1648,8 +1656,6 @@ class EditTaskFormWidget(FormWidget):
                  form: EditTaskForm = None,
                  **kwargs) -> None:
         """
-        Initialize the EditTaskFormWidget instance.
-
         :param request: The HTTP request object received by the view this form widget
             is rendered in.
         :type request: HttpRequest
@@ -1673,14 +1679,123 @@ class EditTaskFormWidget(FormWidget):
                                 request=request,
                                 task_id=task_id)
 
+        element_groups = self._create_element_groups(form)
+
         super().__init__(
             name='edit_task_form_widget',
             request=request,
             form=form,
-            post_target=TaskModelView.post_url(**{'course_id': course_id}),
+            post_target_url=TaskModelView.post_url(**{'course_id': course_id}),
+            element_groups=element_groups,
             button_text=_('Edit task'),
             **kwargs
         )
+
+    def _create_element_groups(self, form: EditTaskForm) -> List[FormElementGroup]:
+        general_fields = form.general_fields.copy()
+        judge_mode_field = self._extract_field_name(general_fields, 'task_judge_mode')
+        points_field = self._extract_field_name(general_fields, 'task_points')
+        memory_limit_field = self._extract_field_name(general_fields, 'memory_limit')
+        time_limit_field = self._extract_field_name(general_fields, 'time_limit')
+        cpus_field = self._extract_field_name(general_fields, 'cpus')
+        extension_field = self._extract_field_name(general_fields, 'allowed_extensions')
+
+        grading_group = FormElementGroup(
+            elements=[judge_mode_field, points_field],
+            name='grading-settings',
+            layout=FormElementGroup.FormElementsLayout.HORIZONTAL
+        )
+
+        limit_group = FormElementGroup(
+            elements=[memory_limit_field, time_limit_field, cpus_field],
+            name='limits-settings',
+            layout=FormElementGroup.FormElementsLayout.HORIZONTAL
+        )
+
+        general_elements = general_fields + [grading_group, limit_group, extension_field]
+        element_groups = [FormElementGroup(elements=general_elements,
+                                           name='general-settings',
+                                           layout=FormElementGroup.FormElementsLayout.VERTICAL)]
+
+        for set_group in form.set_groups:
+            set_group_fields = set_group['fields'].copy()
+            name_field = self._extract_field_name(set_group_fields, 'name')
+            weight_field = self._extract_field_name(set_group_fields, 'weight')
+            memory_limit_field = self._extract_field_name(set_group_fields, 'memory_limit')
+            time_limit_field = self._extract_field_name(set_group_fields, 'time_limit')
+
+            base_group = FormElementGroup(
+                elements=[name_field, weight_field],
+                name=f'{set_group["name"]}-base',
+                layout=FormElementGroup.FormElementsLayout.HORIZONTAL
+            )
+
+            limit_group = FormElementGroup(
+                elements=[memory_limit_field, time_limit_field],
+                name=f'{set_group["name"]}-limits',
+                layout=FormElementGroup.FormElementsLayout.HORIZONTAL
+            )
+
+            element_groups.append(
+                FormElementGroup(elements=set_group_fields + [base_group, limit_group],
+                                 name=f'{set_group["name"]}-settings',
+                                 layout=FormElementGroup.FormElementsLayout.VERTICAL,
+                                 frame=True)
+            )
+
+            for test_group in set_group['test_groups']:
+                test_group_fields = test_group['fields'].copy()
+                memory_limit_field = self._extract_field_name(test_group_fields, 'memory_limit')
+                time_limit_field = self._extract_field_name(test_group_fields, 'time_limit')
+                input_field = self._extract_field_name(test_group_fields, 'input')
+                output_field = self._extract_field_name(test_group_fields, 'output')
+
+                limit_group = FormElementGroup(
+                    elements=[memory_limit_field, time_limit_field],
+                    name=f'{test_group["name"]}-limits',
+                    layout=FormElementGroup.FormElementsLayout.HORIZONTAL
+                )
+
+                file_group = FormElementGroup(
+                    elements=[input_field, output_field],
+                    name=f'{test_group["name"]}-files',
+                    layout=FormElementGroup.FormElementsLayout.HORIZONTAL
+                )
+
+                element_groups.append(
+                    FormElementGroup(elements=test_group_fields + [limit_group, file_group],
+                                     name=test_group['name'],
+                                     layout=FormElementGroup.FormElementsLayout.VERTICAL,
+                                     frame=True)
+                )
+
+        return element_groups
+
+    @staticmethod
+    def _extract_field_name(fields: List[str], name: str) -> str:
+        field_name = next((f for f in fields if name in f), None)
+
+        if field_name is None:
+            raise ValueError(f'Field with name {name} not found in provided field names list')
+
+        fields.remove(field_name)
+        return field_name
+
+    def get_sidenav(self, request) -> SideNav:
+        sidenav = SideNav(request=request,
+                          collapsed=True,
+                          tabs=['General settings'],
+                          toggle_button=True)
+        set_groups = getattr(self.form, 'set_groups', [])
+
+        for test_set in set_groups:
+            sidenav.add_tab(
+                tab_name=test_set['name'],
+                sub_tabs=[f'{test_set["name"]} settings'] +
+                         [test_set_test['name'] for test_set_test in test_set['test_groups']]
+            )
+
+        return sidenav
 
 
 # ========================================= SUBMISSION ========================================= #
@@ -1766,7 +1881,7 @@ class CreateSubmitForm(CourseModelForm):
                 source_code=source_code_file.path,
                 task=task_id,
                 user=user,
-                auto_send=True
+                auto_send=False
             )
         except Exception as e:
             source_code_file.delete()
@@ -1815,7 +1930,7 @@ class CreateSubmitFormWidget(FormWidget):
             name='create_submit_form_widget',
             request=request,
             form=form,
-            post_target=SubmitModelView.post_url(**{'course_id': course_id}),
+            post_target_url=SubmitModelView.post_url(**{'course_id': course_id}),
             button_text=_('New submission'),
             **kwargs
         )
