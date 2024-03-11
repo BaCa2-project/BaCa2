@@ -639,7 +639,7 @@ class ProfileView(BaCa2LoggedInView):
             button_text=_('Change password'),
             display_field_errors=False,
             live_validation=False,
-            post_target=reverse_lazy('main:change-password'),
+            post_target_url=reverse_lazy('main:change-password'),
         ))
         context['change_password_title'] = _('Change password')
 
