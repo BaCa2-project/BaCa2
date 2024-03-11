@@ -7,10 +7,10 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
 from core.choices import TaskJudgingMode
-from core.tools.files import FileHandler
+from core.tools.files import CsvFileHandler, FileHandler
 from course.models import Round, Submit, Task
 from course.routing import InCourse
-from main.models import Course, Role
+from main.models import Course, Role, User
 from util.models_registry import ModelsRegistry
 from widgets.forms.base import BaCa2ModelForm, FormElementGroup, FormWidget, ModelFormPostTarget
 from widgets.forms.fields import (
@@ -444,7 +444,150 @@ class AddMembersFormWidget(FormWidget):
         )
 
 
+class AddMembersFromCSVForm(CourseActionForm):
+    """
+    Form for adding members from a CSV file to a course.
+    """
+
+    ACTION = Course.CourseAction.ADD_MEMBERS_CSV
+
+    #: CSV file containing the members to be added to the course.
+    members_csv = FileUploadField(label=_('Members CSV file'),
+                                  allowed_extensions=['csv'],
+                                  required=True, )
+
+    #: Role to be assigned to the newly added members.
+    role = ModelChoiceField(
+        label=_('Role'),
+        data_source_url='',
+        label_format_string='[[name]]',
+        required=True,
+    )
+
+    def __init__(self, *,
+                 course_id: int,
+                 form_instance_id: int = 0,
+                 request=None,
+                 **kwargs) -> None:
+        """
+        :param course_id: ID of the course the form is associated with.
+        :type course_id: int
+        :param form_instance_id: ID of the form instance. Used to identify the form instance when
+            saving its init parameters to the session and to reconstruct the form from the session.
+            Defaults to 0. Should be set to a unique value when creating a new form instance within
+            a single view with multiple instances of the same form class.
+        :type form_instance_id: int
+        :param request: HTTP request object received by the view the form is rendered in. Should be
+            passed to the constructor if the form is instantiated with custom init parameters.
+        :type request: HttpRequest
+        :param kwargs: Additional keyword arguments to be passed to the :class:`CourseActionForm`
+            super constructor.
+        :type kwargs: dict
+        """
+        from main.views import RoleModelView
+
+        super().__init__(form_instance_id=form_instance_id, request=request, **kwargs)
+
+        self.fields['role'].data_source_url = RoleModelView.get_url(
+            mode=RoleModelView.GetMode.FILTER,
+            filter_params={'course': course_id}
+        )
+
+    @classmethod
+    def handle_valid_request(cls, request) -> Dict[str, Any]:
+        """
+        Adds the members from the CSV file to the course.
+
+        :param request: POST request containing the CSV file.
+        :type request: HttpRequest
+        :return: Dictionary containing a success message.
+        :rtype: Dict[str, Any]
+        """
+        course = cls.get_context_course(request)
+
+        role = int(request.POST.get('role'))
+
+        fieldnames = ['Imię', 'Nazwisko', 'E-mail']
+        file = CsvFileHandler(path=settings.UPLOAD_DIR,
+                              file_data=request.FILES['members_csv'],
+                              fieldnames=fieldnames)
+        file.save()
+        _fieldnames, members_to_add = file.read_csv(force_fieldnames=fieldnames,
+                                                    ignore_first_line=True)
+        file.validate()
+
+        users_to_add = []
+        for member in members_to_add:
+            users_to_add.append(User.objects.get_or_create(
+                email=member['E-mail'],
+                first_name=member['Imię'],
+                last_name=member['Nazwisko']
+            ))
+        course.add_members(users_to_add,
+                           role,
+                           ignore_errors=True)
+
+        return {'message': _('Members added successfully')}
+
+    @classmethod
+    def is_permissible(cls, request) -> bool:
+        """
+        :param request: Request object.
+        :type request: HttpRequest
+        :return: `True` if the requesting user has the permission to add members to the course
+            specified in the request, `False` otherwise. If the role specified in the request is the
+            admin role, the user must have the `ADD_ADMIN` permission.
+        :rtype: bool
+        """
+        course = cls.get_context_course(request)
+        role = int(request.POST.get('role'))
+
+        if role == course.admin_role.id:
+            return request.user.has_course_permission(Course.CourseAction.ADD_ADMIN.label, course)
+
+        return request.user.has_course_permission(cls.ACTION.label, course)
+
+
+class AddMembersFromCSVFormWidget(FormWidget):
+    """
+    Form widget for the :class:`AddMembersFromCSVForm`.
+    """
+
+    def __init__(self,
+                 request,
+                 course_id: int,
+                 form: AddMembersFromCSVForm = None,
+                 **kwargs) -> None:
+        """
+        :param request: HTTP request object received by the view this form widget is rendered in.
+        :type request: HttpRequest
+        :param course_id: ID of the course the view this form widget is rendered in is associated
+            with.
+        :type course_id: int
+        :param form: AddMembersFromCSVForm to be base the widget on. If not provided, a new form
+            will be created.
+        :type form: :class:`AddMembersFromCSVForm`
+        :param kwargs: Additional keyword arguments to be passed to the :class:`FormWidget`
+            super constructor.
+        :type kwargs: dict
+        """
+        from main.views import CourseModelView
+
+        if not form:
+            form = AddMembersFromCSVForm(course_id=course_id, request=request)
+
+        super().__init__(
+            name='add_members_from_csv_form_widget',
+            request=request,
+            form=form,
+            post_target=CourseModelView.post_url(**{'course_id': course_id}),
+            button_text=_('Add members from CSV'),
+            **kwargs
+        )
+
+
 # --------------------------------------- remove members --------------------------------------- #
+
 
 class RemoveMembersForm(CourseActionForm):
     """
