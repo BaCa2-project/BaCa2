@@ -10,9 +10,7 @@ from django.forms.forms import DeclarativeFieldsMetaclass
 from django.utils.translation import gettext_lazy as _
 
 from core.choices import ModelAction
-from main.models import Course
 from util.models import model_cls
-from util.models_registry import ModelsRegistry
 from util.responses import BaCa2JsonResponse, BaCa2ModelResponse
 from widgets.base import Widget
 from widgets.popups.forms import SubmitConfirmationPopup, SubmitFailurePopup, SubmitSuccessPopup
@@ -434,7 +432,7 @@ class FormWidget(Widget):
                  *,
                  request,
                  form: forms.Form,
-                 post_target: FormPostTarget | str = None,
+                 post_target_url: str = '',
                  name: str = '',
                  button_text: str = None,
                  refresh_button: bool = True,
@@ -453,9 +451,9 @@ class FormWidget(Widget):
         :type request: HttpRequest
         :param form: Form to be rendered.
         :type form: forms.Form
-        :param post_target: Target URL for the form's POST request. If no target is specified, the
-            form will be posted to the same URL as the page it is rendered on.
-        :type post_target: :class:`FormPostTarget` | str
+        :param post_target_url: Target URL for the form's POST request. If no target is specified,
+            the form will be posted to the same URL as the page it is rendered on.
+        :type post_target_url: str
         :param name: Name of the widget. If no name is specified, the name of the form will be used
             to generate the widget name.
         :type name: str
@@ -525,6 +523,7 @@ class FormWidget(Widget):
         super().__init__(name=name, request=request)
         self.form = form
         self.form_cls = form.__class__.__name__
+        self.post_url = post_target_url
         self.button_text = button_text
         self.refresh_button = refresh_button
         self.display_non_field_validation = display_non_field_validation
@@ -575,12 +574,6 @@ class FormWidget(Widget):
                 included_fields[field.name] = True
 
         self.elements = FormElementGroup(elements=elements, name='form_elements')
-
-        if not post_target:
-            post_target = ''
-        if isinstance(post_target, FormPostTarget):
-            post_target = post_target.get_post_url()
-        self.post_url = post_target
 
         if not toggleable_fields:
             toggleable_fields = []
@@ -638,86 +631,6 @@ class FormWidget(Widget):
             'submit_failure_popup': self.submit_failure_popup,
             'submit_success_popup': self.submit_success_popup,
         }
-
-
-# -------------------------------------- form post targets ------------------------------------- #
-
-class FormPostTarget(ABC):
-    """
-    Abstract base class for all classes used to specify the target URL for a form's POST request.
-
-    See Also:
-        - :class:`FormWidget`
-        - :class:`ModelFormPostTarget`
-        - :class:`CourseModelFormPostTarget`
-    """
-
-    @abstractmethod
-    def get_post_url(self) -> str:
-        """
-        Returns the URL to which the form's POST request should be sent.
-        """
-        raise NotImplementedError('This method has to be implemented by inheriting classes.')
-
-
-class ModelFormPostTarget(FormPostTarget):
-    """
-    Class used to generate the default database model view URL as the target for a form's POST
-    request.
-
-    See Also:
-        - :class:`FormWidget`
-        - :class:`FormPostTarget`
-    """
-
-    def __init__(self, model: model_cls) -> None:
-        """
-        :param model: Model class which view the form's POST request should be sent to.
-        :type model: Type[Model]
-        """
-        self.model = model
-
-    def get_post_url(self) -> str:
-        """
-        Returns the URL of the model view of the given model class.
-
-        :return: URL of the model view
-        :rtype: str
-        """
-        return f'/{self.model._meta.app_label}/models/{self.model._meta.model_name}/'
-
-
-class CourseModelFormPostTarget(ModelFormPostTarget):
-    """
-    Class used to generate the course database model view URL as the target for a form's POST
-    request.
-
-    See Also:
-        - :class:`FormWidget`
-        - :class:`ModelPostTarget`
-    """
-
-    def __init__(self, model: model_cls, course: str | int | Course) -> None:
-        """
-        :param model: Model class which view the form's POST request should be sent to.
-        :type model: Type[Model]
-        :param course: Course which the model belongs to. Can be specified as the course's short
-            name, ID or model instance.
-        :type course: str | int | Course
-        """
-        if not isinstance(course, str):
-            course = ModelsRegistry.get_course(course).short_name
-        self.course = course
-        super().__init__(model)
-
-    def get_post_url(self) -> str:
-        """
-        Returns the URL of the model view of the given model class for the specified course.
-
-        :return: URL of the model view
-        :rtype: str
-        """
-        return f'course/{self.course}/models/{self.model._meta.model_name}/'
 
 
 # -------------------------------------- form element group ------------------------------------ #
