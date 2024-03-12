@@ -1,8 +1,9 @@
 from pathlib import Path
 from random import choice, randint, uniform
-from typing import List, Tuple
+from typing import Iterable, Tuple
 
-import settings
+from django.conf import settings
+
 from core.choices import EMPTY_FINAL_STATUSES, HALF_EMPTY_FINAL_STATUSES, ResultStatus
 from course.models import Result, Submit, Test
 from main.models import Course
@@ -20,10 +21,7 @@ class BrokerMock:
                  generate_results: bool = True,
                  add_logs: bool = True,
                  add_answers: bool = True,
-                 available_statuses: List[ResultStatus] = (
-                     ResultStatus.OK,
-                     ResultStatus.ANS,
-                     ResultStatus.MEM),
+                 available_statuses: Iterable[ResultStatus] = None,
                  range_time_real: Tuple[float, float] = (0, 5),
                  time_cpu_mod_range: Tuple[float, float] = (0.5, 0.9),
                  runtime_memory_range: Tuple[int, int] = (2000, 1e8),
@@ -33,6 +31,9 @@ class BrokerMock:
         self.generate_results = generate_results
         self.add_logs = add_logs
         self.add_answers = add_answers
+        if not available_statuses:
+            available_statuses = [ResultStatus.ANS, ResultStatus.MEM,
+                                  ResultStatus.TLE, ResultStatus.OK]
         self.available_statuses = available_statuses
         self.range_time_real = range_time_real
         self.time_cpu_mod_range = time_cpu_mod_range
@@ -42,7 +43,7 @@ class BrokerMock:
     def get_random_log(cls, from_dir: Path) -> str:
         logs = list(from_dir.iterdir())
         log_file = choice(logs)
-        with open(log_file, 'r') as file:
+        with open(log_file, 'r', encoding='utf-8') as file:
             return file.read()
 
     @property
@@ -89,7 +90,7 @@ class BrokerMock:
                 time_real=self.rand_time_real,
                 time_cpu=self.rand_time_cpu,
                 runtime_memory=self.rand_runtime_memory,
-                compile_log=self.get_random_log(self.CHECKER_LOGS) if self.add_logs else None,
+                compile_log=self.get_random_log(self.COMPILE_LOGS) if self.add_logs else None,
                 answer='rand answer\nrand answer\nrand answer\n' if self.add_answers else ''
             )
         elif status == ResultStatus.OK:
