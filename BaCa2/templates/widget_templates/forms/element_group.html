@@ -1,12 +1,30 @@
 {% load custom_tags %}
 
-<div class="form-element-group" id="{{ element_group.name }}">
+<div class="form-element-group"
+     id="{{ element_group.name }}"
+     data-title="{{ element_group.title }}">
     {% if element_group.frame %}
     <div class="card mb-3">
+        {% if element_group.display_title %}
+            <div class="card-header">
+                <h5 class="mb-0">{{ element_group.title }}</h5>
+            </div>
+        {% endif %}
         <div class="card-body pb-0">
     {% endif %}
+    {% if not element_group.frame and element_group.display_title %}
+        <div class="row align-items-center mb-2">
+            <div class="col">
+                <h5 class="mb-0">{{ element_group.title }}</h5>
+            </div>
+    {% endif %}
     {% if element_group.toggleable %}
-        <div class="group-toggle-button mb-2">
+        <div class="group-toggle-button
+                    {% if not element_group.frame and element_group.display_title %}
+                    col-auto align-items-center
+                    {% else %}
+                    mb-2
+                    {% endif %}">
             <button class="btn btn-sm btn-outline-secondary
                            text-switch-btn switch-off
                            group-toggle-btn"
@@ -16,26 +34,29 @@
             </button>
         </div>
     {% endif %}
-        {% if element_group.layout == 'horizontal' %}
-            <div class="row">
-        {% endif %}
-            {% for element in element_group.elements %}
-                {% if element_group.layout == 'horizontal' %}
-                    <div class="col">
-                {% endif %}
-                {% if element|is_instance_of:"widgets.forms.base.FormElementGroup" %}
-                    {% with element as element_group %}
-                        {% include "widget_templates/forms/element_group.html" %}
-                    {% endwith %}
-                {% else %}
-                    {% with form_widget.form|get_form_field:element as field %}
-                        {% include "widget_templates/forms/field.html" %}
-                    {% endwith %}
-                {% endif %}
-                {% if element_group.layout == 'horizontal' %}
-                    </div>
-                {% endif %}
-            {% endfor %}
+    {% if not element_group.frame and element_group.display_title %}
+        </div>
+    {% endif %}
+    {% if element_group.layout == 'horizontal' %}
+        <div class="row">
+    {% endif %}
+        {% for element in element_group.elements %}
+            {% if element_group.layout == 'horizontal' %}
+                <div class="col">
+            {% endif %}
+            {% if element|is_instance_of:"widgets.forms.base.FormElementGroup" %}
+                {% with element as element_group %}
+                    {% include "widget_templates/forms/element_group.html" %}
+                {% endwith %}
+            {% else %}
+                {% with form_widget.form|get_form_field:element as field %}
+                    {% include "widget_templates/forms/field.html" %}
+                {% endwith %}
+            {% endif %}
+            {% if element_group.layout == 'horizontal' %}
+                </div>
+            {% endif %}
+        {% endfor %}
     {% if element_group.layout == 'horizontal' %}
         </div>
     {% endif %}

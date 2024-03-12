@@ -658,6 +658,8 @@ class FormElementGroup(Widget):
                  *,
                  elements: List[str | FormElementGroup],
                  name: str,
+                 title: str = '',
+                 display_title: bool = False,
                  request=None,
                  layout: FormElementsLayout = FormElementsLayout.VERTICAL,
                  toggleable: bool = False,
@@ -669,6 +671,10 @@ class FormElementGroup(Widget):
         :type elements: List[str | :class:`FormElementGroup`]
         :param name: Name of the group.
         :type name: str
+        :param title: Title of the group. If no title is specified, the group will not have a title.
+        :type title: str
+        :param display_title: Determines whether the title should be displayed above the group.
+        :type display_title: bool
         :param request: HTTP request object received by the parent form widget.
         :type request: HttpRequest
         :param layout: Layout of the form elements in the group.
@@ -682,8 +688,16 @@ class FormElementGroup(Widget):
         :type toggleable_params: Dict[str, str]
         :param frame: Determines whether the group should be displayed in a frame.
         :type frame: bool
+        :raises ValueError: If no title is specified and the display_title parameter is set to True.
         """
         super().__init__(name=name, request=request)
+
+        if not title and display_title:
+            raise ValueError('A title must be specified if the display_title parameter is set '
+                             'to True.')
+
+        self.title = title
+        self.display_title = display_title
         self.elements = elements
         self.toggleable = toggleable
         self.layout = layout.value
@@ -733,6 +747,8 @@ class FormElementGroup(Widget):
 
     def get_context(self) -> Dict[str, Any]:
         return super().get_context() | {
+            'title': self.title,
+            'display_title': self.display_title,
             'elements': self.elements,
             'layout': self.layout,
             'toggleable': self.toggleable,
