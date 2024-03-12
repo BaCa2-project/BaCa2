@@ -533,8 +533,7 @@ class Task(models.Model, metaclass=ReadCourseMeta):
         :return: A PackageInstance object.
         :rtype: PackageInstance
         """
-        from package.models import PackageInstance
-        return PackageInstance.objects.get(pk=self.package_instance_id)
+        return ModelsRegistry.get_package_instance(self.package_instance_id)
 
     @transaction.atomic
     def refresh_user_submits(self, user: str | int | User, rejudge: bool = False) -> None:
@@ -998,14 +997,19 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         """
         return Path(self.source_code)
 
-    def send(self) -> BrokerSubmit:
         """
-        It sends the submit to the broker.
+        It sends the submit to the broker. If the broker is mocked, it will run the mock broker and
+        return None.
 
-        :return: A new BrokerSubmit object.
-        :rtype: BrokerSubmit
+        :return: A new BrokerSubmit object or None if the broker is mocked.
+        :rtype: BrokerSubmit | None
         """
         from broker_api.models import BrokerSubmit
+        if settings.MOCK_BROKER:
+            from broker_api.mock import BrokerMock
+            mock = BrokerMock(ModelsRegistry.get_course(self._state.db), self, )
+            mock.run()
+            return None
 
         return BrokerSubmit.send(ModelsRegistry.get_course(self._state.db),
                                  self.id,
@@ -1313,7 +1317,10 @@ class ResultManager(models.Manager):
                       status: str | ResultStatus = ResultStatus.PND,
                       time_real: float = None,
                       time_cpu: float = None,
-                      runtime_memory: int = None) -> Result:
+                      runtime_memory: int = None,
+                      compile_log: str = None,
+                      checker_log: str = None,
+                      answer: str = None) -> Result:
         """
         It creates a new result object.
 
@@ -1329,6 +1336,12 @@ class ResultManager(models.Manager):
         :type time_cpu: float
         :param runtime_memory: The runtime memory of the result, defaults to None (optional)
         :type runtime_memory: int
+        :param compile_log: The compile log of the result, defaults to None (optional)
+        :type compile_log: str
+        :param checker_log: The checker log of the result, defaults to None (optional)
+        :type checker_log: str
+        :param answer: The answer of the result, defaults to None (optional)
+        :type answer: str
 
         :return: A new result object.
         :rtype: Result
@@ -1341,7 +1354,10 @@ class ResultManager(models.Manager):
                                 status=status,
                                 time_real=time_real,
                                 time_cpu=time_cpu,
-                                runtime_memory=runtime_memory)
+                                runtime_memory=runtime_memory,
+                                compile_log=compile_log,
+                                checker_log=checker_log,
+                                answer=answer)
         new_result.save()
         return new_result
 
@@ -1409,7 +1425,7 @@ class Result(models.Model, metaclass=ReadCourseMeta):
                  add_limits: bool = True,
                  add_compile_log: bool = False,
                  add_checker_log: bool = False,
-                 add_user_answer: bool = False,) -> dict:
+                 add_user_answer: bool = False, ) -> dict:
         res = {
             'id': self.pk,
             'test_name': self.test.short_name,
