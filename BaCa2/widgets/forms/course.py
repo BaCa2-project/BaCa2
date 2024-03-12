@@ -6,7 +6,7 @@ from django import forms
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
-from core.choices import TaskJudgingMode
+from core.choices import ResultStatus, TaskJudgingMode
 from core.tools.files import CsvFileHandler, FileHandler
 from course.models import Round, Submit, Task
 from course.routing import InCourse
@@ -1843,6 +1843,14 @@ class CreateSubmitForm(CourseModelForm):
         super().__init__(form_instance_id=form_instance_id, request=request, **kwargs)
 
         self.fields['task_id'].initial = task_id
+        if settings.MOCK_BROKER:
+            self.fields['result_types'] = forms.MultipleChoiceField(
+                choices=ResultStatus.choices,
+                initial=[ResultStatus.OK, ResultStatus.ANS, ResultStatus.TLE, ResultStatus.MEM],
+                help_text=_(
+                    'Mocking broker is enabled. No submissions will be sent to the broker.'),
+                required=False
+            )
         course = ModelsRegistry.get_course(course_id)
         task = course.get_task(task_id)
         allowed_extensions = task.package_instance.package['allowedExtensions']
@@ -1876,12 +1884,18 @@ class CreateSubmitForm(CourseModelForm):
 
         user = request.user
 
+        available_statuses = None
+        if settings.MOCK_BROKER:
+            available_statuses = request.POST.getlist('result_types')
+            available_statuses = [ResultStatus[status] for status in available_statuses]
+
         try:
             Submit.objects.create_submit(
                 source_code=source_code_file.path,
                 task=task_id,
                 user=user,
-                auto_send=False
+                auto_send=True,
+                available_statuses=available_statuses,
             )
         except Exception as e:
             source_code_file.delete()

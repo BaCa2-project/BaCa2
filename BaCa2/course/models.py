@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any, List, Self  # noqa: F401
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -870,7 +870,8 @@ class SubmitManager(models.Manager):
                       submit_type: SubmitType = SubmitType.STD,
                       submit_status: ResultStatus = ResultStatus.PND,
                       error_msg: str = None,
-                      retry: int = 0) -> Submit:
+                      retry: int = 0,
+                      **kwargs) -> Submit:
         """
         It creates a new submit object.
 
@@ -914,7 +915,7 @@ class SubmitManager(models.Manager):
                                 retries=retry)
         new_submit.save()
         if auto_send:
-            new_submit.send()
+            new_submit.send(**kwargs)
         return new_submit
 
     @transaction.atomic
@@ -997,6 +998,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         """
         return Path(self.source_code)
 
+    def send(self, **kwargs) -> BrokerSubmit | None:
         """
         It sends the submit to the broker. If the broker is mocked, it will run the mock broker and
         return None.
@@ -1007,7 +1009,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         from broker_api.models import BrokerSubmit
         if settings.MOCK_BROKER:
             from broker_api.mock import BrokerMock
-            mock = BrokerMock(ModelsRegistry.get_course(self._state.db), self, )
+            mock = BrokerMock(ModelsRegistry.get_course(self._state.db), self, **kwargs)
             mock.run()
             return None
 
@@ -1015,7 +1017,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
                                  self.id,
                                  self.task.package_instance)
 
-    def resend(self, limit_retries: int = -1) -> BrokerSubmit:
+    def resend(self, limit_retries: int = -1) -> Submit:
         """
         It marks this submit as hidden, and creates new submit with the same data. New submit will
         be sent to broker.
@@ -1023,8 +1025,6 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         :return: A new BrokerSubmit object.
         :rtype: BrokerSubmit
         """
-        from broker_api.models import BrokerSubmit
-
         if -1 < limit_retries < self.retries:
             raise ValidationError(f'Submit ({self}): Limit of retries exceeded')
 
@@ -1036,7 +1036,6 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
             source_code=self.source_code,
             task=self.task,
             user=self.usr,
-            auto_send=False,
             submit_type=sub_type,
             retry=self.retries + 1
         )
@@ -1256,8 +1255,8 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
             'submit_status': self.formatted_submit_status,
         }
         if show_user:
-            res |= {'user_first_name': self.user.first_name,
-                    'user_last_name': self.user.last_name}
+            res |= {'user_first_name': self.user.first_name if self.user.first_name else '---',
+                    'user_last_name': self.user.last_name if self.user.last_name else '---'}
         if add_round_task_name:
             res |= {'round_task_name': f'{self.task.round.name}: {self.task.task_name}'}
         if add_summary_score:
