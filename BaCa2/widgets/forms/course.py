@@ -12,7 +12,13 @@ from course.models import Round, Submit, Task
 from course.routing import InCourse
 from main.models import Course, Role, User
 from util.models_registry import ModelsRegistry
-from widgets.forms.base import BaCa2ModelForm, FormElementGroup, FormWidget
+from widgets.forms.base import (
+    BaCa2ModelForm,
+    FormElementGroup,
+    FormObserver,
+    FormObserverTab,
+    FormWidget
+)
 from widgets.forms.fields import (
     AlphanumericStringField,
     ChoiceField,
@@ -1688,6 +1694,7 @@ class EditTaskFormWidget(FormWidget):
             post_target_url=TaskModelView.post_url(**{'course_id': course_id}),
             element_groups=element_groups,
             button_text=_('Edit task'),
+            form_observer=self._create_form_observer(form),
             **kwargs
         )
 
@@ -1715,6 +1722,7 @@ class EditTaskFormWidget(FormWidget):
         general_elements = general_fields + [grading_group, limit_group, extension_field]
         element_groups = [FormElementGroup(elements=general_elements,
                                            name='general-settings',
+                                           title=_('General settings'),
                                            layout=FormElementGroup.FormElementsLayout.VERTICAL)]
 
         for set_group in form.set_groups:
@@ -1739,6 +1747,7 @@ class EditTaskFormWidget(FormWidget):
             element_groups.append(
                 FormElementGroup(elements=set_group_fields + [base_group, limit_group],
                                  name=f'{set_group["name"]}-settings',
+                                 title=set_group['name'],
                                  layout=FormElementGroup.FormElementsLayout.VERTICAL,
                                  frame=True)
             )
@@ -1765,11 +1774,28 @@ class EditTaskFormWidget(FormWidget):
                 element_groups.append(
                     FormElementGroup(elements=test_group_fields + [limit_group, file_group],
                                      name=test_group['name'],
+                                     title=test_group['name'],
                                      layout=FormElementGroup.FormElementsLayout.VERTICAL,
                                      frame=True)
                 )
 
         return element_groups
+
+    @staticmethod
+    def _create_form_observer(form: EditTaskForm) -> FormObserver:
+        tabs = []
+
+        for set_group in form.set_groups:
+            fields = set_group['fields']
+
+            for test_group in set_group['test_groups']:
+                fields += test_group['fields']
+
+            tabs.append(FormObserverTab(name=set_group['name'],
+                                        title=set_group['name'],
+                                        fields=fields))
+
+        return FormObserver(tabs=tabs)
 
     @staticmethod
     def _extract_field_name(fields: List[str], name: str) -> str:
