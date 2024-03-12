@@ -17,6 +17,7 @@ function formsSetup() {
     textAreaFieldSetup();
     liveValidationSetup();
     tableSelectFieldValidationSetup();
+    formObserverSetup();
 }
 
 function ajaxPostSetup() {
@@ -349,6 +350,107 @@ function enableSubmitButton(submitButton) {
             submitButton.removeClass('submit-enabled');
         }, 300);
     }
+}
+
+// --------------------------------------- form observer -------------------------------------- //
+
+function formObserverSetup() {
+    formObserverElementGroupSetup();
+    formObserverListenerSetup();
+}
+
+function formObserverListenerSetup() {
+    $('.form-observer').each(function () {
+        const observer = $(this);
+        const formId = observer.data('form-id');
+        const form = $(`#${formId}`);
+
+        form.find('input, select, textarea').change(function () {
+            formObserverFieldChangeHandler(observer, form, $(this));
+        });
+    });
+}
+
+function formObserverElementGroupSetup() {
+    $('.form-observer[data-element-group-titles="true"]').each(function () {
+        const observer = $(this);
+        const formId = observer.data('form-id');
+        const form = $(`#${formId}`);
+        const summary = observer.find('.observer-summary');
+
+        form.find('.form-element-group[data-title!=""]').each(function () {
+            const groupId = $(this).attr('id');
+            const groupTitle = $(this).data('title');
+
+            summary.each(function () {
+                const groupSummary = $('<div class="group-summary"></div>');
+
+                groupSummary.attr('data-group-id', groupId);
+                groupSummary.append(`<h6 class="group-title">${groupTitle}</h6>`);
+                groupSummary.append('<div class="group-fields"></div>');
+
+                $(this).append(groupSummary);
+            });
+        });
+    });
+}
+
+function formObserverFieldChangeHandler(observer, form, field) {
+    updateFormObserverSummary(observer,
+                              observer.find('.observer-general-summary:first'),
+                              form,
+                              field);
+
+    observer.find('.form-observer-tab-content').each(function () {
+        const acceptedFields = $(this).data('fields');
+
+        if (acceptedFields.includes(field.attr('name')))
+            updateFormObserverSummary(observer, $(this), form, field);
+    });
+}
+
+function updateFormObserverSummary(observer, summary, form, field) {
+    let targetDiv = summary;
+
+    if (observer.data('element-group-titles')) {
+        const group = getClosestTitledElementGroup(field);
+
+        if (group !== null) {
+            targetDiv = summary.find(`.group-summary[data-group-id="${group.attr('id')}"]`);
+            targetDiv = targetDiv.find('.group-fields');
+        }
+    }
+
+    let fieldSummary = targetDiv.find(`.field-summary[data-field-id="${field.attr('id')}"]`);
+    const fieldVal = field.val();
+    const fieldDefaultVal = field.prop("defaultValue");
+
+    if (fieldSummary.length > 0)
+        return updateFormObserverFieldSummary(targetDiv, fieldSummary, fieldVal, fieldDefaultVal);
+
+
+    const fieldLabel = getFieldLabel(field.attr('id'), form);
+
+    fieldSummary = $('<div class="field-summary"></div>');
+    fieldSummary.attr('data-field-id', field.attr('id'));
+    fieldSummary.append(`<div class="field-label">${fieldLabel}</div>`);
+    fieldSummary.append(`<div class="field-value">${fieldVal}</div>`);
+    targetDiv.append(fieldSummary);
+    targetDiv.closest('.group-summary').addClass('has-fields');
+}
+
+function updateFormObserverFieldSummary(summaryDiv, summary, fieldVal, fieldDefaultVal) {
+    if (fieldVal === fieldDefaultVal) {
+        summary.remove();
+
+        if (summaryDiv.find('.field-summary').length === 0)
+            summaryDiv.closest('.group-summary').removeClass('has-fields');
+    } else
+        summary.find('.field-value').text(fieldVal);
+}
+
+function  getClosestTitledElementGroup(field) {
+    return field.closest('.form-element-group[data-title]:not([data-title=""])');
 }
 
 // ------------------------------------------ popups ------------------------------------------ //

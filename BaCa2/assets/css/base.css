@@ -49,6 +49,10 @@ html, body {
   transform: scale(1.01, 1.05);
 }
 
+.form-observer .group-summary:not(.has-fields) {
+  display: none;
+}
+
 :root {
   --bs-form-valid-border-color: $red;
 }
@@ -460,7 +464,7 @@ html, body {
   display: none;
 }
 .tab-wrapper .side-nav-tab {
-  overflow: auto;
+  overflow: hidden;
 }
 
 .side-nav {
@@ -1085,8 +1089,8 @@ pre.code-block.wrap-lines code {
 }
 
 /*!
- * Bootstrap Icons v1.11.3 (https://icons.getbootstrap.com/)
- * Copyright 2019-2024 The Bootstrap Authors
+ * Bootstrap Icons v1.11.2 (https://icons.getbootstrap.com/)
+ * Copyright 2019-2023 The Bootstrap Authors
  * Licensed under MIT (https://github.com/twbs/icons/blob/main/LICENSE)
  */
 @font-face {

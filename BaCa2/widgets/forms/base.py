@@ -443,6 +443,7 @@ class FormWidget(Widget):
                  toggleable_fields: List[str] = None,
                  toggleable_params: Dict[str, Dict[str, str]] = None,
                  live_validation: bool = True,
+                 form_observer: FormObserver = None,
                  submit_confirmation_popup: SubmitConfirmationPopup = None,
                  submit_success_popup: SubmitSuccessPopup = None,
                  submit_failure_popup: SubmitFailurePopup = None) -> None:
@@ -482,6 +483,9 @@ class FormWidget(Widget):
         :param live_validation: Determines whether the form should use live validation. Password
             fields will always be excluded from live validation.
         :type live_validation: bool
+        :param form_observer: Determines the rendering and behavior of the form observer. If no
+            observer is specified, no observer will be rendered.
+        :type form_observer: :class:`FormObserver`
         :param submit_confirmation_popup: Determines the rendering of the confirmation popup shown
             before submitting the form. If no popup is specified, no popup will be shown and the
             form will be submitted immediately upon clicking the submit button.
@@ -531,6 +535,11 @@ class FormWidget(Widget):
         self.floating_labels = floating_labels
         self.live_validation = live_validation
         self.show_response_popups = False
+
+        if form_observer:
+            form_observer.name = f'{self.name}_observer'
+            form_observer = form_observer.get_context()
+        self.form_observer = form_observer
 
         if submit_confirmation_popup:
             submit_confirmation_popup.name = f'{self.name}_confirmation_popup'
@@ -626,6 +635,7 @@ class FormWidget(Widget):
             'field_required': self.field_required,
             'field_min_length': self.field_min_length,
             'live_validation': self.live_validation,
+            'form_observer': self.form_observer,
             'submit_confirmation_popup': self.submit_confirmation_popup,
             'show_response_popups': self.show_response_popups,
             'submit_failure_popup': self.submit_failure_popup,
@@ -754,4 +764,68 @@ class FormElementGroup(Widget):
             'toggleable': self.toggleable,
             'toggleable_params': self.toggleable_params,
             'frame': self.frame
+        }
+
+
+# ------------------------------------ form observer widget ------------------------------------ #
+
+class FormObserver(Widget):
+    class Position(Enum):
+        TOP = 'top'
+        BOTTOM = 'bottom'
+
+    def __init__(self, *,
+                 name: str = '',
+                 title: str = '',
+                 placeholder_text: str = '',
+                 display_element_group_titles: bool = True,
+                 tabs: List[FormObserverTab] = None,
+                 position: FormObserver.Position = None) -> None:
+        super().__init__(name=name)
+
+        if not title:
+            title = _('Summary of changes')
+        self.title = title
+
+        if not placeholder_text:
+            placeholder_text = _('No changes made')
+        self.placeholder_text = placeholder_text
+
+        self.display_element_group_titles = display_element_group_titles
+
+        if not tabs:
+            tabs = []
+        self.tabs = tabs
+
+        if not position:
+            position = FormObserver.Position.TOP
+        self.position = position.value
+
+    def get_context(self) -> Dict[str, Any]:
+        return super().get_context() | {
+            'title': self.title,
+            'placeholder_text': self.placeholder_text,
+            'element_group_titles': self.display_element_group_titles,
+            'position': self.position,
+            'tabs': [tab.get_context() for tab in self.tabs]
+        }
+
+
+class FormObserverTab:
+    def __init__(self, *, name: str, title: str = '', fields: List[str]) -> None:
+        if not fields:
+            raise ValueError('At least one field must be specified for the tab.')
+
+        self.name = name
+        self.fields = fields
+
+        if not title:
+            title = name
+        self.title = title
+
+    def get_context(self) -> Dict[str, str]:
+        return {
+            'name': self.name,
+            'title': self.title,
+            'fields': ' '.join(self.fields)
         }
