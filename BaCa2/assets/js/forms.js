@@ -387,7 +387,7 @@ function formObserverElementGroupSetup() {
 
                 groupSummary.attr('data-group-id', groupId);
                 groupSummary.append(`<h6 class="group-title">${groupTitle}</h6>`);
-                groupSummary.append('<div class="group-fields"></div>');
+                groupSummary.append('<div class="group-fields row"></div>');
 
                 $(this).append(groupSummary);
             });
@@ -402,7 +402,7 @@ function formObserverFieldChangeHandler(observer, form, field) {
                               field);
 
     observer.find('.form-observer-tab-content').each(function () {
-        const acceptedFields = $(this).data('fields');
+        const acceptedFields = $(this).data('fields').split(' ');
 
         if (acceptedFields.includes(field.attr('name')))
             updateFormObserverSummary(observer, $(this), form, field);
@@ -422,7 +422,7 @@ function updateFormObserverSummary(observer, summary, form, field) {
     }
 
     let fieldSummary = targetDiv.find(`.field-summary[data-field-id="${field.attr('id')}"]`);
-    const fieldVal = field.val();
+    let fieldVal = field.val();
     const fieldDefaultVal = field.prop("defaultValue");
 
     if (fieldSummary.length > 0)
@@ -430,12 +430,19 @@ function updateFormObserverSummary(observer, summary, form, field) {
 
 
     const fieldLabel = getFieldLabel(field.attr('id'), form);
+    const valueSummary = $(`<div class="row justify-content-center"></div>`);
 
-    fieldSummary = $('<div class="field-summary"></div>');
+    fieldVal = fieldVal === '' ? '<i class="bi bi-x-lg"></i>' : fieldVal;
+
+    fieldSummary = $('<div class="field-summary col"></div>');
     fieldSummary.attr('data-field-id', field.attr('id'));
-    fieldSummary.append(`<div class="field-label">${fieldLabel}</div>`);
-    fieldSummary.append(`<div class="field-value">${fieldVal}</div>`);
-    targetDiv.append(fieldSummary);
+    fieldSummary.append(`<div class="field-label row"><b>${fieldLabel}:</b></div>`);
+
+    valueSummary.append(`<div class="field-default-value col-auto">${fieldDefaultVal}</div>`);
+    valueSummary.append(`<div class="col-auto"><i class="bi bi-arrow-right"></i></div>`);
+    valueSummary.append(`<div class="field-value col-auto">${fieldVal}</div>`);
+
+    targetDiv.prepend(fieldSummary.append(valueSummary));
     targetDiv.closest('.group-summary').addClass('has-fields');
 }
 
@@ -446,7 +453,8 @@ function updateFormObserverFieldSummary(summaryDiv, summary, fieldVal, fieldDefa
         if (summaryDiv.find('.field-summary').length === 0)
             summaryDiv.closest('.group-summary').removeClass('has-fields');
     } else
-        summary.find('.field-value').text(fieldVal);
+        summary.find('.field-value')
+               .text(fieldVal === '' ? '<i class="bi bi-x-lg"></i>' : fieldVal);
 }
 
 function  getClosestTitledElementGroup(field) {
