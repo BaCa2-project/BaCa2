@@ -102,6 +102,7 @@ class BaCa2ContextMixin:
                             'be used as a view mixin.')
 
         context['display_sidenav'] = False
+        context['page_title'] = 'BaCa²'
 
         return context
 
