@@ -1,6 +1,6 @@
 import inspect
 from abc import ABC, ABCMeta
-from typing import Any, Callable, Dict, Union
+from typing import Any, Callable, Dict, List, Union
 
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.http import JsonResponse
@@ -283,6 +283,37 @@ class SubmitModelView(CourseModelView):
             return CreateSubmitForm.handle_post_request(request)
 
         return self.handle_unknown_form(request, **kwargs)
+
+    def check_get_filtered_permission(self,
+                                      filter_params: dict,
+                                      exclude_params: dict,
+                                      serialize_kwargs: dict,
+                                      query_result: List[Submit],
+                                      request,
+                                      **kwargs) -> bool:
+        """
+        :param filter_params: Parameters used to filter the query result
+        :type filter_params: dict
+        :param exclude_params: Parameters used to exclude the query result
+        :type exclude_params: dict
+        :param serialize_kwargs: Kwargs passed to the serialization method of the model class
+            instances retrieved by the view when the JSON response is generated.
+        :type serialize_kwargs: dict
+        :param query_result: Query result retrieved by the view
+        :type query_result: List[:class:`Submit`]
+        :param request: HTTP GET request object received by the view
+        :type request: HttpRequest
+        :return: `True` if the user has the view_own_submit permission and all the retrieved
+            submit instances are owned by the user, `False` otherwise
+        :rtype: bool
+        """
+        user = getattr(request, 'user')
+        course = ModelsRegistry.get_course(self.kwargs.get('course_id'))
+
+        if not user.has_course_permission(Course.CourseAction.VIEW_OWN_SUBMIT.label, course):
+            return False
+
+        return all(submit.usr == user.pk for submit in query_result)
 
 
 class ResultModelView(CourseModelView):
