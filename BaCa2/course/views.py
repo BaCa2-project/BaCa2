@@ -349,6 +349,7 @@ class CourseView(BaCa2LoggedInView, CourseMemberMixin):
         user = getattr(self.request, 'user')
         course_id = self.kwargs.get('course_id')
         course = ModelsRegistry.get_course(course_id)
+        context['page_title'] = course.name
         sidenav_tabs = ['Members', 'Roles', 'Rounds', 'Tasks', 'Results']
         sidenav_sub_tabs = {tab: [] for tab in sidenav_tabs}
 
@@ -631,6 +632,7 @@ class CourseTask(BaCa2LoggedInView, CourseMemberMixin):
         course = ModelsRegistry.get_course(course_id)
         task_id = self.kwargs.get('task_id')
         task = ModelsRegistry.get_task(task_id, course_id)
+        context['page_title'] = task.task_name
         sidenav_tabs = ['Description']
 
         # description ----------------------------------------------------------------------------
@@ -767,6 +769,8 @@ class TaskEditView(BaCa2LoggedInView, CourseMemberMixin):
         context = super().get_context_data(**kwargs)
         course_id = self.kwargs.get('course_id')
         task_id = self.kwargs.get('task_id')
+        task = ModelsRegistry.get_task(task_id, course_id)
+        context['page_title'] = task.task_name + _(' - edit')
         task_form = EditTaskFormWidget(request=self.request, course_id=course_id, task_id=task_id)
         self.add_widget(context, task_form)
         self.add_widget(context, task_form.get_sidenav(self.request))
@@ -783,6 +787,7 @@ class RoundEditView(BaCa2LoggedInView, CourseMemberMixin):
 
         course_id = self.kwargs.get('course_id')
         course = ModelsRegistry.get_course(course_id)
+        context['page_title'] = course.name + _(' - rounds')
         rounds = course.rounds()
         rounds = sorted(rounds, key=lambda x: x.name)
         round_names = [r.name for r in rounds]
@@ -843,6 +848,8 @@ class SubmitSummaryView(BaCa2LoggedInView, CourseMemberMixin):
         with InCourse(course_id):
             task = submit.task
         course = ModelsRegistry.get_course(course_id)
+
+        context['page_title'] = f'{task.task_name} - submit #{submit.pk}'
 
         sidenav = SideNav(request=self.request,
                           collapsed=True,
