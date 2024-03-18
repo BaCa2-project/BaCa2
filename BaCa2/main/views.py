@@ -59,6 +59,7 @@ class CourseModelView(BaCa2ModelView):
     def check_get_filtered_permission(self,
                                       filter_params: dict,
                                       exclude_params: dict,
+                                      serialize_kwargs: dict,
                                       query_result: List[Course],
                                       request,
                                       **kwargs) -> bool:
@@ -73,6 +74,9 @@ class CourseModelView(BaCa2ModelView):
         :param exclude_params: Query parameters used to construct the exclude filter for the
             retrieved query set.
         :type exclude_params: dict
+        :param serialize_kwargs: Kwargs passed to the serialization method of the model class
+            instances retrieved by the view when the JSON response is generated.
+        :type serialize_kwargs: dict
         :param query_result: Query set retrieved using the specified query parameters evaluated to a
             list.
         :type query_result: List[:class:`Course`]
@@ -158,6 +162,7 @@ class UserModelView(BaCa2ModelView):
     def check_get_filtered_permission(self,
                                       filter_params: dict,
                                       exclude_params: dict,
+                                      serialize_kwargs: dict,
                                       query_result: List[User],
                                       request,
                                       **kwargs) -> bool:
@@ -172,6 +177,9 @@ class UserModelView(BaCa2ModelView):
         :param exclude_params: Query parameters used to construct the exclude filter for the
             retrieved query set.
         :type exclude_params: dict
+        :param serialize_kwargs: Kwargs passed to the serialization method of the model class
+            instances retrieved by the view when the JSON response is generated.
+        :type serialize_kwargs: dict
         :param query_result: Query set retrieved using the specified query parameters evaluated to a
             list.
         :type query_result: List[:class:`User`]
@@ -234,6 +242,7 @@ class RoleModelView(BaCa2ModelView):
     def check_get_filtered_permission(self,
                                       filter_params: dict,
                                       exclude_params: dict,
+                                      serialize_kwargs: dict,
                                       query_result: List[Role],
                                       request,
                                       **kwargs) -> bool:
@@ -248,6 +257,9 @@ class RoleModelView(BaCa2ModelView):
         :param exclude_params: Query parameters used to construct the exclude filter for the
             retrieved query set.
         :type exclude_params: dict
+        :param serialize_kwargs: Kwargs passed to the serialization method of the model class
+            instances retrieved by the view when the JSON response is generated.
+        :type serialize_kwargs: dict
         :param query_result: Query set retrieved using the specified query parameters evaluated to a
             list.
         :type query_result: List[:class:`Role`]

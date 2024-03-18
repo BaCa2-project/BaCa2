@@ -178,10 +178,13 @@ class CourseModelView(BaCa2ModelView, ABC, metaclass=ReadCourseViewMeta):
 
         return f'/course/{course_id}/models/{cls.MODEL._meta.model_name}/'
 
-    def check_get_all_permission(self, request, **kwargs) -> bool:
+    def check_get_all_permission(self, request, serialize_kwargs, **kwargs) -> bool:
         """
         :param request: HTTP GET request object received by the view
         :type request: HttpRequest
+        :param serialize_kwargs: Kwargs passed to the serialization method of the model class
+            instances retrieved by the view when the JSON response is generated.
+        :type serialize_kwargs: dict
         :return: `True` if the user has permission to view all instances of the model assigned to
             them in the course, `False` otherwise
         :rtype: bool
@@ -289,6 +292,9 @@ class ResultModelView(CourseModelView):
     """
 
     MODEL = Result
+
+    def check_get_all_permission(self, request, serialize_kwargs, **kwargs) -> bool:
+        pass
 
 
 # ------------------------------------- course member mixin ------------------------------------ #
@@ -842,21 +848,24 @@ class SubmitSummaryView(BaCa2LoggedInView, CourseMemberMixin):
 
     def get_context_data(self, **kwargs) -> Dict[str, Any]:
         context = super().get_context_data(**kwargs)
+        user = getattr(self.request, 'user')
         course_id = self.kwargs.get('course_id')
         submit_id = self.kwargs.get('submit_id')
         submit = ModelsRegistry.get_submit(submit_id, course_id)
+
         with InCourse(course_id):
             task = submit.task
-        course = ModelsRegistry.get_course(course_id)
 
+        course = ModelsRegistry.get_course(course_id)
         context['page_title'] = f'{task.task_name} - submit #{submit.pk}'
 
         sidenav = SideNav(request=self.request,
                           collapsed=True,
-                          tabs=['Summary', 'Code'], )
+                          tabs=['Summary'], )
 
         context['summary_tab'] = 'summary-tab'
-        context['code_tab'] = 'code-tab'
+
+        # summary table --------------------------------------------------------------------------
 
         submit_summary = [
             {'title': _('Course'), 'value': course.name},
@@ -886,17 +895,26 @@ class SubmitSummaryView(BaCa2LoggedInView, CourseMemberMixin):
         )
         self.add_widget(context, summary_table)
 
-        source_code = CodeBlock(
-            name='source_code_block',
-            title=_('Source code'),
-            code=submit.source_code_path,
-        )
-        self.add_widget(context, source_code)
+        # solution code --------------------------------------------------------------------------
+
+        if user.has_course_permission(Course.CourseAction.VIEW_CODE.label, course):
+            sidenav.add_tab(_('Code'))
+            context['code_tab'] = 'code-tab'
+            source_code = CodeBlock(
+                name='source_code_block',
+                title=_('Source code'),
+                code=submit.source_code_path,
+            )
+            self.add_widget(context, source_code)
+
+        # pending status -------------------------------------------------------------------------
 
         if submit.submit_status in EMPTY_FINAL_STATUSES + [ResultStatus.PND]:
             context['sets'] = []
             self.add_widget(context, sidenav)
             return context
+
+        # sets -----------------------------------------------------------------------------------
 
         sets = task.sets
         sets = sorted(sets, key=lambda x: x.short_name)
@@ -904,6 +922,7 @@ class SubmitSummaryView(BaCa2LoggedInView, CourseMemberMixin):
 
         results_to_parse = sorted(submit.results, key=lambda x: x.test_.short_name)
         results = {}
+
         for res in results_to_parse:
             test_set_id = res.test_.test_set_id
             if test_set_id not in results:
