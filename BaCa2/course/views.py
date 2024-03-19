@@ -9,7 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from core.choices import EMPTY_FINAL_STATUSES, BasicModelAction, ResultStatus, SubmitType
 from course.models import Result, Round, Submit, Task
 from course.routing import InCourse
-from main.models import Course
+from main.models import Course, User
 from main.views import CourseModelView as CourseModelManagerView
 from main.views import RoleModelView, UserModelView
 from util.models_registry import ModelsRegistry
@@ -325,7 +325,80 @@ class ResultModelView(CourseModelView):
     MODEL = Result
 
     def check_get_all_permission(self, request, serialize_kwargs, **kwargs) -> bool:
-        pass
+        """
+        :param request: HTTP GET request object received by the view
+        :type request: HttpRequest
+        :param serialize_kwargs: Kwargs passed to the serialization method of the model class
+            instances retrieved by the view when the JSON response is generated.
+        :type serialize_kwargs: dict
+        :return: Checks if the user has permission to view all results in the course. If
+            `serialize_kwargs` contains `include_time` and/or `include_memory` set to `True`, the
+            user also needs to have the view_used_time and/or view_used_memory permissions in the
+            course.
+        """
+        user = getattr(request, 'user')
+        course = ModelsRegistry.get_course(self.kwargs.get('course_id'))
+
+        if not user.has_course_permission(Course.CourseAction.VIEW_RESULT.label, course):
+            return False
+
+        if serialize_kwargs.get('include_time') and not user.has_course_permission(
+            Course.CourseAction.VIEW_USED_TIME.label, course
+        ):
+            return False
+
+        if serialize_kwargs.get('include_memory') and not user.has_course_permission(
+            Course.CourseAction.VIEW_USED_MEMORY.label, course
+        ):
+            return False
+
+        return True
+
+    def check_get_filtered_permission(self,
+                                      filter_params: dict,
+                                      exclude_params: dict,
+                                      serialize_kwargs: dict,
+                                      query_result: List[Result],
+                                      request,
+                                      **kwargs) -> bool:
+        """
+        :param filter_params: Parameters used to filter the query result
+        :type filter_params: dict
+        :param exclude_params: Parameters used to exclude the query result
+        :type exclude_params: dict
+        :param serialize_kwargs: Kwargs passed to the serialization method of the model class
+            instances retrieved by the view when the JSON response is generated.
+        :type serialize_kwargs: dict
+        :param query_result: Query result retrieved by the view
+        :type query_result: List[:class:`Result`]
+        :param request: HTTP GET request object received by the view
+        :type request: HttpRequest
+        :return: `True` if the user has the view_own_result permission and all the retrieved
+            result instances are owned by the user. If `serialize_kwargs` contains
+            `include_time` and/or `include_memory` set to `True`, the user also needs to have
+            the view_used_time and/or view_used_memory permissions in the course.
+        :rtype: bool
+        """
+        user = getattr(request, 'user')
+        course = ModelsRegistry.get_course(self.kwargs.get('course_id'))
+
+        if not user.has_course_permission(Course.CourseAction.VIEW_OWN_RESULT.label, course):
+            return False
+
+        if not all(result.submit.usr == user.pk for result in query_result):
+            return False
+
+        if serialize_kwargs.get('include_time') and not user.has_course_permission(
+            Course.CourseAction.VIEW_USED_TIME.label, course
+        ):
+            return False
+
+        if serialize_kwargs.get('include_memory') and not user.has_course_permission(
+            Course.CourseAction.VIEW_USED_MEMORY.label, course
+        ):
+            return False
+
+        return True
 
 
 # ------------------------------------- course member mixin ------------------------------------ #
@@ -858,6 +931,15 @@ class RoundEditView(BaCa2LoggedInView, CourseMemberMixin):
 class SubmitSummaryView(BaCa2LoggedInView, CourseMemberMixin):
     template_name = 'course_submit_summary.html'
 
+    @staticmethod
+    def _display_test_summaries(user: User, course: Course) -> bool:
+        return any([
+            user.has_course_permission(Course.CourseAction.VIEW_COMPILE_LOG.label, course),
+            user.has_course_permission(Course.CourseAction.VIEW_CHECKER_LOG.label, course),
+            user.has_course_permission(Course.CourseAction.VIEW_STUDENT_OUTPUT.label, course),
+            user.has_course_permission(Course.CourseAction.VIEW_BENCHMARK_OUTPUT.label, course),
+        ])
+
     def test_func(self) -> bool:
         if not super().test_func():
             return False
@@ -892,7 +974,7 @@ class SubmitSummaryView(BaCa2LoggedInView, CourseMemberMixin):
 
         sidenav = SideNav(request=self.request,
                           collapsed=True,
-                          tabs=['Summary'], )
+                          tabs=['Summary'])
 
         context['summary_tab'] = 'summary-tab'
 
@@ -960,13 +1042,42 @@ class SubmitSummaryView(BaCa2LoggedInView, CourseMemberMixin):
                 results[test_set_id] = {}
             results[test_set_id][res.test_id] = res
 
+        view_used_time = user.has_course_permission(Course.CourseAction.VIEW_USED_TIME.label,
+                                                    course)
+        view_used_memory = user.has_course_permission(Course.CourseAction.VIEW_USED_MEMORY.label,
+                                                      course)
+        display_test_summaries = self._display_test_summaries(user, course)
+
         for s in sets:
             set_context = {
                 'set_name': s.short_name,
                 'set_id': s.pk,
                 'tests': [],
             }
-            sidenav.add_tab(tab_name=s.short_name, )
+
+            if display_test_summaries:
+                sidenav.add_tab(tab_name=s.short_name)
+
+            serialize_kwargs = {'include_time': False, 'include_memory': False}
+
+            if view_used_time:
+                serialize_kwargs['include_time'] = True
+            if view_used_memory:
+                serialize_kwargs['include_memory'] = True
+
+            cols = [
+                TextColumn(name='test_name', header=_('Test')),
+                TextColumn(name='f_status', header=_('Status')),
+            ]
+
+            if view_used_time:
+                cols.append(TextColumn(name='f_time_real',
+                                       header=_('Time'),
+                                       searchable=False))
+            if view_used_memory:
+                cols.append(TextColumn(name='f_runtime_memory',
+                                       header=_('Memory'),
+                                       searchable=False))
 
             set_summary = TableWidget(
                 name=f'set_{s.pk}_summary_table_widget',
@@ -974,35 +1085,48 @@ class SubmitSummaryView(BaCa2LoggedInView, CourseMemberMixin):
                 data_source=ResultModelView.get_url(
                     mode=BaCa2ModelView.GetMode.FILTER,
                     filter_params={'submit': submit_id, 'test__test_set_id': s.pk},
+                    serialize_kwargs=serialize_kwargs,
                     course_id=course_id,
                 ),
-                cols=[
-                    TextColumn(name='test_name', header=_('Test')),
-                    TextColumn(name='f_status', header=_('Status')),
-                    TextColumn(name='f_time_real', header=_('Time'), searchable=False),
-                    TextColumn(name='f_runtime_memory', header=_('Memory'), searchable=False),
-                ],
+                cols=cols,
                 title=f'{_("Set")} {s.short_name} - {_("weight:")} {s.weight}',
                 allow_column_search=False,
                 default_order_col='test_name',
             )
             set_context['table_widget'] = set_summary.get_context()
 
+            # test results -----------------------------------------------------------------------
+
             tests = sorted(s.tests, key=lambda x: x.short_name)
+
+            show_compile_log = user.has_course_permission(
+                Course.CourseAction.VIEW_COMPILE_LOG.label,
+                course
+            )
+            show_checker_log = user.has_course_permission(
+                Course.CourseAction.VIEW_CHECKER_LOG.label,
+                course
+            )
 
             for test in tests:
                 brief_result_summary = BriefResultSummary(
                     set_name=s.short_name,
                     test_name=test.short_name,
                     result=results[s.pk][test.pk],
-                    show_compile_log=True,
-                    show_checker_log=True,
+                    include_time=view_used_time,
+                    include_memory=view_used_memory,
+                    show_compile_log=show_compile_log,
+                    show_checker_log=show_checker_log,
                 )
                 set_context['tests'].append(brief_result_summary.get_context())
 
             sets_list.append(set_context)
 
+        context['display_test_summaries'] = display_test_summaries
         context['sets'] = sets_list
 
-        self.add_widget(context, sidenav)
+        if len(sidenav.tabs) > 1:
+            context['display_sidenav'] = True
+            self.add_widget(context, sidenav)
+
         return context

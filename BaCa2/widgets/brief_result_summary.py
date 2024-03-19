@@ -10,6 +10,8 @@ class BriefResultSummary(Widget):
                  set_name: str,
                  test_name: str,
                  result: Result,
+                 include_time: bool,
+                 include_memory: bool,
                  show_compile_log: bool = True,
                  show_checker_log: bool = False, ):
         name = f'{set_name}_{test_name}'
@@ -18,13 +20,17 @@ class BriefResultSummary(Widget):
         self.test_name = test_name
 
         self.result = result
+        self.include_time = include_time
+        self.include_memory = include_memory
         self.show_compile_log = show_compile_log
         self.show_checker_log = show_checker_log
 
     def get_result_data(self) -> dict:
         from .code_block import CodeBlock
 
-        result_data = self.result.get_data(add_compile_log=self.show_compile_log,
+        result_data = self.result.get_data(include_time=self.include_time,
+                                           include_memory=self.include_memory,
+                                           add_compile_log=self.show_compile_log,
                                            add_checker_log=self.show_checker_log)
         if result_data['compile_log']:
             compile_log_widget = CodeBlock(
