@@ -156,6 +156,16 @@ class TableWidget {
 
 function tablesPreSetup() {
     tableResizeSetup();
+    $(document).on('tab-activated', function (e) {
+        const tab = $(e.target);
+        const table = $(`#${tab.find('.table-wrapper').data('table-id')}`);
+
+        if (!table.length)
+            return;
+
+        const DTObj = window.tableWidgets[`#${table.attr('id')}`].DTObj;
+        DTObj.ajax.reload();
+    });
 }
 
 function tablesSetup() {
@@ -396,7 +406,7 @@ function createPagingDef(paging, DTParams, table, tableId) {
 
 function setRefresh(tableId, interval) {
     setInterval(function () {
-        window.tableWidgets[`#${tableId}`].table.ajax.reload();
+        window.tableWidgets[`#${tableId}`].DTObj.ajax.reload();
     }, interval);
 }
 
