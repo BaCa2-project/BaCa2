@@ -156,6 +156,7 @@ class TableWidget {
 
 function tablesPreSetup() {
     tableResizeSetup();
+
     $(document).on('tab-activated', function (e) {
         const tab = $(e.target);
         const tableId = tab.find('.table-wrapper').data('table-id');
@@ -165,6 +166,7 @@ function tablesPreSetup() {
 
         const DTObj = window.tableWidgets[`#${tableId}`].DTObj;
         DTObj.ajax.reload(function () {
+            DTObj.columns.adjust().draw();
             $(`#${tableId}`).trigger('table-reload');
         });
     });
