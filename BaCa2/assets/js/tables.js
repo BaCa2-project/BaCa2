@@ -158,13 +158,15 @@ function tablesPreSetup() {
     tableResizeSetup();
     $(document).on('tab-activated', function (e) {
         const tab = $(e.target);
-        const table = $(`#${tab.find('.table-wrapper').data('table-id')}`);
+        const tableId = tab.find('.table-wrapper').data('table-id');
 
-        if (!table.length)
+        if (tableId === undefined)
             return;
 
-        const DTObj = window.tableWidgets[`#${table.attr('id')}`].DTObj;
-        DTObj.ajax.reload();
+        const DTObj = window.tableWidgets[`#${tableId}`].DTObj;
+        DTObj.ajax.reload(function () {
+            $(`#${tableId}`).trigger('table-reload');
+        });
     });
 }
 
@@ -282,7 +284,7 @@ function refreshButtonClickHandler(button) {
     tableWidget.DTObj.ajax.reload(function () {
         tableWidget.DTObj.columns.adjust().draw();
         tableWidget.updateSelectHeader();
-        $(`#${tableId}`).trigger('init.dt');
+        $(`#${tableId}`).trigger('table-reload');
     });
 }
 
@@ -291,7 +293,7 @@ function refreshButtonClickHandler(button) {
 
 function deleteRecordFormSetup(form, tableId) {
     form.on('submit-success', function (e, data) {
-        window.tableWidgets[`#${tableId}`].table.ajax.reload();
+        window.tableWidgets[`#${tableId}`].DTObj.ajax.reload();
     });
 }
 
