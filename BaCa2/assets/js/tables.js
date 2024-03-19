@@ -301,7 +301,7 @@ function deleteRecordFormSetup(form, tableId) {
 
 
 function recordLinkSetup(tableId) {
-    $(`#${tableId}`).on('click', 'tbody tr', function () {
+    $(`#${tableId}`).on('click', 'tbody tr[data-record-link]', function () {
         window.location.href = $(this).data('record-link');
     });
 }
