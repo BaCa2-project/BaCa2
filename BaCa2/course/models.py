@@ -1431,6 +1431,8 @@ class Result(models.Model, metaclass=ReadCourseMeta):
             self.submit.score(rejudge=True)
 
     def get_data(self,
+                 include_time: bool = False,
+                 include_memory: bool = False,
                  format_time: bool = True,
                  format_memory: bool = True,
                  translate_status: bool = True,
@@ -1442,11 +1444,15 @@ class Result(models.Model, metaclass=ReadCourseMeta):
             'id': self.pk,
             'test_name': self.test.short_name,
             'status': self.status,
-            'time_real': self.time_real,
-            'time_cpu': self.time_cpu,
-            'runtime_memory': self.runtime_memory
         }
-        if format_time:
+
+        if include_time:
+            res['time_real'] = self.time_real
+            res['time_cpu'] = self.time_cpu
+        if include_memory:
+            res['runtime_memory'] = self.runtime_memory
+
+        if include_time and format_time:
             res['f_time_real'] = f'{self.time_real:.3f} s' if self.time_real else None
             res['f_time_cpu'] = f'{self.time_cpu:.3f} s' if self.time_cpu else None
             if self.status in HALF_EMPTY_FINAL_STATUSES:
@@ -1456,7 +1462,7 @@ class Result(models.Model, metaclass=ReadCourseMeta):
                 time_limit = round(self.test.package_test['time_limit'], 3)
                 res['f_time_real'] += f' / {time_limit} s'
                 res['f_time_cpu'] += f' / {time_limit} s'
-        if format_memory and self.runtime_memory:
+        if include_memory and format_memory and self.runtime_memory:
             res['f_runtime_memory'] = f'{bytes_to_str(self.runtime_memory)}'
             if self.status in HALF_EMPTY_FINAL_STATUSES:
                 res['f_runtime_memory'] = self.status
@@ -1468,11 +1474,17 @@ class Result(models.Model, metaclass=ReadCourseMeta):
 
         if add_compile_log:
             res['compile_log'] = self.compile_log
+        else:
+            res['compile_log'] = ''
 
         if add_checker_log:
             res['checker_log'] = self.checker_log
+        else:
+            res['checker_log'] = ''
 
         if add_user_answer:
             res['user_answer'] = self.answer
+        else:
+            res['user_answer'] = ''
 
         return res

@@ -1,20 +1,27 @@
 {% extends "base.html" %}
 
 {% block content %}
+    {% if display_sidenav %}
     <div class="tab-wrapper" id="{{ summary_tab }}">
         <div class="side-nav-tab">
-            {% with widgets.TableWidget.summary_table_widget as table_widget %}
-                {% include "widget_templates/table.html" %}
-            {% endwith %}
-
-            {% for s in sets %}
-                <br/>
-                {% with s.table_widget as table_widget %}
+    {% endif %}
+            <div class="mb-3">
+                {% with widgets.TableWidget.summary_table_widget as table_widget %}
                     {% include "widget_templates/table.html" %}
                 {% endwith %}
+            </div>
+
+            {% for s in sets %}
+                <div class="mb-3">
+                    {% with s.table_widget as table_widget %}
+                        {% include "widget_templates/table.html" %}
+                    {% endwith %}
+                </div>
             {% endfor %}
+    {% if display_sidenav %}
         </div>
     </div>
+    {% endif %}
 
     <div class="tab-wrapper" id="{{ code_tab }}">
         <div class="side-nav-tab">
@@ -24,15 +31,17 @@
         </div>
     </div>
 
-    {% for s in sets %}
-        <div class="tab-wrapper" id="{{ s.set_name }}-tab">
-            <div class="side-nav-tab">
-                {% for test_summary in s.tests %}
-                    {% with test_summary as brief_result_summary %}
-                        {% include "widget_templates/brief_result_summary.html" %}
-                    {% endwith %}
-                {% endfor %}
+    {% if display_test_summaries %}
+        {% for s in sets %}
+            <div class="tab-wrapper" id="{{ s.set_name }}-tab">
+                <div class="side-nav-tab">
+                    {% for test_summary in s.tests %}
+                        {% with test_summary as brief_result_summary %}
+                            {% include "widget_templates/brief_result_summary.html" %}
+                        {% endwith %}
+                    {% endfor %}
+                </div>
             </div>
-        </div>
-    {% endfor %}
+        {% endfor %}
+    {% endif %}
 {% endblock %}
