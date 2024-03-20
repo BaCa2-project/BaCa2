@@ -540,9 +540,10 @@ class RoleView(BaCa2LoggedInView, UserPassesTestMixin):
         return False
 
     def get_context_data(self, **kwargs) -> dict:
-        context = super().get_context_data(**kwargs)
         role = ModelsRegistry.get_role(self.kwargs.get('role_id'))
         course = role.course
+        self.request.course_id = course.id
+        context = super().get_context_data(**kwargs)
         user = getattr(self.request, 'user')
         sidenav_tabs = ['Overview', 'Members']
         context['page_title'] = f'{course.name} - {role.name}'
