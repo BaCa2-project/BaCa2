@@ -1,6 +1,7 @@
 function preInitCommon() {
     formsPreSetup();
     tablesPreSetup();
+    themePreSetup();
 }
 
 function initCommon() {
@@ -12,6 +13,7 @@ function initCommon() {
     tablesSetup();
     formsSetup();
     sideNavSetup();
+    themeSetup();
 }
 
 function showPage() {

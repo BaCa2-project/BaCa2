@@ -483,6 +483,14 @@ class Course(models.Model):
         VIEW_OWN_RESULT = 'view_own_result', 'view_own_result'
         EDIT_RESULT = 'edit_result', 'change_result'
         DEL_RESULT = 'delete_result', 'delete_result'
+        VIEW_CODE = 'view_code', 'view_code'
+        VIEW_COMPILE_LOG = 'view_compilation_logs', 'view_compilation_logs'
+        VIEW_CHECKER_LOG = 'view_checker_logs', 'view_checker_logs'
+        VIEW_STUDENT_OUTPUT = 'view_student_output', 'view_student_output'
+        VIEW_BENCHMARK_OUTPUT = 'view_benchmark_output', 'view_benchmark_output'
+        VIEW_INPUTS = 'view_inputs', 'view_inputs'
+        VIEW_USED_MEMORY = 'view_used_memory', 'view_used_memory'
+        VIEW_USED_TIME = 'view_used_time', 'view_used_time'
 
     # ---------------------------------- Course representation --------------------------------- #
 

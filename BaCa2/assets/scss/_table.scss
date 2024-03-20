@@ -1,7 +1,7 @@
 @import "baca2_variables";
 @import "functions";
 
-.link-records tbody tr {
+.link-records tbody tr[data-record-link] {
     cursor: pointer;
 }
 
@@ -88,7 +88,7 @@
             background-color: $selected_row_bg_color;
         }
 
-        .row-hover tr:hover td {
+        .row-hover tr[data-record-link]:hover td {
             background-color: $row_bg_color_hover;
         }
 

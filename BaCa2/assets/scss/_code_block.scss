@@ -17,6 +17,10 @@ pre.code-block {
     [data-bs-theme="#{$theme}"] {
         pre.code-block {
             background: $bg_color !important;
+
+            .token.operator {
+                background: $bg_color !important;
+            }
         }
 
         .test-summary .compile-tabs-nav .nav-link.active {

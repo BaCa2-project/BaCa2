@@ -6,6 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width initial-scale=1.0">
     <title>
+        {{ page_title }}
         {% block title %}
         {% endblock %}
     </title>
@@ -59,7 +60,12 @@
     <script src="{% static 'js/jquery.datetimepicker.full.min.js' %}"></script>
 
     <!-- Prism code highlighting -->
-    <link rel="stylesheet"
+    <link rel="stylesheet" class="code-highlighting" data-bs-theme="light"
+          href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css"
+          integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
+
+    <link rel="stylesheet" class="code-highlighting" data-bs-theme="dark"
           href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css"
           integrity="sha512-mIs9kKbaw6JZFfSuo+MovjU+Ntggfoj8RwAmJbVXQ5mkAX5LlgETQEweFPI18humSPHymTb5iikEOKWF7I8ncQ=="
           crossorigin="anonymous" referrerpolicy="no-referrer"/>
@@ -81,6 +87,7 @@
         integrity="sha512-gNqZmXmzLWyg/00PDvTnX4q533JiXbxFdTWJC5hfOyHORHXOC6PtDP5Mm2Vpa4faIMONoKQADwhhbst9Ok1/oQ=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <link rel="stylesheet"
+
           href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css"
           integrity="sha512-cbQXwDFK7lj2Fqfkuxbo5iD1dSbLlJGXGpfTDqbggqjHJeyzx88I3rfwjS38WJag/ihH7lzuGlGHpDBymLirZQ=="
           crossorigin="anonymous" referrerpolicy="no-referrer"/>
@@ -88,6 +95,7 @@
         src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"
         integrity="sha512-BttltKXFyWnGZQcRWj6osIg7lbizJchuAMotOkdLxHxwt/Hyo+cl47bZU0QADg+Qt5DJwni3SbYGXeGMB5cBcw=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
     {% comment %}<script
         src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/show-language/prism-show-language.min.js"
         integrity="sha512-d1t+YumgzdIHUL78me4B9NzNTu9Lcj6RdGVbdiFDlxRV9JTN9s+iBQRhUqLRq5xtWUp1AD+cW2sN2OlST716fw=="
@@ -104,11 +112,16 @@
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
 
+    <!-- favicon -->
+    <link rel="icon" href="{% static 'img/favicon.png' %}" type="image/x-icon">
+
+
     <!-- stylesheets -->
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
 
     <!-- scripts -->
     <script src="{% static 'js/base.js' %}"></script>
+    <script src="{% static 'js/themes.js' %}"></script>
     <script src="{% static 'js/logo.js' %}"></script>
     <script src="{% static 'js/buttons.js' %}"></script>
     <script src="{% static 'js/tables.js' %}"></script>
@@ -177,5 +190,8 @@
 
 {% block scripts %}
 {% endblock %}
+
+    <!-- Prism JS and autoloader -->
+
 </body>
 </html>
