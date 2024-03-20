@@ -436,6 +436,9 @@ class Course(models.Model):
             # Solution related permissions
             ('view_own_submit', _('Can view own submits')),
             ('view_own_result', _('Can view own results')),
+
+            # Task related permissions
+            ('reupload_task', _('Can reupload task')),
         ]
 
     class BasicAction(ModelAction):
@@ -470,6 +473,7 @@ class Course(models.Model):
         ADD_TASK = 'add_task', 'add_task'
         EDIT_TASK = 'edit_task', 'change_task'
         DEL_TASK = 'delete_task', 'delete_task'
+        REUPLOAD_TASK = 'reupload_task', 'reupload_task'
 
         # Submit related actions
         VIEW_SUBMIT = 'view_submit', 'view_submit'

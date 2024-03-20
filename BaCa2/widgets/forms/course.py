@@ -11,6 +11,7 @@ from core.tools.files import CsvFileHandler, FileHandler
 from course.models import Round, Submit, Task
 from course.routing import InCourse
 from main.models import Course, Role, User
+from package.models import PackageInstance
 from util.models_registry import ModelsRegistry
 from widgets.forms.base import (
     BaCa2ModelForm,
@@ -1402,6 +1403,84 @@ class CreateTaskFormWidget(FormWidget):
             element_groups=FormElementGroup(name='grading',
                                             elements=['points', 'judge_mode'],
                                             layout=FormElementGroup.FormElementsLayout.HORIZONTAL),
+            **kwargs
+        )
+
+
+# ---------------------------------------- Reupload task --------------------------------------- #
+
+class ReuploadTaskForm(CourseModelForm):
+    MODEL = Task
+    ACTION = Course.CourseAction.REUPLOAD_TASK
+
+    task_id = forms.IntegerField(
+        label=_('Task ID'),
+        widget=forms.HiddenInput(attrs={'class': 'model-id'}),
+        required=True,
+    )
+
+    package = FileUploadField(
+        label=_('Task package'),
+        allowed_extensions=['zip'],
+        required=True,
+        help_text=_('Only .zip files are allowed')
+    )
+
+    def __init__(self, *,
+                 task_id: int,
+                 form_instance_id: int = 0,
+                 request=None,
+                 **kwargs) -> None:
+        super().__init__(form_instance_id=form_instance_id, request=request, **kwargs)
+        self.fields['task_id'].initial = task_id
+
+    @classmethod
+    def handle_valid_request(cls, request) -> Dict[str, Any]:
+        task_id = int(request.POST.get('task_id'))
+        course = InCourse.get_context_course()
+        task = course.get_task(task_id)
+        file = FileHandler(settings.UPLOAD_DIR, 'zip', request.FILES['package'])
+        file.save()
+        new_package_instance = None
+        new_task = None
+        try:
+            new_package_instance = PackageInstance.objects.create_package_instance_from_zip(
+                package_source=task.package_instance.package_source,
+                zip_file=file,
+                permissions_from_instance=task.package_instance,
+                creator=request.user,
+            )
+            new_task = Task.objects.update_task(task,
+                                                new_package_instance=new_package_instance)
+        except Exception as e:
+            file.delete()
+            if new_package_instance is not None:
+                new_package_instance.delete(delete_files=True)
+            if new_task is not None:
+                new_task.delete()
+            raise e
+        file.delete()
+        return {'message': _('Task re-uploaded successfully')}
+
+
+class ReuploadTaskFormWidget(FormWidget):
+    def __init__(self,
+                 request,
+                 course_id: int,
+                 task_id: int,
+                 form: ReuploadTaskForm = None,
+                 **kwargs) -> None:
+        from course.views import TaskModelView
+
+        if not form:
+            form = ReuploadTaskForm(task_id=task_id, request=request)
+
+        super().__init__(
+            name='reupload_task_form_widget',
+            request=request,
+            form=form,
+            post_target_url=TaskModelView.post_url(**{'course_id': course_id}),
+            button_text=_('Re-upload task'),
             **kwargs
         )
 
