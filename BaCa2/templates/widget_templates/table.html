@@ -72,7 +72,12 @@
             {% if table_widget.resizable_height %}
                 <div class="resize-wrapper" style="height: {{ table_widget.table_height }}">
             {% endif %}
-            <div class="table-responsive">
+            <div class="table-responsive"
+                 {% if table_widget.paging != "false" %}
+                    data-paging="true"
+                 {% else %}
+                    data-paging="false"
+                 {% endif %}>
                 <table class="{{ table_widget.widget_class }}"
                        id="{{ table_widget.name }}"
                        data-deselect-on-filter="{{ table_widget.deselect_on_filter }}"

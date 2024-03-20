@@ -326,6 +326,12 @@ html, body {
 .icon-wrapper.icon-fill-light_muted svg {
   fill: #a0a0a0;
 }
+.icon-wrapper.icon-fill-pale_muted svg {
+  fill: #d0d0d0;
+}
+.icon-wrapper.icon-fill-darker svg {
+  fill: #171a1d;
+}
 .icon-wrapper.icon-fill-primary svg {
   fill: #FE2E63;
 }
@@ -364,6 +370,12 @@ html, body {
 }
 .icon-wrapper.icon-stroke-light_muted svg {
   stroke: #a0a0a0;
+}
+.icon-wrapper.icon-stroke-pale_muted svg {
+  stroke: #d0d0d0;
+}
+.icon-wrapper.icon-stroke-darker svg {
+  stroke: #171a1d;
 }
 .icon-wrapper.icon-stroke-primary svg {
   stroke: #FE2E63;
@@ -667,7 +679,7 @@ html, body {
   --bs-form-valid-border-color: $red;
 }
 
-.link-records tbody tr {
+.link-records tbody tr[data-record-link] {
   cursor: pointer;
 }
 
@@ -719,7 +731,7 @@ html, body {
 [data-bs-theme=light] .table-wrapper .row-selected td {
   background-color: rgba(0, 0, 0, 0.08);
 }
-[data-bs-theme=light] .table-wrapper .row-hover tr:hover td {
+[data-bs-theme=light] .table-wrapper .row-hover tr[data-record-link]:hover td {
   background-color: rgba(0, 0, 0, 0.08);
 }
 [data-bs-theme=light] .table-wrapper .resize-handle {
@@ -741,7 +753,7 @@ html, body {
 [data-bs-theme=dark] .table-wrapper .row-selected td {
   background-color: rgba(255, 255, 255, 0.03);
 }
-[data-bs-theme=dark] .table-wrapper .row-hover tr:hover td {
+[data-bs-theme=dark] .table-wrapper .row-hover tr[data-record-link]:hover td {
   background-color: rgba(255, 255, 255, 0.03);
 }
 [data-bs-theme=dark] .table-wrapper .resize-handle {
@@ -1067,17 +1079,23 @@ pre.code-block.wrap-lines code {
 }
 
 [data-bs-theme=light] pre.code-block {
-  background: rgba(0, 0, 0, 0.3) !important;
+  background: rgb(245, 242, 240) !important;
+}
+[data-bs-theme=light] pre.code-block .token.operator {
+  background: rgb(245, 242, 240) !important;
 }
 [data-bs-theme=light] .test-summary .compile-tabs-nav .nav-link.active {
-  background-color: rgba(0, 0, 0, 0.3);
+  background-color: rgb(245, 242, 240);
 }
 
 [data-bs-theme=dark] pre.code-block {
-  background: rgba(0, 0, 0, 0.3) !important;
+  background: #171a1d !important;
+}
+[data-bs-theme=dark] pre.code-block .token.operator {
+  background: #171a1d !important;
 }
 [data-bs-theme=dark] .test-summary .compile-tabs-nav .nav-link.active {
-  background-color: rgba(0, 0, 0, 0.3);
+  background-color: #171a1d;
 }
 
 .test-summary .compile-tabs .code-block {

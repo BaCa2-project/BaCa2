@@ -156,6 +156,20 @@ class TableWidget {
 
 function tablesPreSetup() {
     tableResizeSetup();
+
+    $(document).on('tab-activated', function (e) {
+        const tab = $(e.target);
+        const tableId = tab.find('.table-wrapper').data('table-id');
+
+        if (tableId === undefined)
+            return;
+
+        const DTObj = window.tableWidgets[`#${tableId}`].DTObj;
+        DTObj.ajax.reload(function () {
+            DTObj.columns.adjust().draw();
+            $(`#${tableId}`).trigger('table-reload');
+        });
+    });
 }
 
 function tablesSetup() {
@@ -272,7 +286,7 @@ function refreshButtonClickHandler(button) {
     tableWidget.DTObj.ajax.reload(function () {
         tableWidget.DTObj.columns.adjust().draw();
         tableWidget.updateSelectHeader();
-        $(`#${tableId}`).trigger('init.dt');
+        $(`#${tableId}`).trigger('table-reload');
     });
 }
 
@@ -281,13 +295,13 @@ function refreshButtonClickHandler(button) {
 
 function deleteRecordFormSetup(form, tableId) {
     form.on('submit-success', function (e, data) {
-        window.tableWidgets[`#${tableId}`].table.ajax.reload();
+        window.tableWidgets[`#${tableId}`].DTObj.ajax.reload();
     });
 }
 
 
 function recordLinkSetup(tableId) {
-    $(`#${tableId}`).on('click', 'tbody tr', function () {
+    $(`#${tableId}`).on('click', 'tbody tr[data-record-link]', function () {
         window.location.href = $(this).data('record-link');
     });
 }
@@ -396,7 +410,7 @@ function createPagingDef(paging, DTParams, table, tableId) {
 
 function setRefresh(tableId, interval) {
     setInterval(function () {
-        window.tableWidgets[`#${tableId}`].table.ajax.reload();
+        window.tableWidgets[`#${tableId}`].DTObj.ajax.reload();
     }, interval);
 }
 

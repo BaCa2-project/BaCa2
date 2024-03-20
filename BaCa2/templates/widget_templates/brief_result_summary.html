@@ -13,14 +13,19 @@
                     <b class="me-1">{% trans "Status:" %}</b>
                     {{ brief_result_summary.result.f_status }}
                 </div>
-                <div class="col d-flex result-time {{ brief_result_summary.result.status }}">
-                    <b class="me-1">{% trans "Time used:" %}</b>
-                    {{ brief_result_summary.result.f_time_real }}
-                </div>
-                <div class="col col-auto d-flex result-memory {{ brief_result_summary.result.status }}">
-                    <b class="me-1">{% trans "Memory used:" %}</b>
-                    {{ brief_result_summary.result.f_runtime_memory }}
-                </div>
+                {% if brief_result_summary.result.f_time_real %}
+                    <div class="col result-time {{ brief_result_summary.result.status }}">
+                        <b class="me-1">{% trans "Time used:" %}</b>
+                        {{ brief_result_summary.result.f_time_real }}
+                    </div>
+                {% endif %}
+                {% if brief_result_summary.result.f_runtime_memory %}
+                    <div class="col col-auto d-flex result-memory
+                                {{ brief_result_summary.result.status }}">
+                        <b class="me-1">{% trans "Memory used:" %}</b>
+                        {{ brief_result_summary.result.f_runtime_memory }}
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>

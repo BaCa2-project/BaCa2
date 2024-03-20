@@ -59,6 +59,7 @@ class CourseModelView(BaCa2ModelView):
     def check_get_filtered_permission(self,
                                       filter_params: dict,
                                       exclude_params: dict,
+                                      serialize_kwargs: dict,
                                       query_result: List[Course],
                                       request,
                                       **kwargs) -> bool:
@@ -73,6 +74,9 @@ class CourseModelView(BaCa2ModelView):
         :param exclude_params: Query parameters used to construct the exclude filter for the
             retrieved query set.
         :type exclude_params: dict
+        :param serialize_kwargs: Kwargs passed to the serialization method of the model class
+            instances retrieved by the view when the JSON response is generated.
+        :type serialize_kwargs: dict
         :param query_result: Query set retrieved using the specified query parameters evaluated to a
             list.
         :type query_result: List[:class:`Course`]
@@ -158,6 +162,7 @@ class UserModelView(BaCa2ModelView):
     def check_get_filtered_permission(self,
                                       filter_params: dict,
                                       exclude_params: dict,
+                                      serialize_kwargs: dict,
                                       query_result: List[User],
                                       request,
                                       **kwargs) -> bool:
@@ -172,6 +177,9 @@ class UserModelView(BaCa2ModelView):
         :param exclude_params: Query parameters used to construct the exclude filter for the
             retrieved query set.
         :type exclude_params: dict
+        :param serialize_kwargs: Kwargs passed to the serialization method of the model class
+            instances retrieved by the view when the JSON response is generated.
+        :type serialize_kwargs: dict
         :param query_result: Query set retrieved using the specified query parameters evaluated to a
             list.
         :type query_result: List[:class:`User`]
@@ -234,6 +242,7 @@ class RoleModelView(BaCa2ModelView):
     def check_get_filtered_permission(self,
                                       filter_params: dict,
                                       exclude_params: dict,
+                                      serialize_kwargs: dict,
                                       query_result: List[Role],
                                       request,
                                       **kwargs) -> bool:
@@ -248,6 +257,9 @@ class RoleModelView(BaCa2ModelView):
         :param exclude_params: Query parameters used to construct the exclude filter for the
             retrieved query set.
         :type exclude_params: dict
+        :param serialize_kwargs: Kwargs passed to the serialization method of the model class
+            instances retrieved by the view when the JSON response is generated.
+        :type serialize_kwargs: dict
         :param query_result: Query set retrieved using the specified query parameters evaluated to a
             list.
         :type query_result: List[:class:`Role`]
@@ -320,6 +332,7 @@ class BaCa2LoginView(BaCa2ContextMixin, LoginView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['page_title'] = _('Login')
 
         self.add_widget(context, FormWidget(
             name='login_form',
@@ -399,6 +412,8 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['page_title'] = _('Admin')
+
         sidenav = SideNav(request=self.request,
                           collapsed=False,
                           toggle_button=True,
@@ -488,6 +503,8 @@ class CoursesView(BaCa2LoggedInView):
     def get_context_data(self, **kwargs):
         user_id = self.request.user.id
         context = super().get_context_data(**kwargs)
+        context['page_title'] = _('Courses')
+
         self.add_widget(context, TableWidget(
             name='courses_table_widget',
             request=self.request,
@@ -503,6 +520,7 @@ class CoursesView(BaCa2LoggedInView):
             ],
             link_format_string='/course/[[id]]/',
         ))
+
         return context
 
 
@@ -527,6 +545,7 @@ class RoleView(BaCa2LoggedInView, UserPassesTestMixin):
         course = role.course
         user = getattr(self.request, 'user')
         sidenav_tabs = ['Overview', 'Members']
+        context['page_title'] = f'{course.name} - {role.name}'
 
         # overview -------------------------------------------------------------------------------
 
@@ -599,7 +618,7 @@ class ProfileView(BaCa2LoggedInView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
+        context['page_title'] = _('Profile')
         user = self.request.user
 
         sidenav = SideNav(

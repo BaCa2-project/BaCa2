@@ -102,6 +102,7 @@ class BaCa2ContextMixin:
                             'be used as a view mixin.')
 
         context['display_sidenav'] = False
+        context['page_title'] = 'BaCa²'
 
         return context
 
@@ -405,7 +406,7 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
             - :meth:`BaCa2ModelView.get`
             - :class:`BaCa2ModelResponse`
         """
-        if not self.check_get_all_permission(request, **kwargs):
+        if not self.check_get_all_permission(request, serialize_kwargs, **kwargs):
             return self.get_request_response(
                 status=BaCa2JsonResponse.Status.IMPERMISSIBLE,
                 message=_('Permission denied.')
@@ -455,9 +456,10 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         query_set = self.MODEL.objects.filter(**filter_params).exclude(**exclude_params)
         query_result = [obj for obj in query_set]
 
-        if not self.check_get_all_permission(request, **kwargs):
+        if not self.check_get_all_permission(request, serialize_kwargs, **kwargs):
             if not self.check_get_filtered_permission(filter_params=filter_params,
                                                       exclude_params=exclude_params,
+                                                      serialize_kwargs=serialize_kwargs,
                                                       query_result=query_result,
                                                       request=request,
                                                       **kwargs):
@@ -484,10 +486,13 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
 
     # --------------------------------- get permission checks ---------------------------------- #
 
-    def check_get_all_permission(self, request, **kwargs) -> bool:
+    def check_get_all_permission(self, request, serialize_kwargs, **kwargs) -> bool:
         """
         :param request: HTTP GET request object received by the view.
         :type request: HttpRequest
+        :param serialize_kwargs: Kwargs passed to the serialization method of the model class
+            instances retrieved by the view when the JSON response is generated.
+        :type serialize_kwargs: dict
         :return: `True` if the user has the 'view' permission for the model class managed by the
             view, `False` otherwise.
         :rtype: bool
@@ -497,6 +502,7 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
     def check_get_filtered_permission(self,
                                       filter_params: dict,
                                       exclude_params: dict,
+                                      serialize_kwargs: dict,
                                       query_result: List[django.db.models.Model],
                                       request,
                                       **kwargs) -> bool:
@@ -515,6 +521,9 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         :param exclude_params: Query parameters used to construct the exclude filter for the
             retrieved query set.
         :type exclude_params: dict
+        :param serialize_kwargs: Kwargs passed to the serialization method of the model class
+            instances retrieved by the view when the JSON response is generated.
+        :type serialize_kwargs: dict
         :param query_result: Query set retrieved using the specified query parameters evaluated to a
             list.
         :type query_result: List[django.db.models.Model]

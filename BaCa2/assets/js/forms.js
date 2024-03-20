@@ -522,7 +522,7 @@ function renderValidationErrors(popup, errors) {
 // ------------------------------------ table select field ------------------------------------ //
 
 function tableSelectFieldSetup() {
-    $(document).on('init.dt', function (e) {
+    $(document).on('init.dt table-reload', function (e) {
         const table = $(e.target);
 
         table.closest('.table-select-field').each(function () {
@@ -542,8 +542,8 @@ function tableSelectFieldSetup() {
                     tableWidget.updateSelectHeader();
                 });
 
-                tableWidget.table.ajax.reload(function () {
-                    $(`#${tableId}`).trigger('init.dt');
+                tableWidget.DTObj.ajax.reload(function () {
+                    $(`#${tableId}`).trigger('table-reload');
                 });
             })
 
