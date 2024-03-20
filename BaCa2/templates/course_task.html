@@ -22,7 +22,9 @@
     {% if edit_tab %}
         <div class="tab-wrapper" id="{{ edit_tab }}">
             <div class="side-nav-tab">
-                <a href="{{ edit_form_url }}">Edit task</a>
+                {% with widgets.FormWidget.reupload_task_form_widget as form_widget %}
+                    {% include "widget_templates/forms/default.html" %}
+                {% endwith %}
             </div>
         </div>
     {% endif %}

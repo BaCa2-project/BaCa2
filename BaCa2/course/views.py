@@ -33,7 +33,9 @@ from widgets.forms.course import (
     EditRoundFormWidget,
     EditTaskForm,
     EditTaskFormWidget,
-    RemoveMembersFormWidget
+    RemoveMembersFormWidget,
+    ReuploadTaskForm,
+    ReuploadTaskFormWidget
 )
 from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.columns import DatetimeColumn, TextColumn
@@ -252,6 +254,8 @@ class TaskModelView(CourseModelView):
 
         if form_name == f'{Course.CourseAction.ADD_TASK.label}_form':
             return CreateTaskForm.handle_post_request(request)
+        elif form_name == f'{Course.CourseAction.REUPLOAD_TASK.label}_form':
+            return ReuploadTaskForm.handle_post_request(request)
         elif form_name == f'{Course.CourseAction.DEL_TASK.label}_form':
             return DeleteTaskForm.handle_post_request(request)
 
@@ -770,7 +774,13 @@ class CourseTask(BaCa2LoggedInView, CourseMemberMixin):
         if user.has_course_permission(Course.CourseAction.EDIT_TASK.label, course):
             sidenav_tabs.append('Edit')
             context['edit_tab'] = 'edit-tab'
-            context['edit_form_url'] = f'/course/{course_id}/task/{task_id}/edit/'
+            # context['edit_form_url'] = f'/course/{course_id}/task/{task_id}/edit/'
+            reupload_package_form = ReuploadTaskFormWidget(
+                request=self.request,
+                course_id=course_id,
+                task_id=task_id,
+            )
+            self.add_widget(context, reupload_package_form)
 
         # submit form ----------------------------------------------------------------------------
 

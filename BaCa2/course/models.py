@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, List, Self  # noqa: F401
+from typing import TYPE_CHECKING, Any, List, Self
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -411,6 +411,43 @@ class TaskManager(models.Manager):
             return new_task
 
     @transaction.atomic
+    def update_task(self,
+                    task: int | Task,
+                    new_package_instance: int | PackageInstance,
+                    **kwargs) -> Task:
+        """
+        It creates a new task object from the old one, and initialises it using data from
+        `PackageManager`. Old task is marked as legacy and new task is returned.
+
+        :param task: Old task that will be updated
+        :type task: int | Task
+        :param new_package_instance: New package instance that will be used to update the task
+        :type new_package_instance: int | PackageInstance
+
+        :return: A new task object.
+        :rtype: Task
+        """
+
+        old_task = ModelsRegistry.get_task(task)
+        new_package_instance = ModelsRegistry.get_package_instance(new_package_instance)
+
+        new_task = self.model(
+            package_instance_id=new_package_instance.pk,
+            task_name=kwargs.get('task_name', old_task.task_name),
+            round=kwargs.get('round', old_task.round),
+            judging_mode=kwargs.get('judging_mode', old_task.judging_mode),
+            points=kwargs.get('points', old_task.points)
+        )
+        new_task.save()
+        new_task.initialise_task()
+
+        old_task.task_update = new_task
+        old_task.is_legacy = True
+        old_task.save()
+
+        return new_task
+
+    @transaction.atomic
     def delete_task(self, task: int | Task, course: str | int | Course = None) -> None:
         """
         It deletes a task object (with all the test sets and tests that are associated with it).
@@ -461,6 +498,16 @@ class Task(models.Model, metaclass=ReadCourseMeta):
     )
     #: Maximum amount of points to be earned by completing this task.
     points = models.FloatField()
+    #: When task is updated, new instance is created - old submits have to be supported.
+    #: Submit.update gives access to rejudging with the newest task version
+    task_update = models.ForeignKey(
+        to='course.Task',
+        on_delete=models.SET_NULL,
+        null=True,
+        default=None
+    )
+    #: Indicates if task is legacy task, which is used only to support legacy submits
+    is_legacy = models.BooleanField(default=False)
 
     #: The manager for the Task model.
     objects = TaskManager()
@@ -498,6 +545,18 @@ class Task(models.Model, metaclass=ReadCourseMeta):
         for t_set in self.sets:
             t_set.delete()
         super().delete(using, keep_parents)
+
+    @property
+    def newest_update(self) -> Task:
+        """
+        :return: Newest update of the task
+        :rtype: Task
+        """
+        result = self
+        while result.task_update:
+            result = result.task_update
+
+        return result
 
     @property
     def sets(self) -> List[TestSet]:
@@ -648,7 +707,7 @@ class Task(models.Model, metaclass=ReadCourseMeta):
             'round_name': self.round.name,
             'judging_mode': self.judging_mode,
             'points': self.points,
-            # 'package_instance': self.package_instance,
+            'is_legacy': self.is_legacy,
         }
 
 
@@ -1011,6 +1070,14 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         """
         return Path(self.source_code)
 
+    @property
+    def is_legacy(self) -> bool:
+        """
+        :return: True if submit is legacy, False otherwise.
+        :rtype: bool
+        """
+        return self.task.is_legacy
+
     def send(self, **kwargs) -> BrokerSubmit | None:
         """
         It sends the submit to the broker. If the broker is mocked, it will run the mock broker and
@@ -1053,9 +1120,25 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
             retry=self.retries + 1
         )
 
-        return BrokerSubmit.send(ModelsRegistry.get_course(self._state.db),
-                                 new_submit.id,
-                                 new_submit.task.package_instance)
+        return new_submit
+
+    def update(self) -> Self | None:
+        """
+        It updates the submit to the newest task update
+        """
+        if not self.is_legacy:
+            return None
+
+        new_task = self.task.newest_update
+
+        new_submit = self.objects.create_submit(
+            source_code=self.source_code,
+            task=new_task,
+            user=self.usr,
+            submit_type=self.submit_type,
+        )
+        self.submit_type = SubmitType.HID
+        return new_submit
 
     def delete(self, using=None, keep_parents=False):
         """
@@ -1266,6 +1349,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
             'task_score': task_score if score > -1 else '---',
             'final_score': self.format_score(score),
             'submit_status': self.formatted_submit_status,
+            'is_legacy': self.is_legacy,
         }
         if show_user:
             res |= {'user_first_name': self.user.first_name if self.user.first_name else '---',
