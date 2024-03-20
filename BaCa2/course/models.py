@@ -19,6 +19,7 @@ from baca2PackageManager.tools import bytes_from_str, bytes_to_str
 from core.choices import (
     EMPTY_FINAL_STATUSES,
     HALF_EMPTY_FINAL_STATUSES,
+    FallOffPolicy,
     ModelAction,
     ResultStatus,
     ScoreSelectionPolicy,
@@ -26,6 +27,7 @@ from core.choices import (
     TaskJudgingMode
 )
 from core.exceptions import DataError
+from core.tools.falloff import FallOff
 from core.tools.misc import str_to_datetime
 from course.routing import InCourse, OptionalInCourse
 from util.models_registry import ModelsRegistry
@@ -241,6 +243,10 @@ class Round(models.Model, metaclass=ReadCourseMeta):
     score_selection_policy = models.CharField(choices=ScoreSelectionPolicy.choices,
                                               default=ScoreSelectionPolicy.BEST,
                                               max_length=4)
+    #: Points fall-off policy for tasks in the round
+    #: (max points until deadline, linear fall-off, square fall-off)
+    fall_off_policy = models.CharField(choices=FallOffPolicy.choices,
+                                       default=FallOffPolicy.NONE, )
 
     #: The manager for the Round model.
     objects = RoundManager()
@@ -312,6 +318,17 @@ class Round(models.Model, metaclass=ReadCourseMeta):
         :rtype: bool
         """
         return self.start_date <= now() <= self.deadline_date
+
+    def get_fall_off(self) -> FallOff:
+        """
+        :return: Fall-off object with get_factor method
+        :rtype: FallOff
+        """
+        return FallOff[FallOffPolicy[self.fall_off_policy]](
+            start=self.start_date,
+            end=self.end_date,
+            deadline=self.deadline_date
+        )
 
     @property
     def tasks(self) -> List[Task]:
@@ -536,6 +553,13 @@ class Task(models.Model, metaclass=ReadCourseMeta):
         return (f'Task {self.pk}: {self.task_name}; '
                 f'Judging mode: {TaskJudgingMode[self.judging_mode].label}; '
                 f'Package: {self.package_instance}')
+
+    def get_fall_off(self) -> FallOff:
+        """
+        :return: Fall-off object with get_factor method
+        :rtype: FallOff
+        """
+        return self.round.get_fall_off()
 
     def initialise_task(self) -> None:
         """
@@ -990,6 +1014,7 @@ class SubmitManager(models.Manager):
                       submit_status: ResultStatus = ResultStatus.PND,
                       error_msg: str = None,
                       retry: int = 0,
+                      fall_off_factor: float = None,
                       **kwargs) -> Submit:
         """
         It creates a new submit object.
@@ -1016,6 +1041,8 @@ class SubmitManager(models.Manager):
         :type error_msg: str
         :param retry: The number of retry, defaults to 0 (optional)
         :type retry: int
+        :param fall_off_factor: The fixed fall-off factor of the submit, defaults to None (optional)
+        :type fall_off_factor: float
 
         :return: A new submit object.
         :rtype: Submit
@@ -1023,6 +1050,11 @@ class SubmitManager(models.Manager):
         task = ModelsRegistry.get_task(task)
         user = ModelsRegistry.get_user(user)
         source_code = ModelsRegistry.get_source_code(source_code)
+        if fall_off_factor is None:
+            if submit_type == SubmitType.CTR:
+                fall_off_factor = 1
+            else:
+                fall_off_factor = task.get_fall_off().get_factor(submit_date)
         new_submit = self.model(submit_date=submit_date,
                                 source_code=source_code,
                                 task=task,
@@ -1031,7 +1063,8 @@ class SubmitManager(models.Manager):
                                 submit_type=submit_type,
                                 submit_status=submit_status,
                                 error_msg=error_msg,
-                                retries=retry)
+                                retries=retry,
+                                fall_off_factor=fall_off_factor)
         new_submit.save()
         if auto_send:
             new_submit.send(**kwargs)
@@ -1096,6 +1129,8 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
     #: Final score (as percent), gained by user's submission. Before solution check score is set
     #: to ``-1``.
     final_score = models.FloatField(default=-1)
+    #: Fall-ff factor for the submit
+    fall_off_factor = models.FloatField(default=1)
 
     #: The manager for the Submit model.
     objects = SubmitManager()
@@ -1172,6 +1207,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         self.save()
 
         new_submit = self.objects.create_submit(
+            submit_date=self.submit_date,
             source_code=self.source_code,
             task=self.task,
             user=self.usr,
@@ -1191,10 +1227,12 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         new_task = self.task.newest_update
 
         new_submit = self.objects.create_submit(
+            submit_date=self.submit_date,
             source_code=self.source_code,
             task=new_task,
             user=self.usr,
             submit_type=self.submit_type,
+            fall_off_factor=self.fall_off_factor
         )
         self.submit_type = SubmitType.HID
         return new_submit
@@ -1345,6 +1383,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
             final_score += s['score'] * weight
 
         self.final_score = round(final_score / final_weight, 6)
+        self.final_score *= self.fall_off_factor
         self.submit_status = worst_status
         self.save()
         return self.final_score
