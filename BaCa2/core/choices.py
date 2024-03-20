@@ -17,6 +17,7 @@ class ResultStatus(models.TextChoices):
     RTE = 'RTE', _('Runtime error')
     MEM = 'MEM', _('Memory exceeded')
     CME = 'CME', _('Compilation error')
+    RUL = 'RUL', _('Rule violation')
     EXT = 'EXT', _('Unknown extension')
     ITL = 'ITL', _('Internal timeout')
     INT = 'INT', _('Internal error')
@@ -28,7 +29,7 @@ class ResultStatus(models.TextChoices):
 
 
 EMPTY_FINAL_STATUSES = [ResultStatus.EXT, ResultStatus.ITL, ResultStatus.INT, ResultStatus.EXT]
-HALF_EMPTY_FINAL_STATUSES = [ResultStatus.CME, ResultStatus.RTE]
+HALF_EMPTY_FINAL_STATUSES = [ResultStatus.CME, ResultStatus.RTE, ResultStatus.RUL]
 
 
 class PermissionCheck(models.TextChoices):
