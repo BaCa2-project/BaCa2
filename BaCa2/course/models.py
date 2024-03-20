@@ -21,6 +21,7 @@ from core.choices import (
     HALF_EMPTY_FINAL_STATUSES,
     ModelAction,
     ResultStatus,
+    ScoreSelectionPolicy,
     SubmitType,
     TaskJudgingMode
 )
@@ -141,6 +142,7 @@ class RoundManager(models.Manager):
                      name: str = None,
                      end_date: datetime = None,
                      reveal_date: datetime = None,
+                     score_selection_policy: ScoreSelectionPolicy = ScoreSelectionPolicy.BEST,
                      course: str | int | Course = None) -> Round:
         """
         It creates a new round object, but validates it first.
@@ -155,6 +157,9 @@ class RoundManager(models.Manager):
         :type end_date: datetime
         :param reveal_date: The results reveal date for the round, defaults to None (optional)
         :type reveal_date: datetime
+        :param score_selection_policy: The policy for selecting the task score from user's submits,
+            defaults to ScoreSelectionPolicy.BEST (optional)
+        :type score_selection_policy: :class:`core.choices.ScoreSelectionPolicy`
         :param course: The course that the round is in, if None - acquired from external definition
             (optional)
         :type course: str | int | Course
@@ -179,7 +184,8 @@ class RoundManager(models.Manager):
                                    deadline_date=deadline_date,
                                    name=name,
                                    end_date=end_date,
-                                   reveal_date=reveal_date)
+                                   reveal_date=reveal_date,
+                                   score_selection_policy=score_selection_policy)
             new_round.save()
             return new_round
 
@@ -231,6 +237,10 @@ class Round(models.Model, metaclass=ReadCourseMeta):
     deadline_date = models.DateTimeField()
     #: The date and time when the round results will be visible for everyone.
     reveal_date = models.DateTimeField(null=True)
+    #: The policy for selecting the task score from user's submits.
+    score_selection_policy = models.CharField(choices=ScoreSelectionPolicy.choices,
+                                              default=ScoreSelectionPolicy.BEST,
+                                              max_length=4)
 
     #: The manager for the Round model.
     objects = RoundManager()
@@ -343,7 +353,8 @@ class Round(models.Model, metaclass=ReadCourseMeta):
             'end_date': self.end_date,
             'deadline_date': self.deadline_date,
             'reveal_date': self.reveal_date,
-            'normalized_name': SideNav.normalize_tab_name(self.name)
+            'normalized_name': SideNav.normalize_tab_name(self.name),
+            'score_selection_policy': self.score_selection_policy,
         }
         if add_formatted_dates:
             res |= {
