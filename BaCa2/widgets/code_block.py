@@ -1,8 +1,11 @@
+import logging
 from pathlib import Path
 
 from django.utils.translation import gettext_lazy as _
 
 from widgets.base import Widget
+
+logger = logging.getLogger(__name__)
 
 
 class CodeBlock(Widget):
@@ -24,11 +27,17 @@ class CodeBlock(Widget):
         self.title = title
 
         if isinstance(code, Path):
-            with open(code, 'r') as f:
-                self.code = f.read()
-            self.language = language or code.suffix[1:]
-            if language:
-                self.language = language
+            try:
+                with open(code, 'r', encoding='utf-8') as f:
+                    self.code = f.read()
+                self.language = language or code.suffix[1:]
+                if language:
+                    self.language = language
+            except Exception as e:
+                logger.warning(f'Failed to read file {code}: {e.__class__.__name__}: {e}')
+                self.code = _('ERROR: Failed to read file.\n '
+                              'Make sure you have sent valid file as solution.')
+                self.language = 'log'
         else:
             self.code = code
             self.language = language
