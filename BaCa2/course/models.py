@@ -21,6 +21,7 @@ from core.choices import (
     HALF_EMPTY_FINAL_STATUSES,
     ModelAction,
     ResultStatus,
+    ScoreSelectionPolicy,
     SubmitType,
     TaskJudgingMode
 )
@@ -141,6 +142,7 @@ class RoundManager(models.Manager):
                      name: str = None,
                      end_date: datetime = None,
                      reveal_date: datetime = None,
+                     score_selection_policy: ScoreSelectionPolicy = ScoreSelectionPolicy.BEST,
                      course: str | int | Course = None) -> Round:
         """
         It creates a new round object, but validates it first.
@@ -155,6 +157,9 @@ class RoundManager(models.Manager):
         :type end_date: datetime
         :param reveal_date: The results reveal date for the round, defaults to None (optional)
         :type reveal_date: datetime
+        :param score_selection_policy: The policy for selecting the task score from user's submits,
+            defaults to ScoreSelectionPolicy.BEST (optional)
+        :type score_selection_policy: :class:`core.choices.ScoreSelectionPolicy`
         :param course: The course that the round is in, if None - acquired from external definition
             (optional)
         :type course: str | int | Course
@@ -179,7 +184,8 @@ class RoundManager(models.Manager):
                                    deadline_date=deadline_date,
                                    name=name,
                                    end_date=end_date,
-                                   reveal_date=reveal_date)
+                                   reveal_date=reveal_date,
+                                   score_selection_policy=score_selection_policy)
             new_round.save()
             return new_round
 
@@ -231,6 +237,10 @@ class Round(models.Model, metaclass=ReadCourseMeta):
     deadline_date = models.DateTimeField()
     #: The date and time when the round results will be visible for everyone.
     reveal_date = models.DateTimeField(null=True)
+    #: The policy for selecting the task score from user's submits.
+    score_selection_policy = models.CharField(choices=ScoreSelectionPolicy.choices,
+                                              default=ScoreSelectionPolicy.BEST,
+                                              max_length=4)
 
     #: The manager for the Round model.
     objects = RoundManager()
@@ -343,7 +353,8 @@ class Round(models.Model, metaclass=ReadCourseMeta):
             'end_date': self.end_date,
             'deadline_date': self.deadline_date,
             'reveal_date': self.reveal_date,
-            'normalized_name': SideNav.normalize_tab_name(self.name)
+            'normalized_name': SideNav.normalize_tab_name(self.name),
+            'score_selection_policy': self.score_selection_policy,
         }
         if add_formatted_dates:
             res |= {
@@ -627,44 +638,83 @@ class Task(models.Model, metaclass=ReadCourseMeta):
         user = ModelsRegistry.get_user(user)
         return list(Submit.objects.filter(task=self, usr=user.pk).all())
 
-    def last_submit(self, user: str | int | User, amount=1) -> Submit | List[Submit]:
+    def last_submit(self, user: str | int | User, amount=1) -> Submit | List[Submit] | None:
         """
-        It returns the last submit of a user for a task or a list of 'amount' last submits to that
-        task.
-
-        :param user: The user who submitted the task
+        :param user: A user who may submit solutions to the task
         :type user: str | int | User
         :param amount: The amount of submits to return, defaults to 1 (optional)
         :type amount: int
-
         :return: The last submit of a user for a task or a list of 'amount' last submits to that
-            task.
-        :rtype: Submit | List[Submit]
+            task. If the user has not submitted any solutions, returns None.
+        :rtype: Submit | List[Submit] | None
         """
         user = ModelsRegistry.get_user(user)
         self.refresh_user_submits(user)
+        query_set = Submit.objects.filter(task=self, usr=user.pk)
+
+        if not query_set.exists():
+            return None
+
         if amount == 1:
-            return Submit.objects.filter(task=self, usr=user.pk).order_by('-submit_date').first()
-        return Submit.objects.filter(task=self, usr=user.pk).order_by('-submit_date').all()[:amount]
+            return query_set.order_by('-submit_date').first()
 
-    def best_submit(self, user: str | int | User, amount=1) -> Submit | List[Submit]:
+        return query_set.order_by('-submit_date').all()[:amount]
+
+    def best_submit(self, user: str | int | User, amount=1) -> Submit | List[Submit] | None:
         """
-        It returns the best submit of a user for a task or list of 'amount' best submits to that
-        task.
+        :param user: A user who may submit solutions to the task
+        :type user: str | int | User
+        :param amount: The amount of submits to return, defaults to 1 (optional)
+        :type amount: int
+        :return: The best submit of a user for a task or a list of 'amount' best submits to that
+            task. If the user has not submitted any solutions, returns None.
+        :rtype: Submit | List[Submit] | None
+        """
+        user = ModelsRegistry.get_user(user)
+        self.refresh_user_submits(user)
+        query_set = Submit.objects.filter(task=self, usr=user.pk)
 
+        if not query_set.exists():
+            return None
+
+        if amount == 1:
+            return query_set.order_by('-final_score').first()
+
+        return query_set.order_by('-final_score').all()[:amount]
+
+    def user_scored_submit(self, user: str | int | User) -> Submit | None:
+        """
+        :param user: A user who may submit solutions to the task
+        :type user: str | int | User
+        :return: The submit from which the user task score is calculated, selected based on the
+            score selection policy of the round the task belongs to. If the user has not submitted
+            any solutions, returns None.
+        :rtype: Submit | None
+        """
+        ssp = self.round.score_selection_policy
+        submit = None
+
+        if ssp == ScoreSelectionPolicy.BEST:
+            submit = self.best_submit(user)
+        elif ssp == ScoreSelectionPolicy.LAST:
+            submit = self.last_submit(user)
+
+        return submit
+
+    def user_score(self, user: str | int | User) -> float | None:
+        """
         :param user: The user who submitted the solution
         :type user: str | int | User
-        :param amount: The amount of submits you want to get, defaults to 1 (optional)
-        :type amount: int
-
-        :return: The best submit of a user for a task or list of 'amount' best submits to that task.
-        :rtype: Submit | List[Submit]
+        :return: The score of the user for the task based on the score selection policy of the
+            round the task belongs to. If the user has not submitted any solutions, returns None.
+        :rtype: float | None
         """
-        user = ModelsRegistry.get_user(user)
-        self.refresh_user_submits(user)
-        if amount == 1:
-            return Submit.objects.filter(task=self, usr=user.pk).order_by('-final_score').first()
-        return Submit.objects.filter(task=self, usr=user.pk).order_by('-final_score').all()[:amount]
+        submit = self.user_scored_submit(user)
+
+        if submit is None:
+            return None
+
+        return submit.score()
 
     @classmethod
     def check_instance(cls, pkg_instance: PackageInstance, in_every_course: bool = True) -> bool:
@@ -696,11 +746,20 @@ class Task(models.Model, metaclass=ReadCourseMeta):
                     return True
         return False
 
-    def get_data(self) -> dict:
+    def get_data(self, submitter: int | str | User = None) -> dict:
         """
+        :param submitter: The user for whom a task score should be calculated
+        :type submitter: int | str | User
         :return: The data of the task.
         :rtype: dict
         """
+        additional_data = {}
+
+        if submitter:
+            submit = self.user_scored_submit(submitter)
+            additional_data['user_score'] = submit.score() if submit else None
+            additional_data['user_formatted_score'] = submit.summary_score if submit else '---'
+
         return {
             'id': self.pk,
             'name': self.task_name,
@@ -708,7 +767,7 @@ class Task(models.Model, metaclass=ReadCourseMeta):
             'judging_mode': self.judging_mode,
             'points': self.points,
             'is_legacy': self.is_legacy,
-        }
+        } | additional_data
 
 
 class TestSetManager(models.Manager):
@@ -1291,27 +1350,43 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         return self.final_score
 
     @staticmethod
-    def format_score(score: float, rnd: int = 2) -> str:
+    def format_score(score: float,
+                     rnd: int = 2,
+                     include_submit_points: bool = False,
+                     task_points: float = None) -> str:
         """
-        It formats the score to a string.
-
-        :param score: The score that you want to format.
+        :param score: The score to be formatted. Must be between 0 and 1.
         :type score: float
-        :param rnd: The amount of decimal places, defaults to 2 (optional)
+        :param rnd: The number of decimal places to round the score to, defaults to 2 (optional)
         :type rnd: int
-
+        :param include_submit_points: If True, the submit points will be included in the formatted
+            score, defaults to False (optional)
+        :type include_submit_points: bool
+        :param task_points: The amount of points that the task is worth, only required if
+            include_submit_points is True
+        :type task_points: float
         :return: The formatted score.
         :rtype: str
         """
+        _score = score
         score = round(score * 100, rnd)
-        return f'{score:.{rnd}f}' if score > -1 else '---'
+
+        if score == -1:
+            return '---'
+
+        f_score = f'{score:.{rnd}f} %'
+
+        if not include_submit_points:
+            return f_score
+        if task_points is None:
+            raise ValueError('task_points must be provided if include_submit_points is True')
+
+        return f'{round(task_points * _score, 2)} ({f_score})'
 
     @property
-    def task_score(self) -> float:
+    def submit_points(self) -> float:
         """
-        It returns the amount of points that can be gained for completing the task.
-
-        :return: The amount of points that can be gained for completing the task.
+        :return: The amount of points that the submit is worth (task points * submit score).
         :rtype: float
         """
         return round(self.task.points * self.score(), 2)
@@ -1319,7 +1394,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
     @property
     def summary_score(self) -> str:
         score = self.score()
-        return f'{self.task_score} ({self.format_score(score, 1)} %)' if score > -1 else '---'
+        return self.format_score(score, 1, True, self.task.points)
 
     @property
     def formatted_submit_status(self) -> str:
@@ -1340,7 +1415,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         :rtype: dict
         """
         score = self.score()
-        task_score = self.task_score
+        task_score = self.submit_points
         res = {
             'id': self.pk,
             'submit_date': self.submit_date,

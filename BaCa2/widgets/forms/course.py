@@ -6,7 +6,7 @@ from django import forms
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
-from core.choices import ResultStatus, TaskJudgingMode
+from core.choices import ResultStatus, ScoreSelectionPolicy, TaskJudgingMode
 from core.tools.files import CsvFileHandler, FileHandler
 from course.models import Round, Submit, Task
 from course.routing import InCourse
@@ -974,6 +974,11 @@ class CreateRoundForm(CourseModelForm):
 
     #: Name of the new round.
     round_name = AlphanumericStringField(label=_('Round name'), required=True)
+    #: Score selection policy of the new round.
+    score_selection_policy = ChoiceField(label=_('Score selection policy'),
+                                         choices=ScoreSelectionPolicy.choices,
+                                         required=True,
+                                         placeholder_default_option=False)
     #: Start date of the new round.
     start_date = DateTimeField(label=_('Start date'), required=True)
     #: End date of the new round.
@@ -1001,12 +1006,16 @@ class CreateRoundForm(CourseModelForm):
         if not reveal_date:
             reveal_date = None
 
+        score_selection_policy = request.POST.get('score_selection_policy')
+        score_selection_policy = ScoreSelectionPolicy[score_selection_policy]
+
         Round.objects.create_round(
             name=request.POST.get('round_name'),
             start_date=request.POST.get('start_date'),
             end_date=end_date,
             deadline_date=request.POST.get('deadline_date'),
-            reveal_date=reveal_date
+            reveal_date=reveal_date,
+            score_selection_policy=score_selection_policy
         )
 
         message = _('Round ') + request.POST.get('round_name') + _(' created successfully')
@@ -1048,6 +1057,9 @@ class CreateRoundFormWidget(FormWidget):
             post_target_url=RoundModelView.post_url(**{'course_id': course_id}),
             button_text=_('Add round'),
             element_groups=[
+                FormElementGroup(name='basic_round_data',
+                                 elements=['round_name', 'score_selection_policy'],
+                                 layout=FormElementGroup.FormElementsLayout.HORIZONTAL),
                 FormElementGroup(name='start_dates',
                                  elements=['start_date', 'reveal_date'],
                                  layout=FormElementGroup.FormElementsLayout.HORIZONTAL),
@@ -1071,6 +1083,11 @@ class EditRoundForm(CourseModelForm):
 
     #: Name of the round to be edited.
     round_name = AlphanumericStringField(label=_('Round name'), required=True)
+    #: Score selection policy of the round to be edited.
+    score_selection_policy = ChoiceField(label=_('Score selection policy'),
+                                         choices=ScoreSelectionPolicy.choices,
+                                         required=True,
+                                         placeholder_default_option=False)
     #: Start date of the round to be edited.
     start_date = DateTimeField(label=_('Start date'), required=True)
     #: End date of the round to be edited.
@@ -1111,6 +1128,7 @@ class EditRoundForm(CourseModelForm):
         round_obj = ModelsRegistry.get_round(round_, course_id)
 
         self.fields['round_name'].initial = round_obj.name
+        self.fields['score_selection_policy'].initial = round_obj.score_selection_policy
         self.fields['start_date'].initial = round_obj.start_date
         self.fields['end_date'].initial = round_obj.end_date
         self.fields['deadline_date'].initial = round_obj.deadline_date
@@ -1137,8 +1155,12 @@ class EditRoundForm(CourseModelForm):
         if not reveal_date:
             reveal_date = None
 
+        score_selection_policy = request.POST.get('score_selection_policy')
+        score_selection_policy = ScoreSelectionPolicy[score_selection_policy]
+
         round_.update(
             name=request.POST.get('round_name'),
+            score_selection_policy=score_selection_policy,
             start_date=request.POST.get('start_date'),
             end_date=end_date,
             deadline_date=request.POST.get('deadline_date'),
@@ -1203,6 +1225,9 @@ class EditRoundFormWidget(FormWidget):
             post_target_url=RoundModelView.post_url(**{'course_id': course_id}),
             button_text=f"{_('Edit round')} {round_obj.name}",
             element_groups=[
+                FormElementGroup(name='basic_round_data',
+                                 elements=['round_name', 'score_selection_policy'],
+                                 layout=FormElementGroup.FormElementsLayout.HORIZONTAL),
                 FormElementGroup(name='start_dates',
                                  elements=['start_date', 'reveal_date'],
                                  layout=FormElementGroup.FormElementsLayout.HORIZONTAL),
