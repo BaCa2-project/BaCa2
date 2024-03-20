@@ -1,9 +1,10 @@
 // ------------------------------------ table widget class ------------------------------------ //
 
 class TableWidget {
-    constructor(tableId, DTObj) {
+    constructor(tableId, DTObj, ajax) {
         this.DTObj = DTObj;
         this.table = $(`#${tableId}`);
+        this.ajax = ajax;
         this.widgetWrapper = this.table.closest('.table-wrapper');
         this.lastSelectedRow = null;
         this.lastDeselectedRow = null;
@@ -164,9 +165,13 @@ function tablesPreSetup() {
         if (tableId === undefined)
             return;
 
-        const DTObj = window.tableWidgets[`#${tableId}`].DTObj;
-        DTObj.ajax.reload(function () {
-            DTObj.columns.adjust().draw();
+        const tableWidget = window.tableWidgets[`#${tableId}`];
+
+        if (!tableWidget.ajax)
+            return;
+
+        tableWidget.DTObj.ajax.reload(function () {
+            tableWidget.DTObj.columns.adjust().draw();
             $(`#${tableId}`).trigger('table-reload');
         });
     });
@@ -368,7 +373,8 @@ function initTable(
 
     window.tableWidgets[`#${tableId}`] = new TableWidget(
         tableId,
-        table.DataTable(tableParams)
+        table.DataTable(tableParams),
+        ajax
     );
 
     if (refresh)

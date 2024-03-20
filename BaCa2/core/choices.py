@@ -67,3 +67,8 @@ class SubmitType(models.TextChoices):
     STD = 'STD', _('Standard')
     HID = 'HID', _('Hidden')
     CTR = 'CTR', _('Control')
+
+
+class ScoreSelectionPolicy(models.TextChoices):
+    BEST = 'BEST', _('Best submit')
+    LAST = 'LAST', _('Last submit')

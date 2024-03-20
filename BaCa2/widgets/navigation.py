@@ -4,8 +4,8 @@ from django.http.request import HttpRequest
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 
-from core.choices import BasicModelAction
-from package.models import PackageInstance
+# from core.choices import BasicModelAction
+# from package.models import PackageInstance
 from widgets.base import Widget
 
 
@@ -25,12 +25,12 @@ class NavBar(Widget):
         self.links = [
             {'name': _('Dashboard'), 'url': reverse_lazy('main:dashboard')},
             {'name': _('Courses'), 'url': reverse_lazy('main:courses')},
-            {'name': _('Tasks'), 'url': '#'}
+            # {'name': _('Tasks'), 'url': '#'}
         ]
 
-        if request.user.has_basic_model_permissions(model=PackageInstance,
-                                                    permissions=BasicModelAction.VIEW):
-            self.links.append({'name': _('Packages'), 'url': '#'})
+        # if request.user.has_basic_model_permissions(model=PackageInstance,
+        #                                             permissions=BasicModelAction.VIEW):
+        #     self.links.append({'name': _('Packages'), 'url': '#'})
 
         if request.user.is_superuser:
             self.links.append({'name': _('Admin'), 'url': reverse_lazy('main:admin')})
