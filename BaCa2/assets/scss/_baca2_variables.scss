@@ -118,6 +118,7 @@ $navbar_default_variables: (
         icon_color: $dark,
         hover_color: $baca2_pink,
         logo_hover_color: $baca2_blue,
+        divider_color: $light_muted,
 );
 $navbar_theme_variables: (
         light: (),
@@ -126,6 +127,7 @@ $navbar_theme_variables: (
                 link_color: $muted,
                 active_link_color: $white,
                 icon_color: $white,
+                divider_color: $dark_muted,
         )
 );
 $navbar_padding: 4.25rem;
