@@ -4,6 +4,7 @@ from typing import Any, Callable, Dict, List, Union
 
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.http import JsonResponse
+from django.template.response import TemplateResponse
 from django.utils.translation import gettext_lazy as _
 
 from core.choices import EMPTY_FINAL_STATUSES, BasicModelAction, ResultStatus, SubmitType
@@ -117,9 +118,7 @@ class ReadCourseViewMeta(ABCMeta):
         :type prop: bool
 
         :returns: Wrapped method
-
         """
-
         def wrapper_method(self, *args, **kwargs):
             if InCourse.is_defined():
                 result = original_method(self, *args, **kwargs)
@@ -453,9 +452,16 @@ class CourseMemberMixin(UserPassesTestMixin):
         return course.user_has_role(request.user, self.REQUIRED_ROLE)
 
 
+class CourseTemplateView(BaCa2LoggedInView, CourseMemberMixin):
+    def get(self, request, *args, **kwargs) -> TemplateResponse:
+        course_id = kwargs.get('course_id')
+        self.request.course_id = course_id
+        return super().get(request, *args, **kwargs)
+
+
 # ----------------------------------------- User views ----------------------------------------- #
 
-class CourseView(BaCa2LoggedInView, CourseMemberMixin):
+class CourseView(CourseTemplateView):
     template_name = 'course_admin.html'
 
     def get_context_data(self, **kwargs) -> dict:
@@ -731,7 +737,7 @@ class CourseView(BaCa2LoggedInView, CourseMemberMixin):
         return context
 
 
-class CourseTask(BaCa2LoggedInView, CourseMemberMixin):
+class CourseTask(CourseTemplateView):
     template_name = 'course_task.html'
 
     def test_func(self) -> bool:
@@ -862,7 +868,7 @@ class CourseTask(BaCa2LoggedInView, CourseMemberMixin):
         return context
 
 
-class TaskEditView(BaCa2LoggedInView, CourseMemberMixin):
+class TaskEditView(CourseTemplateView):
     template_name = 'task_edit.html'
 
     def test_func(self) -> bool:
@@ -902,7 +908,7 @@ class TaskEditView(BaCa2LoggedInView, CourseMemberMixin):
         return context
 
 
-class RoundEditView(BaCa2LoggedInView, CourseMemberMixin):
+class RoundEditView(CourseTemplateView):
     template_name = 'course_edit_round.html'
     REQUIRED_ROLE = 'admin'
 
@@ -942,7 +948,7 @@ class RoundEditView(BaCa2LoggedInView, CourseMemberMixin):
         return context
 
 
-class SubmitSummaryView(BaCa2LoggedInView, CourseMemberMixin):
+class SubmitSummaryView(CourseTemplateView):
     template_name = 'course_submit_summary.html'
 
     @staticmethod

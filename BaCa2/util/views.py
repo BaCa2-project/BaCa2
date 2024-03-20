@@ -103,6 +103,7 @@ class BaCa2ContextMixin:
 
         context['display_sidenav'] = False
         context['page_title'] = 'BaCa²'
+        context['request'] = request
 
         return context
 

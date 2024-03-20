@@ -4,6 +4,7 @@ from django.http.request import HttpRequest
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 
+from util.models_registry import ModelsRegistry
 # from core.choices import BasicModelAction
 # from package.models import PackageInstance
 from widgets.base import Widget
@@ -34,6 +35,16 @@ class NavBar(Widget):
 
         if request.user.is_superuser:
             self.links.append({'name': _('Admin'), 'url': reverse_lazy('main:admin')})
+
+        course_id = getattr(request, 'course_id', None)
+
+        if course_id:
+            course = ModelsRegistry.get_course(course_id)
+            self.links.append('|')
+            self.links.append(
+                {'name': course.name,
+                 'url': reverse_lazy('course:course-view', kwargs={'course_id': course_id})}
+            )
 
     def get_context(self) -> Dict[str, Any]:
         return {'links': self.links}
