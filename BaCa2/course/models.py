@@ -145,6 +145,7 @@ class RoundManager(models.Manager):
                      end_date: datetime = None,
                      reveal_date: datetime = None,
                      score_selection_policy: ScoreSelectionPolicy = ScoreSelectionPolicy.BEST,
+                     fall_off_policy: FallOffPolicy = FallOffPolicy.SQUARE,
                      course: str | int | Course = None) -> Round:
         """
         It creates a new round object, but validates it first.
@@ -162,6 +163,10 @@ class RoundManager(models.Manager):
         :param score_selection_policy: The policy for selecting the task score from user's submits,
             defaults to ScoreSelectionPolicy.BEST (optional)
         :type score_selection_policy: :class:`core.choices.ScoreSelectionPolicy`
+        :param fall_off_policy: Points fall-off policy for tasks in the round
+            (max points until deadline, linear fall-off, square fall-off), defaults to
+            FallOffPolicy.SQUARE (optional)
+        :type fall_off_policy: :class:`core.choices.FallOffPolicy`
         :param course: The course that the round is in, if None - acquired from external definition
             (optional)
         :type course: str | int | Course
@@ -187,7 +192,8 @@ class RoundManager(models.Manager):
                                    name=name,
                                    end_date=end_date,
                                    reveal_date=reveal_date,
-                                   score_selection_policy=score_selection_policy)
+                                   score_selection_policy=score_selection_policy,
+                                   fall_off_policy=fall_off_policy)
             new_round.save()
             return new_round
 
@@ -477,7 +483,7 @@ class TaskManager(models.Manager):
         new_task.save()
         new_task.initialise_task()
 
-        old_task.task_update = new_task
+        old_task.updated_task = new_task
         old_task.is_legacy = True
         old_task.save()
 
@@ -536,7 +542,7 @@ class Task(models.Model, metaclass=ReadCourseMeta):
     points = models.FloatField()
     #: When task is updated, new instance is created - old submits have to be supported.
     #: Submit.update gives access to rejudging with the newest task version
-    task_update = models.ForeignKey(
+    updated_task = models.ForeignKey(
         to='course.Task',
         on_delete=models.SET_NULL,
         null=True,
@@ -640,8 +646,8 @@ class Task(models.Model, metaclass=ReadCourseMeta):
         :rtype: Task
         """
         result = self
-        while result.task_update:
-            result = result.task_update
+        while result.updated_task:
+            result = result.updated_task
 
         return result
 
@@ -1066,7 +1072,7 @@ class SubmitManager(models.Manager):
                       submit_status: ResultStatus = ResultStatus.PND,
                       error_msg: str = None,
                       retry: int = 0,
-                      fall_off_factor: float = None,
+                      fixed_fall_off_factor: float = None,
                       **kwargs) -> Submit:
         """
         It creates a new submit object.
@@ -1095,6 +1101,9 @@ class SubmitManager(models.Manager):
         :type retry: int
         :param fall_off_factor: The fixed fall-off factor of the submit, defaults to None (optional)
         :type fall_off_factor: float
+        :param enable_fall_off_autoupdate: If True, the fall-off factor will be recalculated every
+            round change, otherwise it will stay on fixed value. Defaults to True (optional)
+        :type enable_fall_off_autoupdate: bool
 
         :return: A new submit object.
         :rtype: Submit
@@ -1103,11 +1112,8 @@ class SubmitManager(models.Manager):
         task = ModelsRegistry.get_task(task)
         user = ModelsRegistry.get_user(user)
         source_code = ModelsRegistry.get_source_code(source_code)
-        if fall_off_factor is None:
-            if submit_type == SubmitType.CTR:
-                fall_off_factor = 1
-            else:
-                fall_off_factor = task.get_fall_off().get_factor(submit_date)
+        if fixed_fall_off_factor is None and submit_type == SubmitType.CTR:
+            fixed_fall_off_factor = 1
         new_submit = self.model(submit_date=submit_date,
                                 source_code=source_code,
                                 task=task,
@@ -1117,7 +1123,8 @@ class SubmitManager(models.Manager):
                                 submit_status=submit_status,
                                 error_msg=error_msg,
                                 retries=retry,
-                                fall_off_factor=fall_off_factor)
+                                fixed_fall_off_factor=fixed_fall_off_factor,
+                                )
         new_submit.save()
         if auto_send:
             new_submit.send(**kwargs)
@@ -1182,8 +1189,8 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
     #: Final score (as percent), gained by user's submission. Before solution check score is set
     #: to ``-1``.
     final_score = models.FloatField(default=-1)
-    #: Fall-ff factor for the submit
-    fall_off_factor = models.FloatField(default=1)
+    #: Fall-off factor for the submit, that is recalculated every round change.
+    fixed_fall_off_factor = models.FloatField(null=True, default=None)
 
     #: The manager for the Submit model.
     objects = SubmitManager()
@@ -1336,6 +1343,16 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
 
         self.final_score = 0
         self.save()
+
+    @property
+    def fall_off_factor(self) -> float:
+        """
+        :return: Fall-off factor for the submit
+        :rtype: float
+        """
+        if self.fixed_fall_off_factor is not None:
+            return self.fixed_fall_off_factor
+        return self.task.get_fall_off().get_factor(self.submit_date)
 
     @transaction.atomic
     def score(self, rejudge: bool = False) -> float:
@@ -1501,7 +1518,8 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
     def get_data(self,
                  show_user: bool = True,
                  add_round_task_name: bool = False,
-                 add_summary_score: bool = False) -> dict:
+                 add_summary_score: bool = False,
+                 add_falloff_info: bool = False) -> dict:
         """
         :return: The data of the submit.
         :rtype: dict
@@ -1525,6 +1543,10 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
             res |= {'round_task_name': f'{self.task.round.name}: {self.task.task_name}'}
         if add_summary_score:
             res |= {'summary_score': self.summary_score}
+        if add_falloff_info:
+            res |= {
+                'fall_off_factor': self.format_score(self.fall_off_factor),
+            }
         return res
 
 

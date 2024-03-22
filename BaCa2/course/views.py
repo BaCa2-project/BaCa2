@@ -673,7 +673,7 @@ class CourseView(CourseTemplateView):
             if view_all_submits:
                 results_table_kwargs['data_source'] = SubmitModelView.get_url(
                     serialize_kwargs={'add_round_task_name': True,
-                                      'add_summary_score': True},
+                                      'add_summary_score': True, },
                     course_id=course_id
                 )
                 results_table_kwargs['cols'].extend([
@@ -686,9 +686,13 @@ class CourseView(CourseTemplateView):
                     filter_params={'usr': user.id,
                                    'submit_type': SubmitType.STD},
                     serialize_kwargs={'add_round_task_name': True,
-                                      'add_summary_score': True},
+                                      'add_summary_score': True,
+                                      'add_falloff_info': True, },
                     course_id=course_id
                 )
+                results_table_kwargs['cols'].extend([
+                    TextColumn(name='fall_off_factor', header='Fall-off factor')
+                ])
 
             if view_all_results or view_own_results:
                 results_table_kwargs['link_format_string'] = f'/course/{course_id}/submit/[[id]]/'
@@ -824,7 +828,8 @@ class CourseTask(CourseTemplateView):
                 'request': self.request,
                 'cols': [DatetimeColumn(name='submit_date', header=_('Submit time')),
                          TextColumn(name='submit_status', header=_('Submit status')),
-                         TextColumn(name='summary_score', header=_('Score'))],
+                         TextColumn(name='summary_score', header=_('Score')),
+                         TextColumn(name='fall_off_factor', header='Fall-off factor')],
                 'refresh_button': True,
                 'paging': TableWidgetPaging(page_length=50,
                                             allow_length_change=True,
@@ -836,7 +841,8 @@ class CourseTask(CourseTemplateView):
             if view_all_submits:
                 results_table_kwargs['data_source'] = SubmitModelView.get_url(
                     serialize_kwargs={'add_round_task_name': True,
-                                      'add_summary_score': True},
+                                      'add_summary_score': True,
+                                      'add_falloff_info': True, },
                     course_id=course_id
                 )
                 results_table_kwargs['cols'].insert(0, TextColumn(name='user_first_name',
@@ -850,7 +856,8 @@ class CourseTask(CourseTemplateView):
                     filter_params={'usr': user.id,
                                    'submit_type': SubmitType.STD},
                     serialize_kwargs={'add_round_task_name': True,
-                                      'add_summary_score': True},
+                                      'add_summary_score': True,
+                                      'add_falloff_info': True, },
                     course_id=course_id
                 )
 
@@ -1011,7 +1018,11 @@ class SubmitSummaryView(CourseTemplateView):
             {'title': _('Submit status'), 'value': submit.formatted_submit_status},
         ]
         if submit.submit_status != ResultStatus.PND:
-            submit_summary.append({'title': _('Score'), 'value': submit.summary_score}, )
+            submit_summary.extend([
+                {'title': _('Score'), 'value': submit.summary_score},
+                {'title': _('Fall-off factor'),
+                 'value': Submit.format_score(submit.fall_off_factor)},
+            ])
 
         summary_table = TableWidget(
             name='summary_table_widget',

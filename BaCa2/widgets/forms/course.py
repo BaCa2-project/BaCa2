@@ -6,7 +6,7 @@ from django import forms
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
-from core.choices import ResultStatus, ScoreSelectionPolicy, TaskJudgingMode
+from core.choices import FallOffPolicy, ResultStatus, ScoreSelectionPolicy, TaskJudgingMode
 from core.tools.files import CsvFileHandler, FileHandler
 from course.models import Round, Submit, Task
 from course.routing import InCourse
@@ -979,6 +979,11 @@ class CreateRoundForm(CourseModelForm):
                                          choices=ScoreSelectionPolicy.choices,
                                          required=True,
                                          placeholder_default_option=False)
+    fall_off_policy = ChoiceField(label=_('Fall-off policy'),
+                                  choices=FallOffPolicy.choices,
+                                  required=True,
+                                  placeholder_default_option=False,
+                                  initial=FallOffPolicy.SQUARE)
     #: Start date of the new round.
     start_date = DateTimeField(label=_('Start date'), required=True)
     #: End date of the new round.
@@ -1009,13 +1014,17 @@ class CreateRoundForm(CourseModelForm):
         score_selection_policy = request.POST.get('score_selection_policy')
         score_selection_policy = ScoreSelectionPolicy[score_selection_policy]
 
+        fall_off_policy = request.POST.get('fall_off_policy')
+        fall_off_policy = FallOffPolicy[fall_off_policy]
+
         Round.objects.create_round(
             name=request.POST.get('round_name'),
             start_date=request.POST.get('start_date'),
             end_date=end_date,
             deadline_date=request.POST.get('deadline_date'),
             reveal_date=reveal_date,
-            score_selection_policy=score_selection_policy
+            score_selection_policy=score_selection_policy,
+            fall_off_policy=fall_off_policy,
         )
 
         message = _('Round ') + request.POST.get('round_name') + _(' created successfully')
@@ -1057,8 +1066,11 @@ class CreateRoundFormWidget(FormWidget):
             post_target_url=RoundModelView.post_url(**{'course_id': course_id}),
             button_text=_('Add round'),
             element_groups=[
-                FormElementGroup(name='basic_round_data',
-                                 elements=['round_name', 'score_selection_policy'],
+                FormElementGroup(name='round_name_gr',
+                                 elements=['round_name'],
+                                 layout=FormElementGroup.FormElementsLayout.HORIZONTAL),
+                FormElementGroup(name='round_settings',
+                                 elements=['fall_off_policy', 'score_selection_policy'],
                                  layout=FormElementGroup.FormElementsLayout.HORIZONTAL),
                 FormElementGroup(name='start_dates',
                                  elements=['start_date', 'reveal_date'],
@@ -1088,6 +1100,10 @@ class EditRoundForm(CourseModelForm):
                                          choices=ScoreSelectionPolicy.choices,
                                          required=True,
                                          placeholder_default_option=False)
+    fall_off_policy = ChoiceField(label=_('Fall-off policy'),
+                                  choices=FallOffPolicy.choices,
+                                  required=True,
+                                  placeholder_default_option=False, )
     #: Start date of the round to be edited.
     start_date = DateTimeField(label=_('Start date'), required=True)
     #: End date of the round to be edited.
@@ -1129,6 +1145,7 @@ class EditRoundForm(CourseModelForm):
 
         self.fields['round_name'].initial = round_obj.name
         self.fields['score_selection_policy'].initial = round_obj.score_selection_policy
+        self.fields['fall_off_policy'].initial = round_obj.fall_off_policy
         self.fields['start_date'].initial = round_obj.start_date
         self.fields['end_date'].initial = round_obj.end_date
         self.fields['deadline_date'].initial = round_obj.deadline_date
@@ -1157,10 +1174,13 @@ class EditRoundForm(CourseModelForm):
 
         score_selection_policy = request.POST.get('score_selection_policy')
         score_selection_policy = ScoreSelectionPolicy[score_selection_policy]
+        fall_off_policy = request.POST.get('fall_off_policy')
+        fall_off_policy = FallOffPolicy[fall_off_policy]
 
         round_.update(
             name=request.POST.get('round_name'),
             score_selection_policy=score_selection_policy,
+            fall_off_policy=fall_off_policy,
             start_date=request.POST.get('start_date'),
             end_date=end_date,
             deadline_date=request.POST.get('deadline_date'),
@@ -1225,8 +1245,11 @@ class EditRoundFormWidget(FormWidget):
             post_target_url=RoundModelView.post_url(**{'course_id': course_id}),
             button_text=f"{_('Edit round')} {round_obj.name}",
             element_groups=[
-                FormElementGroup(name='basic_round_data',
-                                 elements=['round_name', 'score_selection_policy'],
+                FormElementGroup(name='round_name_gr',
+                                 elements=['round_name'],
+                                 layout=FormElementGroup.FormElementsLayout.HORIZONTAL),
+                FormElementGroup(name='round_settings',
+                                 elements=['fall_off_policy', 'score_selection_policy'],
                                  layout=FormElementGroup.FormElementsLayout.HORIZONTAL),
                 FormElementGroup(name='start_dates',
                                  elements=['start_date', 'reveal_date'],
