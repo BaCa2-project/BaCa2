@@ -22,6 +22,8 @@ class FallOff(ABC):
                  end: datetime = None):
         self.start = start
         self.deadline = deadline
+        if end is None:
+            end = deadline
         self.end = end
 
     def is_in_deadline(self, when: datetime) -> bool:
