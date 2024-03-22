@@ -1990,6 +1990,22 @@ class CreateSubmitForm(CourseModelForm):
         )
 
     @classmethod
+    def is_permissible(cls, request) -> bool:
+        """
+        Checks if the user is allowed to create a new submit.
+
+        :param request: HTTP request object containing the user.
+        :type request: HttpRequest
+        :return: True if the user is allowed to create a new submit, False otherwise.
+        :rtype: bool
+        """
+        task_id = int(request.POST.get('task_id'))
+        task = ModelsRegistry.get_task(task_id)
+        if not task:
+            return False
+        return super().is_permissible(request) and task.can_submit(request.user)
+
+    @classmethod
     def handle_valid_request(cls, request) -> Dict[str, str]:
         """
         Creates a new :class:`Submit` object based on the data provided in the request.

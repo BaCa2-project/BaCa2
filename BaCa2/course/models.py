@@ -319,6 +319,14 @@ class Round(models.Model, metaclass=ReadCourseMeta):
         """
         return self.start_date <= now() <= self.deadline_date
 
+    @property
+    def is_started(self) -> bool:
+        """
+        :return: True if round is started, False otherwise
+        :rtype: bool
+        """
+        return self.start_date <= now()
+
     def get_fall_off(self) -> FallOff:
         """
         :return: Fall-off object with get_factor method
@@ -560,6 +568,50 @@ class Task(models.Model, metaclass=ReadCourseMeta):
         :rtype: FallOff
         """
         return self.round.get_fall_off()
+
+    @property
+    def is_open(self):
+        """
+        :return: True if task is open now, False otherwise
+        :rtype: bool
+        """
+        return self.round.is_open
+
+    @property
+    def is_started(self):
+        """
+        :return: True if task is started, False otherwise
+        :rtype: bool
+        """
+        return self.round.is_started
+
+    def can_submit(self, user: str | int | User) -> bool:
+        """
+        Checks if user can submit a solution to the task.
+
+        :param user: The user who wants to submit a solution.
+        :type user: str | int | User
+        :return: True if user can submit a solution, False otherwise.
+        :rtype: bool
+        """
+        from main.models import Course
+        user = ModelsRegistry.get_user(user)
+        course = InCourse.get_context_course()
+        return any((
+            user.has_course_permission(Course.CourseAction.ADD_SUBMIT.label,
+                                       course) and self.is_open,
+            user.has_course_permission(Course.CourseAction.ADD_SUBMIT_AFTER_DEADLINE.label,
+                                       course) and self.is_started,
+            user.has_course_permission(Course.CourseAction.ADD_SUBMIT_BEFORE_START.label,
+                                       course) and not self.is_started,
+            user.has_course_permission(
+                Course.CourseAction.ADD_SUBMIT_BEFORE_START.label,
+                course
+            ) and user.has_course_permission(
+                Course.CourseAction.ADD_SUBMIT_AFTER_DEADLINE.label,
+                course
+            )
+        ))
 
     def initialise_task(self) -> None:
         """
@@ -1047,6 +1099,7 @@ class SubmitManager(models.Manager):
         :return: A new submit object.
         :rtype: Submit
         """
+        submit_date = submit_date or now()
         task = ModelsRegistry.get_task(task)
         user = ModelsRegistry.get_user(user)
         source_code = ModelsRegistry.get_source_code(source_code)

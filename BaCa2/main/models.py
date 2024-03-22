@@ -435,6 +435,8 @@ class Course(models.Model):
 
             # Solution related permissions
             ('view_own_submit', _('Can view own submits')),
+            ('add_submit_after_deadline', _('Can add submit after round deadline')),
+            ('add_submit_before_start', _('Can add submit before round start')),
             ('view_own_result', _('Can view own results')),
 
             # Task related permissions
@@ -481,6 +483,8 @@ class Course(models.Model):
         ADD_SUBMIT = 'add_submit', 'add_submit'
         EDIT_SUBMIT = 'edit_submit', 'change_submit'
         DEL_SUBMIT = 'delete_submit', 'delete_submit'
+        ADD_SUBMIT_AFTER_DEADLINE = 'add_submit_after_deadline', 'add_submit_after_deadline'
+        ADD_SUBMIT_BEFORE_START = 'add_submit_before_start', 'add_submit_before_start'
 
         # Result related actions
         VIEW_RESULT = 'view_result', 'view_result'
