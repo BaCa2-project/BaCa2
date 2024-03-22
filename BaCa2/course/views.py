@@ -119,6 +119,7 @@ class ReadCourseViewMeta(ABCMeta):
 
         :returns: Wrapped method
         """
+
         def wrapper_method(self, *args, **kwargs):
             if InCourse.is_defined():
                 result = original_method(self, *args, **kwargs)
@@ -794,7 +795,7 @@ class CourseTask(CourseTemplateView):
 
         # submit form ----------------------------------------------------------------------------
 
-        if user.has_course_permission(Course.CourseAction.ADD_SUBMIT.label, course):
+        if task.can_submit(user):
             sidenav_tabs.append('Submit')
             context['submit_tab'] = 'submit-tab'
             submit_form = CreateSubmitFormWidget(request=self.request,
