@@ -63,6 +63,22 @@ class TestFallOff(TestCase):
         self.assertGreaterEqual(factor, 0.0)
         self.assertLessEqual(factor, 1.0)
 
+    @parameterized.expand([
+        ('none', FallOffPolicy.NONE),
+        ('linear', FallOffPolicy.LINEAR),
+        ('square', FallOffPolicy.SQUARE),
+    ])
+    def test_without_end(self, _name, fall_off_policy):
+        fall_off = FallOff[fall_off_policy](self.start, self.deadline)
+        when = datetime(2022, 1, 7)
+        factor = fall_off.get_factor(when)
+        self.assertGreater(factor, 0.0)
+        self.assertLessEqual(factor, 1.0)
+
+        when = datetime(2022, 1, 3)
+        factor = fall_off.get_factor(when)
+        self.assertEqual(factor, 1.0)
+
 
 class TestNoFallOff(TestCase):
 
