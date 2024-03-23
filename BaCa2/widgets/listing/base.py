@@ -246,7 +246,7 @@ class TableWidget(Widget):
             self.table_height = ''
             self.resizable_height = False
 
-        self.language_cdn = None  # self.LOCALISATION.get(language)
+        self.language_cdn = ''  # self.LOCALISATION.get(language)
         # TODO: Localisation overwrites our table styling. For now it's disabled. BWA-65
 
     @staticmethod
