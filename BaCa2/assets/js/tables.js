@@ -331,6 +331,7 @@ function initTable(
         height,
         refresh,
         refreshInterval,
+        localisation_cdn,
     } = {}
 ) {
     const tableParams = {};
@@ -350,6 +351,12 @@ function initTable(
         tableParams['scrollResize'] = true;
         tableParams['scrollY'] = height;
         tableParams['scrollCollapse'] = true;
+    }
+
+    if (localisation_cdn){
+        tableParams['language'] = {
+            "url": localisation_cdn
+        }
     }
 
     tableParams['searching'] = searching;
