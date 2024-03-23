@@ -40,6 +40,10 @@ class TableWidget(Widget):
         - :class:`Widget`
     """
 
+    LOCALISATION = {
+        'pl': '//cdn.datatables.net/plug-ins/2.0.3/i18n/pl.json',
+    }
+
     def __init__(self,
                  *,
                  name: str,
@@ -67,7 +71,8 @@ class TableWidget(Widget):
                  default_order_asc: bool = True,
                  stripe_rows: bool = True,
                  highlight_rows_on_hover: bool = False,
-                 hide_col_headers: bool = False) -> None:
+                 hide_col_headers: bool = False,
+                 language: str = 'pl', ) -> None:
         """
         :param name: The name of the table widget. Names are used as ids for the HTML <table>
             elements of the rendered table widgets.
@@ -144,6 +149,9 @@ class TableWidget(Widget):
         :type highlight_rows_on_hover: bool
         :param hide_col_headers: Whether to hide the column headers.
         :type hide_col_headers: bool
+        :param language: The language of the table. The language is used to set the DataTables
+            language option. If not set, the language is set up from default django/user settings.
+        :type language: str
         """
         super().__init__(name=name, request=request)
 
@@ -238,6 +246,9 @@ class TableWidget(Widget):
             self.table_height = ''
             self.resizable_height = False
 
+        self.language_cdn = None  # self.LOCALISATION.get(language)
+        # TODO: Localisation overwrites our table styling. For now it's disabled. BWA-65
+
     @staticmethod
     def get_default_order_col_index(default_order_col: str, cols: List[Column]) -> int:
         """
@@ -282,7 +293,8 @@ class TableWidget(Widget):
             'allow_delete': self.allow_delete,
             'delete_button': self.delete_button,
             'delete_record_form_widget': self.delete_record_form_widget.get_context()
-            if self.delete_record_form_widget else None
+            if self.delete_record_form_widget else None,
+            'localisation_cdn': self.language_cdn
         }
 
     def display_util_header(self) -> bool:
