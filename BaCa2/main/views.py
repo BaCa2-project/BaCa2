@@ -338,7 +338,7 @@ class BaCa2LoginView(BaCa2ContextMixin, LoginView):
             name='login_form',
             request=self.request,
             form=self.get_form(),
-            button_text=_('Login'),
+            button_text=_('Log in'),
             display_field_errors=False,
             live_validation=False,
         ))
