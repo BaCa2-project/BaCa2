@@ -528,8 +528,32 @@ function renderFormSubmitField(col) {
     const form_id = col['form_id'];
     const btnIcon = col['btn_icon'];
     const btnText = col['btn_text'];
+    const conditional =JSON.parse(col['conditional']);
+    const conditionKey = col['condition_key'];
+    const conditionValue = col['condition_value'];
 
     return function (data, type, row, meta) {
+        let disabled = false;
+
+        if (conditional && row[conditionKey].toString() !== conditionValue) {
+            const disabledAppearance = col['disabled_appearance'];
+            const disabledContent = col['disabled_content'];
+
+            switch (disabledAppearance) {
+                case 'disabled':
+                    disabled = true;
+                    break;
+                case 'hidden':
+                    return '';
+                case 'text':
+                    return disabledContent;
+                case 'icon':
+                    return `<div class="text-center">
+                                <i class="bi bi-${disabledContent}"></i>
+                            </div>`;
+            }
+        }
+
         const button = $('<a>')
             .attr('class', 'btn btn-outline-primary')
             .attr('href', '#')
@@ -543,6 +567,13 @@ function renderFormSubmitField(col) {
         if (btnIcon) {
             const icon = $('<i>').addClass(`bi bi-${btnIcon}`).addClass(btnText ? 'me-2' : '');
             content.append(icon);
+        }
+
+        console.log(disabled);
+
+        if (disabled) {
+            button.addClass('disabled')
+            button.attr('disabled', true);
         }
 
         content.append(text);

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from enum import Enum
 from typing import Any, Dict
 
 from django.http import HttpRequest
@@ -269,6 +270,12 @@ class DeleteColumn(Column):
 class FormSubmitColumn(Column):
     template = 'form_submit_column.html'
 
+    class DisabledAppearance(Enum):
+        DISABLED = 'disabled'
+        HIDDEN = 'hidden'
+        ICON = 'icon'
+        TEXT = 'text'
+
     def __init__(self, *,
                  name: str,
                  form_widget: FormWidget,
@@ -276,7 +283,11 @@ class FormSubmitColumn(Column):
                  header: str | None = None,
                  header_icon: str | None = None,
                  btn_text: str = '',
-                 btn_icon: str = '') -> None:
+                 btn_icon: str = '',
+                 condition_key: str = '',
+                 condition_value: str = 'true',
+                 disabled_appearance: 'DisabledAppearance' = None,
+                 disabled_content: str = '') -> None:
         super().__init__(name=name,
                          col_type='form-submit',
                          data_null=True,
@@ -298,6 +309,14 @@ class FormSubmitColumn(Column):
         self.mappings = mappings
         self.btn_text = btn_text
         self.btn_icon = btn_icon
+        self.condition_key = condition_key
+        self.condition_value = condition_value
+
+        if not disabled_appearance:
+            disabled_appearance = self.DisabledAppearance.DISABLED
+
+        self.disabled_appearance = disabled_appearance
+        self.disabled_content = disabled_content
 
     def get_context(self) -> Dict[str, Any]:
         return super().get_context() | {
@@ -309,5 +328,10 @@ class FormSubmitColumn(Column):
             'form_id': self.form_widget.name,
             'mappings': json.dumps(self.mappings),
             'btn_text': self.btn_text,
-            'btn_icon': self.btn_icon
+            'btn_icon': self.btn_icon,
+            'conditional': json.dumps(bool(self.condition_key)),
+            'condition_key': self.condition_key,
+            'condition_value': self.condition_value,
+            'disabled_appearance': self.disabled_appearance.value,
+            'disabled_content': self.disabled_content
         }
