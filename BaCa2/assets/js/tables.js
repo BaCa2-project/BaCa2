@@ -467,7 +467,7 @@ function createColumnDef(col, index) {
         case 'datetime':
             def['render'] = DataTable.render.datetime(col['formatter']);
             break;
-        case 'form_submit':
+        case 'form-submit':
             def['render'] = renderFormSubmitField(col);
             break;
     }
@@ -524,13 +524,14 @@ function renderFormSubmitField(col) {
             .attr('onclick', 'formSubmitButtonClickHandler(event, $(this))');
 
         const content = $('<div>').addClass('d-flex');
+        const text = generateFormattedString(row, btnText);
 
         if (btnIcon) {
             const icon = $('<i>').addClass(`bi bi-${btnIcon}`).addClass(btnText ? 'me-2' : '');
             content.append(icon);
         }
 
-        content.append(btnText);
+        content.append(text);
         button.append(content);
         return button[0].outerHTML;
     };

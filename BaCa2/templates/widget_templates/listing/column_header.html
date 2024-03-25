@@ -10,7 +10,9 @@
         </div>
     </div>
 {% elif col.header_icon %}
-    {% bs_icon col.header_icon extra_classes='w-100 h-100' %}
+    <div class="text-center w-100">
+        {% bs_icon col.header_icon extra_classes='icon-header' %}
+    </div>
 {% else %}
     {{ col.header }}
 {% endif %}
