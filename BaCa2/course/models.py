@@ -704,19 +704,34 @@ class Task(models.Model, metaclass=ReadCourseMeta):
         for submit in Submit.objects.filter(task=self, usr=user.pk).all():
             submit.score(rejudge=rejudge)
 
-    def submits(self, user: str | int | User = None) -> List[Submit]:
+    def submits(self,
+                user: str | int | User = None,
+                add_hidden: bool = False,
+                add_control: bool = False) -> List[Submit]:
         """
         It returns all the submits that are associated with the task. If user is specified,
         returns only submits of that user.
 
         :param user: The user who submitted the task, defaults to None (optional)
         :type user: str | int | User
+        :param add_hidden: If True, hidden submits will be added to the list, defaults to False
+            (optional)
+        :type add_hidden: bool
+        :param add_control: If True, control submits will be added to the list, defaults to False
+            (optional)
+        :type add_control: bool
 
         :return: A list of all the Submit objects that are associated with the Task object.
         :rtype: List[Submit]
         """
+        allowed_submit_types = [SubmitType.STD]
+        if add_hidden:
+            allowed_submit_types.append(SubmitType.HID)
+        if add_control:
+            allowed_submit_types.append(SubmitType.CTR)
         if user is None:
-            return list(Submit.objects.filter(task=self).all())
+            return list(
+                Submit.objects.filter(task=self, submit_type__in=allowed_submit_types).all())
         user = ModelsRegistry.get_user(user)
         return list(Submit.objects.filter(task=self, usr=user.pk).all())
 
@@ -827,6 +842,18 @@ class Task(models.Model, metaclass=ReadCourseMeta):
                 if cls.objects.filter(package_instance_id=pkg_instance.pk).exists():
                     return True
         return False
+
+    def update_submits(self):
+        """
+        Updates all submits for the task.
+        """
+        if self.is_legacy:
+            for submit in self.submits(add_control=True):
+                submit.update()
+
+        old_versions = self.objects.filter(updated_task__isnull=False)
+        for task in old_versions:
+            task.update_submits()
 
     def get_data(self, submitter: int | str | User = None) -> dict:
         """
