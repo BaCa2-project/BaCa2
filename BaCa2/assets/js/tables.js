@@ -224,6 +224,10 @@ function globalSearchSetup(tableWrapper) {
     searchInput.on('input', function () {
         globalSearchInputHandler($(this), table, tableWidget);
     });
+
+    if (searchWrapper.length === 0)
+        return;
+
     searchWrapper.append(searchInput);
     search.remove();
 }
@@ -270,15 +274,25 @@ function columnSearchInputHandler(inputField, table, tableWidget) {
 }
 
 
-// ---------------------------------------- length menu --------------------------------------- //
+// --------------------------------------- table paging --------------------------------------- //
 
 function lengthMenuSetup() {
     $('.dataTables_length').each(function () {
-        const label = $(this).find('label');
-        label.addClass('d-flex align-items-center');
+        const lengthMenu = $(this);
+        const label = lengthMenu.find('label');
+        const select = lengthMenu.find('select');
 
-        const select = $(this).find('select');
+        label.addClass('d-flex align-items-center');
         select.addClass('form-select form-select-fm auto-width ms-2 me-2');
+
+        const tableWrapper = $(this).closest('.table-wrapper');
+        const lengthMenuWrapper = tableWrapper.find('.table-util-header .table-length-menu');
+        console.log(lengthMenuWrapper);
+
+        if (lengthMenuWrapper.length === 0)
+            return;
+
+        lengthMenuWrapper.append(lengthMenu);
     });
 }
 

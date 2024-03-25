@@ -713,7 +713,7 @@ html, body {
   white-space: nowrap;
 }
 .table-wrapper th .icon-header {
-  height: 2rem;
+  height: 1.5rem;
   width: auto;
 }
 .table-wrapper .table-buttons {
@@ -1130,8 +1130,8 @@ pre.code-block.wrap-lines code {
 }
 
 /*!
- * Bootstrap Icons v1.11.3 (https://icons.getbootstrap.com/)
- * Copyright 2019-2024 The Bootstrap Authors
+ * Bootstrap Icons v1.11.2 (https://icons.getbootstrap.com/)
+ * Copyright 2019-2023 The Bootstrap Authors
  * Licensed under MIT (https://github.com/twbs/icons/blob/main/LICENSE)
  */
 @font-face {
