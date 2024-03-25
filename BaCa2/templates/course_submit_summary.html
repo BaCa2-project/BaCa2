@@ -7,14 +7,14 @@
     {% endif %}
             <div class="mb-3">
                 {% with widgets.TableWidget.summary_table_widget as table_widget %}
-                    {% include "widget_templates/table.html" %}
+                    {% include "widget_templates/listing/table.html" %}
                 {% endwith %}
             </div>
 
             {% for s in sets %}
                 <div class="mb-3">
                     {% with s.table_widget as table_widget %}
-                        {% include "widget_templates/table.html" %}
+                        {% include "widget_templates/listing/table.html" %}
                     {% endwith %}
                 </div>
             {% endfor %}

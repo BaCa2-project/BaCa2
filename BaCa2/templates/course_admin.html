@@ -5,7 +5,7 @@
         <div class="tab-wrapper" id="{{ view_members_tab }}">
             <div class="side-nav-tab">
                 {% with widgets.TableWidget.members_table_widget as table_widget %}
-                    {% include "widget_templates/table.html" %}
+                    {% include "widget_templates/listing/table.html" %}
                 {% endwith %}
             </div>
         </div>
@@ -41,7 +41,7 @@
         <div class="tab-wrapper" id="{{ view_roles_tab }}">
             <div class="side-nav-tab">
                 {% with widgets.TableWidget.roles_table_widget as table_widget %}
-                    {% include "widget_templates/table.html" %}
+                    {% include "widget_templates/listing/table.html" %}
                 {% endwith %}
             </div>
         </div>
@@ -59,7 +59,7 @@
         <div class="tab-wrapper" id="{{ view_rounds_tab }}">
             <div class="side-nav-tab">
                 {% with widgets.TableWidget.rounds_table_widget as table_widget %}
-                    {% include "widget_templates/table.html" %}
+                    {% include "widget_templates/listing/table.html" %}
                 {% endwith %}
             </div>
         </div>
@@ -77,7 +77,7 @@
         <div class="tab-wrapper" id="{{ view_tasks_tab }}">
             <div class="side-nav-tab">
                 {% with widgets.TableWidget.tasks_table_widget as table_widget %}
-                    {% include "widget_templates/table.html" %}
+                    {% include "widget_templates/listing/table.html" %}
                 {% endwith %}
             </div>
         </div>
@@ -95,7 +95,7 @@
         <div class="tab-wrapper" id="{{ results_tab }}">
             <div class="side-nav-tab">
                 {% with widgets.TableWidget.results_table_widget as table_widget %}
-                    {% include "widget_templates/table.html" %}
+                    {% include "widget_templates/listing/table.html" %}
                 {% endwith %}
             </div>
         </div>

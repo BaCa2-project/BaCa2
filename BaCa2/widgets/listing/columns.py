@@ -17,6 +17,10 @@ class Column(Widget):
         - :class:`TextColumn`
     """
 
+    #: The template used to render the column header. Must be within the
+    #: 'templates/widget_templates/listing' directory.
+    template = None
+
     def __init__(self,
                  *,
                  name: str,
@@ -74,6 +78,7 @@ class Column(Widget):
 
     def get_context(self) -> Dict[str, Any]:
         return super().get_context() | {
+            'template': f'widget_templates/listing/{self.template}',
             'col_type': self.col_type,
             'header': self.header,
             'data_null': json.dumps(self.data_null),
@@ -92,6 +97,8 @@ class TextColumn(Column):
         - :class:`widgets.listing.base.TableWidget`
         - :class:`Column`
     """
+
+    template = 'text_column.html'
 
     def __init__(self,
                  *,
@@ -137,6 +144,8 @@ class DatetimeColumn(Column):
             - :class:`widgets.listing.base.TableWidget`
             - :class:`Column`
         """
+
+    template = 'text_column.html'
 
     def __init__(self,
                  *,
@@ -190,6 +199,8 @@ class SelectColumn(Column):
         - :class:`Column`
     """
 
+    template = 'text_column.html'
+
     def __init__(self) -> None:
         super().__init__(name='select',
                          col_type='select',
@@ -209,6 +220,8 @@ class DeleteColumn(Column):
         - :class:`widgets.listing.base.TableWidget`
         - :class:`Column`
     """
+
+    template = 'text_column.html'
 
     def __init__(self) -> None:
         super().__init__(name='delete',
