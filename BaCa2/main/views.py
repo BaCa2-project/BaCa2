@@ -20,7 +20,7 @@ from util.responses import BaCa2JsonResponse, BaCa2ModelResponse
 from util.views import BaCa2ContextMixin, BaCa2LoggedInView, BaCa2ModelView
 from widgets.forms import FormWidget
 from widgets.forms.course import (
-    AddMembersForm,
+    AddMemberForm,
     AddMembersFromCSVForm,
     AddRoleForm,
     AddRolePermissionsForm,
@@ -120,7 +120,7 @@ class CourseModelView(BaCa2ModelView):
         elif form_name == f'{Course.BasicAction.DEL.label}_form':
             return DeleteCourseForm.handle_post_request(request)
         elif form_name == f'{Course.CourseAction.ADD_MEMBER.label}_form':
-            return AddMembersForm.handle_post_request(request)
+            return AddMemberForm.handle_post_request(request)
         elif form_name == f'{Course.CourseAction.ADD_MEMBERS_CSV.label}_form':
             return AddMembersFromCSVForm.handle_post_request(request)
         elif form_name == f'{Course.CourseAction.ADD_ROLE.label}_form':

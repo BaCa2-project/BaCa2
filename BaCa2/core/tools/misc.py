@@ -1,6 +1,7 @@
 import uuid
 from random import choice
 from threading import Lock
+from typing import Tuple
 
 import yaml
 
@@ -36,3 +37,11 @@ def str_to_datetime(date_str: str, dt_format: str = None):
     result = timezone.make_aware(result, timezone.get_current_timezone())
 
     return result
+
+
+def try_getting_name_from_email(email: str) -> Tuple[str, str]:
+    prefix = email.split('@')[0]
+    try:
+        return prefix.split('.')[0], prefix.split('.')[1]
+    except ValueError:
+        return prefix, ''

@@ -318,7 +318,7 @@ class DeleteCourseFormWidget(FormWidget):
 
 # ----------------------------------------- add members ---------------------------------------- #
 
-class AddMembersForm(CourseActionForm):
+class AddMemberForm(CourseActionForm):
     """
     Form for adding members to a course with a specified role.
     """
@@ -326,13 +326,10 @@ class AddMembersForm(CourseActionForm):
     ACTION = Course.CourseAction.ADD_MEMBER
 
     #: Users to be added to the course.
-    users = TableSelectField(
-        label=_('Choose users to add'),
-        table_widget_name='add_members_table_widget',
-        data_source_url='',
-        cols=[TextColumn(name='email', header=_('Email')),
-              TextColumn(name='first_name', header=_('First name')),
-              TextColumn(name='last_name', header=_('Last name'))],
+    email = forms.EmailField(
+        label=_('Email'),
+        required=True,
+        help_text=_('Email from UJ domain, or already registered in the system.')
     )
 
     #: Role to be assigned to the newly added members.
@@ -364,14 +361,9 @@ class AddMembersForm(CourseActionForm):
             super constructor.
         :type kwargs: dict
         """
-        from main.views import RoleModelView, UserModelView
+        from main.views import RoleModelView
 
         super().__init__(form_instance_id=form_instance_id, request=request, **kwargs)
-
-        self.fields['users'].data_source_url = UserModelView.get_url(
-            mode=UserModelView.GetMode.FILTER,
-            exclude_params={'roles__course': course_id}
-        )
 
         self.fields['role'].data_source_url = RoleModelView.get_url(
             mode=RoleModelView.GetMode.FILTER,
@@ -389,15 +381,16 @@ class AddMembersForm(CourseActionForm):
         :rtype: Dict[str, str]
         """
         course = cls.get_context_course(request)
-        users = TableSelectField.parse_value(request.POST.get('users'))
+        email = request.POST.get('email')
+        user = User.objects.get_or_create_if_allowed(email=email)
         role = int(request.POST.get('role'))
 
         if role == course.admin_role.id:
-            course.add_admins(users)
+            course.add_admin(user)
         else:
-            course.add_members(users, role)
+            course.add_member(user, role)
 
-        return {'message': _('Members added successfully')}
+        return {'message': _('Member added successfully')}
 
     @classmethod
     def is_permissible(cls, request) -> bool:
@@ -418,15 +411,15 @@ class AddMembersForm(CourseActionForm):
         return request.user.has_course_permission(cls.ACTION.label, course)
 
 
-class AddMembersFormWidget(FormWidget):
+class AddMemberFormWidget(FormWidget):
     """
-    Form widget for the :class:`AddMembersForm`.
+    Form widget for the :class:`AddMemberForm`.
     """
 
     def __init__(self,
                  request,
                  course_id: int,
-                 form: AddMembersForm = None,
+                 form: AddMemberForm = None,
                  **kwargs) -> None:
         """
         :param request: HTTP request object received by the view this form widget is rendered in.
@@ -434,7 +427,7 @@ class AddMembersFormWidget(FormWidget):
         :param course_id: ID of the course the view this form widget is rendered in is associated
             with.
         :type course_id: int
-        :param form: AddMembersForm to be base the widget on. If not provided, a new form will be
+        :param form: AddMemberForm to be base the widget on. If not provided, a new form will be
             created.
         :type form: :class:`AddMembers`
         :param kwargs: Additional keyword arguments to be passed to the :class:`FormWidget`
@@ -444,14 +437,14 @@ class AddMembersFormWidget(FormWidget):
         from main.views import CourseModelView
 
         if not form:
-            form = AddMembersForm(course_id=course_id, request=request)
+            form = AddMemberForm(course_id=course_id, request=request)
 
         super().__init__(
-            name='add_members_form_widget',
+            name='add_member_form_widget',
             request=request,
             form=form,
             post_target_url=CourseModelView.post_url(**{'course_id': course_id}),
-            button_text=_('Add members'),
+            button_text=_('Add new member'),
             **kwargs
         )
 

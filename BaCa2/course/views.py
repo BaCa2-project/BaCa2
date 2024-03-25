@@ -19,6 +19,7 @@ from util.views import BaCa2LoggedInView, BaCa2ModelView
 from widgets.brief_result_summary import BriefResultSummary
 from widgets.code_block import CodeBlock
 from widgets.forms.course import (
+    AddMemberFormWidget,
     AddMembersFromCSVFormWidget,
     AddRoleFormWidget,
     CreateRoundForm,
@@ -497,12 +498,12 @@ class CourseView(CourseTemplateView):
             )
             self.add_widget(context, members_table)
 
-        # if user.has_course_permission(Course.CourseAction.ADD_MEMBER.label, course):
-        #     sidenav_sub_tabs.get('Members').append('Add members')
-        #     context['add_members_tab'] = 'add-members-tab'
-        #
-        #     add_members_form = AddMembersFormWidget(request=self.request, course_id=course_id)
-        #     self.add_widget(context, add_members_form)
+        if user.has_course_permission(Course.CourseAction.ADD_MEMBER.label, course):
+            sidenav_sub_tabs.get('Members').append('Add member')
+            context['add_member_tab'] = 'add-member-tab'
+
+            add_member_form = AddMemberFormWidget(request=self.request, course_id=course_id)
+            self.add_widget(context, add_member_form)
 
         if user.has_course_permission(Course.CourseAction.ADD_MEMBERS_CSV.label, course):
             sidenav_sub_tabs.get('Members').append('Add members from CSV')

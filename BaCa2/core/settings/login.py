@@ -18,3 +18,11 @@ OIDC_OP_JWKS_ENDPOINT = 'https://auth.dev.uj.edu.pl/auth/realms/uj/protocol/open
 OIDC_OP_LOGOUT_URL = 'https://auth.dev.uj.edu.pl/auth/realms/uj/protocol/openid-connect/logout'
 
 LOGOUT_REDIRECT_URL = '/login'
+
+ALLOWED_INTERNAL_EMAILS = [
+    '@uj.edu.pl',
+    '@student.uj.edu.pl',
+    '@doctoral.uj.edu.pl',
+    '@doktorant.uj.edu.pl',
+    '@ii.uj.edu.pl',
+]
