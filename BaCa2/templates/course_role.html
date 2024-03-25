@@ -4,14 +4,14 @@
     <div class="tab-wrapper" id="overview-tab">
         <div class="side-nav-tab">
             {% with widgets.TableWidget.permissions_table_widget as table_widget %}
-                {% include "widget_templates/table.html" %}
+                {% include "widget_templates/listing/table.html" %}
             {% endwith %}
         </div>
     </div>
     <div class="tab-wrapper" id="members-tab">
         <div class="side-nav-tab">
             {% with widgets.TableWidget.members_table_widget as table_widget %}
-                {% include "widget_templates/table.html" %}
+                {% include "widget_templates/listing/table.html" %}
             {% endwith %}
         </div>
     </div>

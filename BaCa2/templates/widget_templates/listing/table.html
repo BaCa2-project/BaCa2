@@ -85,20 +85,7 @@
                     <thead>
                     <tr>
                         {% for col in table_widget.cols %}
-                            <th class="{{ col.col_type }}
-                                               {% if col.sortable == "true" %}
-                                               pe-5
-                                               {% endif %}"
-                                data-searchable="{{ col.searchable }}"
-                                data-sortable="{{ col.sortable }}">
-                                {% if col.searchable == "true" and table_widget.allow_column_search %}
-                                    <input type="text"
-                                           class="column-search form-control"
-                                           placeholder="{{ col.header }}">
-                                {% else %}
-                                    {{ col.header }}
-                                {% endif %}
-                            </th>
+                            {% include col.template %}
                         {% endfor %}
                     </tr>
                     </thead>
