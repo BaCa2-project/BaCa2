@@ -894,9 +894,15 @@ class Task(models.Model, metaclass=ReadCourseMeta):
         :return: Amount of submits for the task, which are legacy submits
         :rtype: int
         """
-        return Submit.objects.filter(task=self,
-                                     submit_type__in=(SubmitType.STD.label, SubmitType.HID.label),
-                                     task__is_legacy=True).count()
+        if self.is_legacy:
+            submits = Submit.objects.filter(task=self,
+                                            submit_type__in=(SubmitType.STD, SubmitType.CTR),
+                                            task__is_legacy=True).count()
+        else:
+            submits = 0
+        for task in Task.objects.filter(updated_task_id=self.pk):
+            submits += task.legacy_submits_amount
+        return submits
 
     def update_submits(self):
         """
@@ -906,7 +912,7 @@ class Task(models.Model, metaclass=ReadCourseMeta):
             for submit in self.submits(add_control=True):
                 submit.update()
 
-        old_versions = self.objects.filter(updated_task__isnull=False)
+        old_versions = Task.objects.filter(updated_task=self)
         for task in old_versions:
             task.update_submits()
 
@@ -937,7 +943,9 @@ class Task(models.Model, metaclass=ReadCourseMeta):
             additional_data['user_formatted_score'] = submit.summary_score if submit else '---'
 
         if add_legacy_submits_amount:
-            additional_data['legacy_submits_amount'] = self.legacy_submits_amount
+            submits_amount = self.legacy_submits_amount
+            additional_data['legacy_submits_amount'] = submits_amount
+            additional_data['has_legacy_submits'] = submits_amount > 0
 
         return {
             'id': self.pk,
@@ -1384,7 +1392,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
 
         new_task = self.task.newest_update
 
-        new_submit = self.objects.create_submit(
+        new_submit = Submit.objects.create_submit(
             submit_date=self.submit_date,
             source_code=self.source_code,
             task=new_task,
@@ -1393,6 +1401,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
             fall_off_factor=self.fall_off_factor
         )
         self.submit_type = SubmitType.HID
+        self.save()
         return new_submit
 
     def delete(self, using=None, keep_parents=False):

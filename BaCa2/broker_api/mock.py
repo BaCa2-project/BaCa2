@@ -25,6 +25,7 @@ class BrokerMock:
                  range_time_real: Tuple[float, float] = (0, 5),
                  time_cpu_mod_range: Tuple[float, float] = (0.5, 0.9),
                  runtime_memory_range: Tuple[int, int] = (2000, 1e8),
+                 **kwargs
                  ):
         self.course = ModelsRegistry.get_course(course)
         self.submit = course.get_submit(submit)
