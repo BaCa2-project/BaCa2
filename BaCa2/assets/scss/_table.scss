@@ -24,8 +24,19 @@
         display: none;
     }
 
-    tr .btn {
-        padding: 0.25rem 0.5rem;
+    td.form-submit {
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+
+        .btn {
+            padding: 0.25rem 0.5rem;
+            white-space: nowrap;
+        }
+    }
+
+    th .icon-header {
+        height: 2rem;
+        width: auto;
     }
 
     .table-buttons {
