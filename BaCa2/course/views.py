@@ -35,7 +35,8 @@ from widgets.forms.course import (
     EditRoundFormWidget,
     EditTaskForm,
     EditTaskFormWidget,
-    RejudgeSubmitFormWidget,
+    RejudgeSubmitForm,
+    RejudgeTaskForm,
     RejudgeTaskFormWidget,
     RemoveMembersFormWidget,
     ReuploadTaskForm,
@@ -44,6 +45,7 @@ from widgets.forms.course import (
     SimpleEditTaskFormWidget
 )
 from widgets.listing import TableWidget, TableWidgetPaging
+from widgets.listing.col_defs import RejudgeSubmitColumn
 from widgets.listing.columns import DatetimeColumn, FormSubmitColumn, TextColumn
 from widgets.navigation import SideNav
 from widgets.text_display import TextDisplayer
@@ -265,6 +267,8 @@ class TaskModelView(CourseModelView):
             return SimpleEditTaskForm.handle_post_request(request)
         elif form_name == f'{Course.CourseAction.DEL_TASK.label}_form':
             return DeleteTaskForm.handle_post_request(request)
+        elif form_name == f'{Course.CourseAction.REJUDGE_TASK.label}_form':
+            return RejudgeTaskForm.handle_post_request(request)
 
         return self.handle_unknown_form(request, **kwargs)
 
@@ -292,6 +296,8 @@ class SubmitModelView(CourseModelView):
 
         if form_name == f'{Course.CourseAction.ADD_SUBMIT.label}_form':
             return CreateSubmitForm.handle_post_request(request)
+        if form_name == f'{Course.CourseAction.REJUDGE_SUBMIT.label}_form':
+            return RejudgeSubmitForm.handle_post_request(request)
 
         return self.handle_unknown_form(request, **kwargs)
 
@@ -618,6 +624,8 @@ class CourseView(CourseTemplateView):
                 'title': _('Tasks'),
                 'request': self.request,
                 'data_source': TaskModelView.get_url(
+                    mode=BaCa2ModelView.GetMode.FILTER,
+                    exclude_params={'is_legacy': True},
                     serialize_kwargs={'submitter': user, 'add_legacy_submits_amount': True},
                     **{'course_id': course_id}
                 ),
@@ -641,13 +649,19 @@ class CourseView(CourseTemplateView):
 
             if user.has_course_permission(Course.CourseAction.REJUDGE_TASK.label, course):
                 tasks_table_kwargs['cols'] += [
-                    FormSubmitColumn(name='rejudge_task',
-                                     form_widget=RejudgeTaskFormWidget(request=self.request,
-                                                                       course_id=course_id),
-                                     mappings={'task_id': 'id'},
-                                     btn_icon='exclamation-triangle',
-                                     btn_text='[[legacy_submits_amount]]',
-                                     header_icon='clock-history')
+                    FormSubmitColumn(
+                        name='rejudge_task',
+                        form_widget=RejudgeTaskFormWidget(request=self.request,
+                                                          course_id=course_id),
+                        mappings={'task_id': 'id'},
+                        btn_icon='exclamation-triangle',
+                        btn_text='[[legacy_submits_amount]]',
+                        header_icon='clock-history',
+                        condition_key='has_legacy_submits',
+                        condition_value='true',
+                        disabled_appearance=FormSubmitColumn.DisabledAppearance.ICON,
+                        disabled_content='check-lg'
+                    )
                 ]
 
             self.add_widget(context, TableWidget(**tasks_table_kwargs))
@@ -715,18 +729,10 @@ class CourseView(CourseTemplateView):
                 ])
 
             if user.has_course_permission(Course.CourseAction.REJUDGE_SUBMIT.label, course):
-                results_table_kwargs['cols'] += [
-                    FormSubmitColumn(name='rejudge',
-                                     form_widget=RejudgeSubmitFormWidget(request=self.request,
-                                                                         course_id=course_id),
-                                     mappings={'submit_id': 'id'},
-                                     btn_icon='exclamation-triangle',
-                                     header_icon='clock-history',
-                                     condition_key='is_legacy',
-                                     condition_value='true',
-                                     disabled_appearance=FormSubmitColumn.DisabledAppearance.ICON,
-                                     disabled_content='check-lg')
-                ]
+                results_table_kwargs['cols'].append(RejudgeSubmitColumn(
+                    course_id=course_id,
+                    request=self.request
+                ))
 
             if view_all_results or view_own_results:
                 results_table_kwargs['link_format_string'] = f'/course/{course_id}/submit/[[id]]/'
@@ -909,14 +915,10 @@ class CourseTask(CourseTemplateView):
                 results_table_kwargs['link_format_string'] = f'/course/{course_id}/submit/[[id]]/'
 
             if user.has_course_permission(Course.CourseAction.REJUDGE_SUBMIT.label, course):
-                results_table_kwargs['cols'] += [
-                    FormSubmitColumn(name='rejudge',
-                                     form_widget=RejudgeSubmitFormWidget(request=self.request,
-                                                                         course_id=course_id),
-                                     mappings={'submit_id': 'id'},
-                                     btn_icon='exclamation-triangle',
-                                     header_icon='clock-history')
-                ]
+                results_table_kwargs['cols'].append(RejudgeSubmitColumn(
+                    course_id=course_id,
+                    request=self.request
+                ))
 
             self.add_widget(context, TableWidget(**results_table_kwargs))
 

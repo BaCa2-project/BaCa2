@@ -31,7 +31,7 @@ from widgets.forms.fields.course import CourseName, CourseShortName, USOSCode
 from widgets.forms.fields.table_select import TableSelectField
 from widgets.listing.columns import TextColumn
 from widgets.navigation import SideNav
-from widgets.popups.forms import SubmitConfirmationPopup
+from widgets.popups.forms import SubmitConfirmationPopup, SubmitFailurePopup, SubmitSuccessPopup
 
 logger = logging.getLogger(__name__)
 
@@ -1616,7 +1616,7 @@ class ReuploadTaskForm(CourseModelForm):
         try:
             new_package_instance = PackageInstance.objects.create_package_instance_from_zip(
                 package_source=task.package_instance.package_source,
-                zip_file=file,
+                zip_file=file.path,
                 permissions_from_instance=task.package_instance,
                 creator=request.user,
             )
@@ -2152,6 +2152,14 @@ class RejudgeTaskFormWidget(FormWidget):
                 message=_('Are you sure you want to rejudge this task and all its submits? '
                           'This may take a while.'),
                 confirm_button_text=_('Rejudge task'),
+            ),
+            submit_success_popup=SubmitSuccessPopup(
+                title=_('Task rejudged'),
+                message=_('Task rejudged successfully.'),
+            ),
+            submit_failure_popup=SubmitFailurePopup(
+                title=_('Task rejudging failed'),
+                message=_('Task rejudging failed.'),
             ),
             **kwargs
         )
