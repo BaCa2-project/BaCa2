@@ -481,6 +481,7 @@ class Course(models.Model):
         ADD_SUBMIT = 'add_submit', 'add_submit'
         EDIT_SUBMIT = 'edit_submit', 'change_submit'
         DEL_SUBMIT = 'delete_submit', 'delete_submit'
+        REJUDGE_SUBMIT = 'rejudge_submit', 'rejudge_submit'
 
         # Result related actions
         VIEW_RESULT = 'view_result', 'view_result'

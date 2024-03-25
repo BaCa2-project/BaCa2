@@ -424,6 +424,7 @@ function setRefresh(tableId, interval) {
 function createRowCallback(linkFormatString) {
     return function (row, data) {
         $(row).attr('data-record-id', `${data.id}`);
+        $(row).attr('data-record-data', JSON.stringify(data));
 
         if (linkFormatString) {
             $(row).attr('data-record-link', generateFormattedString(data, linkFormatString));
@@ -459,6 +460,9 @@ function createColumnDef(col, index) {
         case 'datetime':
             def['render'] = DataTable.render.datetime(col['formatter']);
             break;
+        case 'form_submit':
+            def['render'] = renderFormSubmitField(col);
+            break;
     }
 
     return def;
@@ -472,19 +476,7 @@ function renderSelectField(data, type, row, meta) {
         .attr('type', 'checkbox')
         .attr('class', 'form-check-input select-checkbox')
         .attr('data-record-target', row['id'])
-        .attr(
-            'onclick',
-            'selectCheckboxClickHandler(event, $(this))'
-        )[0].outerHTML;
-}
-
-
-function renderDeleteField(data, type, row, meta) {
-    return $('<a>')
-        .attr('href', '#')
-        .attr('data-record-target', row['id'])
-        .attr('onclick', 'deleteButtonClickHandler(event, $(this))')
-        .html('<i class="bi bi-x-lg"></i>')
+        .attr('onclick', 'selectCheckboxClickHandler(event, $(this))')
         [0].outerHTML;
 }
 
@@ -498,6 +490,43 @@ function renderSelectHeader(header, tableId) {
             selectHeaderClickHandler($(this), tableId);
         });
     header.append(checkbox);
+}
+
+
+function renderDeleteField(data, type, row, meta) {
+    return $('<a>')
+        .attr('href', '#')
+        .attr('data-record-target', row['id'])
+        .attr('onclick', 'deleteButtonClickHandler(event, $(this))')
+        .html('<i class="bi bi-x-lg"></i>')
+        [0].outerHTML;
+}
+
+function renderFormSubmitField(col) {
+    const mappings = col['mappings'];
+    const form_id = col['form_id'];
+    const btnIcon = col['btn_icon'];
+    const btnText = col['btn_text'];
+
+    return function (data, type, row, meta) {
+        const button = $('<a>')
+            .attr('class', 'btn btn-outline-primary')
+            .attr('href', '#')
+            .attr('data-mappings', mappings)
+            .attr('data-form-id', form_id)
+            .attr('onclick', 'formSubmitButtonClickHandler(event, $(this))');
+
+        const content = $('<div>').addClass('d-flex');
+
+        if (btnIcon) {
+            const icon = $('<i>').addClass(`bi bi-${btnIcon}`).addClass(btnText ? 'me-2' : '');
+            content.append(icon);
+        }
+
+        content.append(btnText);
+        button.append(content);
+        return button[0].outerHTML;
+    };
 }
 
 
@@ -541,8 +570,22 @@ function deleteButtonClickHandler(e, button) {
         return $(this).hasClass('model-id')
     });
     input.val(button.data('record-target'));
-    console.log(input.val());
-    console.log(form.find('.submit-btn'));
+    form.find('.submit-btn')[0].click();
+}
+
+
+function formSubmitButtonClickHandler(e, button) {
+    e.stopPropagation();
+    const mappings = button.data('mappings');
+    const formId = button.data('form-id');
+    const form = $(`#${formId}`);
+    const data = button.closest('tr').data('record-data');
+
+    for (const key in mappings) {
+        const input = form.find(`input[name="${key}"]`);
+        input.val(data[mappings[key]]);
+    }
+
     form.find('.submit-btn')[0].click();
 }
 

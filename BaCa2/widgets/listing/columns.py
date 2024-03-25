@@ -6,6 +6,7 @@ from typing import Any, Dict
 from django.http import HttpRequest
 
 from widgets.base import Widget
+from widgets.forms import FormWidget
 
 
 class Column(Widget):
@@ -263,3 +264,50 @@ class DeleteColumn(Column):
                          sortable=False,
                          auto_width=False,
                          width='1rem')
+
+
+class FormSubmitColumn(Column):
+    template = 'form_submit_column.html'
+
+    def __init__(self, *,
+                 name: str,
+                 form_widget: FormWidget,
+                 mappings: Dict[str, str],
+                 header: str | None = None,
+                 header_icon: str | None = None,
+                 btn_text: str = '',
+                 btn_icon: str = '') -> None:
+        super().__init__(name=name,
+                         col_type='form_submit',
+                         data_null=True,
+                         header=header,
+                         header_icon=header_icon,
+                         searchable=False,
+                         sortable=False,
+                         auto_width=False,
+                         width='1rem')
+
+        if not btn_text and not btn_icon:
+            raise ValueError('Either btn_text or btn_icon must be set.')
+
+        for key in mappings.keys():
+            if key not in form_widget.form.fields.keys():
+                raise ValueError(f'Key "{key}" not found in form fields.')
+
+        self.form_widget = form_widget
+        self.mappings = mappings
+        self.btn_text = btn_text
+        self.btn_icon = btn_icon
+
+    def get_context(self) -> Dict[str, Any]:
+        return super().get_context() | {
+            'form_widget': self.form_widget.get_context(),
+        }
+
+    def data_tables_context(self) -> Dict[str, Any]:
+        return super().data_tables_context() | {
+            'form_id': self.form_widget.name,
+            'mappings': json.dumps(self.mappings),
+            'btn_text': self.btn_text,
+            'btn_icon': self.btn_icon
+        }

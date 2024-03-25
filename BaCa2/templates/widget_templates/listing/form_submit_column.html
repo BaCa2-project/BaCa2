@@ -1,0 +1,11 @@
+<th class="{{ col.col_type }} {% if col.sortable == "true" %} pe-5 {% endif %}"
+    data-searchable="{{ col.searchable }}"
+    data-sortable="{{ col.sortable }}"
+    data-col-name="{{ col.name }}">
+    <div class="column-form-wrapper">
+        {% with col.form_widget as form_widget %}
+            {% include 'widget_templates/forms/default.html' %}
+        {% endwith %}
+    </div>
+    {% include 'widget_templates/listing/column_header.html' %}
+</th>

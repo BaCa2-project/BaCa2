@@ -20,6 +20,14 @@
         display: none;
     }
 
+    .column-form-wrapper form {
+        display: none;
+    }
+
+    tr .btn {
+        padding: 0.25rem 0.5rem;
+    }
+
     .table-buttons {
         --bs-gutter-x: 0.5rem;
     }

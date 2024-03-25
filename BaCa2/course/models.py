@@ -1110,6 +1110,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
             ('view_inputs', _('Can view test inputs')),
             ('view_used_memory', _('Can view used memory')),
             ('view_used_time', _('Can view used time')),
+            ('rejudge_submit', _('Can rejudge submit')),
         ]
 
     class BasicAction(ModelAction):
