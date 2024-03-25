@@ -28,6 +28,7 @@ class Column(Widget):
                  request: HttpRequest = None,
                  data_null: bool = False,
                  header: str | None = None,
+                 header_icon: str | None = None,
                  searchable: bool = True,
                  sortable: bool = False,
                  auto_width: bool = True,
@@ -49,6 +50,10 @@ class Column(Widget):
         :param header: The text to be displayed in the column header. If not set, the column name
             will be used instead.
         :type header: str
+        :param header_icon: The icon to be displayed in the column header. If no header text is
+            set, the icon will be displayed in place of the header text. If both header text and
+            icon are set, the icon will be displayed to the left of the header text.
+        :type header_icon: str
         :param searchable: Whether values in the column should be searchable.
         :type searchable: bool
         :param sortable: Whether the column should be sortable.
@@ -66,9 +71,12 @@ class Column(Widget):
             raise self.WidgetParameterError('Must set column width when auto width is disabled.')
 
         super().__init__(name=name, request=request)
-        if header is None:
+
+        if header is None and header_icon is None:
             header = name
+
         self.header = header
+        self.header_icon = header_icon
         self.col_type = col_type
         self.data_null = data_null
         self.searchable = searchable
@@ -81,6 +89,18 @@ class Column(Widget):
             'template': f'widget_templates/listing/{self.template}',
             'col_type': self.col_type,
             'header': self.header,
+            'header_icon': self.header_icon,
+            'data_null': json.dumps(self.data_null),
+            'searchable': json.dumps(self.searchable),
+            'sortable': json.dumps(self.sortable),
+            'auto_width': json.dumps(self.auto_width),
+            'width': self.width
+        }
+
+    def data_tables_context(self) -> Dict[str, Any]:
+        return {
+            'name': self.name,
+            'col_type': self.col_type,
             'data_null': json.dumps(self.data_null),
             'searchable': json.dumps(self.searchable),
             'sortable': json.dumps(self.sortable),
@@ -104,6 +124,7 @@ class TextColumn(Column):
                  *,
                  name: str,
                  header: str | None = None,
+                 header_icon: str | None = None,
                  searchable: bool = True,
                  sortable: bool = True,
                  auto_width: bool = True,
@@ -115,6 +136,10 @@ class TextColumn(Column):
         :param header: The text to be displayed in the column header. If not set, the column name
             will be used instead.
         :type header: str
+        :param header_icon: The icon to be displayed in the column header. If no header text is
+            set, the icon will be displayed in place of the header text. If both header text and
+            icon are set, the icon will be displayed to the left of the header text.
+        :type header_icon: str
         :param searchable: Whether values in the column should be searchable.
         :type searchable: bool
         :param sortable: Whether the column should be sortable.
@@ -130,6 +155,7 @@ class TextColumn(Column):
                          col_type='text',
                          data_null=False,
                          header=header,
+                         header_icon=header_icon,
                          searchable=searchable,
                          sortable=sortable,
                          auto_width=auto_width,
@@ -147,10 +173,10 @@ class DatetimeColumn(Column):
 
     template = 'text_column.html'
 
-    def __init__(self,
-                 *,
+    def __init__(self, *,
                  name: str,
                  header: str | None = None,
+                 header_icon: str | None = None,
                  formatter: str = 'dd/MM/yyyy H:mm',
                  searchable: bool = True,
                  sortable: bool = True,
@@ -163,6 +189,10 @@ class DatetimeColumn(Column):
         :param header: The text to be displayed in the column header. If not set, the column name
             will be used instead.
         :type header: str
+        :param header_icon: The icon to be displayed in the column header. If no header text is
+            set, the icon will be displayed in place of the header text. If both header text and
+            icon are set, the icon will be displayed to the left of the header text.
+        :type header_icon: str
         :param searchable: Whether values in the column should be searchable.
         :type searchable: bool
         :param sortable: Whether the column should be sortable.
@@ -178,14 +208,15 @@ class DatetimeColumn(Column):
                          col_type='datetime',
                          data_null=False,
                          header=header,
+                         header_icon=header_icon,
                          searchable=searchable,
                          sortable=sortable,
                          auto_width=auto_width,
                          width=width)
         self.formatter = formatter
 
-    def get_context(self) -> Dict[str, Any]:
-        return super().get_context() | {
+    def data_tables_context(self) -> Dict[str, Any]:
+        return super().data_tables_context() | {
             'formatter': self.formatter
         }
 

@@ -267,6 +267,7 @@ class TableWidget(Widget):
             'data_source': self.data_source,
             'link_format_string': self.link_format_string or json.dumps(False),
             'cols': [col.get_context() for col in self.cols],
+            'DT_cols_data': [col.data_tables_context() for col in self.cols],
             'cols_num': len(self.cols),
             'table_buttons': self.table_buttons,
             'paging': self.paging.get_context() if self.paging else json.dumps(False),

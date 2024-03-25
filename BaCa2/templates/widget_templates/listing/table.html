@@ -83,11 +83,11 @@
                        data-deselect-on-filter="{{ table_widget.deselect_on_filter }}"
                        style="width:100%">
                     <thead>
-                    <tr>
-                        {% for col in table_widget.cols %}
-                            {% include col.template %}
-                        {% endfor %}
-                    </tr>
+                        <tr>
+                            {% for col in table_widget.cols %}
+                                {% include col.template %}
+                            {% endfor %}
+                        </tr>
                     </thead>
                 </table>
             </div>
@@ -113,7 +113,7 @@
                   ajax: {{ table_widget.ajax|safe }},
                   dataSourceUrl: '{{ table_widget.data_source_url|safe }}',
                   dataSource: {{ table_widget.data_source|safe }},
-                  cols: {{ table_widget.cols|safe }},
+                  cols: {{ table_widget.DT_cols_data|safe }},
                   defaultSorting: {{ table_widget.default_sorting|safe }},
                   defaultOrder: '{{ table_widget.default_order }}',
                   defaultOrderCol: parseInt({{ table_widget.default_order_col }}),
