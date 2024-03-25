@@ -72,3 +72,9 @@ class SubmitType(models.TextChoices):
 class ScoreSelectionPolicy(models.TextChoices):
     BEST = 'BEST', _('Best submit')
     LAST = 'LAST', _('Last submit')
+
+
+class FallOffPolicy(models.TextChoices):
+    NONE = 'NONE', _('No fall-off (max points until deadline)')
+    LINEAR = 'LINEAR', _('Linear fall-off')
+    SQUARE = 'SQUARE', _('Square fall-off')

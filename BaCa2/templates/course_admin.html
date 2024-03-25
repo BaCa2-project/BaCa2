@@ -10,15 +10,15 @@
             </div>
         </div>
     {% endif %}
-    {% comment %}{% if add_members_tab %}
-        <div class="tab-wrapper" id="{{ add_members_tab }}">
+    {% if add_member_tab %}
+        <div class="tab-wrapper" id="{{ add_member_tab }}">
             <div class="side-nav-tab">
-                {% with widgets.FormWidget.add_members_form_widget as form_widget %}
+                {% with widgets.FormWidget.add_member_form_widget as form_widget %}
                     {% include "widget_templates/forms/default.html" %}
                 {% endwith %}
             </div>
         </div>
-    {% endif %}{% endcomment %}
+    {% endif %}
     {% if add_members_csv_tab %}
         <div class="tab-wrapper" id="{{ add_members_csv_tab }}">
             <div class="side-nav-tab">

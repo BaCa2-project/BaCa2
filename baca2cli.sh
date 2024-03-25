@@ -214,6 +214,25 @@ if [ "$CLEAR_DB" = true ]; then
     chmod 777 /home/www/BaCa2/BaCa2/core/db/db.cache
     print_result
     echo ""
+    echo "Clearing course databases:"
+    echo -n "    introspecting..."
+    sudo -u postgres psql -c "select datname from pg_database;" -t | grep _db > to_delete.txt
+
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}no db found${NC}"
+    else
+        echo -e "${GREEN}done${NC}"
+        echo "    dropping:"
+        while read -r line; do
+            echo -n "        $line..."
+            sudo -u postgres psql -c "DROP DATABASE IF EXISTS $line;" > /dev/null 2>&1
+            print_result
+        done < to_delete.txt
+        echo -n "    removing to_delete.txt..."
+        rm to_delete.txt
+        print_result
+    fi
+    echo ""
 fi
 
 if [ "$CLEAR_SUBMITS" = true ]; then

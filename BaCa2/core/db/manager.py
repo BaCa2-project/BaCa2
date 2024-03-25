@@ -8,7 +8,6 @@ import psycopg2
 
 logger = logging.getLogger(__name__)
 
-
 #: Postgres query to close all connections to a database
 CLOSE_ALL_DB_CONNECTIONS = """SELECT pg_terminate_backend(pg_stat_activity.pid)
 FROM pg_stat_activity
@@ -96,6 +95,8 @@ class DBManager:
 
     #: Maximum length of a database name. Used to detect SQL injection.
     MAX_DB_NAME_LENGTH = 63
+
+    RESERVED_DB_KEYS = {'default', 'postgres', 'template0', 'template1'}
 
     class SQLInjectionError(Exception):
         """
@@ -221,8 +222,8 @@ class DBManager:
                 sql = ' CREATE DATABASE %s; '
 
                 try:
-                    cursor.execute(drop_if_exist, (db.key,))
-                    cursor.execute(sql, (db.key,))
+                    cursor.execute(drop_if_exist % db.key)
+                    cursor.execute(sql % db.key)
                 except Exception as e:
                     logger.error(f'Error executing SQL commands: {str(e)}')
 
@@ -279,6 +280,7 @@ class DBManager:
         """
         self.detect_sql_injection(db_name)
         db = DB(db_name, self.default_settings)
+        self.parse_cache()
 
         with self.databases_access_lock:
             if db.name not in self.databases:
@@ -293,8 +295,8 @@ class DBManager:
                 conn = self._raw_root_connection()
                 cursor = conn.cursor()
                 try:
-                    cursor.execute(CLOSE_ALL_DB_CONNECTIONS, (db.key,))
-                    cursor.execute(' DROP DATABASE IF EXISTS %s; ', (db.key,))
+                    cursor.execute(CLOSE_ALL_DB_CONNECTIONS % db.key)
+                    cursor.execute(' DROP DATABASE IF EXISTS %s; ' % db.key)
                 except Exception as e:
                     logger.error(f'Error deleting database: {str(e)}')
                 finally:
@@ -323,10 +325,6 @@ class DBManager:
                     self.databases.setdefault(db.name, db.to_dict())
 
         logger.info('Databases loaded from cache.')
-
-        # Check if there were changes to the databases
-        if self.databases != {}:
-            self.save_cache()
 
     def save_cache(self, with_locks: bool = True) -> None:
         """
