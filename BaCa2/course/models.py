@@ -257,6 +257,14 @@ class Round(models.Model, metaclass=ReadCourseMeta):
     #: The manager for the Round model.
     objects = RoundManager()
 
+    RESCORE_TRIGGERS = {
+        'start_date',
+        'deadline_date',
+        'end_date',
+        'score_selection_policy',
+        'fall_off_policy'
+    }
+
     class BasicAction(ModelAction):
         """
         Basic actions for Round model.
@@ -297,13 +305,21 @@ class Round(models.Model, metaclass=ReadCourseMeta):
         :param kwargs: The new values for the round object.
         :type kwargs: dict
         """
+        rescore_planned = False
         for key, value in kwargs.items():
             if key in ('start_date', 'deadline_date', 'end_date',
                        'reveal_date') and isinstance(value, str):
                 value = str_to_datetime(value)
+
+            if getattr(self, key) != value and key in self.RESCORE_TRIGGERS:
+                rescore_planned = True
+
             setattr(self, key, value)
         self.validate_dates(self.start_date, self.deadline_date, self.end_date)
         self.save()
+
+        if rescore_planned:
+            self.rescore_tasks()
 
     @transaction.atomic
     def delete(self, using: Any = None, keep_parents: bool = False):
@@ -363,6 +379,13 @@ class Round(models.Model, metaclass=ReadCourseMeta):
         :return: The amount of points that can be gained for completing all the tasks in the round.
         """
         return sum(task.points for task in self.tasks)
+
+    def rescore_tasks(self) -> None:
+        """
+        Rescores all tasks for the round.
+        """
+        for task in self.tasks:
+            task.rescore_submits()
 
     def __str__(self):
         return f'Round {self.pk}: {self.name}'
@@ -554,6 +577,8 @@ class Task(models.Model, metaclass=ReadCourseMeta):
     #: The manager for the Task model.
     objects = TaskManager()
 
+    RESCORE_TRIGGERS = {'judging_mode', 'points', 'round'}
+
     class BasicAction(ModelAction):
         """
         Basic actions for Task model.
@@ -618,6 +643,26 @@ class Task(models.Model, metaclass=ReadCourseMeta):
                 course
             )
         ))
+
+    @transaction.atomic
+    def update_data(self, **kwargs) -> None:
+        """
+        Updates the task object with new values.
+
+        :param kwargs: The new values for the task object.
+        :type kwargs: dict
+        """
+        rescore_planned = False
+        for key, value in kwargs.items():
+            if getattr(self, key) != value and key in self.RESCORE_TRIGGERS:
+                rescore_planned = True
+
+            setattr(self, key, value)
+
+        self.save()
+
+        if rescore_planned:
+            self.rescore_submits()
 
     def initialise_task(self) -> None:
         """
@@ -864,6 +909,13 @@ class Task(models.Model, metaclass=ReadCourseMeta):
         old_versions = self.objects.filter(updated_task__isnull=False)
         for task in old_versions:
             task.update_submits()
+
+    def rescore_submits(self) -> None:
+        """
+        Rescores all submits for the task.
+        """
+        for submit in self.submits(add_control=True):
+            submit.score(rejudge=True)
 
     def get_data(self,
                  submitter: int | str | User = None,
