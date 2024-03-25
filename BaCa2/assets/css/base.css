@@ -701,6 +701,12 @@ html, body {
 .table-wrapper .table-widget-forms-wrapper form {
   display: none;
 }
+.table-wrapper .column-form-wrapper form {
+  display: none;
+}
+.table-wrapper tr .btn {
+  padding: 0.25rem 0.5rem;
+}
 .table-wrapper .table-buttons {
   --bs-gutter-x: 0.5rem;
 }

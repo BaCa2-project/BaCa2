@@ -34,12 +34,13 @@ from widgets.forms.course import (
     EditRoundFormWidget,
     EditTaskForm,
     EditTaskFormWidget,
+    RejudgeSubmitFormWidget,
     RemoveMembersFormWidget,
     ReuploadTaskForm,
     ReuploadTaskFormWidget
 )
 from widgets.listing import TableWidget, TableWidgetPaging
-from widgets.listing.columns import DatetimeColumn, TextColumn
+from widgets.listing.columns import DatetimeColumn, FormSubmitColumn, TextColumn
 from widgets.navigation import SideNav
 from widgets.text_display import TextDisplayer
 
@@ -119,6 +120,7 @@ class ReadCourseViewMeta(ABCMeta):
 
         :returns: Wrapped method
         """
+
         def wrapper_method(self, *args, **kwargs):
             if InCourse.is_defined():
                 result = original_method(self, *args, **kwargs)
@@ -688,6 +690,16 @@ class CourseView(CourseTemplateView):
                                       'add_summary_score': True},
                     course_id=course_id
                 )
+
+            if user.has_course_permission(Course.CourseAction.REJUDGE_SUBMIT.label, course):
+                results_table_kwargs['cols'] += [
+                    FormSubmitColumn(name='rejudge',
+                                     form_widget=RejudgeSubmitFormWidget(request=self.request,
+                                                                         course_id=course_id),
+                                     mappings={'submit_id': 'id'},
+                                     btn_icon='caret-up-fill',
+                                     header_icon='clock-history')
+                ]
 
             if view_all_results or view_own_results:
                 results_table_kwargs['link_format_string'] = f'/course/{course_id}/submit/[[id]]/'

@@ -2078,3 +2078,47 @@ class CreateSubmitFormWidget(FormWidget):
             button_text=_('New submission'),
             **kwargs
         )
+
+
+class RejudgeSubmitForm(CourseModelForm):
+    MODEL = Submit
+    ACTION = Course.CourseAction.REJUDGE_SUBMIT
+
+    submit_id = forms.IntegerField(
+        label=_('Submit ID'),
+        widget=forms.HiddenInput(attrs={'class': 'model-id', 'data-reset-on-refresh': 'true'}),
+        required=True,
+    )
+
+    @classmethod
+    def handle_valid_request(cls, request) -> Dict[str, str]:
+        submit_id = int(request.POST.get('submit_id'))
+        submit = Submit.objects.get(pk=submit_id)
+        submit.rejudge()
+        return {'message': _('Submit rejudged successfully')}
+
+
+class RejudgeSubmitFormWidget(FormWidget):
+    def __init__(self,
+                 request,
+                 course_id: int,
+                 form: RejudgeSubmitForm = None,
+                 **kwargs) -> None:
+        from course.views import SubmitModelView
+
+        if not form:
+            form = RejudgeSubmitForm()
+
+        super().__init__(
+            name='rejudge_submit_form_widget',
+            request=request,
+            form=form,
+            post_target_url=SubmitModelView.post_url(**{'course_id': course_id}),
+            button_text=_('Rejudge submit'),
+            submit_confirmation_popup=SubmitConfirmationPopup(
+                title=_('Confirm submit rejudging'),
+                message=_('Are you sure you want to rejudge this submit?'),
+                confirm_button_text=_('Rejudge submit'),
+            ),
+            **kwargs
+        )
