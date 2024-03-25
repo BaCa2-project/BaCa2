@@ -1448,6 +1448,135 @@ class CreateTaskFormWidget(FormWidget):
         )
 
 
+class SimpleEditTaskForm(CourseModelForm):
+    MODEL = Task
+    ACTION = Task.BasicAction.EDIT
+
+    #: Name of the new task.
+    task_name = AlphanumericStringField(
+        label=_('Task name'),
+        required=False,
+    )
+
+    #: Round the new task is assigned to.
+    round_ = ModelChoiceField(
+        data_source_url='',
+        label_format_string='[[name]] ([[f_start_date]] - [[f_deadline_date]])',
+        label=_('Round'),
+        required=True,
+    )
+
+    #: Point value of the new task.
+    points = forms.FloatField(label=_('Points'),
+                              min_value=0,
+                              required=False, )
+
+    #: Judging mode of the new task.
+    judge_mode = ChoiceField(label=_('Judge mode'),
+                             choices=TaskJudgingMode,
+                             required=True,
+                             placeholder_default_option=False)
+
+    task_id = forms.IntegerField(label=_('Task ID'),
+                                 widget=forms.HiddenInput(),
+                                 required=True)
+
+    def __init__(self,
+                 *,
+                 course_id: int,
+                 task_id: int,
+                 form_instance_id: int = 0,
+                 request=None,
+                 **kwargs) -> None:
+        from course.views import RoundModelView
+
+        super().__init__(form_instance_id=form_instance_id, request=request, **kwargs)
+        crs = ModelsRegistry.get_course(course_id)
+
+        task = crs.get_task(task_id)
+        self.fields['round_'].data_source_url = RoundModelView.get_url(
+            serialize_kwargs={'add_formatted_dates': True},
+            **{'course_id': course_id}
+        )
+        self.fields['task_name'].initial = task.task_name
+        # TODO: fix after creating initial handling for ModelChoiceField
+        # self.fields['round_'].initial = task.round_id
+        self.fields['points'].initial = task.points
+        self.fields['judge_mode'].initial = task.judging_mode
+        self.fields['task_id'].initial = task_id
+
+    @classmethod
+    def handle_valid_request(cls, request) -> Dict[str, Any]:
+        """
+        Updates the :class:`Task` record with the ID provided in the hidden field.
+
+        :param request: POST request containing the form data.
+        :type request: HttpRequest
+
+        :return: Dictionary containing a success message.
+        :rtype: Dict[str, Any]
+        """
+        task = ModelsRegistry.get_task(int(request.POST.get('task_id')))
+        task_name = request.POST.get('task_name')
+        round_id = int(request.POST.get('round_'))
+        points = request.POST.get('points')
+        judge_mode = request.POST.get('judge_mode')
+        judge_mode = TaskJudgingMode[judge_mode]
+        task.update_data(
+            task_name=task_name,
+            round=ModelsRegistry.get_round(round_id),
+            points=points,
+            judging_mode=judge_mode,
+        )
+        return {'message': f'Task {task_name} edited successfully'}
+
+
+class SimpleEditTaskFormWidget(FormWidget):
+    """
+    Form widget for the :class:`CreateTaskForm`.
+    """
+
+    def __init__(self,
+                 request,
+                 course_id: int,
+                 task_id: int,
+                 form: CreateTaskForm = None,
+                 **kwargs) -> None:
+        """
+        :param request: HTTP request object received by the view this form widget is rendered in.
+        :type request: HttpRequest
+        :param course_id: ID of the course the view this form widget is rendered in is associated
+            with.
+        :type course_id: int
+        :param form: CreateTaskForm to be base the widget on. If not provided, a new form will be
+            created.
+        :type form: :class:`CreateTaskForm`
+        :param kwargs: Additional keyword arguments to be passed to the :class:`FormWidget`
+            super constructor.
+        :type kwargs: dict
+        """
+        from course.views import TaskModelView
+
+        if not form:
+            form = SimpleEditTaskForm(
+                course_id=course_id,
+                task_id=task_id,
+                request=request
+            )
+
+        super().__init__(
+            name='simple_edit_task_form_widget',
+            request=request,
+            form=form,
+            post_target_url=TaskModelView.post_url(**{'course_id': course_id}),
+            button_text=_('Edit task'),
+            element_groups=FormElementGroup(name='grading',
+                                            elements=['points', 'judge_mode'],
+                                            layout=FormElementGroup.FormElementsLayout.HORIZONTAL),
+            **kwargs
+        )
+
+
 # ---------------------------------------- Reupload task --------------------------------------- #
 
 class ReuploadTaskForm(CourseModelForm):
@@ -1614,6 +1743,7 @@ class EditTaskForm(CourseModelForm):
     """
 
     MODEL = Task
+    # TODO: This action is already used in SimpleEditTaskForm
     ACTION = Task.BasicAction.EDIT
 
     task_title = AlphanumericStringField(label=_('Task title'), required=True)
