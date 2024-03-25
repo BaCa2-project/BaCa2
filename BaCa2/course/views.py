@@ -884,9 +884,11 @@ class CourseTask(CourseTemplateView):
 
             if view_all_submits:
                 results_table_kwargs['data_source'] = SubmitModelView.get_url(
+                    mode=BaCa2ModelView.GetMode.FILTER,
+                    filter_params={'task': task_id},
                     serialize_kwargs={'add_round_task_name': True,
                                       'add_summary_score': True,
-                                      'add_falloff_info': True, },
+                                      'add_falloff_info': True},
                     course_id=course_id
                 )
                 results_table_kwargs['cols'].insert(0, TextColumn(name='user_first_name',
@@ -898,10 +900,11 @@ class CourseTask(CourseTemplateView):
                 results_table_kwargs['data_source'] = SubmitModelView.get_url(
                     mode=BaCa2ModelView.GetMode.FILTER,
                     filter_params={'usr': user.id,
-                                   'submit_type': SubmitType.STD},
+                                   'submit_type': SubmitType.STD,
+                                   'task': task_id},
                     serialize_kwargs={'add_round_task_name': True,
                                       'add_summary_score': True,
-                                      'add_falloff_info': True, },
+                                      'add_falloff_info': True},
                     course_id=course_id
                 )
 
