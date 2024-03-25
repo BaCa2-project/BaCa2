@@ -39,7 +39,9 @@ from widgets.forms.course import (
     RejudgeTaskFormWidget,
     RemoveMembersFormWidget,
     ReuploadTaskForm,
-    ReuploadTaskFormWidget
+    ReuploadTaskFormWidget,
+    SimpleEditTaskForm,
+    SimpleEditTaskFormWidget
 )
 from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.columns import DatetimeColumn, FormSubmitColumn, TextColumn
@@ -259,6 +261,8 @@ class TaskModelView(CourseModelView):
             return CreateTaskForm.handle_post_request(request)
         elif form_name == f'{Course.CourseAction.REUPLOAD_TASK.label}_form':
             return ReuploadTaskForm.handle_post_request(request)
+        elif form_name == f'{Course.CourseAction.EDIT_TASK.label}_form':
+            return SimpleEditTaskForm.handle_post_request(request)
         elif form_name == f'{Course.CourseAction.DEL_TASK.label}_form':
             return DeleteTaskForm.handle_post_request(request)
 
@@ -815,17 +819,27 @@ class CourseTask(CourseTemplateView):
         self.add_widget(context, description_displayer)
 
         # edit task ------------------------------------------------------------------------------
+        can_reupload = user.has_course_permission(Course.CourseAction.REUPLOAD_TASK.label, course)
+        can_edit = user.has_course_permission(Course.CourseAction.EDIT_TASK.label, course)
 
-        if user.has_course_permission(Course.CourseAction.EDIT_TASK.label, course):
+        if can_edit:
+            simple_edit_task_form = SimpleEditTaskFormWidget(
+                request=self.request,
+                course_id=course_id,
+                task_id=task_id,
+            )
+            self.add_widget(context, simple_edit_task_form)
             sidenav_tabs.append('Edit')
             context['edit_tab'] = 'edit-tab'
-            # context['edit_form_url'] = f'/course/{course_id}/task/{task_id}/edit/'
+        if can_reupload:
             reupload_package_form = ReuploadTaskFormWidget(
                 request=self.request,
                 course_id=course_id,
                 task_id=task_id,
             )
             self.add_widget(context, reupload_package_form)
+            sidenav_tabs.append('Reupload')
+            context['reupload_tab'] = 'reupload-tab'
 
         # submit form ----------------------------------------------------------------------------
 

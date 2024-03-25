@@ -22,13 +22,21 @@
     {% if edit_tab %}
         <div class="tab-wrapper" id="{{ edit_tab }}">
             <div class="side-nav-tab">
+                {% with widgets.FormWidget.simple_edit_task_form_widget as form_widget %}
+                    {% include "widget_templates/forms/default.html" %}
+                {% endwith %}
+            </div>
+        </div>
+    {% endif %}
+    {% if reupload_tab %}
+        <div class="tab-wrapper" id="{{ reupload_tab }}">
+            <div class="side-nav-tab">
                 {% with widgets.FormWidget.reupload_task_form_widget as form_widget %}
                     {% include "widget_templates/forms/default.html" %}
                 {% endwith %}
             </div>
         </div>
     {% endif %}
-
     {% if submit_tab %}
         <div class="tab-wrapper" id="{{ submit_tab }}">
             <div class="side-nav-tab">
