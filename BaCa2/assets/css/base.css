@@ -704,8 +704,17 @@ html, body {
 .table-wrapper .column-form-wrapper form {
   display: none;
 }
-.table-wrapper tr .btn {
+.table-wrapper td.form-submit {
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+}
+.table-wrapper td.form-submit .btn {
   padding: 0.25rem 0.5rem;
+  white-space: nowrap;
+}
+.table-wrapper th .icon-header {
+  height: 2rem;
+  width: auto;
 }
 .table-wrapper .table-buttons {
   --bs-gutter-x: 0.5rem;
@@ -1121,8 +1130,8 @@ pre.code-block.wrap-lines code {
 }
 
 /*!
- * Bootstrap Icons v1.11.3 (https://icons.getbootstrap.com/)
- * Copyright 2019-2024 The Bootstrap Authors
+ * Bootstrap Icons v1.11.2 (https://icons.getbootstrap.com/)
+ * Copyright 2019-2023 The Bootstrap Authors
  * Licensed under MIT (https://github.com/twbs/icons/blob/main/LICENSE)
  */
 @font-face {

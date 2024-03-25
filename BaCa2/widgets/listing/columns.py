@@ -278,7 +278,7 @@ class FormSubmitColumn(Column):
                  btn_text: str = '',
                  btn_icon: str = '') -> None:
         super().__init__(name=name,
-                         col_type='form_submit',
+                         col_type='form-submit',
                          data_null=True,
                          header=header,
                          header_icon=header_icon,
