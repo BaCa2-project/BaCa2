@@ -73,11 +73,11 @@
                 <div class="resize-wrapper" style="height: {{ table_widget.table_height }}">
             {% endif %}
             <div class="table-responsive"
-                 {% if table_widget.paging != "false" %}
-                    data-paging="true"
-                 {% else %}
-                    data-paging="false"
-                 {% endif %}>
+                {% if table_widget.paging != "false" %}
+                 data-paging="true"
+                {% else %}
+                 data-paging="false"
+                {% endif %}>
                 <table class="{{ table_widget.widget_class }}"
                        id="{{ table_widget.name }}"
                        data-deselect-on-filter="{{ table_widget.deselect_on_filter }}"
@@ -109,20 +109,21 @@
 
 <script type="text/javascript">
     initTable({
-                  tableId: '{{ table_widget.name }}',
-                  ajax: {{ table_widget.ajax|safe }},
-                  dataSourceUrl: '{{ table_widget.data_source_url|safe }}',
-                  dataSource: {{ table_widget.data_source|safe }},
-                  cols: {{ table_widget.DT_cols_data|safe }},
-                  defaultSorting: {{ table_widget.default_sorting|safe }},
-                  defaultOrder: '{{ table_widget.default_order }}',
-                  defaultOrderCol: parseInt({{ table_widget.default_order_col }}),
-                  searching: {{ table_widget.allow_global_search|safe }},
-                  paging: {{ table_widget.paging|safe }},
-                  limitHeight: {{ table_widget.limit_height|safe }},
-                  height: '{{ table_widget.table_height }}',
-                  refresh: {{ table_widget.refresh|safe }},
-                  refreshInterval: parseInt({{ table_widget.refresh_interval }}),
-                  linkFormatString: '{{ table_widget.link_format_string|safe }}',
-              });
+        tableId: '{{ table_widget.name }}',
+        ajax: {{ table_widget.ajax|safe }},
+        dataSourceUrl: '{{ table_widget.data_source_url|safe }}',
+        dataSource: {{ table_widget.data_source|safe }},
+        cols: {{ table_widget.DT_cols_data|safe }},
+        defaultSorting: {{ table_widget.default_sorting|safe }},
+        defaultOrder: '{{ table_widget.default_order }}',
+        defaultOrderCol: parseInt({{ table_widget.default_order_col }}),
+        searching: {{ table_widget.allow_global_search|safe }},
+        paging: {{ table_widget.paging|safe }},
+        limitHeight: {{ table_widget.limit_height|safe }},
+        height: '{{ table_widget.table_height }}',
+        refresh: {{ table_widget.refresh|safe }},
+        refreshInterval: parseInt({{ table_widget.refresh_interval }}),
+        linkFormatString: '{{ table_widget.link_format_string|safe }}',
+        localisation_cdn: '{{ table_widget.localisation_cdn|safe }}',
+    });
 </script>

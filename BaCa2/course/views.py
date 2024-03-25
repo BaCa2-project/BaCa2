@@ -19,6 +19,7 @@ from util.views import BaCa2LoggedInView, BaCa2ModelView
 from widgets.brief_result_summary import BriefResultSummary
 from widgets.code_block import CodeBlock
 from widgets.forms.course import (
+    AddMemberFormWidget,
     AddMembersFromCSVFormWidget,
     AddRoleFormWidget,
     CreateRoundForm,
@@ -498,12 +499,12 @@ class CourseView(CourseTemplateView):
             )
             self.add_widget(context, members_table)
 
-        # if user.has_course_permission(Course.CourseAction.ADD_MEMBER.label, course):
-        #     sidenav_sub_tabs.get('Members').append('Add members')
-        #     context['add_members_tab'] = 'add-members-tab'
-        #
-        #     add_members_form = AddMembersFormWidget(request=self.request, course_id=course_id)
-        #     self.add_widget(context, add_members_form)
+        if user.has_course_permission(Course.CourseAction.ADD_MEMBER.label, course):
+            sidenav_sub_tabs.get('Members').append('Add member')
+            context['add_member_tab'] = 'add-member-tab'
+
+            add_member_form = AddMemberFormWidget(request=self.request, course_id=course_id)
+            self.add_widget(context, add_member_form)
 
         if user.has_course_permission(Course.CourseAction.ADD_MEMBERS_CSV.label, course):
             sidenav_sub_tabs.get('Members').append('Add members from CSV')
@@ -674,7 +675,7 @@ class CourseView(CourseTemplateView):
             if view_all_submits:
                 results_table_kwargs['data_source'] = SubmitModelView.get_url(
                     serialize_kwargs={'add_round_task_name': True,
-                                      'add_summary_score': True},
+                                      'add_summary_score': True, },
                     course_id=course_id
                 )
                 results_table_kwargs['cols'].extend([
@@ -687,9 +688,13 @@ class CourseView(CourseTemplateView):
                     filter_params={'usr': user.id,
                                    'submit_type': SubmitType.STD},
                     serialize_kwargs={'add_round_task_name': True,
-                                      'add_summary_score': True},
+                                      'add_summary_score': True,
+                                      'add_falloff_info': True, },
                     course_id=course_id
                 )
+                results_table_kwargs['cols'].extend([
+                    TextColumn(name='fall_off_factor', header='Fall-off factor')
+                ])
 
             if user.has_course_permission(Course.CourseAction.REJUDGE_SUBMIT.label, course):
                 results_table_kwargs['cols'] += [
@@ -806,7 +811,7 @@ class CourseTask(CourseTemplateView):
 
         # submit form ----------------------------------------------------------------------------
 
-        if user.has_course_permission(Course.CourseAction.ADD_SUBMIT.label, course):
+        if task.can_submit(user):
             sidenav_tabs.append('Submit')
             context['submit_tab'] = 'submit-tab'
             submit_form = CreateSubmitFormWidget(request=self.request,
@@ -835,7 +840,8 @@ class CourseTask(CourseTemplateView):
                 'request': self.request,
                 'cols': [DatetimeColumn(name='submit_date', header=_('Submit time')),
                          TextColumn(name='submit_status', header=_('Submit status')),
-                         TextColumn(name='summary_score', header=_('Score'))],
+                         TextColumn(name='summary_score', header=_('Score')),
+                         TextColumn(name='fall_off_factor', header='Fall-off factor')],
                 'refresh_button': True,
                 'paging': TableWidgetPaging(page_length=50,
                                             allow_length_change=True,
@@ -847,7 +853,8 @@ class CourseTask(CourseTemplateView):
             if view_all_submits:
                 results_table_kwargs['data_source'] = SubmitModelView.get_url(
                     serialize_kwargs={'add_round_task_name': True,
-                                      'add_summary_score': True},
+                                      'add_summary_score': True,
+                                      'add_falloff_info': True, },
                     course_id=course_id
                 )
                 results_table_kwargs['cols'].insert(0, TextColumn(name='user_first_name',
@@ -861,7 +868,8 @@ class CourseTask(CourseTemplateView):
                     filter_params={'usr': user.id,
                                    'submit_type': SubmitType.STD},
                     serialize_kwargs={'add_round_task_name': True,
-                                      'add_summary_score': True},
+                                      'add_summary_score': True,
+                                      'add_falloff_info': True, },
                     course_id=course_id
                 )
 
@@ -1022,7 +1030,11 @@ class SubmitSummaryView(CourseTemplateView):
             {'title': _('Submit status'), 'value': submit.formatted_submit_status},
         ]
         if submit.submit_status != ResultStatus.PND:
-            submit_summary.append({'title': _('Score'), 'value': submit.summary_score}, )
+            submit_summary.extend([
+                {'title': _('Score'), 'value': submit.summary_score},
+                {'title': _('Fall-off factor'),
+                 'value': Submit.format_score(submit.fall_off_factor)},
+            ])
 
         summary_table = TableWidget(
             name='summary_table_widget',

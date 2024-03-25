@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, List
 
+from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Group, Permission
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
@@ -10,6 +11,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from core.choices import BasicModelAction, ModelAction, PermissionCheck, UserJob
+from core.tools.misc import try_getting_name_from_email
 from course.manager import create_course as create_course_db
 from course.manager import delete_course as delete_course_db
 from course.routing import InCourse
@@ -144,6 +146,58 @@ class UserManager(BaseUserManager):
         :type user: str | int | :py:class:`User`
         """
         ModelsRegistry.get_user(user).delete()
+
+    @staticmethod
+    def is_email_allowed(email: str) -> bool:
+        """
+        Check if given email is allowed by the system. Allowed emails are defined in
+        core.settings.login.ALLOWED_INTERNAL_EMAILS.
+
+        :param email: Email to check.
+        :type email: str
+        :return: True if the email is allowed, False otherwise.
+        :rtype: bool
+        """
+        postfix = email.split('@')[-1]
+        return f'@{postfix}' in settings.ALLOWED_INTERNAL_EMAILS
+
+    def create_if_allowed(self, email: str) -> User:
+        """
+        Create new user if email is allowed by the system. Allowed emails are defined in
+        core.settings.login.ALLOWED_INTERNAL_EMAILS.
+
+        :param email: Email of the user to create.
+        :type email: str
+        :return: The newly created user.
+        :rtype: :py:class:`User`
+
+        :raises ValidationError: If the email is not allowed by the system.
+        """
+        if not self.is_email_allowed(email):
+            raise ValidationError(_('Email is not in internal domain. '
+                                    'To add external users contact your administrator'))
+
+        first_name, last_name = try_getting_name_from_email(email)
+        return self.create_user(email=email,
+                                first_name=first_name,
+                                last_name=last_name)
+
+    def get_or_create_if_allowed(self, email: str) -> User:
+        """
+        Get or create a user with given email if email is allowed by the system. Allowed emails are
+        defined in core.settings.login.ALLOWED_INTERNAL_EMAILS.
+
+        :param email: Email of the user to get or create.
+        :type email: str
+        :return: The user with given email or the newly created user.
+        :rtype: :py:class:`User`
+
+        :raises ValidationError: If the email is not allowed by the system.
+        """
+        try:
+            return self.get(email=email)
+        except self.model.DoesNotExist:
+            return self.create_if_allowed(email=email)
 
 
 class CourseManager(models.Manager):
@@ -435,6 +489,8 @@ class Course(models.Model):
 
             # Solution related permissions
             ('view_own_submit', _('Can view own submits')),
+            ('add_submit_after_deadline', _('Can add submit after round deadline')),
+            ('add_submit_before_start', _('Can add submit before round start')),
             ('view_own_result', _('Can view own results')),
 
             # Task related permissions
@@ -482,6 +538,8 @@ class Course(models.Model):
         EDIT_SUBMIT = 'edit_submit', 'change_submit'
         DEL_SUBMIT = 'delete_submit', 'delete_submit'
         REJUDGE_SUBMIT = 'rejudge_submit', 'rejudge_submit'
+        ADD_SUBMIT_AFTER_DEADLINE = 'add_submit_after_deadline', 'add_submit_after_deadline'
+        ADD_SUBMIT_BEFORE_START = 'add_submit_before_start', 'add_submit_before_start'
 
         # Result related actions
         VIEW_RESULT = 'view_result', 'view_result'
