@@ -717,7 +717,11 @@ class CourseView(CourseTemplateView):
                                                                          course_id=course_id),
                                      mappings={'submit_id': 'id'},
                                      btn_icon='exclamation-triangle',
-                                     header_icon='clock-history')
+                                     header_icon='clock-history',
+                                     condition_key='is_legacy',
+                                     condition_value='true',
+                                     disabled_appearance=FormSubmitColumn.DisabledAppearance.ICON,
+                                     disabled_content='check-lg')
                 ]
 
             if view_all_results or view_own_results:
