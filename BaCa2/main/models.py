@@ -530,6 +530,7 @@ class Course(models.Model):
         EDIT_TASK = 'edit_task', 'change_task'
         DEL_TASK = 'delete_task', 'delete_task'
         REUPLOAD_TASK = 'reupload_task', 'reupload_task'
+        REJUDGE_TASK = 'rejudge_task', 'rejudge_task'
 
         # Submit related actions
         VIEW_SUBMIT = 'view_submit', 'view_submit'

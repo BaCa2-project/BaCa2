@@ -843,6 +843,16 @@ class Task(models.Model, metaclass=ReadCourseMeta):
                     return True
         return False
 
+    @property
+    def legacy_submits_amount(self) -> int:
+        """
+        :return: Amount of submits for the task, which are legacy submits
+        :rtype: int
+        """
+        return Submit.objects.filter(task=self,
+                                     submit_type__in=(SubmitType.STD.label, SubmitType.HID.label),
+                                     task__is_legacy=True).count()
+
     def update_submits(self):
         """
         Updates all submits for the task.
@@ -855,10 +865,15 @@ class Task(models.Model, metaclass=ReadCourseMeta):
         for task in old_versions:
             task.update_submits()
 
-    def get_data(self, submitter: int | str | User = None) -> dict:
+    def get_data(self,
+                 submitter: int | str | User = None,
+                 add_legacy_submits_amount: bool = False) -> dict:
         """
         :param submitter: The user for whom a task score should be calculated
         :type submitter: int | str | User
+        :param add_legacy_submits_amount: If True, the amount of legacy submits will be added to the
+            data, defaults to False (optional)
+        :type add_legacy_submits_amount: bool
         :return: The data of the task.
         :rtype: dict
         """
@@ -868,6 +883,9 @@ class Task(models.Model, metaclass=ReadCourseMeta):
             submit = self.user_scored_submit(submitter)
             additional_data['user_score'] = submit.score() if submit else None
             additional_data['user_formatted_score'] = submit.summary_score if submit else '---'
+
+        if add_legacy_submits_amount:
+            additional_data['legacy_submits_amount'] = self.legacy_submits_amount
 
         return {
             'id': self.pk,

@@ -1944,6 +1944,89 @@ class EditTaskFormWidget(FormWidget):
         return sidenav
 
 
+class RejudgeTaskForm(CourseModelForm):
+    """
+    Form for rejudging :class:`course.Task`. Rejudging means that all submissions for the task are
+    updated using :meth:`course.Submit.update`.
+    """
+
+    MODEL = Task
+    ACTION = Course.CourseAction.REJUDGE_TASK
+
+    task_id = forms.IntegerField(
+        label=_('Task ID'),
+        widget=forms.HiddenInput(attrs={'class': 'model-id', 'data-reset-on-refresh': 'true'}),
+        required=True,
+    )
+
+    @classmethod
+    def handle_valid_request(cls, request) -> Dict[str, Any]:
+        """
+        Rejudges the task with the ID provided in the request.
+
+        :param request: POST request containing the task ID.
+        :type request: HttpRequest
+        :return: Dictionary containing a success message.
+        :rtype: Dict[str, Any]
+        """
+        task_id = int(request.POST.get('task_id'))
+        course = InCourse.get_context_course()
+        task = course.get_task(task_id)
+        submits_to_rejudge = task.legacy_submits_amount
+        task.update_submits()
+        return {
+            'message': _(f'Task rejudged successfully - {submits_to_rejudge} submits affected.')}
+
+
+class RejudgeTaskFormWidget(FormWidget):
+    """
+    Form widget for rejudging tasks.
+
+    See also:
+        - :class:`FormWidget`
+        - :class:`RejudgeTaskForm`
+    """
+
+    def __init__(self,
+                 request,
+                 course_id: int,
+                 form: RejudgeTaskForm = None,
+                 **kwargs) -> None:
+        """
+        :param request: HTTP request object received by the view this form widget is rendered in.
+        :type request: HttpRequest
+        :param course_id: ID of the course the view this form widget is rendered in is associated
+            with.
+        :type course_id: int
+        :param task_id: ID of the task to be rejudged.
+        :type task_id: int
+        :param form: Form to be base the widget on. If not provided, a new form will be created.
+        :type form: :class:`RejudgeTaskForm`
+        :param kwargs: Additional keyword arguments to be passed to the :class:`FormWidget`
+            super constructor.
+        :type kwargs: dict
+        """
+        from course.views import TaskModelView
+
+        if not form:
+            form = RejudgeTaskForm()
+
+        super().__init__(
+            name='rejudge_task_form_widget',
+            request=request,
+            form=form,
+            post_target_url=TaskModelView.post_url(**{'course_id': course_id}),
+            button_text=_('Rejudge task'),
+            submit_confirmation_popup=SubmitConfirmationPopup(
+                title=_('Confirm task rejudging'),
+                message=_('Are you sure you want to rejudge this task and all its submits? '
+                          'This may take a while.'),
+                confirm_button_text=_('Rejudge task'),
+            ),
+            **kwargs
+        )
+
+
 # ========================================= SUBMISSION ========================================= #
 
 # -------------------------------------- create submission ------------------------------------- #
@@ -2126,7 +2209,7 @@ class RejudgeSubmitForm(CourseModelForm):
     def handle_valid_request(cls, request) -> Dict[str, str]:
         submit_id = int(request.POST.get('submit_id'))
         submit = Submit.objects.get(pk=submit_id)
-        submit.rejudge()
+        submit.update()
         return {'message': _('Submit rejudged successfully')}
 
 
