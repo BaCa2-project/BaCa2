@@ -549,6 +549,7 @@ class ModelChoiceField(ChoiceField):
         super().__init__(placeholder_default_option=True,
                          placeholder_option=placeholder_option,
                          **kwargs)
+        self.special_field_type = 'model_choice'
 
     @property
     def data_source_url(self) -> str:
