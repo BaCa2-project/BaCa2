@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, List, Union
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.http import JsonResponse
 from django.template.response import TemplateResponse
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from core.choices import EMPTY_FINAL_STATUSES, BasicModelAction, ResultStatus, SubmitType
@@ -706,6 +707,8 @@ class CourseView(CourseTemplateView):
 
             if view_all_submits:
                 results_table_kwargs['data_source'] = SubmitModelView.get_url(
+                    mode=BaCa2ModelView.GetMode.FILTER,
+                    exclude_params={'submit_type': SubmitType.HID},
                     serialize_kwargs={'add_round_task_name': True,
                                       'add_summary_score': True, },
                     course_id=course_id
@@ -1073,7 +1076,8 @@ class SubmitSummaryView(CourseTemplateView):
             {'title': _('Task'), 'value': task.task_name},
             {'title': _('User'), 'value': submit.user.get_full_name()},
             {'title': _('Submit time'),
-             'value': submit.submit_date.strftime('%Y-%m-%d %H:%M:%S')},
+             'value': submit.submit_date.astimezone(timezone.get_current_timezone()).strftime(
+                 '%Y-%m-%d %H:%M:%S')},
             {'title': _('Submit status'), 'value': submit.formatted_submit_status},
         ]
         if submit.submit_status != ResultStatus.PND:
