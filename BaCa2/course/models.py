@@ -513,19 +513,25 @@ class TaskManager(models.Manager):
         return new_task
 
     @transaction.atomic
-    def delete_task(self, task: int | Task, course: str | int | Course = None) -> None:
+    def delete_task(self,
+                    task: int | Task,
+                    with_ancestors: bool = True,
+                    course: str | int | Course = None) -> None:
         """
         It deletes a task object (with all the test sets and tests that are associated with it).
 
         :param task: The task id that you want to delete.
         :type task: int
+        :param with_ancestors: If True, all legacy ancestors of the task will be deleted as well,
+            defaults to True (optional)
+        :type with_ancestors: bool
         :param course: The course that the task is in, if None - acquired from external definition
             (optional)
         :type course: str | int | Course
         """
         task = ModelsRegistry.get_task(task, course)
         with OptionalInCourse(course):
-            task.delete()
+            task.delete(with_ancestors=with_ancestors)
 
     @staticmethod
     def package_instance_exists_validator(package_instance: int) -> bool:
@@ -675,11 +681,28 @@ class Task(models.Model, metaclass=ReadCourseMeta):
         for t_set in pkg.sets():
             TestSet.objects.create_from_package(t_set, self)
 
+    @property
+    def legacy_ancestors(self) -> List[Task]:
+        """
+        :return: List of all legacy ancestors  of the task
+        :rtype: List[Task]
+        """
+        result = []
+        parents = Task.objects.filter(updated_task=self).all()
+        for task in parents:
+            result.append(task)
+            result.extend(task.legacy_ancestors)
+        return result
+
     @transaction.atomic
-    def delete(self, using=None, keep_parents=False):
+    def delete(self, using=None, keep_parents=False, with_ancestors: bool = True):
         """
         It deletes the task object, and all the test sets and tests that are associated with it.
         """
+        if with_ancestors:
+            for ancestor in self.legacy_ancestors:
+                ancestor.delete(with_ancestors=False)
+
         for t_set in self.sets:
             t_set.delete()
         super().delete(using, keep_parents)
@@ -1204,11 +1227,9 @@ class SubmitManager(models.Manager):
         :type error_msg: str
         :param retry: The number of retry, defaults to 0 (optional)
         :type retry: int
-        :param fall_off_factor: The fixed fall-off factor of the submit, defaults to None (optional)
-        :type fall_off_factor: float
-        :param enable_fall_off_autoupdate: If True, the fall-off factor will be recalculated every
-            round change, otherwise it will stay on fixed value. Defaults to True (optional)
-        :type enable_fall_off_autoupdate: bool
+        :param fixed_fall_off_factor: The fixed fall-off factor of the submit, defaults to None
+            (optional)
+        :type fixed_fall_off_factor: float
 
         :return: A new submit object.
         :rtype: Submit
@@ -1269,7 +1290,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
     """
 
     #: Datetime when submit took place.
-    submit_date = models.DateTimeField(auto_now_add=True)
+    submit_date = models.DateTimeField()
     #: Field submitted to the task
     source_code = models.FilePathField(path=settings.SUBMITS_DIR,
                                        allow_files=True,
@@ -1398,7 +1419,6 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
             task=new_task,
             user=self.usr,
             submit_type=self.submit_type,
-            fall_off_factor=self.fall_off_factor
         )
         self.submit_type = SubmitType.HID
         self.save()
