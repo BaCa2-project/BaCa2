@@ -2,6 +2,13 @@
 
 function formsPreSetup() {
     tableSelectFieldSetup();
+
+    $(document).on('tab-activated', function (e) {
+        const tab = $(e.target);
+        tab.find('.model-choice-field').each(function () {
+            loadModelChoiceFieldOptions($(this));
+        });
+    });
 }
 
 function formsSetup() {
@@ -457,7 +464,7 @@ function updateFormObserverFieldSummary(summaryDiv, summary, fieldVal, fieldDefa
                .text(fieldVal === '' ? '<i class="bi bi-x-lg"></i>' : fieldVal);
 }
 
-function  getClosestTitledElementGroup(field) {
+function getClosestTitledElementGroup(field) {
     return field.closest('.form-element-group[data-title]:not([data-title=""])');
 }
 
@@ -629,32 +636,49 @@ function choiceFieldSetup() {
 
 function modelChoiceFieldSetup() {
     $('.model-choice-field').each(function () {
-        const field = $(this);
-        const sourceURL = field.data('source-url');
-        const labelFormatString = field.data('label-format-string');
-        const valueFormatString = field.data('value-format-string');
-        const placeholderOption = field.find('option.placeholder');
-        const placeholderText = placeholderOption.text();
+        loadModelChoiceFieldOptions($(this));
+    });
 
-        field.attr('disabled', true);
-        placeholderOption.text(field.data('loading-option'));
+    $('.model-choice-field-reload-btn').each(function () {
+        const field = $(this).closest('.input-group').find('.model-choice-field');
+        $(this).on('click', function () {
+            loadModelChoiceFieldOptions(field);
+        });
+    });
+}
 
-        $.ajax({
-                   url: sourceURL,
-                   dataType: 'json',
-                   success: function (response) {
-                       for (const record of response.data) {
-                           addModelChoiceFieldOption(field,
-                                                     record,
-                                                     labelFormatString,
-                                                     valueFormatString)
-                       }
+function loadModelChoiceFieldOptions(field) {
+    if (field.hasClass('loading')) return;
+    field.addClass('loading');
 
-                       placeholderOption.text(placeholderText);
-                       field.attr('disabled', false);
+    const sourceURL = field.data('source-url');
+    const labelFormatString = field.data('label-format-string');
+    const valueFormatString = field.data('value-format-string');
+    const placeholderOption = field.find('option.placeholder');
+    const placeholderText = placeholderOption.text();
+
+    field.removeClass('is-valid').removeClass('is-invalid');
+    field.attr('disabled', true);
+    placeholderOption.text(field.data('loading-option'));
+
+    $.ajax({
+               url: sourceURL,
+               dataType: 'json',
+               success: function (response) {
+                   field.find('option:not(.placeholder)').remove();
+
+                   for (const record of response.data) {
+                       addModelChoiceFieldOption(field,
+                                                 record,
+                                                 labelFormatString,
+                                                 valueFormatString)
                    }
-               })
-    })
+
+                   placeholderOption.text(placeholderText);
+                   field.attr('disabled', false);
+                   field.removeClass('loading');
+               }
+           })
 }
 
 function addModelChoiceFieldOption(field, data, labelFormatString, valueFormatString) {
