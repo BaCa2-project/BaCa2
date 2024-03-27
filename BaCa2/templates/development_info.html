@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Cześć {{ user_first_name }},</h1>
+    <p>Witaj w dostępie beta aplikacji BaCa2. W tym semestrze aplikacja będzie przechodzić dużą
+        metamorfozę, do której możesz się przyczynić. W ramach kursów Metody Numeryczne oraz
+        Advanced and Modern C++ Programming możesz przetestować działanie nowej "bacy".</p>
+    <p>Wszelkie uwagi i błędy, jakie pojawią się w trakcie Twojego korzystania z aplikacji, prosimy,
+        abyś zgłaszał je przez <a href="https://github.com/BaCa2-project/BaCa2/issues">
+            zakładkę "Issues" naszego repozytorium na GitHub</a> lub przez wiadomość e-mail:
+        <a href="mailto:baca2@ii.uj.edu.pl">baca2@ii.uj.edu.pl</a>. Zgłoszone błędy pozwolą nam
+        sprawniej rozwinąć
+        aplikację</p>
+
+    <h2>Ważne informacje</h2>
+    <p>W tym semestrze planujemy przejście z wersji <b>1.0-beta</b> do wersji <b>2.0-release</b>.
+        Nowe zmiany i
+        opisy naprawianych błędów będą publikowane w zakładce "Nowości". Na tej stronie za jakiś
+        czas pojawi się pulpit nawigacyjny, pozwalający szybciej poruszać się po serwisie.</p>
+    <p>Jako, że proces produkcji jest w toku, co jakiś czas zdarzać się będą przerwy techniczne
+        aplikacji. Stałym terminem, zarezerwowanym na aktualizację jest środa w godzinach
+        21:00-22:00. Dodatkowe terminy będziemy publikować na bieżąco.</p>
+
+    <h2>Wsparcie rozwoju aplikacji</h2>
+    <p>Jeśli chcesz wesprzeć rozwój aplikacji, jest ku temu kilka możliwości:</p>
+    <ul>
+        <li>Korzystanie z serwisu, pomimo potencjalnych trudności - im większa jest baza
+            użytkowników w okresie próbnym, tym lepiej jesteśmy w stanie przetestować działanie
+            aplikacji pod obciążeniem
+        </li>
+        <li>Testowanie aplikacji i zgłaszanie błędów - jesteśmy otwarci na próby "zepsucia" naszej
+            aplikacji. Jeżeli Ci się to uda, zachęcamy, aby napisać do nas maila z opisem sytuacji,
+            która doprowadziła do awarii. Osoby, które znajdą takie błędy, dopiszemy do testerów
+            aplikacji w finalnej wersji.
+        </li>
+        <li>Poprowadzenie korepetycji z informatyki z użyciem naszej aplikacji - jeśli chcesz,
+            możemy
+            udostępnić Ci możliwość realizacji korepetycji, z użyciem naszej aplikacji. Będziesz
+            wtedy symulował bycie <i>prowadzącym przedmiotu</i> w przyszłej wersji BaCa2. Będziemy
+            Cię wtedy prosić o feedback dotyczący działania i współpracy z BaCą2.
+        </li>
+    </ul>
+{% endblock %}
