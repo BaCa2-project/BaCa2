@@ -51,7 +51,6 @@
     <script>
         $(document).ready( function () {
             $('#{{ field.name }}').on('input', function () {
-                console.log('input event');
                 updateValidationStatus(
                     this,
                     '{{ form_widget.form_cls }}',

@@ -15,14 +15,10 @@ function setUpTextSwitchBtn(btn) {
 }
 
 function toggleTextSwitchBtn(btn) {
-    if (btn.hasClass('switch-on')) {
-        btn.removeClass('switch-on');
-        btn.addClass('switch-off');
-    }
-    else {
-        btn.removeClass('switch-off');
-        btn.addClass('switch-on');
-    }
+    if (btn.hasClass('switch-on'))
+        btn.removeClass('switch-on').addClass('switch-off');
+    else
+        btn.removeClass('switch-off').addClass('switch-on');
 
     btn.text(btn.hasClass('switch-on') ? btn.data('text-on') : btn.data('text-off'))
 }

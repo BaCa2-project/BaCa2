@@ -287,7 +287,6 @@ function lengthMenuSetup() {
 
         const tableWrapper = $(this).closest('.table-wrapper');
         const lengthMenuWrapper = tableWrapper.find('.table-util-header .table-length-menu');
-        console.log(lengthMenuWrapper);
 
         if (lengthMenuWrapper.length === 0)
             return;
@@ -568,8 +567,6 @@ function renderFormSubmitField(col) {
             const icon = $('<i>').addClass(`bi bi-${btnIcon}`).addClass(btnText ? 'me-2' : '');
             content.append(icon);
         }
-
-        console.log(disabled);
 
         if (disabled) {
             button.addClass('disabled')

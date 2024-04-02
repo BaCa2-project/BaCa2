@@ -35,12 +35,19 @@
 
 <script>
     $(document).ready(function () {
-        $('#{{ form_widget.name }} #{{ field.name }}').datetimepicker(
+        const field = $('#{{ form_widget.name }} #{{ field.name }}');
+        field.datetimepicker(
             {% with field.field as field %}
                 {
                     format: '{{ field.format|safe }}',
                     datepicker: {{ field.datepicker|safe }},
                     timepicker: {{ field.timepicker|safe }},
+                    onSelectDate: function(ct,$i){
+                        field.trigger('input');
+                    },
+                    onSelectTime: function(ct,$i){
+                        field.trigger('input');
+                    }
                 }
             {% endwith %}
         );
@@ -50,7 +57,7 @@
 {% if form_widget.live_validation and field.field.widget.input_type != "password" %}
     <script>
         $(document).ready(function () {
-            $('#{{ field.name }}').on('change input', function () {
+            $('#{{ field.name }}').on('input', function () {
                 updateValidationStatus(
                     this,
                     '{{ form_widget.form_cls }}',
