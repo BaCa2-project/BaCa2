@@ -10,7 +10,7 @@
     {% if popup_widget.input_summary %}
         <div class="popup-summary">
             {% for field in popup_widget.input_summary_fields %}
-                <div class="input-summary row mb-2">
+                <div class="input-summary row mb-2" data-input-target="{{ field }}">
                     <div class="col-6">
                         <strong class="input-summary-label"
                                 data-input-target="{{ field }}">

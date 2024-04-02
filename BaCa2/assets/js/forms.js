@@ -1,3 +1,374 @@
+class FormInput {
+    constructor(input) {
+        this.input = input;
+        this.inputId = input.attr('id');
+        this.required = input.prop('required');
+        this.defaultVal = this.getDefaultVal();
+        this.liveValidation = input.data('live-validation');
+        this.toggleBtn = input.closest('.input-group').find('.field-toggle-btn');
+        this.toggleable = this.toggleBtn.length > 0;
+
+        const label = input.closest('form').find(`label[for="${this.inputId}"`)
+        this.label = label.length > 0 ? label : null;
+
+        this.formInputInit();
+    }
+
+    formInputInit() {
+        this.toggleInit();
+    }
+
+    toggleInit() {
+        if (!this.toggleable) return;
+        const formInput = this;
+        formInput.resetToggleable();
+
+        this.toggleBtn.on('click', function (e) {
+            e.preventDefault();
+            toggleTextSwitchBtn($(this));
+            formInput.toggleInput($(this).hasClass('switch-on'), true);
+        });
+    }
+
+    getLabel() {
+        if (!this.label) return this.inputId;
+        let label = this.label
+
+        if (this.label.find('.required-symbol').length > 0) {
+            label = label.clone();
+            label.find('.required-symbol').remove();
+        }
+
+        return label.text().trim();
+    }
+
+    getDefaultVal() {
+        const defaultVal = this.input.prop('defaultValue');
+        return defaultVal !== undefined ? defaultVal : '';
+    }
+
+    getVal() {
+        return this.input.val();
+    }
+
+    hasValue() {
+        const val = this.getVal();
+        return val !== undefined && val !== null && val.length > 0;
+    }
+
+    setValid() {
+        if (!this.liveValidation) return;
+        this.input.removeClass('is-invalid').addClass('is-valid');
+    }
+
+    setInvalid() {
+        if (!this.liveValidation) return;
+        this.input.removeClass('is-valid').addClass('is-invalid');
+    }
+
+    clearValidation() {
+        this.input.removeClass('is-valid').removeClass('is-invalid');
+        this.input.closest('.input-block').find('.invalid-feedback').remove();
+    }
+
+    isValid() {
+        if (this.input.hasClass('is-invalid')) return false;
+        return !(this.required && !this.hasValue());
+    }
+
+    resetValue() {
+        if (this.defaultVal.length > 0) {
+            this.input.val(this.defaultVal);
+            this.setValid();
+        } else
+            this.clearValue();
+    }
+
+    clearValue() {
+        this.input.val('');
+        this.clearValidation();
+    }
+
+    resetInput() {
+        this.resetValue();
+        this.resetToggleable();
+    }
+
+    resetToggleable() {
+        if (!this.toggleable) return;
+        let on = this.toggleBtn.data('initial-state') !== 'off';
+
+        if (this.toggleBtn.hasClass('switch-on') && !on)
+            toggleTextSwitchBtn(this.toggleBtn);
+
+        this.toggleInput(on);
+    }
+
+    toggleInput(on, focus = false) {
+        if (on) {
+            this.input.attr('disabled', false);
+            this.resetValue();
+            if (focus) this.input.focus();
+        } else {
+            this.clearValue()
+            this.input.attr('disabled', true);
+        }
+    }
+}
+
+
+class SelectInput extends FormInput {
+    getDefaultVal() {
+        const selectedOption = this.input.find('option:selected');
+        return selectedOption.length > 0 ? selectedOption.val() : '';
+    }
+}
+
+
+class TableSelectField extends FormInput {
+    constructor(input) {
+        super(input);
+        this.wrapper = input.closest('.table-select-field');
+        this.tableId = input.data('table-id');
+        this.tableWidget = window.tableWidgets[`#${this.tableId}`];
+    }
+
+    setValid() {
+        if (!this.liveValidation)
+            return;
+        this.input.removeClass('is-invalid').addClass('is-valid');
+        this.wrapper.removeClass('is-invalid').addClass('is-valid');
+    }
+
+    setInvalid() {
+        if (!this.liveValidation)
+            return;
+        this.input.removeClass('is-valid').addClass('is-invalid');
+        this.wrapper.removeClass('is-valid').addClass('is-invalid');
+    }
+
+    clearValidation() {
+        this.input.removeClass('is-valid').removeClass('is-invalid');
+        this.wrapper.removeClass('is-valid').removeClass('is-invalid');
+    }
+}
+
+
+class FormPopup {
+    constructor(popup, formWidget) {
+        this.popup = popup;
+        this.formWidget = formWidget;
+    }
+
+    render() {
+        this.popup.modal('show');
+    }
+}
+
+
+class ConfirmationPopup extends FormPopup {
+    constructor(popup, formWidget) {
+        super(popup, formWidget);
+        const inputSummary = {};
+
+        this.popup.find('.input-summary').each(function () {
+            const inputId = $(this).data('input-target');
+            const inputLabel = $(this).find('.input-summary-label');
+            const inputVal = $(this).find('.input-summary-value');
+            inputSummary[inputId] = {label: inputLabel, value: inputVal};
+        });
+
+        this.inputSummary = inputSummary;
+    }
+
+    render() {
+        const inputSummary = this.inputSummary;
+
+        this.formWidget.getInputs(Object.keys(this.inputSummary)).each(function () {
+            const summary = inputSummary[this.inputId];
+            const val = this.getVal();
+            summary.label.text(this.getLabel() + ':');
+            summary.value.text(val.length > 0 ? val : '-');
+        });
+
+        super.render();
+    }
+}
+
+
+class FormWidget {
+    constructor(form) {
+        this.form = form;
+        this.wrapper = form.closest('.form-wrapper');
+        this.inputs = this.getInputs();
+        this.submitBtn = form.find('.submit-btn');
+        this.ajaxSubmit = form.attr('action') !== undefined;
+        this.postUrl = this.ajaxSubmit ? form.attr('action') : null;
+
+        const confirmationPopup = this.wrapper.find('.form-confirmation-popup');
+        this.confirmationPopup = confirmationPopup.length > 0 ?
+                                 new ConfirmationPopup(confirmationPopup, this) : null;
+
+        this.formWidgetInit();
+    }
+
+    formWidgetInit() {
+        this.submitHandlingInit();
+        this.submitBtnInit();
+        this.refreshBtnInit();
+        this.toggleableGroupInit();
+    }
+
+    submitHandlingInit() {
+        if (!this.ajaxSubmit) return;
+        const formWidget = this;
+
+        this.form.on('submit', function (e) {
+            e.preventDefault();
+            formWidget.handleAjaxSubmit();
+        });
+    }
+
+    submitBtnInit() {
+        if (this.confirmationPopup) {
+            const popup = this.confirmationPopup
+            this.submitBtn.on('click', function (e) {
+                e.preventDefault();
+                popup.render();
+            });
+        }
+    }
+
+    refreshBtnInit() {
+        const formWidget = this;
+        this.form.find('.form-refresh-button').on('click', function () {
+            formWidget.resetForm();
+        });
+    }
+
+    toggleableGroupInit() {
+        const formWidget = this;
+
+        this.form.find('.group-toggle-btn').each(function () {
+            const btn = $(this);
+            FormWidget.resetToggleableGroup(btn);
+
+
+            btn.on('click', function (e) {
+                e.preventDefault();
+                toggleTextSwitchBtn(btn);
+                FormWidget.toggleElementGroup(btn.closest('.form-element-group'),
+                                              btn.hasClass('switch-on'));
+                formWidget.refreshSubmitBtn();
+            });
+        });
+    }
+
+    static resetToggleableGroup(toggleBtn) {
+        const on = toggleBtn.data('initial-state') !== 'off';
+        const elementGroup = toggleBtn.closest('.form-element-group');
+        if (toggleBtn.hasClass('switch-on') && !on) toggleTextSwitchBtn(toggleBtn);
+        FormWidget.toggleElementGroup(elementGroup, on);
+    }
+
+    static toggleElementGroup(elementGroup, on) {
+        FormWidget.getElementGroupInputs(elementGroup).each(function () {
+            this.toggleInput(on);
+        });
+    }
+
+    handleAjaxSubmit() {
+        const formData = new FormData(this.form[0]);
+        const formWidget = this;
+
+        $.ajax({
+                   type: 'POST',
+                   url: formWidget.postUrl,
+                   data: formData,
+                   contentType: false,
+                   processData: false,
+                   success: function (data) {
+                       formWidget.resetForm();
+                       formWidget.form.trigger('submit-complete', [data]);
+
+                       if (data.status === 'success') {
+                           formWidget.form.trigger('submit-success', [data]);
+                           return;
+                       }
+
+                       formWidget.form.trigger('submit-failure', [data]);
+
+                       switch (data.status) {
+                           case 'invalid':
+                               formWidget.form.trigger('submit-invalid', [data]);
+                               break;
+                           case 'impermissible':
+                               formWidget.form.trigger('submit-impermissible', [data]);
+                               break;
+                           case 'error':
+                               formWidget.form.trigger('submit-error', [data]);
+                               break;
+                       }
+                   }
+               })
+    }
+
+    getInputs(ids = null) {
+        if (ids)
+            return this.form.find(ids.map(id => `#${id}`).join(', ')).map(function () {
+                return FormWidget.getInput($(this));
+            });
+
+        return this.form.find('input, select, textarea').map(function () {
+            return FormWidget.getInput($(this));
+        });
+    }
+
+    static getElementGroupInputs(elementGroup) {
+        return elementGroup.find('input, select, textarea').map(function () {
+            return FormWidget.getInput($(this));
+        });
+    }
+
+    static getInput(inputElement) {
+        if (inputElement.hasClass('table-select-input'))
+            return new TableSelectField(inputElement);
+        else if (inputElement.is('select'))
+            return new SelectInput(inputElement);
+        else
+            return new FormInput(inputElement);
+    }
+
+    refreshSubmitBtn() {
+        for (const input of this.inputs)
+            if (!input.isValid()) {
+                this.submitBtn.attr('disabled', true);
+                return;
+            }
+
+        this.enableSubmitBtn();
+    }
+
+    enableSubmitBtn() {
+        const submitBtn = this.submitBtn;
+
+        if (submitBtn.is(':disabled')) {
+            submitBtn.attr('disabled', false).addClass('submit-enabled');
+
+            setTimeout(function () {
+                submitBtn.removeClass('submit-enabled');
+            }, 300);
+        }
+    }
+
+    resetForm() {
+        for (const input of this.inputs)
+            input.resetInput();
+        this.refreshSubmitBtn();
+    }
+}
+
+
 // ---------------------------------------- forms setup --------------------------------------- //
 
 function formsPreSetup() {
@@ -12,12 +383,16 @@ function formsPreSetup() {
 }
 
 function formsSetup() {
-    ajaxPostSetup();
-    toggleableGroupSetup();
-    toggleableFieldSetup();
-    confirmationPopupSetup();
+    $('form').each(function () {
+        new FormWidget($(this));
+    });
+
+    //ajaxPostSetup();
+    //toggleableGroupSetup();
+    //toggleableFieldSetup();
+    //confirmationPopupSetup();
     responsePopupsSetup();
-    refreshButtonSetup();
+    //refreshButtonSetup();
     selectFieldSetup();
     choiceFieldSetup();
     modelChoiceFieldSetup();
@@ -243,11 +618,12 @@ function toggleFieldGroup(formElementGroup, on) {
 // --------------------------------------- form refresh --------------------------------------- //
 
 function formRefresh(form) {
-    form[0].reset();
-    clearValidation(form);
-    resetToggleables(form);
-    submitButtonRefresh(form);
-    resetHiddenFields(form);
+    // form[0].reset();
+    // clearValidation(form);
+    // resetToggleables(form);
+    // submitButtonRefresh(form);
+    // resetHiddenFields(form);
+    new FormWidget(form).resetForm();
 }
 
 function clearValidation(form) {

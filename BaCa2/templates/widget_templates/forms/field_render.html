@@ -1,11 +1,13 @@
 {% load widget_tweaks %}
 
+{% with form_widget.live_validation|yesno:"true,false" as live_validation %}
 {% with field.field.widget.input_type as field_type  %}
     {% if not field_class %}
         {% with field.field.widget.attrs.class as field_class %}
-            {% render_field field class=field_class id=field.name placeholder="-" type=field_type %}
+            {% render_field field class=field_class id=field.name placeholder="-" type=field_type data-live-validation=live_validation %}
         {% endwith %}
     {% else %}
-        {% render_field field class=field_class id=field.name placeholder="-" type=field_type %}
+        {% render_field field class=field_class id=field.name placeholder="-" type=field_type data-live-validation=live_validation %}
     {% endif %}
+{% endwith %}
 {% endwith %}
