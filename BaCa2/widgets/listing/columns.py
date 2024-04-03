@@ -305,7 +305,8 @@ class FormSubmitColumn(Column):
                  condition_key: str = '',
                  condition_value: str = 'true',
                  disabled_appearance: 'DisabledAppearance' = None,
-                 disabled_content: str = '') -> None:
+                 disabled_content: str = '',
+                 refresh_table_on_submit: bool = True) -> None:
         super().__init__(name=name,
                          col_type='form-submit',
                          data_null=True,
@@ -336,6 +337,7 @@ class FormSubmitColumn(Column):
 
         self.disabled_appearance = disabled_appearance
         self.disabled_content = disabled_content
+        self.refresh_table_on_submit = refresh_table_on_submit
 
     def get_context(self) -> Dict[str, Any]:
         return super().get_context() | {
@@ -352,5 +354,6 @@ class FormSubmitColumn(Column):
             'condition_key': self.condition_key,
             'condition_value': self.condition_value,
             'disabled_appearance': self.disabled_appearance.value,
-            'disabled_content': self.disabled_content
+            'disabled_content': self.disabled_content,
+            'refresh_table_on_submit': json.dumps(self.refresh_table_on_submit)
         }

@@ -10,6 +10,33 @@ class TableWidget {
         this.lastDeselectedRow = null;
     }
 
+    reload() {
+        if (!this.ajax) return;
+        const tableWidget = this;
+        const table = this.table;
+        const DTObj = this.DTObj;
+
+        DTObj.ajax.reload(function () {
+            DTObj.columns.adjust().draw();
+            tableWidget.updateSelectHeader();
+            table.trigger('table-reload');
+        });
+    }
+
+    init() {
+        this.formSubmitColsInit();
+    }
+
+    formSubmitColsInit() {
+        const tableWidget = this;
+
+        this.table.find('th.form-submit[data-refresh-table-on-submit]').each(function () {
+            $(this).find('form').on('submit-complete', function () {
+                tableWidget.reload();
+            });
+        });
+    }
+
     // -------------------------------- record select methods --------------------------------- //
 
     toggleSelectRow(row, on) {
@@ -391,11 +418,14 @@ function initTable(
     if (!window.tableWidgets)
         window.tableWidgets = {};
 
-    window.tableWidgets[`#${tableId}`] = new TableWidget(
+    const tableWidget = new TableWidget(
         tableId,
         table.DataTable(tableParams),
         ajax
     );
+    tableWidget.init();
+
+    window.tableWidgets[`#${tableId}`] = tableWidget;
 
     if (refresh)
         setRefresh(tableId, refreshInterval);
