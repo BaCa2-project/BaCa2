@@ -513,7 +513,6 @@ class CoursesView(BaCa2LoggedInView):
             data_source=CourseModelView.get_url(mode=BaCa2ModelView.GetMode.FILTER,
                                                 filter_params={'role_set__user': user_id},
                                                 serialize_kwargs={'user': user_id}),
-            allow_column_search=True,
             cols=[
                 TextColumn(name='name', header='Name', searchable=True),
                 TextColumn(name='USOS_term_code', header='Semester', searchable=True),
@@ -643,7 +642,6 @@ class ProfileView(BaCa2LoggedInView):
                 {'description': _('Last name'), 'value': user.last_name},
                 {'description': _('Superuser'), 'value': user.is_superuser},
             ],
-            allow_column_search=False,
             allow_global_search=False,
             hide_col_headers=True,
             default_sorting=False,

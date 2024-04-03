@@ -32,6 +32,7 @@ class Column(Widget):
                  header: str | None = None,
                  header_icon: str | None = None,
                  searchable: bool = True,
+                 search_header: bool = False,
                  sortable: bool = False,
                  auto_width: bool = True,
                  width: str | None = None) -> None:
@@ -58,6 +59,9 @@ class Column(Widget):
         :type header_icon: str
         :param searchable: Whether values in the column should be searchable.
         :type searchable: bool
+        :param search_header: Whether the column header should be replaced with a column-specific
+            search input. Only applicable if searchable is set to True.
+        :type search_header: bool
         :param sortable: Whether the column should be sortable.
         :type sortable: bool
         :param auto_width: Whether the column width should be determined automatically. If set to
@@ -82,6 +86,7 @@ class Column(Widget):
         self.col_type = col_type
         self.data_null = data_null
         self.searchable = searchable
+        self.search_header = search_header
         self.sortable = sortable
         self.auto_width = auto_width
         self.width = width if width else ''
@@ -94,6 +99,7 @@ class Column(Widget):
             'header_icon': self.header_icon,
             'data_null': json.dumps(self.data_null),
             'searchable': json.dumps(self.searchable),
+            'search_header': self.search_header,
             'sortable': json.dumps(self.sortable),
             'auto_width': json.dumps(self.auto_width),
             'width': self.width
@@ -128,6 +134,7 @@ class TextColumn(Column):
                  header: str | None = None,
                  header_icon: str | None = None,
                  searchable: bool = True,
+                 search_header: bool = False,
                  sortable: bool = True,
                  auto_width: bool = True,
                  width: str | None = None) -> None:
@@ -144,6 +151,9 @@ class TextColumn(Column):
         :type header_icon: str
         :param searchable: Whether values in the column should be searchable.
         :type searchable: bool
+        :param search_header: Whether the column header should be replaced with a column-specific
+            search input. Only applicable if searchable is set to True.
+        :type search_header: bool
         :param sortable: Whether the column should be sortable.
         :type sortable: bool
         :param auto_width: Whether the column width should be determined automatically. If set to
@@ -159,6 +169,7 @@ class TextColumn(Column):
                          header=header,
                          header_icon=header_icon,
                          searchable=searchable,
+                         search_header=search_header,
                          sortable=sortable,
                          auto_width=auto_width,
                          width=width)
@@ -181,6 +192,7 @@ class DatetimeColumn(Column):
                  header_icon: str | None = None,
                  formatter: str = 'dd/MM/yyyy H:mm',
                  searchable: bool = True,
+                 search_header: bool = False,
                  sortable: bool = True,
                  auto_width: bool = True,
                  width: str | None = None) -> None:
@@ -197,6 +209,9 @@ class DatetimeColumn(Column):
         :type header_icon: str
         :param searchable: Whether values in the column should be searchable.
         :type searchable: bool
+        :param search_header: Whether the column header should be replaced with a column-specific
+            search input. Only applicable if searchable is set to True.
+        :type search_header: bool
         :param sortable: Whether the column should be sortable.
         :type sortable: bool
         :param auto_width: Whether the column width should be determined automatically. If set to
@@ -212,6 +227,7 @@ class DatetimeColumn(Column):
                          header=header,
                          header_icon=header_icon,
                          searchable=searchable,
+                         search_header=search_header,
                          sortable=sortable,
                          auto_width=auto_width,
                          width=width)
@@ -240,6 +256,7 @@ class SelectColumn(Column):
                          data_null=True,
                          header='',
                          searchable=False,
+                         search_header=False,
                          sortable=False,
                          auto_width=False,
                          width='1rem')
@@ -262,6 +279,7 @@ class DeleteColumn(Column):
                          data_null=True,
                          header='',
                          searchable=False,
+                         search_header=False,
                          sortable=False,
                          auto_width=False,
                          width='1rem')
@@ -294,6 +312,7 @@ class FormSubmitColumn(Column):
                          header=header,
                          header_icon=header_icon,
                          searchable=False,
+                         search_header=False,
                          sortable=False,
                          auto_width=False,
                          width='1rem')

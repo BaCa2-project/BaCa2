@@ -1097,7 +1097,6 @@ class SubmitSummaryView(CourseTemplateView):
             data_source=submit_summary,
             title=_('Summary') + f' - {_("submit")} #{submit.pk}',
             allow_global_search=False,
-            allow_column_search=False,
             hide_col_headers=True,
             default_sorting=False,
         )
@@ -1185,7 +1184,6 @@ class SubmitSummaryView(CourseTemplateView):
                 ),
                 cols=cols,
                 title=f'{_("Set")} {s.short_name} - {_("weight:")} {s.weight}',
-                allow_column_search=False,
                 default_order_col='test_name',
             )
             set_context['table_widget'] = set_summary.get_context()
