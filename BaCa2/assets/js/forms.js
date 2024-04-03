@@ -215,7 +215,7 @@ class ResponsePopup extends FormPopup {
     }
 
     renderValidationErrors(data) {
-        this.messageBlock.find('.popup-errors-wrapper').remove();
+        this.popup.find('.popup-errors-wrapper').remove();
         const errorsBlock = $('<div class="popup-errors-wrapper"></div>');
 
         Object.entries(data.errors).forEach(([key, value]) => {
@@ -237,7 +237,7 @@ class ResponsePopup extends FormPopup {
     }
 
     renderErrorMessages(data) {
-        this.messageBlock.find('.popup-errors-wrapper').remove();
+        this.popup.find('.popup-errors-wrapper').remove();
         const errorsBlock = $('<div class="popup-errors-wrapper text-center"></div>');
 
         data.errors.forEach((error) => {
