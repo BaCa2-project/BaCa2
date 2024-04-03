@@ -1604,12 +1604,11 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         :return: The formatted score.
         :rtype: str
         """
-        _score = score
-        score = round(score * 100, rnd)
-
         if score == -1:
             return '---'
 
+        _score = score
+        score = round(score * 100, rnd)
         f_score = f'{score:.{rnd}f} %'
 
         if not include_submit_points:
