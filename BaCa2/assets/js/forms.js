@@ -10,8 +10,6 @@ class FormInput {
 
         const label = input.closest('form').find(`label[for="${this.inputId}"`)
         this.label = label.length > 0 ? label : null;
-
-        this.formInputInit();
     }
 
     formInputInit() {
@@ -25,6 +23,7 @@ class FormInput {
 
         this.toggleBtn.on('click', function (e) {
             e.preventDefault();
+            console.log('toggle clicked');
             toggleTextSwitchBtn($(this));
             formInput.toggleInput($(this).hasClass('switch-on'), true);
         });
@@ -160,7 +159,7 @@ class FormPopup {
         this.formWidget = formWidget;
     }
 
-    render() {
+    render(data = null) {
         this.popup.modal('show');
     }
 }
@@ -179,9 +178,10 @@ class ConfirmationPopup extends FormPopup {
         });
 
         this.inputSummary = inputSummary;
+        this.submitBtn = this.popup.find('.submit-btn');
     }
 
-    render() {
+    render(data = null) {
         const inputSummary = this.inputSummary;
 
         this.formWidget.getInputs(Object.keys(this.inputSummary)).each(function () {
@@ -196,27 +196,93 @@ class ConfirmationPopup extends FormPopup {
 }
 
 
+class ResponsePopup extends FormPopup {
+    constructor(popup, formWidget) {
+        super(popup, formWidget);
+        this.message = this.popup.find('.popup-message');
+        this.messageBlock = this.popup.find('.popup-message-wrapper');
+        this.renderMessage = this.message.data('render-message') === true;
+    }
+
+    render(data) {
+        if (this.renderMessage)
+            this.message.text(data.message);
+        if (data['status'] === 'invalid')
+            this.renderValidationErrors(data);
+        else if (data['status'] === 'error')
+            this.renderErrorMessages(data);
+        super.render(data);
+    }
+
+    renderValidationErrors(data) {
+        this.messageBlock.find('.popup-errors-wrapper').remove();
+        const errorsBlock = $('<div class="popup-errors-wrapper"></div>');
+
+        Object.entries(data.errors).forEach(([key, value]) => {
+            const errorDiv = $('<div class="popup-error mt-2"></div>');
+            const nestedList = $('<ul class="mb-0"></ul>');
+            const fieldLabel = this.formWidget.inputs[key].getLabel();
+
+
+            value.forEach((nestedValue) => {
+                nestedList.append(`<li>${nestedValue}</li>`);
+            });
+
+            errorDiv.append(`<b>${fieldLabel}:</b>`);
+            errorDiv.append(nestedList);
+            errorsBlock.append(errorDiv);
+        });
+
+        this.messageBlock.after(errorsBlock);
+    }
+
+    renderErrorMessages(data) {
+        this.messageBlock.find('.popup-errors-wrapper').remove();
+        const errorsBlock = $('<div class="popup-errors-wrapper text-center"></div>');
+
+        data.errors.forEach((error) => {
+            errorsBlock.append(`<div class="popup-error mt-2"><b>${error}</b></div>`);
+        });
+
+        this.messageBlock.after(errorsBlock);
+    }
+}
+
+
 class FormWidget {
     constructor(form) {
         this.form = form;
         this.wrapper = form.closest('.form-wrapper');
-        this.inputs = this.getInputs();
         this.submitBtn = form.find('.submit-btn');
         this.ajaxSubmit = form.attr('action') !== undefined;
         this.postUrl = this.ajaxSubmit ? form.attr('action') : null;
+        this.inputs = this.getInputs().get().reduce((dict, input) => {
+            dict[input.inputId] = input;
+            return dict;
+        }, {});
 
         const confirmationPopup = this.wrapper.find('.form-confirmation-popup');
         this.confirmationPopup = confirmationPopup.length > 0 ?
                                  new ConfirmationPopup(confirmationPopup, this) : null;
 
-        this.formWidgetInit();
+        this.showResponsePopups = this.form.data('show-response-popups');
+        this.successPopup = this.showResponsePopups ?
+                            new ResponsePopup(this.wrapper.find('.form-success-popup'), this) :
+                            null;
+        this.failurePopup = this.showResponsePopups ?
+                            new ResponsePopup(this.wrapper.find('.form-failure-popup'), this) :
+                            null;
     }
 
     formWidgetInit() {
         this.submitHandlingInit();
         this.submitBtnInit();
         this.refreshBtnInit();
+        this.responsePopupsInit();
         this.toggleableGroupInit();
+
+        for (const input of Object.values(this.inputs))
+            input.formInputInit();
     }
 
     submitHandlingInit() {
@@ -232,9 +298,16 @@ class FormWidget {
     submitBtnInit() {
         if (this.confirmationPopup) {
             const popup = this.confirmationPopup
+            const formWidget = this;
+
             this.submitBtn.on('click', function (e) {
                 e.preventDefault();
                 popup.render();
+            });
+
+            this.confirmationPopup.submitBtn.on('click', function () {
+                popup.popup.modal('hide');
+                formWidget.submit();
             });
         }
     }
@@ -243,6 +316,20 @@ class FormWidget {
         const formWidget = this;
         this.form.find('.form-refresh-button').on('click', function () {
             formWidget.resetForm();
+        });
+    }
+
+    responsePopupsInit() {
+        if (!this.showResponsePopups) return;
+        const successPopup = this.successPopup;
+        const failurePopup = this.failurePopup;
+
+        this.form.on('submit-success', function (e, data) {
+            successPopup.render(data);
+        });
+
+        this.form.on('submit-failure', function (e, data) {
+            failurePopup.render(data);
         });
     }
 
@@ -264,6 +351,12 @@ class FormWidget {
         });
     }
 
+    resetToggleableGroups() {
+        this.form.find('.group-toggle-btn').each(function () {
+            FormWidget.resetToggleableGroup($(this));
+        });
+    }
+
     static resetToggleableGroup(toggleBtn) {
         const on = toggleBtn.data('initial-state') !== 'off';
         const elementGroup = toggleBtn.closest('.form-element-group');
@@ -275,6 +368,10 @@ class FormWidget {
         FormWidget.getElementGroupInputs(elementGroup).each(function () {
             this.toggleInput(on);
         });
+    }
+
+    submit() {
+        this.form.submit();
     }
 
     handleAjaxSubmit() {
@@ -314,23 +411,26 @@ class FormWidget {
     }
 
     getInputs(ids = null) {
-        if (ids)
-            return this.form.find(ids.map(id => `#${id}`).join(', ')).map(function () {
-                return FormWidget.getInput($(this));
+        if (ids) {
+            if (Array.isArray(ids))
+                ids = ids.map(id => `#${id}`).join(', ');
+            return this.form.find(ids).map(function () {
+                return FormWidget.getInputObj($(this));
             });
+        }
 
         return this.form.find('input, select, textarea').map(function () {
-            return FormWidget.getInput($(this));
+            return FormWidget.getInputObj($(this));
         });
     }
 
     static getElementGroupInputs(elementGroup) {
         return elementGroup.find('input, select, textarea').map(function () {
-            return FormWidget.getInput($(this));
+            return FormWidget.getInputObj($(this));
         });
     }
 
-    static getInput(inputElement) {
+    static getInputObj(inputElement) {
         if (inputElement.hasClass('table-select-input'))
             return new TableSelectField(inputElement);
         else if (inputElement.is('select'))
@@ -340,7 +440,7 @@ class FormWidget {
     }
 
     refreshSubmitBtn() {
-        for (const input of this.inputs)
+        for (const input of Object.values(this.inputs))
             if (!input.isValid()) {
                 this.submitBtn.attr('disabled', true);
                 return;
@@ -362,8 +462,9 @@ class FormWidget {
     }
 
     resetForm() {
-        for (const input of this.inputs)
+        for (const input of Object.values(this.inputs))
             input.resetInput();
+        this.resetToggleableGroups();
         this.refreshSubmitBtn();
     }
 }
@@ -384,14 +485,14 @@ function formsPreSetup() {
 
 function formsSetup() {
     $('form').each(function () {
-        new FormWidget($(this));
+        new FormWidget($(this)).formWidgetInit();
     });
 
     //ajaxPostSetup();
     //toggleableGroupSetup();
     //toggleableFieldSetup();
     //confirmationPopupSetup();
-    responsePopupsSetup();
+    //responsePopupsSetup();
     //refreshButtonSetup();
     selectFieldSetup();
     choiceFieldSetup();
