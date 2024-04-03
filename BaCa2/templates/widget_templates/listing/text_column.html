@@ -4,7 +4,7 @@
     data-searchable="{{ col.searchable }}"
     data-sortable="{{ col.sortable }}"
     data-col-name="{{ col.name }}">
-    {% if col.searchable == "true" and table_widget.allow_column_search %}
+    {% if col.searchable == "true" and col.search_header %}
         {% if col.header_icon %}
             <div class="input-group">
                 <span class="input-group-text">
