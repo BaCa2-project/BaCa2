@@ -1,0 +1,21 @@
+{% load custom_tags %}
+
+<div class="input-block mb-3">
+    <div class="{% if form_widget.live_validation %} live-validation {% endif %}
+                {% if field.field.required %} select-required {% endif %}">
+        {% block field %}
+        {% endblock %}
+    </div>
+
+    {% include 'widget_templates/forms/field_errors.html' %}
+</div>
+
+{% if form_widget.live_validation %}
+    <script>
+        $(document).ready(function () {
+            $('#{{ field.name }}').on('input', function () {
+                updateSelectFieldValidationStatus($(this));
+            });
+        });
+    </script>
+{% endif %}

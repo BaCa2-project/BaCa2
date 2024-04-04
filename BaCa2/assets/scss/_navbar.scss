@@ -25,6 +25,11 @@
             .nav-item.active a {
                 color: safe_get($map, $navbar_default_variables, active_link_color);
             }
+
+            .nav-divider {
+                width: 1px;
+                background-color: safe_get($map, $navbar_default_variables, divider_color);
+            }
         }
 
         .icon-wrapper svg {

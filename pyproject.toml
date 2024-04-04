@@ -31,7 +31,7 @@ colorlog = "^6.8.2"
 django-split-settings = "^1.2.0"
 markdown = "^3.5.2"
 python-markdown-math = "^0.8"
-libinjection-python = "^1.1.6"
+django-bootstrap-icons = "^0.8.7"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.6.0"

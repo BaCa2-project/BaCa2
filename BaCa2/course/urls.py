@@ -1,14 +1,14 @@
 from django.urls import path
 
 from .views import (
-    CourseView,
     CourseTask,
-    CourseTaskAdmin,
+    CourseView,
     ResultModelView,
     RoundEditView,
     RoundModelView,
     SubmitModelView,
     SubmitSummaryView,
+    TaskEditView,
     TaskModelView
 )
 
@@ -18,7 +18,7 @@ urlpatterns = [
     path('', CourseView.as_view(), name='course-view'),
     path('round-edit/', RoundEditView.as_view(), name='round-edit-view'),
     path('task/<int:task_id>/', CourseTask.as_view(), name='task-view'),
-    path('task/<int:task_id>/admin/', CourseTaskAdmin.as_view(), name='task-admin'),
+    path('task/<int:task_id>/edit/', TaskEditView.as_view(), name='task-edit-view'),
     path('submit/<int:submit_id>/', SubmitSummaryView.as_view(), name='submit-summary-view'),
 
     path('models/round/', RoundModelView.as_view(), name='round-model-view'),

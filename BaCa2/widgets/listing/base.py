@@ -40,6 +40,10 @@ class TableWidget(Widget):
         - :class:`Widget`
     """
 
+    LOCALISATION = {
+        'pl': '//cdn.datatables.net/plug-ins/2.0.3/i18n/pl.json',
+    }
+
     def __init__(self,
                  *,
                  name: str,
@@ -49,7 +53,6 @@ class TableWidget(Widget):
                  title: str = '',
                  display_title: bool = True,
                  allow_global_search: bool = True,
-                 allow_column_search: bool = True,
                  allow_select: bool = False,
                  deselect_on_filter: bool = True,
                  allow_delete: bool = False,
@@ -67,7 +70,8 @@ class TableWidget(Widget):
                  default_order_asc: bool = True,
                  stripe_rows: bool = True,
                  highlight_rows_on_hover: bool = False,
-                 hide_col_headers: bool = False) -> None:
+                 hide_col_headers: bool = False,
+                 language: str = 'pl', ) -> None:
         """
         :param name: The name of the table widget. Names are used as ids for the HTML <table>
             elements of the rendered table widgets.
@@ -95,8 +99,6 @@ class TableWidget(Widget):
         :param allow_global_search: Whether to display a global search field in the util header
             above the table.
         :type allow_global_search: bool
-        :param allow_column_search: Whether to display a search field for each searchable column.
-        :type allow_column_search: bool
         :param allow_select: Whether to allow selecting rows in the table.
         :type allow_select: bool
         :param deselect_on_filter: Whether to deselect all selected filtered out rows when global
@@ -144,6 +146,9 @@ class TableWidget(Widget):
         :type highlight_rows_on_hover: bool
         :param hide_col_headers: Whether to hide the column headers.
         :type hide_col_headers: bool
+        :param language: The language of the table. The language is used to set the DataTables
+            language option. If not set, the language is set up from default django/user settings.
+        :type language: str
         """
         super().__init__(name=name, request=request)
 
@@ -208,7 +213,6 @@ class TableWidget(Widget):
             self.ajax = False
 
         self.allow_global_search = allow_global_search
-        self.allow_column_search = allow_column_search
         self.deselect_on_filter = deselect_on_filter
         self.link_format_string = link_format_string
         self.refresh_button = refresh_button
@@ -238,6 +242,9 @@ class TableWidget(Widget):
             self.table_height = ''
             self.resizable_height = False
 
+        self.language_cdn = ''  # self.LOCALISATION.get(language)
+        # TODO: Localisation overwrites our table styling. For now it's disabled. BWA-65
+
     @staticmethod
     def get_default_order_col_index(default_order_col: str, cols: List[Column]) -> int:
         """
@@ -260,13 +267,13 @@ class TableWidget(Widget):
             'display_util_header': self.display_util_header(),
             'display_title': self.display_title,
             'allow_global_search': json.dumps(self.allow_global_search),
-            'allow_column_search': self.allow_column_search,
             'deselect_on_filter': json.dumps(self.deselect_on_filter),
             'ajax': json.dumps(self.ajax),
             'data_source_url': self.data_source_url,
             'data_source': self.data_source,
             'link_format_string': self.link_format_string or json.dumps(False),
             'cols': [col.get_context() for col in self.cols],
+            'DT_cols_data': [col.data_tables_context() for col in self.cols],
             'cols_num': len(self.cols),
             'table_buttons': self.table_buttons,
             'paging': self.paging.get_context() if self.paging else json.dumps(False),
@@ -282,7 +289,8 @@ class TableWidget(Widget):
             'allow_delete': self.allow_delete,
             'delete_button': self.delete_button,
             'delete_record_form_widget': self.delete_record_form_widget.get_context()
-            if self.delete_record_form_widget else None
+            if self.delete_record_form_widget else None,
+            'localisation_cdn': self.language_cdn
         }
 
     def display_util_header(self) -> bool:
@@ -398,7 +406,7 @@ class DeleteRecordFormWidget(FormWidget):
         """
         super().__init__(request=request,
                          form=form,
-                         post_target=post_url,
+                         post_target_url=post_url,
                          name=name,
                          submit_confirmation_popup=SubmitConfirmationPopup(
                              title=_('Confirm record deletion'),

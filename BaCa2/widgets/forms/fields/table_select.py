@@ -47,7 +47,6 @@ class TableSelectField(IntegerArrayField):
             'title': label,
             'data_source': data_source_url,
             'cols': cols,
-            'allow_column_search': allow_column_search,
             'allow_select': True,
             'deselect_on_filter': False,
             'highlight_rows_on_hover': True,
@@ -67,7 +66,7 @@ class TableSelectField(IntegerArrayField):
         attributes. Required for the JavaScript and styling to work properly.
         """
         attrs = super().widget_attrs(widget)
-        attrs['class'] = 'table-select-field'
+        attrs['class'] = 'table-select-input'
         attrs['data-table-id'] = self.table_widget_id
         return attrs
 

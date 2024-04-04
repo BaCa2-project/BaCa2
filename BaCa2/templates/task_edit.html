@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+
+{% block content %}
+    {% with widgets.FormWidget.edit_task_form_widget as form_widget %}
+        {% include "widget_templates/forms/task_edit_form.html" %}
+    {% endwith %}
+{% endblock %}

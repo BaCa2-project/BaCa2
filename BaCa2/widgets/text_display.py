@@ -20,13 +20,15 @@ class TextDisplayer(Widget):
         Special case displayer widget used when no file to display is provided. Will be rendered
         as a specified message (defaulting to "No file to display").
         """
-        def __init__(self, name: str, message: str = _('No file to display')) -> None:
+        def __init__(self, name: str, message: str = None) -> None:
             """
             :param name: Name of the widget.
             :type name: str
             :param message: Message to be displayed in place of the file.
             :type message: str
             """
+            if message is None:
+                message = _('No file to display')
             super().__init__(name=name)
             self.message = message
 
@@ -36,7 +38,7 @@ class TextDisplayer(Widget):
     def __init__(self,
                  name: str,
                  file_path: Path,
-                 no_file_message: str = _('No file to display'),
+                 no_file_message: str = None,
                  **kwargs) -> None:
         """
         :param name: Name of the widget.
@@ -52,6 +54,8 @@ class TextDisplayer(Widget):
             selected based on the format of the file provided.
         :type kwargs: dict
         """
+        if no_file_message is None:
+            no_file_message = _('No file to display')
         super().__init__(name=name)
 
         if not file_path:
@@ -90,7 +94,7 @@ class MarkupDisplayer(Widget):
                  file_path: Path,
                  line_height: float = 1.2,
                  limit_display_height: bool = True,
-                 display_height: int = 50,
+                 display_height: int = 40,
                  pdf_download: Path = None) -> None:
         """
         :param name: Name of the widget.

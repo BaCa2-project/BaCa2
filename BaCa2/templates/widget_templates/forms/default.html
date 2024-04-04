@@ -1,5 +1,13 @@
 {% extends 'widget_templates/forms/base.html' %}
 
+{% block form_header %}
+    {% if form_widget.form_observer %}
+        {% with form_widget.form_observer as form_observer %}
+            {% include 'widget_templates/forms/form_observer.html' %}
+        {% endwith %}
+    {% endif %}
+{% endblock %}
+
 {% block form_fields %}
     {% for hidden_field in form_widget.form.hidden_fields %}
         {% if not hidden_field.field.widget.attrs.class == 'table-select-field' %}
@@ -10,4 +18,8 @@
     {% with form_widget.elements as element_group %}
         {% include 'widget_templates/forms/element_group.html' %}
     {% endwith %}
+{% endblock %}
+
+{% block form_footer %}
+    {% include 'widget_templates/forms/footer.html' %}
 {% endblock %}

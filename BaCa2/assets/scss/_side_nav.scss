@@ -40,13 +40,21 @@
     }
 }
 
+.tab-wrapper {
+    display: none;
+
+    .side-nav-tab {
+        overflow: hidden;
+    }
+}
+
 // ------------------------------------ padding & margin -------------------------------------- //
 
 .side-nav {
     padding: 0;
 
     .side-nav-content {
-        padding: 0;
+        padding: 0.5rem 0 0;
         margin: 0;
 
         .tab-button {
@@ -74,9 +82,12 @@
     }
 }
 
+.tab-wrapper .side-nav-tab {
+    padding: 0.5rem;
+}
+
 // ----------------------------------------- dropdown ----------------------------------------- //
 
-// side-nav dropdown
 .side-nav {
     .tab-button {
         .sub-tabs-wrapper {
@@ -96,31 +107,6 @@
         .sub-tabs-wrapper {
             grid-template-rows: 1fr;
         }
-    }
-}
-
-// page content dropdown
-.tab-wrapper {
-    display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows 0.5s ease-out;
-
-    &.active {
-        .side-nav-tab {
-            overflow: visible;
-            animation: 1.5s delay-overflow-visible;
-        }
-        grid-template-rows: 1fr;
-    }
-
-    .side-nav-tab {
-        overflow: hidden;
-    }
-}
-
-@keyframes delay-overflow-visible {
-    from {
-        overflow: hidden;
     }
 }
 

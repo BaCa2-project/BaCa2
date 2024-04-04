@@ -10,9 +10,7 @@ from django.forms.forms import DeclarativeFieldsMetaclass
 from django.utils.translation import gettext_lazy as _
 
 from core.choices import ModelAction
-from main.models import Course
 from util.models import model_cls
-from util.models_registry import ModelsRegistry
 from util.responses import BaCa2JsonResponse, BaCa2ModelResponse
 from widgets.base import Widget
 from widgets.popups.forms import SubmitConfirmationPopup, SubmitFailurePopup, SubmitSuccessPopup
@@ -434,7 +432,7 @@ class FormWidget(Widget):
                  *,
                  request,
                  form: forms.Form,
-                 post_target: FormPostTarget | str = None,
+                 post_target_url: str = '',
                  name: str = '',
                  button_text: str = None,
                  refresh_button: bool = True,
@@ -445,6 +443,7 @@ class FormWidget(Widget):
                  toggleable_fields: List[str] = None,
                  toggleable_params: Dict[str, Dict[str, str]] = None,
                  live_validation: bool = True,
+                 form_observer: FormObserver = None,
                  submit_confirmation_popup: SubmitConfirmationPopup = None,
                  submit_success_popup: SubmitSuccessPopup = None,
                  submit_failure_popup: SubmitFailurePopup = None) -> None:
@@ -453,9 +452,9 @@ class FormWidget(Widget):
         :type request: HttpRequest
         :param form: Form to be rendered.
         :type form: forms.Form
-        :param post_target: Target URL for the form's POST request. If no target is specified, the
-            form will be posted to the same URL as the page it is rendered on.
-        :type post_target: :class:`FormPostTarget` | str
+        :param post_target_url: Target URL for the form's POST request. If no target is specified,
+            the form will be posted to the same URL as the page it is rendered on.
+        :type post_target_url: str
         :param name: Name of the widget. If no name is specified, the name of the form will be used
             to generate the widget name.
         :type name: str
@@ -484,6 +483,9 @@ class FormWidget(Widget):
         :param live_validation: Determines whether the form should use live validation. Password
             fields will always be excluded from live validation.
         :type live_validation: bool
+        :param form_observer: Determines the rendering and behavior of the form observer. If no
+            observer is specified, no observer will be rendered.
+        :type form_observer: :class:`FormObserver`
         :param submit_confirmation_popup: Determines the rendering of the confirmation popup shown
             before submitting the form. If no popup is specified, no popup will be shown and the
             form will be submitted immediately upon clicking the submit button.
@@ -525,6 +527,7 @@ class FormWidget(Widget):
         super().__init__(name=name, request=request)
         self.form = form
         self.form_cls = form.__class__.__name__
+        self.post_url = post_target_url
         self.button_text = button_text
         self.refresh_button = refresh_button
         self.display_non_field_validation = display_non_field_validation
@@ -532,6 +535,11 @@ class FormWidget(Widget):
         self.floating_labels = floating_labels
         self.live_validation = live_validation
         self.show_response_popups = False
+
+        if form_observer:
+            form_observer.name = f'{self.name}_observer'
+            form_observer = form_observer.get_context()
+        self.form_observer = form_observer
 
         if submit_confirmation_popup:
             submit_confirmation_popup.name = f'{self.name}_confirmation_popup'
@@ -575,12 +583,6 @@ class FormWidget(Widget):
                 included_fields[field.name] = True
 
         self.elements = FormElementGroup(elements=elements, name='form_elements')
-
-        if not post_target:
-            post_target = ''
-        if isinstance(post_target, FormPostTarget):
-            post_target = post_target.get_post_url()
-        self.post_url = post_target
 
         if not toggleable_fields:
             toggleable_fields = []
@@ -633,91 +635,12 @@ class FormWidget(Widget):
             'field_required': self.field_required,
             'field_min_length': self.field_min_length,
             'live_validation': self.live_validation,
+            'form_observer': self.form_observer,
             'submit_confirmation_popup': self.submit_confirmation_popup,
             'show_response_popups': self.show_response_popups,
             'submit_failure_popup': self.submit_failure_popup,
             'submit_success_popup': self.submit_success_popup,
         }
-
-
-# -------------------------------------- form post targets ------------------------------------- #
-
-class FormPostTarget(ABC):
-    """
-    Abstract base class for all classes used to specify the target URL for a form's POST request.
-
-    See Also:
-        - :class:`FormWidget`
-        - :class:`ModelFormPostTarget`
-        - :class:`CourseModelFormPostTarget`
-    """
-
-    @abstractmethod
-    def get_post_url(self) -> str:
-        """
-        Returns the URL to which the form's POST request should be sent.
-        """
-        raise NotImplementedError('This method has to be implemented by inheriting classes.')
-
-
-class ModelFormPostTarget(FormPostTarget):
-    """
-    Class used to generate the default database model view URL as the target for a form's POST
-    request.
-
-    See Also:
-        - :class:`FormWidget`
-        - :class:`FormPostTarget`
-    """
-
-    def __init__(self, model: model_cls) -> None:
-        """
-        :param model: Model class which view the form's POST request should be sent to.
-        :type model: Type[Model]
-        """
-        self.model = model
-
-    def get_post_url(self) -> str:
-        """
-        Returns the URL of the model view of the given model class.
-
-        :return: URL of the model view
-        :rtype: str
-        """
-        return f'/{self.model._meta.app_label}/models/{self.model._meta.model_name}/'
-
-
-class CourseModelFormPostTarget(ModelFormPostTarget):
-    """
-    Class used to generate the course database model view URL as the target for a form's POST
-    request.
-
-    See Also:
-        - :class:`FormWidget`
-        - :class:`ModelPostTarget`
-    """
-
-    def __init__(self, model: model_cls, course: str | int | Course) -> None:
-        """
-        :param model: Model class which view the form's POST request should be sent to.
-        :type model: Type[Model]
-        :param course: Course which the model belongs to. Can be specified as the course's short
-            name, ID or model instance.
-        :type course: str | int | Course
-        """
-        if not isinstance(course, str):
-            course = ModelsRegistry.get_course(course).short_name
-        self.course = course
-        super().__init__(model)
-
-    def get_post_url(self) -> str:
-        """
-        Returns the URL of the model view of the given model class for the specified course.
-
-        :return: URL of the model view
-        :rtype: str
-        """
-        return f'course/{self.course}/models/{self.model._meta.model_name}/'
 
 
 # -------------------------------------- form element group ------------------------------------ #
@@ -745,6 +668,8 @@ class FormElementGroup(Widget):
                  *,
                  elements: List[str | FormElementGroup],
                  name: str,
+                 title: str = '',
+                 display_title: bool = False,
                  request=None,
                  layout: FormElementsLayout = FormElementsLayout.VERTICAL,
                  toggleable: bool = False,
@@ -756,6 +681,10 @@ class FormElementGroup(Widget):
         :type elements: List[str | :class:`FormElementGroup`]
         :param name: Name of the group.
         :type name: str
+        :param title: Title of the group. If no title is specified, the group will not have a title.
+        :type title: str
+        :param display_title: Determines whether the title should be displayed above the group.
+        :type display_title: bool
         :param request: HTTP request object received by the parent form widget.
         :type request: HttpRequest
         :param layout: Layout of the form elements in the group.
@@ -769,8 +698,16 @@ class FormElementGroup(Widget):
         :type toggleable_params: Dict[str, str]
         :param frame: Determines whether the group should be displayed in a frame.
         :type frame: bool
+        :raises ValueError: If no title is specified and the display_title parameter is set to True.
         """
         super().__init__(name=name, request=request)
+
+        if not title and display_title:
+            raise ValueError('A title must be specified if the display_title parameter is set '
+                             'to True.')
+
+        self.title = title
+        self.display_title = display_title
         self.elements = elements
         self.toggleable = toggleable
         self.layout = layout.value
@@ -820,9 +757,75 @@ class FormElementGroup(Widget):
 
     def get_context(self) -> Dict[str, Any]:
         return super().get_context() | {
+            'title': self.title,
+            'display_title': self.display_title,
             'elements': self.elements,
             'layout': self.layout,
             'toggleable': self.toggleable,
             'toggleable_params': self.toggleable_params,
             'frame': self.frame
+        }
+
+
+# ------------------------------------ form observer widget ------------------------------------ #
+
+class FormObserver(Widget):
+    class Position(Enum):
+        TOP = 'top'
+        BOTTOM = 'bottom'
+
+    def __init__(self, *,
+                 name: str = '',
+                 title: str = '',
+                 placeholder_text: str = '',
+                 display_element_group_titles: bool = True,
+                 tabs: List[FormObserverTab] = None,
+                 position: FormObserver.Position = None) -> None:
+        super().__init__(name=name)
+
+        if not title:
+            title = _('Summary of changes')
+        self.title = title
+
+        if not placeholder_text:
+            placeholder_text = _('No changes made')
+        self.placeholder_text = placeholder_text
+
+        self.display_element_group_titles = display_element_group_titles
+
+        if not tabs:
+            tabs = []
+        self.tabs = tabs
+
+        if not position:
+            position = FormObserver.Position.TOP
+        self.position = position.value
+
+    def get_context(self) -> Dict[str, Any]:
+        return super().get_context() | {
+            'title': self.title,
+            'placeholder_text': self.placeholder_text,
+            'element_group_titles': self.display_element_group_titles,
+            'position': self.position,
+            'tabs': [tab.get_context() for tab in self.tabs]
+        }
+
+
+class FormObserverTab:
+    def __init__(self, *, name: str, title: str = '', fields: List[str]) -> None:
+        if not fields:
+            raise ValueError('At least one field must be specified for the tab.')
+
+        self.name = name
+        self.fields = fields
+
+        if not title:
+            title = name
+        self.title = title
+
+    def get_context(self) -> Dict[str, str]:
+        return {
+            'name': self.name,
+            'title': self.title,
+            'fields': ' '.join(self.fields)
         }

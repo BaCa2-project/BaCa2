@@ -1,0 +1,23 @@
+{% load bootstrap_icons %}
+
+<th class="{{ col.col_type }} {% if col.sortable == "true" %} pe-5 {% endif %}"
+    data-searchable="{{ col.searchable }}"
+    data-sortable="{{ col.sortable }}"
+    data-col-name="{{ col.name }}">
+    {% if col.searchable == "true" and col.search_header %}
+        {% if col.header_icon %}
+            <div class="input-group">
+                <span class="input-group-text">
+                    {% bs_icon col.header_icon %}
+                </span>
+        {% endif %}
+        <input type="text"
+               class="column-search form-control"
+               placeholder="{{ col.header }}">
+        {% if col.header_icon %}
+            </div>
+        {% endif %}
+    {% else %}
+        {% include 'widget_templates/listing/column_header.html' %}
+    {% endif %}
+</th>

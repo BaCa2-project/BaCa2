@@ -1,0 +1,63 @@
+{% load widget_tweaks %}
+{% load custom_tags %}
+
+<div class="input-block mb-3">
+    <div class="input-group
+            {% if field.name in form_widget.toggleable_fields %}
+                toggleable
+                {% if field.value %}
+                    toggleable-on
+                {% else %}
+                    toggleable-off
+                {% endif %}
+            {% endif %}
+            {% if form_widget.live_validation %}
+                live-validation
+            {% endif %}">
+        {% if form_widget.floating_labels %}
+            <div class="form-floating">
+        {% else %}
+            {% include 'widget_templates/forms/field_label.html' %}
+        {% endif %}
+
+        {% include 'widget_templates/forms/form_control_field.html' %}
+
+        {% if field.help_text %}
+            <small class="form-text text-muted">{{ field.help_text }}</small>
+        {% endif %}
+
+        {% if form_widget.floating_labels %}
+            {% include 'widget_templates/forms/field_label.html' %}
+            </div>
+        {% endif %}
+
+        {% if field.name in form_widget.toggleable_fields %}
+            {% with button_params=form_widget.toggleable_params|get_item:field.name %}
+                <button class="btn btn-outline-secondary
+                               text-switch-btn switch-off
+                               field-toggle-btn"
+                        data-text-on="{{ button_params|get_item:'button_text_on'}}"
+                        data-text-off="{{ button_params|get_item:'button_text_off'}}"
+                        data-initial-state="off">
+                </button>
+            {% endwith %}
+        {% endif %}
+    </div>
+
+    {% include 'widget_templates/forms/field_errors.html' %}
+</div>
+
+{% if form_widget.live_validation and field.field.widget.input_type != "password" %}
+    <script>
+        $(document).ready( function () {
+            $('#{{ field.name }}').on('input', function () {
+                updateValidationStatus(
+                    this,
+                    '{{ form_widget.form_cls }}',
+                    '{{ form_widget.form.instance_id }}',
+                    '{{ form_widget.field_min_length|get_item:field.name }}',
+                    '{% url 'field-validation' %}');
+            });
+        });
+    </script>
+{% endif %}
