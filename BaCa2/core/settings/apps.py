@@ -2,7 +2,6 @@
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
-    'mozilla_django_oidc',  # login uj required
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
@@ -10,9 +9,11 @@ INSTALLED_APPS = [
     'django.contrib.sites',
 
     'django_extensions',  # https://github.com/django-extensions/django-extensions
+    'django_bootstrap_icons',  # https://pypi.org/project/django-bootstrap-icons/
     'dbbackup',  # https://github.com/jazzband/django-dbbackup
-
     'widget_tweaks',  # https://github.com/jazzband/django-widget-tweaks
+
+    'mozilla_django_oidc',  # login uj required
 
     # LOCAL APPS
     'broker_api.apps.BrokerApiConfig',
@@ -25,6 +26,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',

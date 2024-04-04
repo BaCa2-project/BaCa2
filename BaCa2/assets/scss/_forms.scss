@@ -54,3 +54,9 @@
         transform: scale(1.01, 1.05);
     }
 }
+
+.form-observer {
+    .group-summary:not(.has-fields) {
+        display: none;
+    }
+}

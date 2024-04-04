@@ -20,7 +20,8 @@ from util.responses import BaCa2JsonResponse, BaCa2ModelResponse
 from util.views import BaCa2ContextMixin, BaCa2LoggedInView, BaCa2ModelView
 from widgets.forms import FormWidget
 from widgets.forms.course import (
-    AddMembersForm,
+    AddMemberForm,
+    AddMembersFromCSVForm,
     AddRoleForm,
     AddRolePermissionsForm,
     AddRolePermissionsFormWidget,
@@ -58,6 +59,7 @@ class CourseModelView(BaCa2ModelView):
     def check_get_filtered_permission(self,
                                       filter_params: dict,
                                       exclude_params: dict,
+                                      serialize_kwargs: dict,
                                       query_result: List[Course],
                                       request,
                                       **kwargs) -> bool:
@@ -72,6 +74,9 @@ class CourseModelView(BaCa2ModelView):
         :param exclude_params: Query parameters used to construct the exclude filter for the
             retrieved query set.
         :type exclude_params: dict
+        :param serialize_kwargs: Kwargs passed to the serialization method of the model class
+            instances retrieved by the view when the JSON response is generated.
+        :type serialize_kwargs: dict
         :param query_result: Query set retrieved using the specified query parameters evaluated to a
             list.
         :type query_result: List[:class:`Course`]
@@ -115,7 +120,9 @@ class CourseModelView(BaCa2ModelView):
         elif form_name == f'{Course.BasicAction.DEL.label}_form':
             return DeleteCourseForm.handle_post_request(request)
         elif form_name == f'{Course.CourseAction.ADD_MEMBER.label}_form':
-            return AddMembersForm.handle_post_request(request)
+            return AddMemberForm.handle_post_request(request)
+        elif form_name == f'{Course.CourseAction.ADD_MEMBERS_CSV.label}_form':
+            return AddMembersFromCSVForm.handle_post_request(request)
         elif form_name == f'{Course.CourseAction.ADD_ROLE.label}_form':
             return AddRoleForm.handle_post_request(request)
         elif form_name == f'{Course.CourseAction.DEL_ROLE.label}_form':
@@ -155,6 +162,7 @@ class UserModelView(BaCa2ModelView):
     def check_get_filtered_permission(self,
                                       filter_params: dict,
                                       exclude_params: dict,
+                                      serialize_kwargs: dict,
                                       query_result: List[User],
                                       request,
                                       **kwargs) -> bool:
@@ -169,6 +177,9 @@ class UserModelView(BaCa2ModelView):
         :param exclude_params: Query parameters used to construct the exclude filter for the
             retrieved query set.
         :type exclude_params: dict
+        :param serialize_kwargs: Kwargs passed to the serialization method of the model class
+            instances retrieved by the view when the JSON response is generated.
+        :type serialize_kwargs: dict
         :param query_result: Query set retrieved using the specified query parameters evaluated to a
             list.
         :type query_result: List[:class:`User`]
@@ -231,6 +242,7 @@ class RoleModelView(BaCa2ModelView):
     def check_get_filtered_permission(self,
                                       filter_params: dict,
                                       exclude_params: dict,
+                                      serialize_kwargs: dict,
                                       query_result: List[Role],
                                       request,
                                       **kwargs) -> bool:
@@ -245,6 +257,9 @@ class RoleModelView(BaCa2ModelView):
         :param exclude_params: Query parameters used to construct the exclude filter for the
             retrieved query set.
         :type exclude_params: dict
+        :param serialize_kwargs: Kwargs passed to the serialization method of the model class
+            instances retrieved by the view when the JSON response is generated.
+        :type serialize_kwargs: dict
         :param query_result: Query set retrieved using the specified query parameters evaluated to a
             list.
         :type query_result: List[:class:`Role`]
@@ -317,12 +332,13 @@ class BaCa2LoginView(BaCa2ContextMixin, LoginView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['page_title'] = _('Login')
 
         self.add_widget(context, FormWidget(
             name='login_form',
             request=self.request,
             form=self.get_form(),
-            button_text=_('Login'),
+            button_text=_('Log in'),
             display_field_errors=False,
             live_validation=False,
         ))
@@ -396,6 +412,8 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['page_title'] = _('Admin')
+
         sidenav = SideNav(request=self.request,
                           collapsed=False,
                           toggle_button=True,
@@ -466,10 +484,11 @@ class DashboardView(BaCa2LoggedInView):
     See also:
         - :class:`BaCa2LoggedInView`
     """
-    template_name = 'dashboard.html'
+    template_name = 'development_info.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['user_first_name'] = self.request.user.first_name
         return context
 
 
@@ -485,6 +504,8 @@ class CoursesView(BaCa2LoggedInView):
     def get_context_data(self, **kwargs):
         user_id = self.request.user.id
         context = super().get_context_data(**kwargs)
+        context['page_title'] = _('Courses')
+
         self.add_widget(context, TableWidget(
             name='courses_table_widget',
             request=self.request,
@@ -492,7 +513,6 @@ class CoursesView(BaCa2LoggedInView):
             data_source=CourseModelView.get_url(mode=BaCa2ModelView.GetMode.FILTER,
                                                 filter_params={'role_set__user': user_id},
                                                 serialize_kwargs={'user': user_id}),
-            allow_column_search=True,
             cols=[
                 TextColumn(name='name', header='Name', searchable=True),
                 TextColumn(name='USOS_term_code', header='Semester', searchable=True),
@@ -500,6 +520,7 @@ class CoursesView(BaCa2LoggedInView):
             ],
             link_format_string='/course/[[id]]/',
         ))
+
         return context
 
 
@@ -519,11 +540,13 @@ class RoleView(BaCa2LoggedInView, UserPassesTestMixin):
         return False
 
     def get_context_data(self, **kwargs) -> dict:
-        context = super().get_context_data(**kwargs)
         role = ModelsRegistry.get_role(self.kwargs.get('role_id'))
         course = role.course
+        self.request.course_id = course.id
+        context = super().get_context_data(**kwargs)
         user = getattr(self.request, 'user')
         sidenav_tabs = ['Overview', 'Members']
+        context['page_title'] = f'{course.name} - {role.name}'
 
         # overview -------------------------------------------------------------------------------
 
@@ -538,7 +561,7 @@ class RoleView(BaCa2LoggedInView, UserPassesTestMixin):
             cols=[TextColumn(name='codename', header=_('Codename')),
                   TextColumn(name='name', header=_('Name'))],
             refresh_button=True,
-            height_limit=35
+            table_height=35
         )
         self.add_widget(context, permissions_table)
 
@@ -596,7 +619,7 @@ class ProfileView(BaCa2LoggedInView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
+        context['page_title'] = _('Profile')
         user = self.request.user
 
         sidenav = SideNav(
@@ -619,7 +642,6 @@ class ProfileView(BaCa2LoggedInView):
                 {'description': _('Last name'), 'value': user.last_name},
                 {'description': _('Superuser'), 'value': user.is_superuser},
             ],
-            allow_column_search=False,
             allow_global_search=False,
             hide_col_headers=True,
             default_sorting=False,
@@ -636,7 +658,7 @@ class ProfileView(BaCa2LoggedInView):
             button_text=_('Change password'),
             display_field_errors=False,
             live_validation=False,
-            post_target=reverse_lazy('main:change-password'),
+            post_target_url=reverse_lazy('main:change-password'),
         ))
         context['change_password_title'] = _('Change password')
 

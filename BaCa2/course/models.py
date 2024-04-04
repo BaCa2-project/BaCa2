@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any, List, Self
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -11,6 +11,7 @@ from django.db import models, transaction
 from django.db.models import Count
 from django.db.models.base import ModelBase
 from django.utils.timezone import now
+from django.utils.translation import gettext_lazy as _
 
 from baca2PackageManager import TestF, TSet
 from baca2PackageManager.broker_communication import BrokerToBaca
@@ -18,12 +19,15 @@ from baca2PackageManager.tools import bytes_from_str, bytes_to_str
 from core.choices import (
     EMPTY_FINAL_STATUSES,
     HALF_EMPTY_FINAL_STATUSES,
+    FallOffPolicy,
     ModelAction,
     ResultStatus,
+    ScoreSelectionPolicy,
     SubmitType,
     TaskJudgingMode
 )
 from core.exceptions import DataError
+from core.tools.falloff import FallOff
 from core.tools.misc import str_to_datetime
 from course.routing import InCourse, OptionalInCourse
 from util.models_registry import ModelsRegistry
@@ -140,6 +144,8 @@ class RoundManager(models.Manager):
                      name: str = None,
                      end_date: datetime = None,
                      reveal_date: datetime = None,
+                     score_selection_policy: ScoreSelectionPolicy = ScoreSelectionPolicy.BEST,
+                     fall_off_policy: FallOffPolicy = FallOffPolicy.SQUARE,
                      course: str | int | Course = None) -> Round:
         """
         It creates a new round object, but validates it first.
@@ -154,6 +160,13 @@ class RoundManager(models.Manager):
         :type end_date: datetime
         :param reveal_date: The results reveal date for the round, defaults to None (optional)
         :type reveal_date: datetime
+        :param score_selection_policy: The policy for selecting the task score from user's submits,
+            defaults to ScoreSelectionPolicy.BEST (optional)
+        :type score_selection_policy: :class:`core.choices.ScoreSelectionPolicy`
+        :param fall_off_policy: Points fall-off policy for tasks in the round
+            (max points until deadline, linear fall-off, square fall-off), defaults to
+            FallOffPolicy.SQUARE (optional)
+        :type fall_off_policy: :class:`core.choices.FallOffPolicy`
         :param course: The course that the round is in, if None - acquired from external definition
             (optional)
         :type course: str | int | Course
@@ -178,7 +191,9 @@ class RoundManager(models.Manager):
                                    deadline_date=deadline_date,
                                    name=name,
                                    end_date=end_date,
-                                   reveal_date=reveal_date)
+                                   reveal_date=reveal_date,
+                                   score_selection_policy=score_selection_policy,
+                                   fall_off_policy=fall_off_policy)
             new_round.save()
             return new_round
 
@@ -230,9 +245,25 @@ class Round(models.Model, metaclass=ReadCourseMeta):
     deadline_date = models.DateTimeField()
     #: The date and time when the round results will be visible for everyone.
     reveal_date = models.DateTimeField(null=True)
+    #: The policy for selecting the task score from user's submits.
+    score_selection_policy = models.CharField(choices=ScoreSelectionPolicy.choices,
+                                              default=ScoreSelectionPolicy.BEST,
+                                              max_length=4)
+    #: Points fall-off policy for tasks in the round
+    #: (max points until deadline, linear fall-off, square fall-off)
+    fall_off_policy = models.CharField(choices=FallOffPolicy.choices,
+                                       default=FallOffPolicy.NONE, )
 
     #: The manager for the Round model.
     objects = RoundManager()
+
+    RESCORE_TRIGGERS = {
+        'start_date',
+        'deadline_date',
+        'end_date',
+        'score_selection_policy',
+        'fall_off_policy'
+    }
 
     class BasicAction(ModelAction):
         """
@@ -274,13 +305,21 @@ class Round(models.Model, metaclass=ReadCourseMeta):
         :param kwargs: The new values for the round object.
         :type kwargs: dict
         """
+        rescore_planned = False
         for key, value in kwargs.items():
             if key in ('start_date', 'deadline_date', 'end_date',
                        'reveal_date') and isinstance(value, str):
                 value = str_to_datetime(value)
+
+            if getattr(self, key) != value and key in self.RESCORE_TRIGGERS:
+                rescore_planned = True
+
             setattr(self, key, value)
         self.validate_dates(self.start_date, self.deadline_date, self.end_date)
         self.save()
+
+        if rescore_planned:
+            self.rescore_tasks()
 
     @transaction.atomic
     def delete(self, using: Any = None, keep_parents: bool = False):
@@ -303,6 +342,25 @@ class Round(models.Model, metaclass=ReadCourseMeta):
         return self.start_date <= now() <= self.deadline_date
 
     @property
+    def is_started(self) -> bool:
+        """
+        :return: True if round is started, False otherwise
+        :rtype: bool
+        """
+        return self.start_date <= now()
+
+    def get_fall_off(self) -> FallOff:
+        """
+        :return: Fall-off object with get_factor method
+        :rtype: FallOff
+        """
+        return FallOff[FallOffPolicy[self.fall_off_policy]](
+            start=self.start_date,
+            end=self.end_date,
+            deadline=self.deadline_date
+        )
+
+    @property
     def tasks(self) -> List[Task]:
         """
         It returns all the tasks that are associated with the round
@@ -321,6 +379,13 @@ class Round(models.Model, metaclass=ReadCourseMeta):
         :return: The amount of points that can be gained for completing all the tasks in the round.
         """
         return sum(task.points for task in self.tasks)
+
+    def rescore_tasks(self) -> None:
+        """
+        Rescores all tasks for the round.
+        """
+        for task in self.tasks:
+            task.rescore_submits()
 
     def __str__(self):
         return f'Round {self.pk}: {self.name}'
@@ -342,7 +407,8 @@ class Round(models.Model, metaclass=ReadCourseMeta):
             'end_date': self.end_date,
             'deadline_date': self.deadline_date,
             'reveal_date': self.reveal_date,
-            'normalized_name': SideNav.normalize_tab_name(self.name)
+            'normalized_name': SideNav.normalize_tab_name(self.name),
+            'score_selection_policy': self.score_selection_policy,
         }
         if add_formatted_dates:
             res |= {
@@ -410,19 +476,62 @@ class TaskManager(models.Manager):
             return new_task
 
     @transaction.atomic
-    def delete_task(self, task: int | Task, course: str | int | Course = None) -> None:
+    def update_task(self,
+                    task: int | Task,
+                    new_package_instance: int | PackageInstance,
+                    **kwargs) -> Task:
+        """
+        It creates a new task object from the old one, and initialises it using data from
+        `PackageManager`. Old task is marked as legacy and new task is returned.
+
+        :param task: Old task that will be updated
+        :type task: int | Task
+        :param new_package_instance: New package instance that will be used to update the task
+        :type new_package_instance: int | PackageInstance
+
+        :return: A new task object.
+        :rtype: Task
+        """
+
+        old_task = ModelsRegistry.get_task(task)
+        new_package_instance = ModelsRegistry.get_package_instance(new_package_instance)
+
+        new_task = self.model(
+            package_instance_id=new_package_instance.pk,
+            task_name=kwargs.get('task_name', old_task.task_name),
+            round=kwargs.get('round', old_task.round),
+            judging_mode=kwargs.get('judging_mode', old_task.judging_mode),
+            points=kwargs.get('points', old_task.points)
+        )
+        new_task.save()
+        new_task.initialise_task()
+
+        old_task.updated_task = new_task
+        old_task.is_legacy = True
+        old_task.save()
+
+        return new_task
+
+    @transaction.atomic
+    def delete_task(self,
+                    task: int | Task,
+                    with_ancestors: bool = True,
+                    course: str | int | Course = None) -> None:
         """
         It deletes a task object (with all the test sets and tests that are associated with it).
 
         :param task: The task id that you want to delete.
         :type task: int
+        :param with_ancestors: If True, all legacy ancestors of the task will be deleted as well,
+            defaults to True (optional)
+        :type with_ancestors: bool
         :param course: The course that the task is in, if None - acquired from external definition
             (optional)
         :type course: str | int | Course
         """
         task = ModelsRegistry.get_task(task, course)
         with OptionalInCourse(course):
-            task.delete()
+            task.delete(with_ancestors=with_ancestors)
 
     @staticmethod
     def package_instance_exists_validator(package_instance: int) -> bool:
@@ -460,9 +569,21 @@ class Task(models.Model, metaclass=ReadCourseMeta):
     )
     #: Maximum amount of points to be earned by completing this task.
     points = models.FloatField()
+    #: When task is updated, new instance is created - old submits have to be supported.
+    #: Submit.update gives access to rejudging with the newest task version
+    updated_task = models.ForeignKey(
+        to='course.Task',
+        on_delete=models.SET_NULL,
+        null=True,
+        default=None
+    )
+    #: Indicates if task is legacy task, which is used only to support legacy submits
+    is_legacy = models.BooleanField(default=False)
 
     #: The manager for the Task model.
     objects = TaskManager()
+
+    RESCORE_TRIGGERS = {'judging_mode', 'points', 'round'}
 
     class BasicAction(ModelAction):
         """
@@ -478,6 +599,77 @@ class Task(models.Model, metaclass=ReadCourseMeta):
                 f'Judging mode: {TaskJudgingMode[self.judging_mode].label}; '
                 f'Package: {self.package_instance}')
 
+    def get_fall_off(self) -> FallOff:
+        """
+        :return: Fall-off object with get_factor method
+        :rtype: FallOff
+        """
+        return self.round.get_fall_off()
+
+    @property
+    def is_open(self):
+        """
+        :return: True if task is open now, False otherwise
+        :rtype: bool
+        """
+        return self.round.is_open
+
+    @property
+    def is_started(self):
+        """
+        :return: True if task is started, False otherwise
+        :rtype: bool
+        """
+        return self.round.is_started
+
+    def can_submit(self, user: str | int | User) -> bool:
+        """
+        Checks if user can submit a solution to the task.
+
+        :param user: The user who wants to submit a solution.
+        :type user: str | int | User
+        :return: True if user can submit a solution, False otherwise.
+        :rtype: bool
+        """
+        from main.models import Course
+        user = ModelsRegistry.get_user(user)
+        course = InCourse.get_context_course()
+        return any((
+            user.has_course_permission(Course.CourseAction.ADD_SUBMIT.label,
+                                       course) and self.is_open,
+            user.has_course_permission(Course.CourseAction.ADD_SUBMIT_AFTER_DEADLINE.label,
+                                       course) and self.is_started,
+            user.has_course_permission(Course.CourseAction.ADD_SUBMIT_BEFORE_START.label,
+                                       course) and not self.is_started,
+            user.has_course_permission(
+                Course.CourseAction.ADD_SUBMIT_BEFORE_START.label,
+                course
+            ) and user.has_course_permission(
+                Course.CourseAction.ADD_SUBMIT_AFTER_DEADLINE.label,
+                course
+            )
+        ))
+
+    @transaction.atomic
+    def update_data(self, **kwargs) -> None:
+        """
+        Updates the task object with new values.
+
+        :param kwargs: The new values for the task object.
+        :type kwargs: dict
+        """
+        rescore_planned = False
+        for key, value in kwargs.items():
+            if getattr(self, key) != value and key in self.RESCORE_TRIGGERS:
+                rescore_planned = True
+
+            setattr(self, key, value)
+
+        self.save()
+
+        if rescore_planned:
+            self.rescore_submits()
+
     def initialise_task(self) -> None:
         """
         It initialises the task by creating a new instance of the Task class, and adding all task
@@ -489,14 +681,43 @@ class Task(models.Model, metaclass=ReadCourseMeta):
         for t_set in pkg.sets():
             TestSet.objects.create_from_package(t_set, self)
 
+    @property
+    def legacy_ancestors(self) -> List[Task]:
+        """
+        :return: List of all legacy ancestors  of the task
+        :rtype: List[Task]
+        """
+        result = []
+        parents = Task.objects.filter(updated_task=self).all()
+        for task in parents:
+            result.append(task)
+            result.extend(task.legacy_ancestors)
+        return result
+
     @transaction.atomic
-    def delete(self, using=None, keep_parents=False):
+    def delete(self, using=None, keep_parents=False, with_ancestors: bool = True):
         """
         It deletes the task object, and all the test sets and tests that are associated with it.
         """
+        if with_ancestors:
+            for ancestor in self.legacy_ancestors:
+                ancestor.delete(with_ancestors=False)
+
         for t_set in self.sets:
             t_set.delete()
         super().delete(using, keep_parents)
+
+    @property
+    def newest_update(self) -> Task:
+        """
+        :return: Newest update of the task
+        :rtype: Task
+        """
+        result = self
+        while result.updated_task:
+            result = result.updated_task
+
+        return result
 
     @property
     def sets(self) -> List[TestSet]:
@@ -533,8 +754,7 @@ class Task(models.Model, metaclass=ReadCourseMeta):
         :return: A PackageInstance object.
         :rtype: PackageInstance
         """
-        from package.models import PackageInstance
-        return PackageInstance.objects.get(pk=self.package_instance_id)
+        return ModelsRegistry.get_package_instance(self.package_instance_id)
 
     @transaction.atomic
     def refresh_user_submits(self, user: str | int | User, rejudge: bool = False) -> None:
@@ -552,60 +772,114 @@ class Task(models.Model, metaclass=ReadCourseMeta):
         for submit in Submit.objects.filter(task=self, usr=user.pk).all():
             submit.score(rejudge=rejudge)
 
-    def submits(self, user: str | int | User = None) -> List[Submit]:
+    def submits(self,
+                user: str | int | User = None,
+                add_hidden: bool = False,
+                add_control: bool = False) -> List[Submit]:
         """
         It returns all the submits that are associated with the task. If user is specified,
         returns only submits of that user.
 
         :param user: The user who submitted the task, defaults to None (optional)
         :type user: str | int | User
+        :param add_hidden: If True, hidden submits will be added to the list, defaults to False
+            (optional)
+        :type add_hidden: bool
+        :param add_control: If True, control submits will be added to the list, defaults to False
+            (optional)
+        :type add_control: bool
 
         :return: A list of all the Submit objects that are associated with the Task object.
         :rtype: List[Submit]
         """
+        allowed_submit_types = [SubmitType.STD]
+        if add_hidden:
+            allowed_submit_types.append(SubmitType.HID)
+        if add_control:
+            allowed_submit_types.append(SubmitType.CTR)
         if user is None:
-            return list(Submit.objects.filter(task=self).all())
+            return list(
+                Submit.objects.filter(task=self, submit_type__in=allowed_submit_types).all())
         user = ModelsRegistry.get_user(user)
         return list(Submit.objects.filter(task=self, usr=user.pk).all())
 
-    def last_submit(self, user: str | int | User, amount=1) -> Submit | List[Submit]:
+    def last_submit(self, user: str | int | User, amount=1) -> Submit | List[Submit] | None:
         """
-        It returns the last submit of a user for a task or a list of 'amount' last submits to that
-        task.
-
-        :param user: The user who submitted the task
+        :param user: A user who may submit solutions to the task
         :type user: str | int | User
         :param amount: The amount of submits to return, defaults to 1 (optional)
         :type amount: int
-
         :return: The last submit of a user for a task or a list of 'amount' last submits to that
-            task.
-        :rtype: Submit | List[Submit]
+            task. If the user has not submitted any solutions, returns None.
+        :rtype: Submit | List[Submit] | None
         """
         user = ModelsRegistry.get_user(user)
         self.refresh_user_submits(user)
+        query_set = Submit.objects.filter(task=self, usr=user.pk)
+
+        if not query_set.exists():
+            return None
+
         if amount == 1:
-            return Submit.objects.filter(task=self, usr=user.pk).order_by('-submit_date').first()
-        return Submit.objects.filter(task=self, usr=user.pk).order_by('-submit_date').all()[:amount]
+            return query_set.order_by('-submit_date').first()
 
-    def best_submit(self, user: str | int | User, amount=1) -> Submit | List[Submit]:
+        return query_set.order_by('-submit_date').all()[:amount]
+
+    def best_submit(self, user: str | int | User, amount=1) -> Submit | List[Submit] | None:
         """
-        It returns the best submit of a user for a task or list of 'amount' best submits to that
-        task.
+        :param user: A user who may submit solutions to the task
+        :type user: str | int | User
+        :param amount: The amount of submits to return, defaults to 1 (optional)
+        :type amount: int
+        :return: The best submit of a user for a task or a list of 'amount' best submits to that
+            task. If the user has not submitted any solutions, returns None.
+        :rtype: Submit | List[Submit] | None
+        """
+        user = ModelsRegistry.get_user(user)
+        self.refresh_user_submits(user)
+        query_set = Submit.objects.filter(task=self, usr=user.pk)
 
+        if not query_set.exists():
+            return None
+
+        if amount == 1:
+            return query_set.order_by('-final_score').first()
+
+        return query_set.order_by('-final_score').all()[:amount]
+
+    def user_scored_submit(self, user: str | int | User) -> Submit | None:
+        """
+        :param user: A user who may submit solutions to the task
+        :type user: str | int | User
+        :return: The submit from which the user task score is calculated, selected based on the
+            score selection policy of the round the task belongs to. If the user has not submitted
+            any solutions, returns None.
+        :rtype: Submit | None
+        """
+        ssp = self.round.score_selection_policy
+        submit = None
+
+        if ssp == ScoreSelectionPolicy.BEST:
+            submit = self.best_submit(user)
+        elif ssp == ScoreSelectionPolicy.LAST:
+            submit = self.last_submit(user)
+
+        return submit
+
+    def user_score(self, user: str | int | User) -> float | None:
+        """
         :param user: The user who submitted the solution
         :type user: str | int | User
-        :param amount: The amount of submits you want to get, defaults to 1 (optional)
-        :type amount: int
-
-        :return: The best submit of a user for a task or list of 'amount' best submits to that task.
-        :rtype: Submit | List[Submit]
+        :return: The score of the user for the task based on the score selection policy of the
+            round the task belongs to. If the user has not submitted any solutions, returns None.
+        :rtype: float | None
         """
-        user = ModelsRegistry.get_user(user)
-        self.refresh_user_submits(user)
-        if amount == 1:
-            return Submit.objects.filter(task=self, usr=user.pk).order_by('-final_score').first()
-        return Submit.objects.filter(task=self, usr=user.pk).order_by('-final_score').all()[:amount]
+        submit = self.user_scored_submit(user)
+
+        if submit is None:
+            return None
+
+        return submit.score()
 
     @classmethod
     def check_instance(cls, pkg_instance: PackageInstance, in_every_course: bool = True) -> bool:
@@ -637,19 +911,73 @@ class Task(models.Model, metaclass=ReadCourseMeta):
                     return True
         return False
 
-    def get_data(self) -> dict:
+    @property
+    def legacy_submits_amount(self) -> int:
         """
+        :return: Amount of submits for the task, which are legacy submits
+        :rtype: int
+        """
+        if self.is_legacy:
+            submits = Submit.objects.filter(task=self,
+                                            submit_type__in=(SubmitType.STD, SubmitType.CTR),
+                                            task__is_legacy=True).count()
+        else:
+            submits = 0
+        for task in Task.objects.filter(updated_task_id=self.pk):
+            submits += task.legacy_submits_amount
+        return submits
+
+    def update_submits(self):
+        """
+        Updates all submits for the task.
+        """
+        if self.is_legacy:
+            for submit in self.submits(add_control=True):
+                submit.update()
+
+        old_versions = Task.objects.filter(updated_task=self)
+        for task in old_versions:
+            task.update_submits()
+
+    def rescore_submits(self) -> None:
+        """
+        Rescores all submits for the task.
+        """
+        for submit in self.submits(add_control=True):
+            submit.score(rejudge=True)
+
+    def get_data(self,
+                 submitter: int | str | User = None,
+                 add_legacy_submits_amount: bool = False) -> dict:
+        """
+        :param submitter: The user for whom a task score should be calculated
+        :type submitter: int | str | User
+        :param add_legacy_submits_amount: If True, the amount of legacy submits will be added to the
+            data, defaults to False (optional)
+        :type add_legacy_submits_amount: bool
         :return: The data of the task.
         :rtype: dict
         """
+        additional_data = {}
+
+        if submitter:
+            submit = self.user_scored_submit(submitter)
+            additional_data['user_score'] = submit.score() if submit else None
+            additional_data['user_formatted_score'] = submit.summary_score if submit else '---'
+
+        if add_legacy_submits_amount:
+            submits_amount = self.legacy_submits_amount
+            additional_data['legacy_submits_amount'] = submits_amount
+            additional_data['has_legacy_submits'] = submits_amount > 0
+
         return {
             'id': self.pk,
             'name': self.task_name,
             'round_name': self.round.name,
             'judging_mode': self.judging_mode,
             'points': self.points,
-            # 'package_instance': self.package_instance,
-        }
+            'is_legacy': self.is_legacy,
+        } | additional_data
 
 
 class TestSetManager(models.Manager):
@@ -871,7 +1199,9 @@ class SubmitManager(models.Manager):
                       submit_type: SubmitType = SubmitType.STD,
                       submit_status: ResultStatus = ResultStatus.PND,
                       error_msg: str = None,
-                      retry: int = 0) -> Submit:
+                      retry: int = 0,
+                      fixed_fall_off_factor: float = None,
+                      **kwargs) -> Submit:
         """
         It creates a new submit object.
 
@@ -897,13 +1227,19 @@ class SubmitManager(models.Manager):
         :type error_msg: str
         :param retry: The number of retry, defaults to 0 (optional)
         :type retry: int
+        :param fixed_fall_off_factor: The fixed fall-off factor of the submit, defaults to None
+            (optional)
+        :type fixed_fall_off_factor: float
 
         :return: A new submit object.
         :rtype: Submit
         """
+        submit_date = submit_date or now()
         task = ModelsRegistry.get_task(task)
         user = ModelsRegistry.get_user(user)
         source_code = ModelsRegistry.get_source_code(source_code)
+        if fixed_fall_off_factor is None and submit_type == SubmitType.CTR:
+            fixed_fall_off_factor = 1
         new_submit = self.model(submit_date=submit_date,
                                 source_code=source_code,
                                 task=task,
@@ -912,10 +1248,12 @@ class SubmitManager(models.Manager):
                                 submit_type=submit_type,
                                 submit_status=submit_status,
                                 error_msg=error_msg,
-                                retries=retry)
+                                retries=retry,
+                                fixed_fall_off_factor=fixed_fall_off_factor,
+                                )
         new_submit.save()
         if auto_send:
-            new_submit.send()
+            new_submit.send(**kwargs)
         return new_submit
 
     @transaction.atomic
@@ -952,7 +1290,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
     """
 
     #: Datetime when submit took place.
-    submit_date = models.DateTimeField(auto_now_add=True)
+    submit_date = models.DateTimeField()
     #: Field submitted to the task
     source_code = models.FilePathField(path=settings.SUBMITS_DIR,
                                        allow_files=True,
@@ -977,9 +1315,24 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
     #: Final score (as percent), gained by user's submission. Before solution check score is set
     #: to ``-1``.
     final_score = models.FloatField(default=-1)
+    #: Fall-off factor for the submit, that is recalculated every round change.
+    fixed_fall_off_factor = models.FloatField(null=True, default=None)
 
     #: The manager for the Submit model.
     objects = SubmitManager()
+
+    class Meta:
+        permissions = [
+            ('view_code', _('Can view submit code')),
+            ('view_compilation_logs', _('Can view submit compilation logs')),
+            ('view_checker_logs', _('Can view submit checker logs')),
+            ('view_student_output', _('Can view output generated by the student solution')),
+            ('view_benchmark_output', _('Can view benchmark output')),
+            ('view_inputs', _('Can view test inputs')),
+            ('view_used_memory', _('Can view used memory')),
+            ('view_used_time', _('Can view used time')),
+            ('rejudge_submit', _('Can rejudge submit')),
+        ]
 
     class BasicAction(ModelAction):
         """
@@ -998,20 +1351,34 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         """
         return Path(self.source_code)
 
-    def send(self) -> BrokerSubmit:
+    @property
+    def is_legacy(self) -> bool:
         """
-        It sends the submit to the broker.
+        :return: True if submit is legacy, False otherwise.
+        :rtype: bool
+        """
+        return self.task.is_legacy
 
-        :return: A new BrokerSubmit object.
-        :rtype: BrokerSubmit
+    def send(self, **kwargs) -> BrokerSubmit | None:
+        """
+        It sends the submit to the broker. If the broker is mocked, it will run the mock broker and
+        return None.
+
+        :return: A new BrokerSubmit object or None if the broker is mocked.
+        :rtype: BrokerSubmit | None
         """
         from broker_api.models import BrokerSubmit
+        if settings.MOCK_BROKER:
+            from broker_api.mock import BrokerMock
+            mock = BrokerMock(ModelsRegistry.get_course(self._state.db), self, **kwargs)
+            mock.run()
+            return None
 
         return BrokerSubmit.send(ModelsRegistry.get_course(self._state.db),
                                  self.id,
                                  self.task.package_instance)
 
-    def resend(self, limit_retries: int = -1) -> BrokerSubmit:
+    def resend(self, limit_retries: int = -1) -> Submit:
         """
         It marks this submit as hidden, and creates new submit with the same data. New submit will
         be sent to broker.
@@ -1019,8 +1386,6 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         :return: A new BrokerSubmit object.
         :rtype: BrokerSubmit
         """
-        from broker_api.models import BrokerSubmit
-
         if -1 < limit_retries < self.retries:
             raise ValidationError(f'Submit ({self}): Limit of retries exceeded')
 
@@ -1029,17 +1394,35 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         self.save()
 
         new_submit = self.objects.create_submit(
+            submit_date=self.submit_date,
             source_code=self.source_code,
             task=self.task,
             user=self.usr,
-            auto_send=False,
             submit_type=sub_type,
             retry=self.retries + 1
         )
 
-        return BrokerSubmit.send(ModelsRegistry.get_course(self._state.db),
-                                 new_submit.id,
-                                 new_submit.task.package_instance)
+        return new_submit
+
+    def update(self) -> Self | None:
+        """
+        It updates the submit to the newest task update
+        """
+        if not self.is_legacy:
+            return None
+
+        new_task = self.task.newest_update
+
+        new_submit = Submit.objects.create_submit(
+            submit_date=self.submit_date,
+            source_code=self.source_code,
+            task=new_task,
+            user=self.usr,
+            submit_type=self.submit_type,
+        )
+        self.submit_type = SubmitType.HID
+        self.save()
+        return new_submit
 
     def delete(self, using=None, keep_parents=False):
         """
@@ -1087,6 +1470,16 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
 
         self.final_score = 0
         self.save()
+
+    @property
+    def fall_off_factor(self) -> float:
+        """
+        :return: Fall-off factor for the submit
+        :rtype: float
+        """
+        if self.fixed_fall_off_factor is not None:
+            return self.fixed_fall_off_factor
+        return self.task.get_fall_off().get_factor(self.submit_date)
 
     @transaction.atomic
     def score(self, rejudge: bool = False) -> float:
@@ -1187,32 +1580,48 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
             final_score += s['score'] * weight
 
         self.final_score = round(final_score / final_weight, 6)
+        self.final_score *= self.fall_off_factor
         self.submit_status = worst_status
         self.save()
         return self.final_score
 
     @staticmethod
-    def format_score(score: float, rnd: int = 2) -> str:
+    def format_score(score: float,
+                     rnd: int = 2,
+                     include_submit_points: bool = False,
+                     task_points: float = None) -> str:
         """
-        It formats the score to a string.
-
-        :param score: The score that you want to format.
+        :param score: The score to be formatted. Must be between 0 and 1.
         :type score: float
-        :param rnd: The amount of decimal places, defaults to 2 (optional)
+        :param rnd: The number of decimal places to round the score to, defaults to 2 (optional)
         :type rnd: int
-
+        :param include_submit_points: If True, the submit points will be included in the formatted
+            score, defaults to False (optional)
+        :type include_submit_points: bool
+        :param task_points: The amount of points that the task is worth, only required if
+            include_submit_points is True
+        :type task_points: float
         :return: The formatted score.
         :rtype: str
         """
+        if score == -1:
+            return '---'
+
+        _score = score
         score = round(score * 100, rnd)
-        return f'{score:.{rnd}f}' if score > -1 else '---'
+        f_score = f'{score:.{rnd}f} %'
+
+        if not include_submit_points:
+            return f_score
+        if task_points is None:
+            raise ValueError('task_points must be provided if include_submit_points is True')
+
+        return f'{round(task_points * _score, 2)} ({f_score})'
 
     @property
-    def task_score(self) -> float:
+    def submit_points(self) -> float:
         """
-        It returns the amount of points that can be gained for completing the task.
-
-        :return: The amount of points that can be gained for completing the task.
+        :return: The amount of points that the submit is worth (task points * submit score).
         :rtype: float
         """
         return round(self.task.points * self.score(), 2)
@@ -1220,7 +1629,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
     @property
     def summary_score(self) -> str:
         score = self.score()
-        return f'{self.task_score} ({self.format_score(score, 1)} %)' if score > -1 else '---'
+        return self.format_score(score, 1, True, self.task.points)
 
     @property
     def formatted_submit_status(self) -> str:
@@ -1235,13 +1644,14 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
     def get_data(self,
                  show_user: bool = True,
                  add_round_task_name: bool = False,
-                 add_summary_score: bool = False) -> dict:
+                 add_summary_score: bool = False,
+                 add_falloff_info: bool = False) -> dict:
         """
         :return: The data of the submit.
         :rtype: dict
         """
         score = self.score()
-        task_score = self.task_score
+        task_score = self.submit_points
         res = {
             'id': self.pk,
             'submit_date': self.submit_date,
@@ -1250,14 +1660,19 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
             'task_score': task_score if score > -1 else '---',
             'final_score': self.format_score(score),
             'submit_status': self.formatted_submit_status,
+            'is_legacy': self.is_legacy,
         }
         if show_user:
-            res |= {'user_first_name': self.user.first_name,
-                    'user_last_name': self.user.last_name}
+            res |= {'user_first_name': self.user.first_name if self.user.first_name else '---',
+                    'user_last_name': self.user.last_name if self.user.last_name else '---'}
         if add_round_task_name:
             res |= {'round_task_name': f'{self.task.round.name}: {self.task.task_name}'}
         if add_summary_score:
             res |= {'summary_score': self.summary_score}
+        if add_falloff_info:
+            res |= {
+                'fall_off_factor': self.format_score(self.fall_off_factor),
+            }
         return res
 
 
@@ -1313,7 +1728,10 @@ class ResultManager(models.Manager):
                       status: str | ResultStatus = ResultStatus.PND,
                       time_real: float = None,
                       time_cpu: float = None,
-                      runtime_memory: int = None) -> Result:
+                      runtime_memory: int = None,
+                      compile_log: str = None,
+                      checker_log: str = None,
+                      answer: str = None) -> Result:
         """
         It creates a new result object.
 
@@ -1329,6 +1747,12 @@ class ResultManager(models.Manager):
         :type time_cpu: float
         :param runtime_memory: The runtime memory of the result, defaults to None (optional)
         :type runtime_memory: int
+        :param compile_log: The compile log of the result, defaults to None (optional)
+        :type compile_log: str
+        :param checker_log: The checker log of the result, defaults to None (optional)
+        :type checker_log: str
+        :param answer: The answer of the result, defaults to None (optional)
+        :type answer: str
 
         :return: A new result object.
         :rtype: Result
@@ -1341,7 +1765,10 @@ class ResultManager(models.Manager):
                                 status=status,
                                 time_real=time_real,
                                 time_cpu=time_cpu,
-                                runtime_memory=runtime_memory)
+                                runtime_memory=runtime_memory,
+                                compile_log=compile_log,
+                                checker_log=checker_log,
+                                answer=answer)
         new_result.save()
         return new_result
 
@@ -1403,22 +1830,28 @@ class Result(models.Model, metaclass=ReadCourseMeta):
             self.submit.score(rejudge=True)
 
     def get_data(self,
+                 include_time: bool = False,
+                 include_memory: bool = False,
                  format_time: bool = True,
                  format_memory: bool = True,
                  translate_status: bool = True,
                  add_limits: bool = True,
                  add_compile_log: bool = False,
                  add_checker_log: bool = False,
-                 add_user_answer: bool = False,) -> dict:
+                 add_user_answer: bool = False, ) -> dict:
         res = {
             'id': self.pk,
             'test_name': self.test.short_name,
             'status': self.status,
-            'time_real': self.time_real,
-            'time_cpu': self.time_cpu,
-            'runtime_memory': self.runtime_memory
         }
-        if format_time:
+
+        if include_time:
+            res['time_real'] = self.time_real
+            res['time_cpu'] = self.time_cpu
+        if include_memory:
+            res['runtime_memory'] = self.runtime_memory
+
+        if include_time and format_time:
             res['f_time_real'] = f'{self.time_real:.3f} s' if self.time_real else None
             res['f_time_cpu'] = f'{self.time_cpu:.3f} s' if self.time_cpu else None
             if self.status in HALF_EMPTY_FINAL_STATUSES:
@@ -1428,7 +1861,7 @@ class Result(models.Model, metaclass=ReadCourseMeta):
                 time_limit = round(self.test.package_test['time_limit'], 3)
                 res['f_time_real'] += f' / {time_limit} s'
                 res['f_time_cpu'] += f' / {time_limit} s'
-        if format_memory and self.runtime_memory:
+        if include_memory and format_memory and self.runtime_memory:
             res['f_runtime_memory'] = f'{bytes_to_str(self.runtime_memory)}'
             if self.status in HALF_EMPTY_FINAL_STATUSES:
                 res['f_runtime_memory'] = self.status
@@ -1440,11 +1873,17 @@ class Result(models.Model, metaclass=ReadCourseMeta):
 
         if add_compile_log:
             res['compile_log'] = self.compile_log
+        else:
+            res['compile_log'] = ''
 
         if add_checker_log:
             res['checker_log'] = self.checker_log
+        else:
+            res['checker_log'] = ''
 
         if add_user_answer:
             res['user_answer'] = self.answer
+        else:
+            res['user_answer'] = ''
 
         return res

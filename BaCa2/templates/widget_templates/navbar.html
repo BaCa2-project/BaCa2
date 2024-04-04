@@ -20,10 +20,15 @@
         <div class="collapse navbar-collapse" id="collapsible">
             <ul class="navbar-nav me-auto links">
                 {% for link in navbar_widget.links %}
-                    <li class="nav-item {% if request.path == link.url %} active {% endif %} me-2">
-                        <a class="nav-link hover-underline"
-                           href="{{ link.url }}">{{ link.name }}</a>
-                    </li>
+                    {% if link == '|' %}
+                        <li class="ms-2 me-3 nav-divider"></li>
+                    {% else %}
+                        <li class="nav-item me-2
+                                   {% if request.path == link.url %} active {% endif %}">
+                            <a class="nav-link hover-underline"
+                               href="{{ link.url }}">{{ link.name }}</a>
+                        </li>
+                    {% endif %}
                 {% endfor %}
             </ul>
             <ul class="navbar-nav">

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, List
 
+from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Group, Permission
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
@@ -10,6 +11,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from core.choices import BasicModelAction, ModelAction, PermissionCheck, UserJob
+from core.tools.misc import try_getting_name_from_email
 from course.manager import create_course as create_course_db
 from course.manager import delete_course as delete_course_db
 from course.routing import InCourse
@@ -116,6 +118,24 @@ class UserManager(BaseUserManager):
                                  is_superuser=True,
                                  **other_fields)
 
+    def get_or_create(self, email: str, **kwargs):
+        """
+        Get or create a user with given email. If a user with given email already exists, the user
+        is returned. If no user with given email exists, a new user is created with given email and
+        any other provided fields.
+
+        :param email: Email of the user to get or create.
+        :type email: str
+        :param kwargs: Values for non-required user fields.
+
+        :return: The user with given email or the newly created user.
+        :rtype: :py:class:`User`
+        """
+        try:
+            return self.get(email=email)
+        except self.model.DoesNotExist:
+            return self.create_user(email=email, **kwargs)
+
     @staticmethod
     @transaction.atomic
     def delete_user(user: str | int | User) -> None:
@@ -126,6 +146,58 @@ class UserManager(BaseUserManager):
         :type user: str | int | :py:class:`User`
         """
         ModelsRegistry.get_user(user).delete()
+
+    @staticmethod
+    def is_email_allowed(email: str) -> bool:
+        """
+        Check if given email is allowed by the system. Allowed emails are defined in
+        core.settings.login.ALLOWED_INTERNAL_EMAILS.
+
+        :param email: Email to check.
+        :type email: str
+        :return: True if the email is allowed, False otherwise.
+        :rtype: bool
+        """
+        postfix = email.split('@')[-1]
+        return f'@{postfix}' in settings.ALLOWED_INTERNAL_EMAILS
+
+    def create_if_allowed(self, email: str) -> User:
+        """
+        Create new user if email is allowed by the system. Allowed emails are defined in
+        core.settings.login.ALLOWED_INTERNAL_EMAILS.
+
+        :param email: Email of the user to create.
+        :type email: str
+        :return: The newly created user.
+        :rtype: :py:class:`User`
+
+        :raises ValidationError: If the email is not allowed by the system.
+        """
+        if not self.is_email_allowed(email):
+            raise ValidationError(_('Email is not in internal domain. '
+                                    'To add external users contact your administrator'))
+
+        first_name, last_name = try_getting_name_from_email(email)
+        return self.create_user(email=email,
+                                first_name=first_name,
+                                last_name=last_name)
+
+    def get_or_create_if_allowed(self, email: str) -> User:
+        """
+        Get or create a user with given email if email is allowed by the system. Allowed emails are
+        defined in core.settings.login.ALLOWED_INTERNAL_EMAILS.
+
+        :param email: Email of the user to get or create.
+        :type email: str
+        :return: The user with given email or the newly created user.
+        :rtype: :py:class:`User`
+
+        :raises ValidationError: If the email is not allowed by the system.
+        """
+        try:
+            return self.get(email=email)
+        except self.model.DoesNotExist:
+            return self.create_if_allowed(email=email)
 
 
 class CourseManager(models.Manager):
@@ -407,6 +479,7 @@ class Course(models.Model):
             ('remove_course_member', _('Can remove course members')),
             ('change_course_member_role', _('Can change course member\'s role')),
             ('add_course_admin', _('Can add course admins')),
+            ('add_course_members_csv', _('Can add course members from CSV')),
 
             # Role related permissions
             ('view_course_role', _('Can view course role')),
@@ -416,7 +489,12 @@ class Course(models.Model):
 
             # Solution related permissions
             ('view_own_submit', _('Can view own submits')),
+            ('add_submit_after_deadline', _('Can add submit after round deadline')),
+            ('add_submit_before_start', _('Can add submit before round start')),
             ('view_own_result', _('Can view own results')),
+
+            # Task related permissions
+            ('reupload_task', _('Can reupload task')),
         ]
 
     class BasicAction(ModelAction):
@@ -429,6 +507,7 @@ class Course(models.Model):
         # Member related actions
         VIEW_MEMBER = 'view_member', 'view_course_member'
         ADD_MEMBER = 'add_member', 'add_course_member'
+        ADD_MEMBERS_CSV = 'add_members_csv', 'add_course_members_csv'
         DEL_MEMBER = 'remove_member', 'remove_course_member'
         CHANGE_MEMBER_ROLE = 'change_member_role', 'change_course_member_role'
         ADD_ADMIN = 'add_admin', 'add_course_admin'
@@ -450,6 +529,8 @@ class Course(models.Model):
         ADD_TASK = 'add_task', 'add_task'
         EDIT_TASK = 'edit_task', 'change_task'
         DEL_TASK = 'delete_task', 'delete_task'
+        REUPLOAD_TASK = 'reupload_task', 'reupload_task'
+        REJUDGE_TASK = 'rejudge_task', 'rejudge_task'
 
         # Submit related actions
         VIEW_SUBMIT = 'view_submit', 'view_submit'
@@ -457,12 +538,23 @@ class Course(models.Model):
         ADD_SUBMIT = 'add_submit', 'add_submit'
         EDIT_SUBMIT = 'edit_submit', 'change_submit'
         DEL_SUBMIT = 'delete_submit', 'delete_submit'
+        REJUDGE_SUBMIT = 'rejudge_submit', 'rejudge_submit'
+        ADD_SUBMIT_AFTER_DEADLINE = 'add_submit_after_deadline', 'add_submit_after_deadline'
+        ADD_SUBMIT_BEFORE_START = 'add_submit_before_start', 'add_submit_before_start'
 
         # Result related actions
         VIEW_RESULT = 'view_result', 'view_result'
         VIEW_OWN_RESULT = 'view_own_result', 'view_own_result'
         EDIT_RESULT = 'edit_result', 'change_result'
         DEL_RESULT = 'delete_result', 'delete_result'
+        VIEW_CODE = 'view_code', 'view_code'
+        VIEW_COMPILE_LOG = 'view_compilation_logs', 'view_compilation_logs'
+        VIEW_CHECKER_LOG = 'view_checker_logs', 'view_checker_logs'
+        VIEW_STUDENT_OUTPUT = 'view_student_output', 'view_student_output'
+        VIEW_BENCHMARK_OUTPUT = 'view_benchmark_output', 'view_benchmark_output'
+        VIEW_INPUTS = 'view_inputs', 'view_inputs'
+        VIEW_USED_MEMORY = 'view_used_memory', 'view_used_memory'
+        VIEW_USED_TIME = 'view_used_time', 'view_used_time'
 
     # ---------------------------------- Course representation --------------------------------- #
 
@@ -770,7 +862,8 @@ class Course(models.Model):
     @transaction.atomic
     def add_members(self,
                     users: List[str] | List[int] | List[User],
-                    role: str | int | Role) -> None:
+                    role: str | int | Role,
+                    ignore_errors: bool = False) -> None:
         """
         Assign given list of users to the course with given role. If no role is specified, the users
         are assigned to the course with the default role. Cannot be used to assign users to the
@@ -783,8 +876,11 @@ class Course(models.Model):
             assigned to the course with the default role. The role can be specified as either the
             role object, its id or its name.
         :type role: Role | str | int | None
+        :param ignore_errors: If set to True, the method will not raise an error if a user is not a
+            member of the course. Instead, the user will be skipped.
+        :type ignore_errors: bool
         """
-        ModelsRegistry.get_role(role, self).add_members(users)
+        ModelsRegistry.get_role(role, self).add_members(users, ignore_errors=ignore_errors)
 
     @transaction.atomic
     def add_admin(self, user: str | int | User) -> None:
@@ -2007,37 +2103,46 @@ class Role(models.Model):
         return self.user_set.filter(id=ModelsRegistry.get_user_id(user)).exists()
 
     @transaction.atomic
-    def add_member(self, user: str | int | User) -> None:
+    def add_member(self, user: str | int | User, ignore_errors: bool = False) -> None:
         """
         Add a user to the role.
 
         :param user: User to add. The user can be specified as either the user object, its email or
             its id.
         :type user: str | int | User
+        :param ignore_errors: If set to `True`, the method will not raise an error if the user is
+            already assigned to the role.
+        :type ignore_errors: bool
 
         :raises Role.RoleMemberError: If the user is already assigned to the role.
         """
         user = ModelsRegistry.get_user(user)
 
-        if self.user_is_member(user):
+        user_is_member = self.user_is_member(user)
+        if user_is_member and not ignore_errors:
             raise Role.RoleMemberError(f'Attempted to add user {user} to role {self} who is '
                                        f'already assigned to it')
-
-        self.user_set.add(user)
+        if not user_is_member:
+            self.user_set.add(user)
 
     @transaction.atomic
-    def add_members(self, users: List[str] | List[int] | List[User]) -> None:
+    def add_members(self,
+                    users: List[str] | List[int] | List[User],
+                    ignore_errors: bool = False) -> None:
         """
         Add multiple users to the role.
 
         :param users: List of users to add. The users can be specified as either the user objects,
             their emails or their ids.
         :type users: List[str] | List[int] | List[User]
+        :param ignore_errors: If set to `True`, the method will not raise an error if a user is
+            already assigned to the role.
+        :type ignore_errors: bool
         """
         users = ModelsRegistry.get_users(users)
 
         for user in users:
-            self.add_member(user)
+            self.add_member(user, ignore_errors=ignore_errors)
 
     @transaction.atomic
     def remove_member(self, user: str | int | User) -> None:

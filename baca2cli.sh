@@ -46,6 +46,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         --update-poetry)
             UPDATE_POETRY=true
+            REBOOT=true
             shift
             ;;
         --status)
@@ -213,12 +214,31 @@ if [ "$CLEAR_DB" = true ]; then
     chmod 777 /home/www/BaCa2/BaCa2/core/db/db.cache
     print_result
     echo ""
+    echo "Clearing course databases:"
+    echo -n "    introspecting..."
+    sudo -u postgres psql -c "select datname from pg_database;" -t | grep _db > to_delete.txt
+
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}no db found${NC}"
+    else
+        echo -e "${GREEN}done${NC}"
+        echo "    dropping:"
+        while read -r line; do
+            echo -n "        $line..."
+            sudo -u postgres psql -c "DROP DATABASE IF EXISTS $line;" > /dev/null 2>&1
+            print_result
+        done < to_delete.txt
+        echo -n "    removing to_delete.txt..."
+        rm to_delete.txt
+        print_result
+    fi
+    echo ""
 fi
 
 if [ "$CLEAR_SUBMITS" = true ]; then
     echo "Clearing submits:"
     echo -n "    from baca2 web app..."
-    rm -rf /home/www/BaCa2/BaCa2/aubmits/*
+    rm -rf /home/www/BaCa2/BaCa2/submits/*
     print_result
     echo -n "    from baca2 broker..."
     rm -rf /home/www/BaCa2-broker/submits/*
@@ -262,12 +282,17 @@ if [ "$CLEAR_DB" = true ]; then
 fi
 
 if [ "$UPDATE_POETRY" = true ]; then
-    echo -n "Updating poetry environments"
-    echo -n "    baca2 web app..."
-    /home/www/.cache/pypoetry/virtualenvs/baca2-pMI66htX-py3.11/bin/poetry update > /dev/null 2>&1
+    echo "Updating poetry environments"
+    echo -n "    clear cache..."
+    sudo -u www -D "/home/www/BaCa2" poetry cache clear --all . -n
     print_result
+    echo "    baca2 web app:"
+    sudo -u www -D /home/www/BaCa2 poetry update --all . -n
+    echo -n "    baca2 web app --- "
+    print_result
+    echo "    baca2 broker:"
+    sudo -u www -D "/home/www/BaCa2-broker" poetry update --all . -n
     echo -n "    baca2 broker..."
-    /home/www/.cache/pypoetry/virtualenvs/baca2-broker-5CIAXw5I-py3.11/bin/poetry update > /dev/null 2>&1
     print_result
     echo ""
 fi

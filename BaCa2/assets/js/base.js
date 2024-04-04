@@ -1,6 +1,7 @@
 function preInitCommon() {
     formsPreSetup();
     tablesPreSetup();
+    themePreSetup();
 }
 
 function initCommon() {
@@ -12,6 +13,7 @@ function initCommon() {
     tablesSetup();
     formsSetup();
     sideNavSetup();
+    themeSetup();
 }
 
 function showPage() {
@@ -20,6 +22,6 @@ function showPage() {
 
 function generateFormattedString(data, formatString) {
     return formatString.replace(/\[\[(\w+)]]/g, function (match, key) {
-       return data[key] || match;
+        return data[key].toString() || match;
     });
 }

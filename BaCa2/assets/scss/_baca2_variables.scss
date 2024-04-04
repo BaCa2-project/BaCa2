@@ -20,6 +20,7 @@ $baca2_blue: #08D9D6;
 $dark_muted: #3e4042;
 $light_muted: #A0A0A0FF;
 $pale_muted: #d0d0d0;
+$darker: #171a1d;
 
 // ------------------------ imports necessary for extending theme-colors ---------------------- //
 
@@ -34,6 +35,8 @@ $baca2-theme-colors: (
         "baca2_pink": $baca2_pink,
         "dark_muted": $dark_muted,
         "light_muted": $light_muted,
+        "pale_muted": $pale_muted,
+        "darker": $darker,
 );
 $theme-colors: map-merge($baca2-theme-colors, $theme-colors);
 
@@ -115,6 +118,7 @@ $navbar_default_variables: (
         icon_color: $dark,
         hover_color: $baca2_pink,
         logo_hover_color: $baca2_blue,
+        divider_color: $light_muted,
 );
 $navbar_theme_variables: (
         light: (),
@@ -123,6 +127,7 @@ $navbar_theme_variables: (
                 link_color: $muted,
                 active_link_color: $white,
                 icon_color: $white,
+                divider_color: $dark_muted,
         )
 );
 $navbar_padding: 4.25rem;
@@ -239,10 +244,12 @@ $datetimepicker_theme_variables: (
 // ---------------------------------------- codeblock ---------------------------------------- //
 
 $codeblock_default_variables: (
-        bg_color: rgba(0, 0, 0, 0.3),
+        bg_color: rgb(245, 242, 240),
 );
 
 $codeblock_theme_variables: (
         light: (),
-        dark: (),
+        dark: (
+                bg_color: $darker,
+        ),
 )

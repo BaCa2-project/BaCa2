@@ -1,12 +1,40 @@
 // ------------------------------------ table widget class ------------------------------------ //
 
 class TableWidget {
-    constructor(tableId, DTObj) {
+    constructor(tableId, DTObj, ajax) {
         this.DTObj = DTObj;
         this.table = $(`#${tableId}`);
+        this.ajax = ajax;
         this.widgetWrapper = this.table.closest('.table-wrapper');
         this.lastSelectedRow = null;
         this.lastDeselectedRow = null;
+    }
+
+    reload() {
+        if (!this.ajax) return;
+        const tableWidget = this;
+        const table = this.table;
+        const DTObj = this.DTObj;
+
+        DTObj.ajax.reload(function () {
+            DTObj.columns.adjust().draw();
+            tableWidget.updateSelectHeader();
+            table.trigger('table-reload');
+        });
+    }
+
+    init() {
+        this.formSubmitColsInit();
+    }
+
+    formSubmitColsInit() {
+        const tableWidget = this;
+
+        this.table.find('th.form-submit[data-refresh-table-on-submit]').each(function () {
+            $(this).find('form').on('submit-complete', function () {
+                tableWidget.reload();
+            });
+        });
     }
 
     // -------------------------------- record select methods --------------------------------- //
@@ -156,6 +184,24 @@ class TableWidget {
 
 function tablesPreSetup() {
     tableResizeSetup();
+
+    $(document).on('tab-activated', function (e) {
+        const tab = $(e.target);
+        const tableId = tab.find('.table-wrapper').data('table-id');
+
+        if (tableId === undefined)
+            return;
+
+        const tableWidget = window.tableWidgets[`#${tableId}`];
+
+        if (!tableWidget.ajax)
+            return;
+
+        tableWidget.DTObj.ajax.reload(function () {
+            tableWidget.DTObj.columns.adjust().draw();
+            $(`#${tableId}`).trigger('table-reload');
+        });
+    });
 }
 
 function tablesSetup() {
@@ -170,7 +216,7 @@ function tablesSetup() {
     $('.table-wrapper').each(function () {
         const tableId = $(this).data('table-id');
 
-        $('th.select').each(function () {
+        $(this).find('th.select').each(function () {
             renderSelectHeader($(this), tableId);
         });
 
@@ -205,6 +251,10 @@ function globalSearchSetup(tableWrapper) {
     searchInput.on('input', function () {
         globalSearchInputHandler($(this), table, tableWidget);
     });
+
+    if (searchWrapper.length === 0)
+        return;
+
     searchWrapper.append(searchInput);
     search.remove();
 }
@@ -251,15 +301,24 @@ function columnSearchInputHandler(inputField, table, tableWidget) {
 }
 
 
-// ---------------------------------------- length menu --------------------------------------- //
+// --------------------------------------- table paging --------------------------------------- //
 
 function lengthMenuSetup() {
     $('.dataTables_length').each(function () {
-        const label = $(this).find('label');
-        label.addClass('d-flex align-items-center');
+        const lengthMenu = $(this);
+        const label = lengthMenu.find('label');
+        const select = lengthMenu.find('select');
 
-        const select = $(this).find('select');
+        label.addClass('d-flex align-items-center');
         select.addClass('form-select form-select-fm auto-width ms-2 me-2');
+
+        const tableWrapper = $(this).closest('.table-wrapper');
+        const lengthMenuWrapper = tableWrapper.find('.table-util-header .table-length-menu');
+
+        if (lengthMenuWrapper.length === 0)
+            return;
+
+        lengthMenuWrapper.append(lengthMenu);
     });
 }
 
@@ -272,7 +331,7 @@ function refreshButtonClickHandler(button) {
     tableWidget.DTObj.ajax.reload(function () {
         tableWidget.DTObj.columns.adjust().draw();
         tableWidget.updateSelectHeader();
-        $(`#${tableId}`).trigger('init.dt');
+        $(`#${tableId}`).trigger('table-reload');
     });
 }
 
@@ -281,13 +340,13 @@ function refreshButtonClickHandler(button) {
 
 function deleteRecordFormSetup(form, tableId) {
     form.on('submit-success', function (e, data) {
-        window.tableWidgets[`#${tableId}`].table.ajax.reload();
+        window.tableWidgets[`#${tableId}`].DTObj.ajax.reload();
     });
 }
 
 
 function recordLinkSetup(tableId) {
-    $(`#${tableId}`).on('click', 'tbody tr', function () {
+    $(`#${tableId}`).on('click', 'tbody tr[data-record-link]', function () {
         window.location.href = $(this).data('record-link');
     });
 }
@@ -312,6 +371,7 @@ function initTable(
         height,
         refresh,
         refreshInterval,
+        localisation_cdn,
     } = {}
 ) {
     const tableParams = {};
@@ -333,6 +393,12 @@ function initTable(
         tableParams['scrollCollapse'] = true;
     }
 
+    if (localisation_cdn){
+        tableParams['language'] = {
+            "url": localisation_cdn
+        }
+    }
+
     tableParams['searching'] = searching;
 
     const columns = [];
@@ -352,10 +418,14 @@ function initTable(
     if (!window.tableWidgets)
         window.tableWidgets = {};
 
-    window.tableWidgets[`#${tableId}`] = new TableWidget(
+    const tableWidget = new TableWidget(
         tableId,
-        table.DataTable(tableParams)
+        table.DataTable(tableParams),
+        ajax
     );
+    tableWidget.init();
+
+    window.tableWidgets[`#${tableId}`] = tableWidget;
 
     if (refresh)
         setRefresh(tableId, refreshInterval);
@@ -396,7 +466,7 @@ function createPagingDef(paging, DTParams, table, tableId) {
 
 function setRefresh(tableId, interval) {
     setInterval(function () {
-        window.tableWidgets[`#${tableId}`].table.ajax.reload();
+        window.tableWidgets[`#${tableId}`].DTObj.ajax.reload();
     }, interval);
 }
 
@@ -404,6 +474,7 @@ function setRefresh(tableId, interval) {
 function createRowCallback(linkFormatString) {
     return function (row, data) {
         $(row).attr('data-record-id', `${data.id}`);
+        $(row).attr('data-record-data', JSON.stringify(data));
 
         if (linkFormatString) {
             $(row).attr('data-record-link', generateFormattedString(data, linkFormatString));
@@ -439,6 +510,9 @@ function createColumnDef(col, index) {
         case 'datetime':
             def['render'] = DataTable.render.datetime(col['formatter']);
             break;
+        case 'form-submit':
+            def['render'] = renderFormSubmitField(col);
+            break;
     }
 
     return def;
@@ -452,19 +526,7 @@ function renderSelectField(data, type, row, meta) {
         .attr('type', 'checkbox')
         .attr('class', 'form-check-input select-checkbox')
         .attr('data-record-target', row['id'])
-        .attr(
-            'onclick',
-            'selectCheckboxClickHandler(event, $(this))'
-        )[0].outerHTML;
-}
-
-
-function renderDeleteField(data, type, row, meta) {
-    return $('<a>')
-        .attr('href', '#')
-        .attr('data-record-target', row['id'])
-        .attr('onclick', 'deleteButtonClickHandler(event, $(this))')
-        .html('<i class="bi bi-x-lg"></i>')
+        .attr('onclick', 'selectCheckboxClickHandler(event, $(this))')
         [0].outerHTML;
 }
 
@@ -478,6 +540,73 @@ function renderSelectHeader(header, tableId) {
             selectHeaderClickHandler($(this), tableId);
         });
     header.append(checkbox);
+}
+
+
+function renderDeleteField(data, type, row, meta) {
+    return $('<a>')
+        .attr('href', '#')
+        .attr('data-record-target', row['id'])
+        .attr('onclick', 'deleteButtonClickHandler(event, $(this))')
+        .html('<i class="bi bi-x-lg"></i>')
+        [0].outerHTML;
+}
+
+function renderFormSubmitField(col) {
+    const mappings = col['mappings'];
+    const form_id = col['form_id'];
+    const btnIcon = col['btn_icon'];
+    const btnText = col['btn_text'];
+    const conditional =JSON.parse(col['conditional']);
+    const conditionKey = col['condition_key'];
+    const conditionValue = col['condition_value'];
+
+    return function (data, type, row, meta) {
+        let disabled = false;
+
+        if (conditional && row[conditionKey].toString() !== conditionValue) {
+            const disabledAppearance = col['disabled_appearance'];
+            const disabledContent = col['disabled_content'];
+
+            switch (disabledAppearance) {
+                case 'disabled':
+                    disabled = true;
+                    break;
+                case 'hidden':
+                    return '';
+                case 'text':
+                    return disabledContent;
+                case 'icon':
+                    return `<div class="text-center">
+                                <i class="bi bi-${disabledContent}"></i>
+                            </div>`;
+            }
+        }
+
+        const button = $('<a>')
+            .attr('class', 'btn btn-outline-primary')
+            .attr('href', '#')
+            .attr('data-mappings', mappings)
+            .attr('data-form-id', form_id)
+            .attr('onclick', 'formSubmitButtonClickHandler(event, $(this))');
+
+        const content = $('<div>').addClass('d-flex');
+        const text = generateFormattedString(row, btnText);
+
+        if (btnIcon) {
+            const icon = $('<i>').addClass(`bi bi-${btnIcon}`).addClass(btnText ? 'me-2' : '');
+            content.append(icon);
+        }
+
+        if (disabled) {
+            button.addClass('disabled')
+            button.attr('disabled', true);
+        }
+
+        content.append(text);
+        button.append(content);
+        return button[0].outerHTML;
+    };
 }
 
 
@@ -521,8 +650,22 @@ function deleteButtonClickHandler(e, button) {
         return $(this).hasClass('model-id')
     });
     input.val(button.data('record-target'));
-    console.log(input.val());
-    console.log(form.find('.submit-btn'));
+    form.find('.submit-btn')[0].click();
+}
+
+
+function formSubmitButtonClickHandler(e, button) {
+    e.stopPropagation();
+    const mappings = button.data('mappings');
+    const formId = button.data('form-id');
+    const form = $(`#${formId}`);
+    const data = button.closest('tr').data('record-data');
+
+    for (const key in mappings) {
+        const input = form.find(`input[name="${key}"]`);
+        input.val(data[mappings[key]]);
+    }
+
     form.find('.submit-btn')[0].click();
 }
 

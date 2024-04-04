@@ -2,15 +2,15 @@
 {% load custom_tags %}
 
 <div class="input-block table-select-field mb-3">
-    <div class="input-group table-select-input
+    <div class="input-group table-select-input-group
                 {% if form_widget.live_validation %}
                 live-validation
                 {% endif %}">
-        {% include 'widget_templates/forms/form_control_field.html' %}
+        {% include 'widget_templates/forms/field_render.html' %}
     </div>
 
     {% with field.field.table_widget as table_widget %}
-        {% include 'widget_templates/table.html' %}
+        {% include 'widget_templates/listing/table.html' %}
     {% endwith %}
 
     {% if field.help_text %}

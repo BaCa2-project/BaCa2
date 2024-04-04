@@ -1,0 +1,35 @@
+{% extends "widget_templates/forms/base.html" %}
+{% load custom_tags %}
+
+{% block form_header %}
+    {% if form_widget.form_observer %}
+        <div class="mb-2" style="padding: 0.5rem">
+            {% with form_widget.form_observer as form_observer %}
+                {% include 'widget_templates/forms/form_observer.html' %}
+            {% endwith %}
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block form_fields %}
+    {% for hidden_field in form_widget.form.hidden_fields %}
+        {% if not hidden_field.field.widget.attrs.class == 'table-select-field' %}
+            {{ hidden_field.errors }}
+            {{ hidden_field }}
+        {% endif %}
+    {% endfor %}
+
+    {% for element_group in form_widget.elements.elements %}
+        <div class="tab-wrapper" id="{{ element_group.name }}-tab">
+            <div class="side-nav-tab">
+                {% include "widget_templates/forms/element_group.html" %}
+            </div>
+        </div>
+    {% endfor %}
+{% endblock %}
+
+{% block form_footer %}
+    <div style="padding-left: 0.5rem; padding-right: 0.5rem">
+        {% include "widget_templates/forms/footer.html" %}
+    </div>
+{% endblock %}

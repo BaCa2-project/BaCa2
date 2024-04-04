@@ -1,7 +1,7 @@
 @import "baca2_variables";
 @import "functions";
 
-.link-records tbody tr {
+.link-records tbody tr[data-record-link] {
     cursor: pointer;
 }
 
@@ -18,6 +18,25 @@
 .table-wrapper {
     .table-widget-forms-wrapper form {
         display: none;
+    }
+
+    .column-form-wrapper form {
+        display: none;
+    }
+
+    td.form-submit {
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+
+        .btn {
+            padding: 0.25rem 0.5rem;
+            white-space: nowrap;
+        }
+    }
+
+    th .icon-header {
+        height: 1.5rem;
+        width: auto;
     }
 
     .table-buttons {
@@ -88,7 +107,7 @@
             background-color: $selected_row_bg_color;
         }
 
-        .row-hover tr:hover td {
+        .row-hover tr[data-record-link]:hover td {
             background-color: $row_bg_color_hover;
         }
 
