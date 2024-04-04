@@ -651,16 +651,17 @@ class ProfileView(BaCa2LoggedInView):
         data_change = ChangePersonalDataWidget(request=self.request)
         self.add_widget(context, data_change)
 
-        self.add_widget(context, FormWidget(
-            name='change_password_form_widget',
-            request=self.request,
-            form=PasswordChangeForm(user),
-            button_text=_('Change password'),
-            display_field_errors=False,
-            live_validation=False,
-            post_target_url=reverse_lazy('main:change-password'),
-        ))
-        context['change_password_title'] = _('Change password')
+        if not user.is_uj_user:
+            self.add_widget(context, FormWidget(
+                name='change_password_form_widget',
+                request=self.request,
+                form=PasswordChangeForm(user),
+                button_text=_('Change password'),
+                display_field_errors=False,
+                live_validation=False,
+                post_target_url=reverse_lazy('main:change-password'),
+            ))
+            context['change_password_title'] = _('Change password')
 
         return context
 

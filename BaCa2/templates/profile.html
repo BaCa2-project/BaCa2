@@ -12,18 +12,21 @@
             {% endwith %}
         </div>
     </div>
-    <div class="tab-wrapper" id="security-tab">
-        <div class="side-nav-tab">
-            <div class="card">
-                <div class="card-header">
-                    <h2>{{ change_password_title }}</h2>
-                </div>
-                <div class="card-body">
-                    {% with widgets.FormWidget.change_password_form_widget as form_widget %}
-                        {% include "widget_templates/forms/default.html" %}
-                    {% endwith %}
+    {% if not change_password_header %}
+        <div class="tab-wrapper" id="security-tab">
+            <div class="side-nav-tab">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>{{ change_password_title }}</h2>
+                    </div>
+                    <div class="card-body">
+                        {% with widgets.FormWidget.change_password_form_widget as form_widget %}
+                            {% include "widget_templates/forms/default.html" %}
+                        {% endwith %}
+                    </div>
                 </div>
             </div>
         </div>
+    {% endif %}
 
 {% endblock %}
