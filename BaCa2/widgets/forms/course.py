@@ -8,6 +8,7 @@ from django.utils.translation import gettext_lazy as _
 
 from core.choices import FallOffPolicy, ResultStatus, ScoreSelectionPolicy, TaskJudgingMode
 from core.tools.files import CsvFileHandler, FileHandler
+from core.tools.mailer import TemplateMailer
 from course.models import Round, Submit, Task
 from course.routing import InCourse
 from main.models import Course, Role, User
@@ -390,6 +391,14 @@ class AddMemberForm(CourseActionForm):
         else:
             course.add_member(user, role)
 
+        mailer = TemplateMailer(
+            mail_to=user.email,
+            subject=_('You have been added to a course'),
+            template='add_to_course',
+            context={'course_name': course.name}
+        )
+        mailer.send()
+
         return {'message': _('Member added successfully')}
 
     @classmethod
@@ -531,6 +540,14 @@ class AddMembersFromCSVForm(CourseActionForm):
         course.add_members(users_to_add,
                            role,
                            ignore_errors=True)
+
+        mailer = TemplateMailer(
+            mail_to=[user.email for user in users_to_add],
+            subject=_('You have been added to a course'),
+            template='add_to_course',
+            context={'course_name': course.name}
+        )
+        mailer.send()
 
         return {'message': _('Members added successfully')}
 
