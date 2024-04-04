@@ -27,7 +27,8 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.css"/>
 
     <!-- DataTables - ScrollResize plugin -->
-    <script src="https://cdn.datatables.net/plug-ins/2.0.1/features/scrollResize/dataTables.scrollResize.min.js"></script>
+    <script
+        src="https://cdn.datatables.net/plug-ins/2.0.1/features/scrollResize/dataTables.scrollResize.min.js"></script>
 
     <!-- Bootstrap theme - customised -->
     <link rel="stylesheet" href="{% static 'css/baca2_theme.css' %}">
@@ -191,7 +192,30 @@
 {% block scripts %}
 {% endblock %}
 
-    <!-- Prism JS and autoloader -->
+<!-- Prism JS and autoloader -->
+
+{% block version_footer %}
+    <div class="container" id="version_footer">
+        <div class="row">
+            BaCa2 v.{{ version }}
+        </div>
+        <div class="row">
+            User: {{ user.email }}
+        </div>
+        {% if user %}
+            <div class="row">
+                Access:
+                {% if user.is_superuser %}SU
+                {% else %}U
+                {% endif %}
+                |
+                {% if user.usos_id %}UJ
+                {% else %}EXT
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}
 
 </body>
 </html>

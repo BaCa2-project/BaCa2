@@ -1,0 +1,10 @@
+@import "baca2_variables";
+
+#version_footer {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    color: $baca2_beige;
+    text-align: left;
+    font-size: 0.8em;
+}

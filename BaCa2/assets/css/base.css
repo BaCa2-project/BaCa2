@@ -4,6 +4,19 @@ html, body {
 }
 
 :root {
+  --bs-form-valid-border-color: $ red;
+}
+
+#version_footer {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  color: #D3CABD;
+  text-align: left;
+  font-size: 0.8em;
+}
+
+:root {
   --bs-form-valid-border-color: $red;
 }
 
