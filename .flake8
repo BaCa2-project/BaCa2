@@ -1,0 +1,25 @@
+[flake8]
+ignore = B009,C101,D403,E302,F403,F405,I100,I101,I201,W503,W504,Q003,C901,Q000
+exclude =
+    .git,
+    __pycache__,
+    venv,
+    lib/*,
+    BaCa2/packages_source/*,
+    BaCa2/submits/*,
+    packages_source/*,
+    */migrations/*,
+    BaCa2/core/db/setup.py,
+    BaCa2/core/db/ext_databases.py,
+    BaCa2/scratch*,
+filename = *.py
+accept-encodings = utf-8
+count = True
+inline-quotes = single
+max-complexity = 10
+max-line-length = 100
+multiline-quotes = double
+per-file-ignores =
+    BaCa2/core/settings/templates/settings.dev.py:F821
+    *__init__.py:F401
+statistics = True

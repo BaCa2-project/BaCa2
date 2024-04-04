@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block head %}
+    <script src="{% static 'js/login.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+    <div class="h-100 d-flex flex-column justify-content-center align-items-center">
+        <div class="row mb-4">
+            <div class="logo-wrapper logo-horizontal logo-m">
+                {% include "util/baca2_logo.html" %}
+            </div>
+        </div>
+        <div class="row mb-4">
+            <div class="col col-auto">
+                <div class="card card-m">
+                    <div class="card-body p-4">
+                        <h2 class="h2 text-center mb-4">Zaloguj się</h2>
+                        {% with widgets.FormWidget.login_form as form_widget %}
+                            {% include "widget_templates/forms/default.html" %}
+                        {% endwith %}
+                        <a href="#"
+                           id="login-form-btn"
+                           class="btn btn-outline-secondary w-100"
+                           role="button">
+                            <div class="text-muted">
+                                {% include 'icons/user-share.svg' %}
+                                Użytkownik zewnętrzny
+                            </div>
+                        </a>
+                    </div>
+                    <div class="separator">lub</div>
+                    <div class="card-body p-4">
+                        <a href="{% url 'oidc_authentication_init' %}"
+                           class="btn btn-outline-secondary w-100" role="button">
+                            <div class="text-muted">
+                                {% include 'icons/university.svg' %}
+                                Student / Pracownik UJ
+                            </div>
+                        </a>
+                    </div>
+                </div>
+                <div class="text-center text-muted mt-3">
+                        Nie masz konta? <a href="{% url 'login' %}">Zarejestruj się</a>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col col-auto text-muted">
+                {% include "util/theme_switch.html" %}
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block initializers %}
+    <script>
+        initLoginPage();
+    </script>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        displayLoginFormAlert();
+    </script>
+{% endblock %}

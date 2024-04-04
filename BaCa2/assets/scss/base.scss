@@ -1,0 +1,21 @@
+html, body {
+    height: 100%;
+}
+
+@import "version_footer";
+@import "forms";
+@import "baca2_logo";
+@import "navbar";
+@import "cards";
+@import "icons";
+@import "theme_button";
+@import "separator";
+@import "side_nav";
+@import "table";
+@import "buttons";
+@import "popups";
+@import "pdf_displayer";
+@import "datetime_picker";
+@import "scrollbar";
+@import "code_block";
+@import "../../../node_modules/bootstrap-icons/font/bootstrap-icons.scss";

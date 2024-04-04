@@ -1,0 +1,89 @@
+@import "baca2_variables";
+@import "functions";
+
+.nav-item .dropdown-toggle::after {
+    display: none;
+}
+
+.nav-link {
+    position: relative;
+}
+
+.navbar-padding {
+    padding-top: $navbar_padding;
+}
+
+@each $theme, $map in $navbar_theme_variables {
+    [data-bs-theme="#{$theme}"] .navbar {
+        background-color: safe_get($map, $navbar_default_variables, bg);
+
+        .links {
+            .nav-item a {
+                color: safe_get($map, $navbar_default_variables, link_color);
+            }
+
+            .nav-item.active a {
+                color: safe_get($map, $navbar_default_variables, active_link_color);
+            }
+
+            .nav-divider {
+                width: 1px;
+                background-color: safe_get($map, $navbar_default_variables, divider_color);
+            }
+        }
+
+        .icon-wrapper svg {
+            stroke: safe_get($map, $navbar_default_variables, icon_color);
+        }
+
+        .hover-underline::after {
+            content: '';
+            height: 2px;
+            width: 100%;
+            background-color: safe_get($map, $navbar_default_variables, hover_color);
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            opacity: 0;
+            transition: opacity 0.25s ease-in-out;
+        }
+
+        .hover-underline:hover::after {
+            opacity: 1;
+        }
+
+        .hover-highlight {
+            transition: color 0.25s ease-in-out;
+
+            svg {
+                transition: stroke 0.25s ease-in-out;
+            }
+        }
+
+        .hover-highlight:hover {
+            color: safe_get($map, $navbar_default_variables, hover_color);
+
+            svg {
+                stroke: safe_get($map, $navbar_default_variables, hover_color);
+            }
+        }
+
+        .navbar-brand:hover {
+            .logo-wrapper {
+                .logo-stroke {
+                    fill: safe_get($map, $navbar_default_variables, logo_hover_color);
+                }
+
+                #triangle {
+                    path {
+                        fill: safe_get($map, $navbar_default_variables, logo_hover_color);
+                    }
+                }
+
+                path {
+                    transition: fill 0.5s;
+                }
+            }
+        }
+    }
+}

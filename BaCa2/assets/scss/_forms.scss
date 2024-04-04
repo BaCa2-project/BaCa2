@@ -1,0 +1,62 @@
+@import "baca2_variables";
+
+.toggleable {
+    button {
+        width:35%;
+        font-size: 0.85rem;
+    }
+}
+
+.invalid-feedback {
+    display: block;
+}
+
+.table-select-field {
+    &.is-valid .table-wrapper .card {
+        --bs-card-border-color: var(--bs-form-valid-border-color);
+    }
+
+    &.is-invalid .table-wrapper .card {
+        --bs-card-border-color: var(--bs-form-invalid-border-color);
+    }
+}
+
+.table-select-input {
+    display: none;
+}
+
+.form-confirmation-popup {
+    .modal-header, .modal-body, .modal-footer {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+
+    .modal-footer {
+        .row {
+            margin: 0;
+        }
+
+        .submit-btn-wrapper {
+            padding-left: 0;
+        }
+
+        .cancel-btn-wrapper {
+            padding-right: 0;
+        }
+    }
+}
+
+.submit-btn {
+    transition: background-color 0.3s ease-out, transform 0.3s ease-out;
+
+    &.submit-enabled {
+        background-color: mix($primary, white, 80%);
+        transform: scale(1.01, 1.05);
+    }
+}
+
+.form-observer {
+    .group-summary:not(.has-fields) {
+        display: none;
+    }
+}

@@ -1,0 +1,15 @@
+{% if form_widget.display_field_errors and form_widget.form.is_bound %}
+    {% if field.errors %}
+        {% with "form-control is-invalid" as field_class %}
+        {% include "widget_templates/forms/field_render.html" %}
+        {% endwith %}
+    {% else %}
+        {% with "form-control is-invalid" as field_class %}
+        {% include "widget_templates/forms/field_render.html" %}
+        {% endwith %}
+    {% endif %}
+{% else %}
+    {% with "form-control" as field_class %}
+    {% include "widget_templates/forms/field_render.html" %}
+    {% endwith %}
+{% endif %}

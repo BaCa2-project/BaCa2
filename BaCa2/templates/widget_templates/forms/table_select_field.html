@@ -1,0 +1,36 @@
+{% load widget_tweaks %}
+{% load custom_tags %}
+
+<div class="input-block table-select-field mb-3">
+    <div class="input-group table-select-input-group
+                {% if form_widget.live_validation %}
+                live-validation
+                {% endif %}">
+        {% include 'widget_templates/forms/field_render.html' %}
+    </div>
+
+    {% with field.field.table_widget as table_widget %}
+        {% include 'widget_templates/listing/table.html' %}
+    {% endwith %}
+
+    {% if field.help_text %}
+        <small class="form-text text-muted">{{ field.help_text }}</small>
+    {% endif %}
+
+    {% include 'widget_templates/forms/field_errors.html' %}
+</div>
+
+{% if form_widget.live_validation %}
+    <script>
+        $(document).ready(function () {
+            $('#{{ field.name }}').on('input', function () {
+                updateValidationStatus(
+                    this,
+                    '{{ form_widget.form_cls }}',
+                    '{{ form_widget.form.instance_id }}',
+                    '{{ form_widget.field_min_length|get_item:field.name }}',
+                    '{% url 'field-validation' %}');
+            });
+        });
+    </script>
+{% endif %}

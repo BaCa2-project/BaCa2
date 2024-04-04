@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    {% with widgets.TableWidget.courses_table_widget as table_widget %}
+        {% include 'widget_templates/listing/table.html' %}
+    {% endwith %}
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="tab-wrapper" id="overview-tab">
+        <div class="side-nav-tab">
+            {% with widgets.TableWidget.permissions_table_widget as table_widget %}
+                {% include "widget_templates/listing/table.html" %}
+            {% endwith %}
+        </div>
+    </div>
+    <div class="tab-wrapper" id="members-tab">
+        <div class="side-nav-tab">
+            {% with widgets.TableWidget.members_table_widget as table_widget %}
+                {% include "widget_templates/listing/table.html" %}
+            {% endwith %}
+        </div>
+    </div>
+    <div class="tab-wrapper" id="add-permissions-tab">
+        <div class="side-nav-tab">
+            {% with widgets.FormWidget.add_role_permissions_form_widget as form_widget %}
+                {% include "widget_templates/forms/default.html" %}
+            {% endwith %}
+        </div>
+    </div>
+    <div class="tab-wrapper" id="remove-permissions-tab">
+        <div class="side-nav-tab">
+            {% with widgets.FormWidget.remove_role_permissions_form_widget as form_widget %}
+                {% include "widget_templates/forms/default.html" %}
+            {% endwith %}
+        </div>
+    </div>
+{% endblock %}

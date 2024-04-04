@@ -1,0 +1,11 @@
+{% if displayer.displayer_type == 'markup' %}
+    {% with displayer.displayer as displayer %}
+        {% include 'widget_templates/markup_displayer.html' %}
+    {% endwith %}
+{% elif displayer.displayer_type == 'pdf' %}
+    {% with displayer.displayer as displayer %}
+        {% include 'widget_templates/pdf_displayer.html' %}
+    {% endwith %}
+{% else %}
+    {{ displayer.displayer.message }}
+{% endif %}

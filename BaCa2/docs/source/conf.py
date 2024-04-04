@@ -1,10 +1,10 @@
-import sys
 import os
+import sys
+
 import django
-import sphinx_rtd_theme
 
 sys.path.insert(0, os.path.abspath('../..'))
-os.environ['DJANGO_SETTINGS_MODULE'] = 'BaCa2.settings'
+os.environ['DJANGO_SETTINGS_MODULE'] = 'core.settings'
 django.setup()
 
 # Configuration file for the Sphinx documentation builder.
@@ -16,22 +16,13 @@ django.setup()
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'BaCa2'
-copyright = '2023, Bartosz Deptuła, Małgorzata Drąg, Izabela Golec, Krzysztof Kalita; supervisor: PhD Tomasz Kapela'
-author = 'Bartosz Deptuła, Małgorzata Drąg, Izabela Golec, Krzysztof Kalita; supervisor: PhD Tomasz Kapela'
-release = '0.1.2'
+copyright = '2023, Bartosz Deptuła, Mateusz Kadula, Krzysztof Kalita'  # noqa: A001
+author = 'Bartosz Deptuła, Mateusz Kadula, Krzysztof Kalita'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = [
-    'sphinx.ext.githubpages',
-    'sphinx.ext.duration',
-    'sphinx.ext.doctest',
-    'sphinx.ext.autodoc',
-
-    'sphinx_rtd_theme',
-    # 'sphinx.ext.autosummary',
-]
+extensions = ['sphinx.ext.todo', 'sphinx.ext.viewcode', 'sphinx.ext.autodoc']
 
 templates_path = ['_templates']
 exclude_patterns = []
@@ -41,4 +32,5 @@ exclude_patterns = []
 
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
+
 autodoc_member_order = 'bysource'

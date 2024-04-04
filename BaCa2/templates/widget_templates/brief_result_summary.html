@@ -1,0 +1,92 @@
+{% load static %}
+{% load i18n %}
+
+<div class="card mb-3 test-summary" id="{{ brief_result_summary.name }}">
+    <div class="card-header">
+        <h5 class="card-title mb-0">{{ brief_result_summary.set_name }}/{{ brief_result_summary.test_name }}</h5>
+    </div>
+    <div class="card-body">
+        <div class="container text-center">
+            <div class="row">
+                <div class="col col-auto d-flex result-status
+                            {{ brief_result_summary.result.status }}">
+                    <b class="me-1">{% trans "Status:" %}</b>
+                    {{ brief_result_summary.result.f_status }}
+                </div>
+                {% if brief_result_summary.result.f_time_real %}
+                    <div class="col result-time {{ brief_result_summary.result.status }}">
+                        <b class="me-1">{% trans "Time used:" %}</b>
+                        {{ brief_result_summary.result.f_time_real }}
+                    </div>
+                {% endif %}
+                {% if brief_result_summary.result.f_runtime_memory %}
+                    <div class="col col-auto d-flex result-memory
+                                {{ brief_result_summary.result.status }}">
+                        <b class="me-1">{% trans "Memory used:" %}</b>
+                        {{ brief_result_summary.result.f_runtime_memory }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% with brief_result_summary.result as result %}
+        {% if result.logs_present %}
+            <ul class="nav nav-tabs compile-tabs-nav" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if result.compile_log_widget %} active {% endif %} ms-2"
+                            id="{{ brief_result_summary.name }}-compile-tab-btn"
+                            data-bs-toggle="tab"
+                            data-bs-target="#{{ brief_result_summary.name }}-compile-tab"
+                            type="button"
+                            role="tab"
+                            {% if not result.compile_log_widget %} disabled {% endif %}>
+                        {% trans "Compile logs" %}
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link
+                            {% if not result.compile_log_widget and not result.multiple_logs %}
+                                active
+                            {% endif %}"
+                            id="{{ brief_result_summary.name }}-checker-tab-btn"
+                            data-bs-toggle="tab"
+                            data-bs-target="#{{ brief_result_summary.name }}-checker-tab"
+                            type="button"
+                            role="tab"
+                            {% if not result.checker_log_widget %} disabled {% endif %}>
+                        {% trans "Checker logs" %}
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content compile-tabs">
+
+                {% if result.compile_log_widget %}
+                    <div class="tab-pane fade
+                                {% if result.compile_log_widget %} show active {% endif %}"
+                         id="{{ brief_result_summary.name }}-compile-tab"
+                         role="tabpanel">
+                        {% with result.compile_log_widget as codeblock %}
+                            {% include "widget_templates/code_block.html" %}
+                        {% endwith %}
+                    </div>
+                {% endif %}
+
+                {% if result.checker_log_widget %}
+                    <div class="tab-pane fade
+                                {% if not result.compile_log_widget and not result.multiple_logs %}
+                                    show active
+                                {% endif %}"
+                         id="{{ brief_result_summary.name }}-checker-tab"
+                         role="tabpanel">
+                        {% with result.checker_log_widget as codeblock %}
+                            {% include "widget_templates/code_block.html" %}
+                        {% endwith %}
+                    </div>
+                {% endif %}
+
+            </div>
+        {% endif %}
+    {% endwith %}
+    </div>

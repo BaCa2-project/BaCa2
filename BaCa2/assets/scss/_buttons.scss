@@ -1,0 +1,21 @@
+@import "baca2_variables";
+
+.btn-outline-secondary:hover {
+    background-color: rgba($baca2_beige, 0.3);
+    color: white;
+}
+
+.btn-outline-success:hover {
+    background-color: rgba($baca2_blue, 0.3);
+    color: white;
+}
+
+.btn-outline-danger:hover {
+    background-color: rgba($baca2_pink, 0.3);
+    color: white;
+}
+
+.btn-outline-light_muted:hover {
+    background-color: rgba($light_muted, 0.3);
+    color: white;
+}

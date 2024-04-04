@@ -1,0 +1,70 @@
+{% load static %}
+{% load custom_tags %}
+
+<div class="input-block mb-3">
+    <div class="{% if form_widget.live_validation %} live-validation {% endif %}">
+
+        {%  if not form_widget.floating_labels  %}
+            {% include 'widget_templates/forms/field_label.html' %}
+        {% endif %}
+
+        <div class="input-group">
+            <div class="input-group-text">
+                <i class="ms-1 me-1 bi bi-calendar"></i>
+            </div>
+
+            {% if form_widget.floating_labels %}
+                <div class="form-floating">
+            {% endif %}
+
+            {% include 'widget_templates/forms/field_render.html' %}
+
+            {% if form_widget.floating_labels %}
+                {% include 'widget_templates/forms/field_label.html' %}
+                </div>
+            {% endif %}
+        </div>
+
+        {% if field.help_text %}
+            <small class="form-text text-muted">{{ field.help_text }}</small>
+        {% endif %}
+    </div>
+
+    {% include 'widget_templates/forms/field_errors.html' %}
+</div>
+
+<script>
+    $(document).ready(function () {
+        const field = $('#{{ form_widget.name }} #{{ field.name }}');
+        field.datetimepicker(
+            {% with field.field as field %}
+                {
+                    format: '{{ field.format|safe }}',
+                    datepicker: {{ field.datepicker|safe }},
+                    timepicker: {{ field.timepicker|safe }},
+                    onSelectDate: function(ct,$i){
+                        field.trigger('input');
+                    },
+                    onSelectTime: function(ct,$i){
+                        field.trigger('input');
+                    }
+                }
+            {% endwith %}
+        );
+    });
+</script>
+
+{% if form_widget.live_validation and field.field.widget.input_type != "password" %}
+    <script>
+        $(document).ready(function () {
+            $('#{{ field.name }}').on('input', function () {
+                updateValidationStatus(
+                    this,
+                    '{{ form_widget.form_cls }}',
+                    '{{ form_widget.form.instance_id }}',
+                    '{{ form_widget.field_min_length|get_item:field.name }}',
+                    '{% url 'field-validation' %}');
+            });
+        });
+    </script>
+{% endif %}

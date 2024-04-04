@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+    <div class="tab-wrapper" id="courses-table-tab">
+        <div class="side-nav-tab">
+            {% with widgets.TableWidget.courses_table_widget as table_widget %}
+                {% include "widget_templates/listing/table.html" %}
+            {% endwith %}
+        </div>
+    </div>
+    <div class="tab-wrapper" id="new-course-tab">
+        <div class="side-nav-tab">
+            {% with widgets.FormWidget.create_course_form_widget as form_widget %}
+                {% include "widget_templates/forms/default.html" %}
+            {% endwith %}
+        </div>
+    </div>
+    <div class ="tab-wrapper" id="new-user-tab">
+        <div class="side-nav-tab">
+            {% with widgets.FormWidget.create_user_form_widget as form_widget %}
+                {% include "widget_templates/forms/default.html" %}
+            {% endwith %}
+        </div>
+    </div>
+    <div class ="tab-wrapper" id="users-table-tab">
+        <div class="side-nav-tab">
+            {% with widgets.TableWidget.users_table_widget as table_widget %}
+                {% include "widget_templates/listing/table.html" %}
+            {% endwith %}
+        </div>
+    </div>
+    <div class="tab-wrapper" id="packages-tab">
+        <div class="side-nav-tab">
+            Packages
+        </div>
+    </div>
+{% endblock %}

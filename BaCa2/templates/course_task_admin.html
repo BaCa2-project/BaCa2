@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="tab-wrapper" id="description-tab">
+        <div class="side-nav-tab">
+            Task description
+        </div>
+    </div>
+    <div class="tab-wrapper" id="student-submissions-tab">
+        <div class="side-nav-tab">
+            {% with widgets.TableWidget.submissions_table_widget as table_widget %}
+                {% include "widget_templates/listing/table.html" %}
+            {% endwith %}
+        </div>
+    </div>
+    <div class="tab-wrapper" id="edit-tab">
+        <div class="side-nav-tab">
+            Edit task
+        </div>
+    </div>
+{% endblock %}
