@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "baca2"
-version = "0.1.2-pre"
+version = "1.0.1-beta"
 description = "Bachelor project: automated programming task checking and scoring system BaCa2"
 authors = ["BaCa2 Team"]
 readme = "README.md"
