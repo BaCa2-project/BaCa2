@@ -1,17 +1,14 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
-#, fuzzy
+# Copyright (C) BaCa2 Project 2024
+# This file is distributed under the same license as the BaCa2 package.
+# Bartosz Deptuła <bartosz.deptula@student.uj.edu.pl>, 2024.
 msgid ""
 msgstr ""
 "Project-Id-Version: BaCa2 1.0-beta\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-03-23 15:08+0100\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"POT-Creation-Date: 2024-04-04 12:24+0200\n"
+"PO-Revision-Date: 2024-04-04 12:00+0200\n"
 "Last-Translator: Bartosz Deptuła bartosz.deptula@student.uj.edu.pl\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language-Team: BaCa2 Team <baca2@ii.uj.edu.pl>\n"
 "Language: Polish\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -20,485 +17,503 @@ msgstr ""
 "%100<12 || n%100>14) ? 1 : n!=1 && (n%10>=0 && n%10<=1) || (n%10>=5 && n"
 "%10<=9) || (n%100>=12 && n%100<=14) ? 2 : 3);\n"
 
-#: .\core\choices.py:8
+#: .\BaCa2\core\choices.py:8
 msgid "Unanimous"
 msgstr "Jednogłośne"
 
-#: .\core\choices.py:9
+#: .\BaCa2\core\choices.py:9
 msgid "Linear"
 msgstr "Liniowe"
 
-#: .\core\choices.py:13
+#: .\BaCa2\core\choices.py:13
 msgid "Pending"
 msgstr "Oczekuje"
 
-#: .\core\choices.py:14
+#: .\BaCa2\core\choices.py:14
 msgid "Accepted"
 msgstr "Zaakceptowany"
 
-#: .\core\choices.py:15
+#: .\BaCa2\core\choices.py:15
 msgid "Wrong answer"
 msgstr "Błąd"
 
-#: .\core\choices.py:16
+#: .\BaCa2\core\choices.py:16
 msgid "Time limit exceeded"
 msgstr "Przekroczono limit czasu"
 
-#: .\core\choices.py:17
+#: .\BaCa2\core\choices.py:17
 msgid "Runtime error"
 msgstr "Błąd wykonania"
 
-#: .\core\choices.py:18
+#: .\BaCa2\core\choices.py:18
 msgid "Memory exceeded"
 msgstr "Przekroczono limit pamięci"
 
-#: .\core\choices.py:19
+#: .\BaCa2\core\choices.py:19
 msgid "Compilation error"
 msgstr "Błąd kompilacji"
 
-#: .\core\choices.py:20
+#: .\BaCa2\core\choices.py:20
 msgid "Rule violation"
 msgstr "Naruszenie zasad"
 
-#: .\core\choices.py:21
+#: .\BaCa2\core\choices.py:21
 msgid "Unknown extension"
 msgstr "Nieznane rozszerzenie"
 
-#: .\core\choices.py:22
+#: .\BaCa2\core\choices.py:22
 msgid "Internal timeout"
 msgstr "Wewnętrznym limit czasu"
 
-#: .\core\choices.py:23
+#: .\BaCa2\core\choices.py:23
 msgid "Internal error"
 msgstr "Błąd wewnętrzny"
 
-#: .\core\choices.py:36
+#: .\BaCa2\core\choices.py:36
 msgid "Individual Permissions"
 msgstr "Uprawnienia użytkowników"
 
-#: .\core\choices.py:37
+#: .\BaCa2\core\choices.py:37
 msgid "Group-level Permissions"
 msgstr "Uprawnienia grup"
 
-#: .\core\choices.py:38
+#: .\BaCa2\core\choices.py:38
 msgid "All Permissions"
 msgstr "Wszystkie uprawnienia"
 
-#: .\core\choices.py:53
+#: .\BaCa2\core\choices.py:53
 msgid "Student"
 msgstr "Student"
 
-#: .\core\choices.py:54
+#: .\BaCa2\core\choices.py:54
 msgid "Doctoral"
 msgstr "Doktorant"
 
-#: .\core\choices.py:55
+#: .\BaCa2\core\choices.py:55
 msgid "Employee"
 msgstr "Pracownik"
 
-#: .\core\choices.py:56 .\main\views.py:415 .\widgets\navigation.py:37
+#: .\BaCa2\core\choices.py:56 .\BaCa2\main\views.py:415
+#: .\BaCa2\widgets\navigation.py:37
 msgid "Admin"
 msgstr "Admin"
 
-#: .\core\choices.py:60
+#: .\BaCa2\core\choices.py:60
 msgid "PDF"
 msgstr "PDF"
 
-#: .\core\choices.py:61
+#: .\BaCa2\core\choices.py:61
 msgid "Markdown"
 msgstr "Markdown"
 
-#: .\core\choices.py:62
+#: .\BaCa2\core\choices.py:62
 msgid "HTML"
 msgstr "HTML"
 
-#: .\core\choices.py:63
+#: .\BaCa2\core\choices.py:63
 msgid "Plain text"
 msgstr "Czysty tekst"
 
-#: .\core\choices.py:67
+#: .\BaCa2\core\choices.py:67
 msgid "Standard"
 msgstr "Standardowe"
 
-#: .\core\choices.py:68
+#: .\BaCa2\core\choices.py:68
 msgid "Hidden"
 msgstr "Ukryte"
 
-#: .\core\choices.py:69
+#: .\BaCa2\core\choices.py:69
 msgid "Control"
 msgstr "Kontrolne"
 
-#: .\core\choices.py:73
+#: .\BaCa2\core\choices.py:73
 msgid "Best submit"
 msgstr "Najlepsze zgłoszenie"
 
-#: .\core\choices.py:74
+#: .\BaCa2\core\choices.py:74
 msgid "Last submit"
 msgstr "Ostatnie zgłoszenie"
 
-#: .\core\choices.py:78
+#: .\BaCa2\core\choices.py:78
 msgid "No fall-off (max points until deadline)"
 msgstr "Brak spadku (maksymalne punkty do zakończenia)"
 
-#: .\core\choices.py:79
+#: .\BaCa2\core\choices.py:79
 msgid "Linear fall-off"
 msgstr "Liniowy spadek"
 
-#: .\core\choices.py:80
+#: .\BaCa2\core\choices.py:80
 msgid "Square fall-off"
 msgstr "Kwadratowy spadek"
 
-#: .\core\settings\localization.py:13
+#: .\BaCa2\core\settings\localization.py:13
 msgid "Polish"
 msgstr "Polski"
 
-#: .\core\settings\localization.py:14
+#: .\BaCa2\core\settings\localization.py:14
 msgid "English"
 msgstr "Angielski"
 
-#: .\core\tools\mailer.py:76
+#: .\BaCa2\core\tools\mailer.py:76
 msgid "Email sent automatically by BaCa2. Please do not reply."
 msgstr "Email wysłany automatycznie przez BaCa2. Proszę nie odpowiadać."
 
-#: .\course\apps.py:14 .\course\views.py:1012
+#: .\BaCa2\course\apps.py:14 .\BaCa2\course\views.py:1074
 msgid "Course"
 msgstr "Kurs"
 
-#: .\course\models.py:1200
+#: .\BaCa2\course\models.py:1326
 msgid "Can view submit code"
 msgstr "Może zobaczyć kod zgłoszenia"
 
-#: .\course\models.py:1201
+#: .\BaCa2\course\models.py:1327
 msgid "Can view submit compilation logs"
 msgstr "Może zobaczyć logi kompilacji zgłoszenia"
 
-#: .\course\models.py:1202
+#: .\BaCa2\course\models.py:1328
 msgid "Can view submit checker logs"
 msgstr "Może zobaczyć logi sprawdzania zgłoszenia"
 
-#: .\course\models.py:1203
+#: .\BaCa2\course\models.py:1329
 msgid "Can view output generated by the student solution"
 msgstr "Może zobaczyć wynik generowany przez rozwiązanie studenta"
 
-#: .\course\models.py:1204
+#: .\BaCa2\course\models.py:1330
 msgid "Can view benchmark output"
 msgstr "Może zobaczyć wynik wzorcowy"
 
-#: .\course\models.py:1205
+#: .\BaCa2\course\models.py:1331
 msgid "Can view test inputs"
 msgstr "Może zobaczyć dane wejściowe testu"
 
-#: .\course\models.py:1206
+#: .\BaCa2\course\models.py:1332
 msgid "Can view used memory"
 msgstr "Może zobaczyć zużytą pamięć"
 
-#: .\course\models.py:1207
+#: .\BaCa2\course\models.py:1333
 msgid "Can view used time"
 msgstr "Może zobaczyć zużyty czas"
 
-#: .\course\views.py:485
+#: .\BaCa2\course\models.py:1334
+msgid "Can rejudge submit"
+msgstr "Może ponownie ocenić zgłoszenie"
+
+#: .\BaCa2\course\views.py:499
 msgid "Course members"
 msgstr "Uczestnicy kursu"
 
-#: .\course\views.py:492 .\main\views.py:463 .\main\views.py:579
-#: .\main\views.py:641 .\widgets\forms\course.py:334
-#: .\widgets\forms\course.py:617 .\widgets\forms\main.py:23
+#: .\BaCa2\course\views.py:506 .\BaCa2\main\views.py:463
+#: .\BaCa2\main\views.py:579 .\BaCa2\main\views.py:641
+#: .\BaCa2\widgets\forms\course.py:627 .\BaCa2\widgets\forms\main.py:23
 msgid "First name"
 msgstr "Imię"
 
-#: .\course\views.py:493 .\main\views.py:464 .\main\views.py:580
-#: .\main\views.py:642 .\widgets\forms\course.py:335
-#: .\widgets\forms\course.py:618 .\widgets\forms\main.py:24
+#: .\BaCa2\course\views.py:507 .\BaCa2\main\views.py:464
+#: .\BaCa2\main\views.py:580 .\BaCa2\main\views.py:642
+#: .\BaCa2\widgets\forms\course.py:628 .\BaCa2\widgets\forms\main.py:24
 msgid "Last name"
 msgstr "Nazwisko"
 
-#: .\course\views.py:494 .\widgets\forms\main.py:20
+#: .\BaCa2\course\views.py:508 .\BaCa2\widgets\forms\main.py:20
 msgid "Email address"
 msgstr "Adres email"
 
-#: .\course\views.py:495 .\widgets\forms\course.py:340
-#: .\widgets\forms\course.py:473 .\widgets\forms\course.py:619
+#: .\BaCa2\course\views.py:509 .\BaCa2\widgets\forms\course.py:338
+#: .\BaCa2\widgets\forms\course.py:475 .\BaCa2\widgets\forms\course.py:629
 msgid "Role"
 msgstr "Rola"
 
-#: .\course\views.py:530
+#: .\BaCa2\course\views.py:544
 msgid "Roles"
 msgstr "Role"
 
-#: .\course\views.py:536 .\widgets\forms\course.py:729
+#: .\BaCa2\course\views.py:550 .\BaCa2\widgets\forms\course.py:739
 msgid "Role name"
 msgstr "Nazwa roli"
 
-#: .\course\views.py:537 .\widgets\forms\course.py:735
-#: .\widgets\forms\course.py:744 .\widgets\forms\course.py:864
-#: .\widgets\forms\course.py:922
+#: .\BaCa2\course\views.py:551 .\BaCa2\widgets\forms\course.py:745
+#: .\BaCa2\widgets\forms\course.py:754 .\BaCa2\widgets\forms\course.py:874
+#: .\BaCa2\widgets\forms\course.py:932
 msgid "Description"
 msgstr "Opis"
 
-#: .\course\views.py:567
+#: .\BaCa2\course\views.py:581
 msgid "Rounds"
 msgstr "Rundy"
 
-#: .\course\views.py:570 .\widgets\forms\course.py:976
-#: .\widgets\forms\course.py:1097
+#: .\BaCa2\course\views.py:584 .\BaCa2\widgets\forms\course.py:986
+#: .\BaCa2\widgets\forms\course.py:1107
 msgid "Round name"
 msgstr "Nazwa rundy"
 
-#: .\course\views.py:571 .\widgets\forms\course.py:988
-#: .\widgets\forms\course.py:1108
+#: .\BaCa2\course\views.py:585 .\BaCa2\widgets\forms\course.py:998
+#: .\BaCa2\widgets\forms\course.py:1118
 msgid "Start date"
 msgstr "Data rozpoczęcia"
 
-#: .\course\views.py:572 .\widgets\forms\course.py:990
-#: .\widgets\forms\course.py:1110
+#: .\BaCa2\course\views.py:586 .\BaCa2\widgets\forms\course.py:1000
+#: .\BaCa2\widgets\forms\course.py:1120
 msgid "End date"
 msgstr "Data terminu"
 
-#: .\course\views.py:573 .\widgets\forms\course.py:992
-#: .\widgets\forms\course.py:1112
+#: .\BaCa2\course\views.py:587 .\BaCa2\widgets\forms\course.py:1002
+#: .\BaCa2\widgets\forms\course.py:1122
 msgid "Deadline date"
 msgstr "Data zakończenia"
 
-#: .\course\views.py:574 .\widgets\forms\course.py:994
-#: .\widgets\forms\course.py:1114
+#: .\BaCa2\course\views.py:588 .\BaCa2\widgets\forms\course.py:1004
+#: .\BaCa2\widgets\forms\course.py:1124
 msgid "Reveal date"
 msgstr "Data odsłonięcia"
 
-#: .\course\views.py:576 .\widgets\forms\course.py:978
-#: .\widgets\forms\course.py:1099
+#: .\BaCa2\course\views.py:590 .\BaCa2\widgets\forms\course.py:988
+#: .\BaCa2\widgets\forms\course.py:1109
 msgid "Score selection policy"
 msgstr "Polityka wyboru wyniku"
 
-#: .\course\views.py:611
+#: .\BaCa2\course\views.py:625
 msgid "Tasks"
 msgstr "Zadania"
 
-#: .\course\views.py:615 .\course\views.py:661 .\widgets\forms\course.py:1310
+#: .\BaCa2\course\views.py:633 .\BaCa2\course\views.py:696
+#: .\BaCa2\widgets\forms\course.py:1320 .\BaCa2\widgets\forms\course.py:1474
 msgid "Task name"
 msgstr "Nazwa zadania"
 
-#: .\course\views.py:616 .\course\views.py:1013 .\widgets\forms\course.py:1319
-#: .\widgets\forms\course.py:1629
+#: .\BaCa2\course\views.py:634 .\BaCa2\course\views.py:1075
+#: .\BaCa2\widgets\forms\course.py:1329 .\BaCa2\widgets\forms\course.py:1482
+#: .\BaCa2\widgets\forms\course.py:1769
 msgid "Round"
 msgstr "Runda"
 
-#: .\course\views.py:617
+#: .\BaCa2\course\views.py:635
 msgid "Judging mode"
 msgstr "Sposób oceniania"
 
-#: .\course\views.py:618
+#: .\BaCa2\course\views.py:636
 msgid "Max points"
 msgstr "Max punktów"
 
-#: .\course\views.py:619
+#: .\BaCa2\course\views.py:637
 msgid "My score"
 msgstr "Mój wynik"
 
-#: .\course\views.py:659 .\course\views.py:827
+#: .\BaCa2\course\views.py:694 .\BaCa2\course\views.py:880
 msgid "Results"
 msgstr "Wyniki"
 
-#: .\course\views.py:662 .\course\views.py:829 .\course\views.py:1016
+#: .\BaCa2\course\views.py:697 .\BaCa2\course\views.py:882
+#: .\BaCa2\course\views.py:1078
 msgid "Submit time"
 msgstr "Czas zgłoszenia"
 
-#: .\course\views.py:663 .\course\views.py:830 .\course\views.py:1018
+#: .\BaCa2\course\views.py:698 .\BaCa2\course\views.py:883
+#: .\BaCa2\course\views.py:1081
 msgid "Submit status"
 msgstr "Status zgłoszenia"
 
-#: .\course\views.py:664 .\course\views.py:831 .\course\views.py:1022
+#: .\BaCa2\course\views.py:699 .\BaCa2\course\views.py:884
+#: .\BaCa2\course\views.py:1085
 msgid "Score"
 msgstr "Wynik"
 
-#: .\course\views.py:680
+#: .\BaCa2\course\views.py:717
 msgid "Submitter first name"
 msgstr "Imię zgłaszającego"
 
-#: .\course\views.py:681
+#: .\BaCa2\course\views.py:718
 msgid "Submitter last name"
 msgstr "Nazwisko zgłaszającego"
 
-#: .\course\views.py:849 .\main\views.py:562
+#: .\BaCa2\course\views.py:904 .\BaCa2\main\views.py:562
 msgid "Name"
 msgstr "Imię"
 
-#: .\course\views.py:851
+#: .\BaCa2\course\views.py:906
 msgid "Surname"
 msgstr "Nazwisko"
 
-#: .\course\views.py:911
+#: .\BaCa2\course\views.py:973
 msgid " - edit"
 msgstr " - edytuj"
 
-#: .\course\views.py:928
+#: .\BaCa2\course\views.py:990
 msgid " - rounds"
 msgstr " - rundy"
 
-#: .\course\views.py:1014
+#: .\BaCa2\course\views.py:1076
 msgid "Task"
 msgstr "Zadanie"
 
-#: .\course\views.py:1015
+#: .\BaCa2\course\views.py:1077
 msgid "User"
 msgstr "Użytkownik"
 
-#: .\course\views.py:1023
+#: .\BaCa2\course\views.py:1086
 msgid "Fall-off factor"
 msgstr "Współczynnik spadku"
 
-#: .\course\views.py:1035
+#: .\BaCa2\course\views.py:1098
 msgid "Summary"
 msgstr "Podsumowanie"
 
-#: .\course\views.py:1046
+#: .\BaCa2\course\views.py:1108
 msgid "Code"
 msgstr "Kod"
 
-#: .\course\views.py:1050 .\widgets\forms\course.py:1968
+#: .\BaCa2\course\views.py:1112 .\BaCa2\widgets\forms\course.py:2199
 msgid "Source code"
 msgstr "Kod źródłowy"
 
-#: .\course\views.py:1101
+#: .\BaCa2\course\views.py:1163
 msgid "Test"
 msgstr "Test"
 
-#: .\course\views.py:1102
+#: .\BaCa2\course\views.py:1164
 msgid "Status"
 msgstr "Status"
 
-#: .\course\views.py:1107
+#: .\BaCa2\course\views.py:1169
 msgid "Time"
 msgstr "Czas"
 
-#: .\course\views.py:1111
+#: .\BaCa2\course\views.py:1173
 msgid "Memory"
 msgstr "Pamięć"
 
-#: .\main\models.py:238
+#: .\BaCa2\main\models.py:177
+msgid ""
+"Email is not in internal domain. To add external users contact your "
+"administrator"
+msgstr ""
+"Adres email nie jest w domenie wewnętrznej. Aby dodać użytkowników "
+"zewnętrznych, skontaktuj się z administratorem"
+
+#: .\BaCa2\main\models.py:292
 msgid "admin"
 msgstr "admin"
 
-#: .\main\models.py:239
+#: .\BaCa2\main\models.py:293
 msgid "Admin role for course leaders"
 msgstr "Rola administratora dla liderów kursu"
 
-#: .\main\models.py:367
+#: .\BaCa2\main\models.py:421
 msgid "course name"
 msgstr "nazwa kursu"
 
-#: .\main\models.py:374
+#: .\BaCa2\main\models.py:428
 msgid "course short name"
 msgstr "krótka nazwa kursu"
 
-#: .\main\models.py:382
+#: .\BaCa2\main\models.py:436
 msgid "Subject code"
 msgstr "Nazwa przedmiotu"
 
-#: .\main\models.py:390
+#: .\BaCa2\main\models.py:444
 msgid "Term code"
 msgstr "Kod semestru"
 
-#: .\main\models.py:400
+#: .\BaCa2\main\models.py:454
 msgid "default role"
 msgstr "rola domyślna"
 
-#: .\main\models.py:410
+#: .\BaCa2\main\models.py:464
 msgid "admin role"
 msgstr "rola administratora"
 
-#: .\main\models.py:423
+#: .\BaCa2\main\models.py:477
 msgid "Can view course members"
 msgstr "Może zobaczyć uczestników kursu"
 
-#: .\main\models.py:424
+#: .\BaCa2\main\models.py:478
 msgid "Can add course members"
 msgstr "Może dodać uczestników kursu"
 
-#: .\main\models.py:425
+#: .\BaCa2\main\models.py:479
 msgid "Can remove course members"
 msgstr "Może usunąć uczestników kursu"
 
-#: .\main\models.py:426
+#: .\BaCa2\main\models.py:480
 msgid "Can change course member's role"
 msgstr "Może zmienić rolę uczestnika kursu"
 
-#: .\main\models.py:427
+#: .\BaCa2\main\models.py:481
 msgid "Can add course admins"
 msgstr "Może dodać administratorów kursu"
 
-#: .\main\models.py:428
+#: .\BaCa2\main\models.py:482
 msgid "Can add course members from CSV"
 msgstr "Może dodać uczestników kursu z pliku CSV"
 
-#: .\main\models.py:431
+#: .\BaCa2\main\models.py:485
 msgid "Can view course role"
 msgstr "Może zobaczyć role w kursie"
 
-#: .\main\models.py:432
+#: .\BaCa2\main\models.py:486
 msgid "Can edit course role"
 msgstr "Może edytować role w kursie"
 
-#: .\main\models.py:433
+#: .\BaCa2\main\models.py:487
 msgid "Can add course role"
 msgstr "Może dodawać role w kursie"
 
-#: .\main\models.py:434
+#: .\BaCa2\main\models.py:488
 msgid "Can delete course role"
 msgstr "Może usuwać role w kursie"
 
-#: .\main\models.py:437
+#: .\BaCa2\main\models.py:491
 msgid "Can view own submits"
 msgstr "Może zobaczyć własne zgłoszenia"
 
-#: .\main\models.py:438
+#: .\BaCa2\main\models.py:492
 msgid "Can add submit after round deadline"
 msgstr "Może dodać zgłoszenie po zakończeniu rundy"
 
-#: .\main\models.py:439
+#: .\BaCa2\main\models.py:493
 msgid "Can add submit before round start"
 msgstr "Może dodać zgłoszenie przed rozpoczęciem rundy"
 
-#: .\main\models.py:440
+#: .\BaCa2\main\models.py:494
 msgid "Can view own results"
 msgstr "Może zobaczyć własne wyniki"
 
-#: .\main\models.py:443
+#: .\BaCa2\main\models.py:497
 msgid "Can reupload task"
 msgstr "Może ponownie wgrać paczkę z zadaniem"
 
-#: .\main\models.py:1200
+#: .\BaCa2\main\models.py:1256
 msgid "UI theme"
 msgstr "Skórka"
 
-#: .\main\models.py:1224
+#: .\BaCa2\main\models.py:1280
 msgid "email address"
 msgstr "adres email"
 
-#: .\main\models.py:1230
+#: .\BaCa2\main\models.py:1286
 msgid "first name"
 msgstr "imię"
 
-#: .\main\models.py:1236
+#: .\BaCa2\main\models.py:1292
 msgid "last name"
 msgstr "nazwisko"
 
-#: .\main\models.py:1242
+#: .\BaCa2\main\models.py:1298
 msgid "date joined"
 msgstr "data dołączenia"
 
-#: .\main\models.py:1247
+#: .\BaCa2\main\models.py:1303
 msgid "user settings"
 msgstr "ustawienia użytkownika"
 
-#: .\main\models.py:1261
+#: .\BaCa2\main\models.py:1317
 msgid "user job"
 msgstr "praca użytkownika"
 
-#: .\main\models.py:1273
+#: .\BaCa2\main\models.py:1329
 msgid "superuser status"
 msgstr "status superusera"
 
-#: .\main\models.py:1276
+#: .\BaCa2\main\models.py:1332
 msgid ""
 "Designates that this user has all permissions without explicitly assigning "
 "them."
@@ -506,11 +521,11 @@ msgstr ""
 "Oznacza, że ten użytkownik ma wszystkie uprawnienia bez ich wyraźnego "
 "przypisywania."
 
-#: .\main\models.py:1283
+#: .\BaCa2\main\models.py:1339
 msgid "groups"
 msgstr "Grupy"
 
-#: .\main\models.py:1286
+#: .\BaCa2\main\models.py:1342
 msgid ""
 "The groups this user belongs to. A user will get all permissions granted to "
 "each of their groups."
@@ -518,63 +533,63 @@ msgstr ""
 "Grupy, do których należy ten użytkownik. Użytkownik otrzyma wszystkie "
 "uprawnienia przyznane każdej z grup."
 
-#: .\main\models.py:1295
+#: .\BaCa2\main\models.py:1351
 msgid "roles"
 msgstr "Role"
 
-#: .\main\models.py:1297
+#: .\BaCa2\main\models.py:1353
 msgid "The course roles this user has been assigned to."
 msgstr "Role w kursie, do których został przypisany ten użytkownik."
 
-#: .\main\models.py:1304
+#: .\BaCa2\main\models.py:1360
 msgid "user permissions"
 msgstr "uprawnienia użytkownika"
 
-#: .\main\models.py:1306
+#: .\BaCa2\main\models.py:1362
 msgid "Specific permissions for this user."
 msgstr "Dodatkowe uprawnienia przypisane do tego użytkownika."
 
-#: .\main\models.py:1311
+#: .\BaCa2\main\models.py:1367
 msgid "nickname"
 msgstr "pseudonim"
 
-#: .\main\models.py:1368
+#: .\BaCa2\main\models.py:1424
 msgid "YES"
 msgstr "TAK"
 
-#: .\main\models.py:1368
+#: .\BaCa2\main\models.py:1424
 msgid "NO"
 msgstr "NIE"
 
-#: .\main\models.py:1891
+#: .\BaCa2\main\models.py:1947
 msgid "role name"
 msgstr "nazwa roli"
 
-#: .\main\models.py:1898
+#: .\BaCa2\main\models.py:1954
 msgid "role description"
 msgstr "opis roli"
 
-#: .\main\models.py:1905
+#: .\BaCa2\main\models.py:1961
 msgid "role permissions"
 msgstr "uprawnienia roli"
 
-#: .\main\models.py:1912
+#: .\BaCa2\main\models.py:1968
 msgid "course"
 msgstr "kurs"
 
-#: .\main\models.py:2219
+#: .\BaCa2\main\models.py:2275
 msgid "preset name"
 msgstr "nazwa szablonu"
 
-#: .\main\models.py:2227
+#: .\BaCa2\main\models.py:2283
 msgid "preset permissions"
 msgstr "uprawnienia szablonu"
 
-#: .\main\models.py:2233
+#: .\BaCa2\main\models.py:2289
 msgid "preset is public"
 msgstr "szablon jest publiczny"
 
-#: .\main\models.py:2235
+#: .\BaCa2\main\models.py:2291
 msgid ""
 "Indicates whether the preset is public. Public presets can be used by all "
 "users, private presets can only be used by their creator or other users "
@@ -584,175 +599,183 @@ msgstr ""
 "przez wszystkich użytkowników, prywatne szablony mogą być używane tylko "
 "przez ich twórcę lub innych użytkowników, którzy otrzymali dostęp."
 
-#: .\main\models.py:2243
+#: .\BaCa2\main\models.py:2299
 msgid "preset creator"
 msgstr "twórca szablonu"
 
-#: .\main\models.py:2338
+#: .\BaCa2\main\models.py:2394
 msgid "user"
 msgstr "użytkownik"
 
-#: .\main\models.py:2345
+#: .\BaCa2\main\models.py:2401
 msgid "preset"
 msgstr "szablon"
 
-#: .\main\views.py:335
+#: .\BaCa2\main\views.py:335
 msgid "Login"
 msgstr "Logowanie"
 
-#: .\main\views.py:341
+#: .\BaCa2\main\views.py:341
 msgid "Log in"
 msgstr ""
 
-#: .\main\views.py:462 .\main\views.py:578 .\main\views.py:640
-#: .\widgets\forms\course.py:333 .\widgets\forms\course.py:616
+#: .\BaCa2\main\views.py:462 .\BaCa2\main\views.py:578
+#: .\BaCa2\main\views.py:640 .\BaCa2\widgets\forms\course.py:331
+#: .\BaCa2\widgets\forms\course.py:626
 msgid "Email"
 msgstr "Email"
 
-#: .\main\views.py:465 .\main\views.py:643
+#: .\BaCa2\main\views.py:465 .\BaCa2\main\views.py:643
 msgid "Superuser"
 msgstr "Superuser"
 
-#: .\main\views.py:506 .\widgets\navigation.py:28
+#: .\BaCa2\main\views.py:507 .\BaCa2\widgets\navigation.py:28
 msgid "Courses"
 msgstr "Kursy"
 
-#: .\main\views.py:555
+#: .\BaCa2\main\views.py:555
 msgid "Permissions"
 msgstr "Uprawnienia"
 
-#: .\main\views.py:561 .\widgets\forms\course.py:743
-#: .\widgets\forms\course.py:863 .\widgets\forms\course.py:921
+#: .\BaCa2\main\views.py:561 .\BaCa2\widgets\forms\course.py:753
+#: .\BaCa2\widgets\forms\course.py:873 .\BaCa2\widgets\forms\course.py:931
 msgid "Codename"
 msgstr "Nazwa kodowa"
 
-#: .\main\views.py:572
+#: .\BaCa2\main\views.py:572
 msgid "Members"
 msgstr "Uczestnicy"
 
-#: .\main\views.py:622
+#: .\BaCa2\main\views.py:622
 msgid "Profile"
 msgstr "Profil"
 
-#: .\main\views.py:659 .\main\views.py:664
+#: .\BaCa2\main\views.py:658 .\BaCa2\main\views.py:663
 msgid "Change password"
 msgstr "Zmień hasło"
 
-#: .\main\views.py:701
+#: .\BaCa2\main\views.py:700
 msgid "Password changed."
 msgstr "Hasło zmienione."
 
-#: .\main\views.py:705
+#: .\BaCa2\main\views.py:704
 msgid "Password not changed."
 msgstr "Hasło nie zmienione."
 
-#: .\templates\course_task.html:11
+#: .\BaCa2\templates\course_task.html:11
 msgid "Attachments"
 msgstr "Załączniki"
 
-#: .\templates\widget_templates\brief_result_summary.html:13
+#: .\BaCa2\templates\widget_templates\brief_result_summary.html:13
 msgid "Status:"
 msgstr "Status:"
 
-#: .\templates\widget_templates\brief_result_summary.html:18
+#: .\BaCa2\templates\widget_templates\brief_result_summary.html:18
 msgid "Time used:"
 msgstr "Użyty czas:"
 
-#: .\templates\widget_templates\brief_result_summary.html:25
+#: .\BaCa2\templates\widget_templates\brief_result_summary.html:25
 msgid "Memory used:"
 msgstr "Użyta pamięć"
 
-#: .\templates\widget_templates\brief_result_summary.html:44
+#: .\BaCa2\templates\widget_templates\brief_result_summary.html:44
 msgid "Compile logs"
 msgstr "Logi kompilacji"
 
-#: .\templates\widget_templates\brief_result_summary.html:58
+#: .\BaCa2\templates\widget_templates\brief_result_summary.html:58
 msgid "Checker logs"
 msgstr "Logi sprawdzania"
 
-#: .\templates\widget_templates\markup_displayer.html:22
-msgid "Download PDF"
-msgstr "Pobierz PDF"
-
-#: .\templates\widget_templates\pdf_displayer.html:10
-msgid "Download"
-msgstr "Pobierz"
-
-#: .\templates\widget_templates\pdf_displayer.html:27
-msgid "Page"
-msgstr "Strona"
-
-#: .\templates\widget_templates\pdf_displayer.html:33
-msgid "of"
-msgstr "z"
-
-#: .\templates\widget_templates\table.html:115
+#: .\BaCa2\templates\widget_templates\listing\table.html:108
 msgid "resize"
 msgstr "zmień rozmiar"
 
-#: .\util\views.py:353
+#: .\BaCa2\templates\widget_templates\markup_displayer.html:22
+msgid "Download PDF"
+msgstr "Pobierz PDF"
+
+#: .\BaCa2\templates\widget_templates\pdf_displayer.html:10
+msgid "Download"
+msgstr "Pobierz"
+
+#: .\BaCa2\templates\widget_templates\pdf_displayer.html:27
+msgid "Page"
+msgstr "Strona"
+
+#: .\BaCa2\templates\widget_templates\pdf_displayer.html:33
+msgid "of"
+msgstr "z"
+
+#: .\BaCa2\util\views.py:353
 msgid "Failed to retrieve data for model instances due to missing mode param."
-msgstr "Nie udało się pobrać danych dla instancji modelu z powodu braku parametru trybu."
+msgstr ""
+"Nie udało się pobrać danych dla instancji modelu z powodu braku parametru "
+"trybu."
 
-#: .\util\views.py:375
+#: .\BaCa2\util\views.py:375
 msgid "Get all retrieval mode does not accept filter or exclude parameters."
-msgstr "Tryb pobierania wszystkich nie akceptuje parametrów filtrujących lub wykluczających."
+msgstr ""
+"Tryb pobierania wszystkich nie akceptuje parametrów filtrujących lub "
+"wykluczających."
 
-#: .\util\views.py:390
+#: .\BaCa2\util\views.py:390
 msgid ""
 "Failed to retrieve data for model instances due to invalid get mode "
 "parameter."
 msgstr ""
-"Nie udało się pobrać danych dla instancji modelu z powodu nieprawidłowego parametru trybu."
+"Nie udało się pobrać danych dla instancji modelu z powodu nieprawidłowego "
+"parametru trybu."
 
-#: .\util\views.py:413 .\util\views.py:469
+#: .\BaCa2\util\views.py:413 .\BaCa2\util\views.py:469
 msgid "Permission denied."
 msgstr "Brak uprawnień."
 
-#: .\util\views.py:419
+#: .\BaCa2\util\views.py:419
 msgid "Successfully retrieved data for all model instances"
 msgstr "Pomyślnie pobrano dane dla wszystkich instancji modelu"
 
-#: .\util\views.py:426
+#: .\BaCa2\util\views.py:426
 msgid "An error occurred while retrieving data for all model instances."
-msgstr "Podczas pobierania danych dla wszystkich instancji modelu wystąpił błąd."
+msgstr ""
+"Podczas pobierania danych dla wszystkich instancji modelu wystąpił błąd."
 
-#: .\util\views.py:475
+#: .\BaCa2\util\views.py:475
 msgid ""
 "Successfully retrieved data for model instances matching the specified "
 "filter parameters."
 msgstr ""
-"Pomyślnie pobrano dane dla instancji modelu spełniających określone parametry filtru."
+"Pomyślnie pobrano dane dla instancji modelu spełniających określone "
+"parametry filtru."
 
-#: .\util\views.py:483
+#: .\BaCa2\util\views.py:483
 msgid ""
 "An error occurred while retrieving data for model instances matching the "
 "specified filter parameters."
 msgstr ""
-"Podczas pobierania danych dla instancji modelu spełniających określone parametry "
-"filtru wystąpił błąd."
+"Podczas pobierania danych dla instancji modelu spełniających określone "
+"parametry filtru wystąpił błąd."
 
-#: .\util\views.py:554
+#: .\BaCa2\util\views.py:554
 msgid "This view does not handle post requests."
 msgstr "Ten widok nie obsługuje żądań POST."
 
-#: .\util\views.py:568
+#: .\BaCa2\util\views.py:568
 msgid "Unknown form: {request.POST.get(\"form_name\")}"
 msgstr "Nieznany formularz: {request.POST.get(\"form_name\")}"
 
-#: .\widgets\brief_result_summary.py:40
+#: .\BaCa2\widgets\brief_result_summary.py:40
 msgid "Compile log"
 msgstr "Log kompilacji"
 
-#: .\widgets\brief_result_summary.py:52
+#: .\BaCa2\widgets\brief_result_summary.py:52
 msgid "Checker log"
 msgstr "Log sprawdzania"
 
-#: .\widgets\code_block.py:26
+#: .\BaCa2\widgets\code_block.py:26
 msgid "Code block"
 msgstr "Blok kodu"
 
-#: .\widgets\code_block.py:38
+#: .\BaCa2\widgets\code_block.py:38
 msgid ""
 "ERROR: Failed to read file.\n"
 " Make sure you have sent valid file as solution."
@@ -760,388 +783,458 @@ msgstr ""
 "BŁĄD: Nie udało się odczytać pliku.\n"
 " Upewnij się, że wysłałeś poprawny plik jako rozwiązanie."
 
-#: .\widgets\forms\base.py:184
+#: .\BaCa2\widgets\forms\base.py:184
 msgid "Form name"
 msgstr "Nazwa formularza"
 
-#: .\widgets\forms\base.py:191
+#: .\BaCa2\widgets\forms\base.py:191
 msgid "Form instance"
 msgstr "Instancja formularza"
 
-#: .\widgets\forms\base.py:196
+#: .\BaCa2\widgets\forms\base.py:196
 msgid "Action"
 msgstr "Akcja"
 
-#: .\widgets\forms\base.py:365
+#: .\BaCa2\widgets\forms\base.py:365
 msgid "Invalid form data. Please correct the following errors:"
 msgstr "Nieprawidłowe dane. Proszę poprawić następujące błędy:"
 
-#: .\widgets\forms\base.py:378
+#: .\BaCa2\widgets\forms\base.py:378
 msgid "Request failed due to insufficient permissions."
 msgstr "Żądanie nie powiodło się z powodu niewystarczających uprawnień."
 
-#: .\widgets\forms\base.py:395
+#: .\BaCa2\widgets\forms\base.py:395
 msgid "Following error occurred while processing the request:"
 msgstr "Podczas przetwarzania żądania wystąpił następujący błąd:"
 
-#: .\widgets\forms\base.py:506
+#: .\BaCa2\widgets\forms\base.py:506
 msgid "Submit"
 msgstr "Zgłoś"
 
-#: .\widgets\forms\base.py:600 .\widgets\forms\base.py:722
+#: .\BaCa2\widgets\forms\base.py:600 .\BaCa2\widgets\forms\base.py:722
 msgid "Generate automatically"
 msgstr "Wygeneruj automatycznie"
 
-#: .\widgets\forms\base.py:602 .\widgets\forms\base.py:724
+#: .\BaCa2\widgets\forms\base.py:602 .\BaCa2\widgets\forms\base.py:724
 msgid "Enter manually"
 msgstr "Wprwoadź ręcznie"
 
-#: .\widgets\forms\base.py:787
+#: .\BaCa2\widgets\forms\base.py:787
 msgid "Summary of changes"
 msgstr "Podsumowanie zmian"
 
-#: .\widgets\forms\base.py:791
+#: .\BaCa2\widgets\forms\base.py:791
 msgid "No changes made"
 msgstr "Brak zmian"
 
-#: .\widgets\forms\course.py:151
+#: .\BaCa2\widgets\forms\course.py:152
 msgid "Course name"
 msgstr "Nazwa kursu"
 
-#: .\widgets\forms\course.py:158
+#: .\BaCa2\widgets\forms\course.py:159
 msgid "USOS course code"
 msgstr "Kod kursu na USOS"
 
-#: .\widgets\forms\course.py:165
+#: .\BaCa2\widgets\forms\course.py:166
 msgid "USOS term code"
 msgstr "Kod semestru na USOS"
 
-#: .\widgets\forms\course.py:187
+#: .\BaCa2\widgets\forms\course.py:188
 msgid "Course "
 msgstr "Kurs "
 
-#: .\widgets\forms\course.py:187 .\widgets\forms\course.py:775
-#: .\widgets\forms\course.py:1030 .\widgets\forms\course.py:1414
+#: .\BaCa2\widgets\forms\course.py:188 .\BaCa2\widgets\forms\course.py:785
+#: .\BaCa2\widgets\forms\course.py:1040 .\BaCa2\widgets\forms\course.py:1424
 msgid " created successfully"
 msgstr " utworzony pomyślnie"
 
-#: .\widgets\forms\course.py:219
+#: .\BaCa2\widgets\forms\course.py:220
 msgid "Add course"
 msgstr "Dodaj kurs"
 
-#: .\widgets\forms\course.py:225
+#: .\BaCa2\widgets\forms\course.py:226
 msgid "Add USOS data"
 msgstr "Dodaj dane USOS"
 
-#: .\widgets\forms\course.py:226
+#: .\BaCa2\widgets\forms\course.py:227
 msgid "Create without USOS data"
 msgstr "Utwórz bez danych USOS"
 
-#: .\widgets\forms\course.py:231
+#: .\BaCa2\widgets\forms\course.py:232
 msgid "Confirm course creation"
 msgstr "Potwierdź utworzenie kursu"
 
-#: .\widgets\forms\course.py:233
+#: .\BaCa2\widgets\forms\course.py:234
 msgid "Are you sure you want to create a new course with the following data?"
 msgstr "Czy na pewno chcesz utworzyć nowy kurs z następującymi danymi?"
 
-#: .\widgets\forms\course.py:235
+#: .\BaCa2\widgets\forms\course.py:236
 msgid "Create course"
 msgstr "Utwórz kurs"
 
-#: .\widgets\forms\course.py:258
+#: .\BaCa2\widgets\forms\course.py:259
 msgid "Course ID"
 msgstr "ID kursu"
 
-#: .\widgets\forms\course.py:274
+#: .\BaCa2\widgets\forms\course.py:275
 msgid "Course deleted successfully"
 msgstr "Kurs usunięty pomyślnie"
 
-#: .\widgets\forms\course.py:305 .\widgets\forms\course.py:311
+#: .\BaCa2\widgets\forms\course.py:306 .\BaCa2\widgets\forms\course.py:312
 msgid "Delete course"
 msgstr "Usuń kurs"
 
-#: .\widgets\forms\course.py:307
+#: .\BaCa2\widgets\forms\course.py:308
 msgid "Confirm course deletion"
 msgstr "Potwierdź usunięcie kursu"
 
-#: .\widgets\forms\course.py:309
+#: .\BaCa2\widgets\forms\course.py:310
 msgid ""
 "Are you sure you want to delete this course? This action cannot be undone."
-msgstr ""
-"Czy na pewno chcesz usunąć ten kurs? Ta akcja nie może być cofnięta."
+msgstr "Czy na pewno chcesz usunąć ten kurs? Ta akcja nie może być cofnięta."
 
-#: .\widgets\forms\course.py:330
-msgid "Choose users to add"
-msgstr "Wybierz użytkowników do dodania"
+#: .\BaCa2\widgets\forms\course.py:333
+msgid "Email from UJ domain, or already registered in the system."
+msgstr "Adres email z domeny UJ, lub już zarejestrowany w systemie."
 
-#: .\widgets\forms\course.py:400 .\widgets\forms\course.py:542
-msgid "Members added successfully"
-msgstr "Uczestnicy dodani pomyślnie"
+#: .\BaCa2\widgets\forms\course.py:396 .\BaCa2\widgets\forms\course.py:546
+msgid "You have been added to a course"
+msgstr "Zostałeś dodany do kursu"
 
-#: .\widgets\forms\course.py:454
-msgid "Add members"
-msgstr "Dodaj uczestników"
+#: .\BaCa2\widgets\forms\course.py:402
+msgid "Member added successfully"
+msgstr "Uczestnik dodany pomyślnie"
 
-#: .\widgets\forms\course.py:467
+#: .\BaCa2\widgets\forms\course.py:456
+msgid "Add new member"
+msgstr "Dodaj nowego uczestnika"
+
+#: .\BaCa2\widgets\forms\course.py:469
 msgid "Members CSV file"
 msgstr "Plik CSV z uczestnikami"
 
-#: .\widgets\forms\course.py:596
+#: .\BaCa2\widgets\forms\course.py:552
+msgid "Members added successfully"
+msgstr "Uczestnicy dodani pomyślnie"
+
+#: .\BaCa2\widgets\forms\course.py:606
 msgid "Add members from CSV"
 msgstr "Dodaj uczestników z pliku CSV"
 
-#: .\widgets\forms\course.py:613
+#: .\BaCa2\widgets\forms\course.py:623
 msgid "Choose members to remove"
 msgstr "Wybierz uczestników do usunięcia"
 
-#: .\widgets\forms\course.py:671
+#: .\BaCa2\widgets\forms\course.py:681
 msgid "You cannot remove an admin from the course"
 msgstr "Nie możesz usunąć administratora z kursu"
 
-#: .\widgets\forms\course.py:673
+#: .\BaCa2\widgets\forms\course.py:683
 msgid "You cannot remove yourself from the course"
 msgstr "Nie możesz usunąć siebie z kursu"
 
-#: .\widgets\forms\course.py:676
+#: .\BaCa2\widgets\forms\course.py:686
 msgid "Members removed successfully"
 msgstr "Uczestnicy usunięci pomyślnie"
 
-#: .\widgets\forms\course.py:712
+#: .\BaCa2\widgets\forms\course.py:722
 msgid "Remove members"
 msgstr "Usuń uczestników"
 
-#: .\widgets\forms\course.py:740
+#: .\BaCa2\widgets\forms\course.py:750
 msgid "Choose role permissions"
 msgstr "Wybierz uprawnienia roli"
 
-#: .\widgets\forms\course.py:775 .\widgets\forms\course.py:846
+#: .\BaCa2\widgets\forms\course.py:785 .\BaCa2\widgets\forms\course.py:856
 msgid "Role "
 msgstr "Rola "
 
-#: .\widgets\forms\course.py:811
+#: .\BaCa2\widgets\forms\course.py:821
 msgid "Add role"
 msgstr "Dodaj rolę"
 
-#: .\widgets\forms\course.py:827
+#: .\BaCa2\widgets\forms\course.py:837
 msgid "Role ID"
 msgstr "ID roli"
 
-#: .\widgets\forms\course.py:846
+#: .\BaCa2\widgets\forms\course.py:856
 msgid " deleted successfully"
 msgstr " usunięte pomyślnie"
 
-#: .\widgets\forms\course.py:854 .\widgets\forms\course.py:913
-#: .\widgets\forms\course.py:1465 .\widgets\forms\course.py:1549
-#: .\widgets\forms\course.py:1970
+#: .\BaCa2\widgets\forms\course.py:864 .\BaCa2\widgets\forms\course.py:923
+#: .\BaCa2\widgets\forms\course.py:1497 .\BaCa2\widgets\forms\course.py:1604
+#: .\BaCa2\widgets\forms\course.py:1688 .\BaCa2\widgets\forms\course.py:2104
+#: .\BaCa2\widgets\forms\course.py:2201
 msgid "Task ID"
 msgstr "ID zadania"
 
-#: .\widgets\forms\course.py:860
+#: .\BaCa2\widgets\forms\course.py:870
 msgid "Choose permissions to add"
 msgstr "Wybierz uprawnienia do dodania"
 
-#: .\widgets\forms\course.py:873
+#: .\BaCa2\widgets\forms\course.py:883
 msgid "Permissions added successfully"
 msgstr "Uprawnienia dodane pomyślnie"
 
-#: .\widgets\forms\course.py:903
+#: .\BaCa2\widgets\forms\course.py:913
 msgid "Add permissions"
 msgstr "Dodaj uprawnienia"
 
-#: .\widgets\forms\course.py:918
+#: .\BaCa2\widgets\forms\course.py:928
 msgid "Choose permissions to remove"
 msgstr "Wybierz uprawnienia do usunięcia"
 
-#: .\widgets\forms\course.py:931
+#: .\BaCa2\widgets\forms\course.py:941
 msgid "Permissions removed successfully"
 msgstr "Upraawnienia usunięte pomyślnie"
 
-#: .\widgets\forms\course.py:958
+#: .\BaCa2\widgets\forms\course.py:968
 msgid "Remove permissions"
 msgstr "Usuń uprawnienia"
 
-#: .\widgets\forms\course.py:982 .\widgets\forms\course.py:1103
+#: .\BaCa2\widgets\forms\course.py:992 .\BaCa2\widgets\forms\course.py:1113
 msgid "Fall-off policy"
 msgstr "Polityka spadku punktów"
 
-#: .\widgets\forms\course.py:1030 .\widgets\forms\course.py:1190
+#: .\BaCa2\widgets\forms\course.py:1040 .\BaCa2\widgets\forms\course.py:1200
 msgid "Round "
 msgstr "Runda "
 
-#: .\widgets\forms\course.py:1067
+#: .\BaCa2\widgets\forms\course.py:1077
 msgid "Add round"
 msgstr "Dodaj rundę"
 
-#: .\widgets\forms\course.py:1190
+#: .\BaCa2\widgets\forms\course.py:1200
 msgid " edited successfully"
 msgstr " edytowana pomyślnie"
 
-#: .\widgets\forms\course.py:1277
+#: .\BaCa2\widgets\forms\course.py:1287
 msgid "Round ID"
 msgstr "ID rundy"
 
-#: .\widgets\forms\course.py:1293
+#: .\BaCa2\widgets\forms\course.py:1303
 msgid "Round deleted successfully"
 msgstr "Runa usunięta pomyślnie"
 
-#: .\widgets\forms\course.py:1311
+#: .\BaCa2\widgets\forms\course.py:1321
 msgid "If not provided - task name will be taken from package."
 msgstr "Jeśli nie podano - nazwa zadania zostanie pobrana z danych paczki."
 
-#: .\widgets\forms\course.py:1324
+#: .\BaCa2\widgets\forms\course.py:1334 .\BaCa2\widgets\forms\course.py:1487
 msgid "Points"
 msgstr "Punkty"
 
-#: .\widgets\forms\course.py:1327
+#: .\BaCa2\widgets\forms\course.py:1337
 msgid "If not provided - points will be taken from package."
 msgstr "Jeśli nie podano - punkty zostaną pobrane z danych paczki."
 
-#: .\widgets\forms\course.py:1331 .\widgets\forms\course.py:1471
+#: .\BaCa2\widgets\forms\course.py:1341 .\BaCa2\widgets\forms\course.py:1610
 msgid "Task package"
 msgstr "Paczka z zadaniem"
 
-#: .\widgets\forms\course.py:1334 .\widgets\forms\course.py:1474
+#: .\BaCa2\widgets\forms\course.py:1344 .\BaCa2\widgets\forms\course.py:1613
 msgid "Only .zip files are allowed"
 msgstr "Tylko pliki .zip są dozwolone"
 
-#: .\widgets\forms\course.py:1337
+#: .\BaCa2\widgets\forms\course.py:1347 .\BaCa2\widgets\forms\course.py:1492
 msgid "Judge mode"
 msgstr "Tryb oceniania"
 
-#: .\widgets\forms\course.py:1414
+#: .\BaCa2\widgets\forms\course.py:1424
 msgid "Task "
 msgstr "Zadanie "
 
-#: .\widgets\forms\course.py:1450
+#: .\BaCa2\widgets\forms\course.py:1460
 msgid "Add task"
 msgstr "Dodaj zadanie"
 
-#: .\widgets\forms\course.py:1511
-msgid "Task re-uploaded successfully"
-msgstr "Ponowne wgranie zadania zakończyło się sukcesem"
-
-#: .\widgets\forms\course.py:1531
-msgid "Re-upload task"
-msgstr "Wgraj zadanie ponownie"
-
-#: .\widgets\forms\course.py:1565
-msgid "Task deleted successfully"
-msgstr "Zadanie usunięte pomyślnie"
-
-#: .\widgets\forms\course.py:1604 .\widgets\forms\course.py:1610
-msgid "Delete task"
-msgstr "Usuń zadanie"
-
-#: .\widgets\forms\course.py:1606
-msgid "Confirm task deletion"
-msgstr "Potwierdź usunięcie zadania"
-
-#: .\widgets\forms\course.py:1608
-msgid ""
-"Are you sure you want to delete this task? This action cannot be undone."
-msgstr ""
-"Czy na pewno chcesz usunąć to zadanie? Ta akcja nie może być cofnięta."
-
-#: .\widgets\forms\course.py:1626
-msgid "Task title"
-msgstr "Nazwa zadania"
-
-#: .\widgets\forms\course.py:1632
-msgid "Task judge mode"
-msgstr "Tryb oceniania zadania"
-
-#: .\widgets\forms\course.py:1637
-msgid "Task points"
-msgstr "Punkty za zadanie"
-
-#: .\widgets\forms\course.py:1638 .\widgets\forms\course.py:1703
-#: .\widgets\forms\course.py:1737
-msgid "Memory limit"
-msgstr "Limit pamięci"
-
-#: .\widgets\forms\course.py:1640 .\widgets\forms\course.py:1711
-#: .\widgets\forms\course.py:1745
-msgid "Time limit [s]"
-msgstr "Limit czasu [s]"
-
-#: .\widgets\forms\course.py:1643
-msgid "Allowed extensions"
-msgstr "Dozwolone rozszerzenia"
-
-#: .\widgets\forms\course.py:1644
-msgid "CPUs"
-msgstr "Rdzenie CPU"
-
-#: .\widgets\forms\course.py:1688
-msgid "Test set name"
-msgstr "Nazwa zestawu testów"
-
-#: .\widgets\forms\course.py:1695
-msgid "Test set weight"
-msgstr "Waga zestawu testów"
-
-#: .\widgets\forms\course.py:1728
-msgid "Test name"
-msgstr "Nazwa testu"
-
-#: .\widgets\forms\course.py:1753
-msgid "Change input file"
-msgstr "Zmień plik wejściowy"
-
-#: .\widgets\forms\course.py:1761
-msgid "Change output file"
-msgstr "Zmień plik wyjściowy"
-
-#: .\widgets\forms\course.py:1823
+#: .\BaCa2\widgets\forms\course.py:1589 .\BaCa2\widgets\forms\course.py:1963
 msgid "Edit task"
 msgstr "Edytuj zadanie"
 
-#: .\widgets\forms\course.py:1852
+#: .\BaCa2\widgets\forms\course.py:1650
+msgid "Task re-uploaded successfully"
+msgstr "Ponowne wgranie zadania zakończyło się sukcesem"
+
+#: .\BaCa2\widgets\forms\course.py:1670
+msgid "Re-upload task"
+msgstr "Wgraj zadanie ponownie"
+
+#: .\BaCa2\widgets\forms\course.py:1704
+msgid "Task deleted successfully"
+msgstr "Zadanie usunięte pomyślnie"
+
+#: .\BaCa2\widgets\forms\course.py:1743 .\BaCa2\widgets\forms\course.py:1749
+msgid "Delete task"
+msgstr "Usuń zadanie"
+
+#: .\BaCa2\widgets\forms\course.py:1745
+msgid "Confirm task deletion"
+msgstr "Potwierdź usunięcie zadania"
+
+#: .\BaCa2\widgets\forms\course.py:1747
+msgid ""
+"Are you sure you want to delete this task? This action cannot be undone."
+msgstr "Czy na pewno chcesz usunąć to zadanie? Ta akcja nie może być cofnięta."
+
+#: .\BaCa2\widgets\forms\course.py:1766
+msgid "Task title"
+msgstr "Nazwa zadania"
+
+#: .\BaCa2\widgets\forms\course.py:1772
+msgid "Task judge mode"
+msgstr "Tryb oceniania zadania"
+
+#: .\BaCa2\widgets\forms\course.py:1777
+msgid "Task points"
+msgstr "Punkty za zadanie"
+
+#: .\BaCa2\widgets\forms\course.py:1778 .\BaCa2\widgets\forms\course.py:1843
+#: .\BaCa2\widgets\forms\course.py:1877
+msgid "Memory limit"
+msgstr "Limit pamięci"
+
+#: .\BaCa2\widgets\forms\course.py:1780 .\BaCa2\widgets\forms\course.py:1851
+#: .\BaCa2\widgets\forms\course.py:1885
+msgid "Time limit [s]"
+msgstr "Limit czasu [s]"
+
+#: .\BaCa2\widgets\forms\course.py:1783
+msgid "Allowed extensions"
+msgstr "Dozwolone rozszerzenia"
+
+#: .\BaCa2\widgets\forms\course.py:1784
+msgid "CPUs"
+msgstr "Rdzenie CPU"
+
+#: .\BaCa2\widgets\forms\course.py:1828
+msgid "Test set name"
+msgstr "Nazwa zestawu testów"
+
+#: .\BaCa2\widgets\forms\course.py:1835
+msgid "Test set weight"
+msgstr "Waga zestawu testów"
+
+#: .\BaCa2\widgets\forms\course.py:1868
+msgid "Test name"
+msgstr "Nazwa testu"
+
+#: .\BaCa2\widgets\forms\course.py:1893
+msgid "Change input file"
+msgstr "Zmień plik wejściowy"
+
+#: .\BaCa2\widgets\forms\course.py:1901
+msgid "Change output file"
+msgstr "Zmień plik wyjściowy"
+
+#: .\BaCa2\widgets\forms\course.py:1992
 msgid "General settings"
 msgstr "Ustawienia ogólne"
 
-#: .\widgets\forms\course.py:2004
-msgid "Mocking broker is enabled. No submissions will be sent to the broker."
-msgstr "Zaślepka brokera jest włączona. Żadne zgłoszenia nie zostaną wysłane do brokera."
+#: .\BaCa2\widgets\forms\course.py:2125
+#, python-brace-format
+msgid "Task rejudged successfully - {submits_to_rejudge} submits affected."
+msgstr ""
+"Zadanie zostało ocenione ponownie - przetwarzanie {submits_to_rejudge} "
+"zgłoszeń."
 
-#: .\widgets\forms\course.py:2072
+#: .\BaCa2\widgets\forms\course.py:2166 .\BaCa2\widgets\forms\course.py:2171
+msgid "Rejudge task"
+msgstr "Oceń zadanie ponownie"
+
+#: .\BaCa2\widgets\forms\course.py:2168
+msgid "Confirm task rejudging"
+msgstr "Potwierdź ponowne ocenienie zadania"
+
+#: .\BaCa2\widgets\forms\course.py:2169
+msgid ""
+"Are you sure you want to rejudge this task and all its submits? This may "
+"take a while."
+msgstr ""
+"Czy na pewno chcesz ocenić ponownie to zadanie i wszystkie jego zgłoszenia? "
+"Może to chwilę potrwać."
+
+#: .\BaCa2\widgets\forms\course.py:2174
+msgid "Task rejudged"
+msgstr "Zadanie ocenione ponownie"
+
+#: .\BaCa2\widgets\forms\course.py:2175
+msgid "Task rejudged successfully."
+msgstr "Ponowne ocenianie zadania zakończyło się sukcesem."
+
+#: .\BaCa2\widgets\forms\course.py:2178
+#, fuzzy
+#| msgid "Task rejudging failed."
+msgid "Task rejudging failed"
+msgstr "Ponowne ocenianie zadania nie powiodło się"
+
+#: .\BaCa2\widgets\forms\course.py:2179
+msgid "Task rejudging failed."
+msgstr "Ponowne ocenianie zadania nie powiodło się"
+
+#: .\BaCa2\widgets\forms\course.py:2235
+msgid "Mocking broker is enabled. No submissions will be sent to the broker."
+msgstr ""
+"Zaślepka brokera jest włączona. Żadne zgłoszenia nie zostaną wysłane do "
+"brokera."
+
+#: .\BaCa2\widgets\forms\course.py:2303
 msgid "Submit created successfully"
 msgstr "Zgłoszenie utworzone pomyślnie"
 
-#: .\widgets\forms\course.py:2117
+#: .\BaCa2\widgets\forms\course.py:2348
 msgid "New submission"
 msgstr "Nowe zgłoszenie"
 
-#: .\widgets\forms\fields\base.py:62
+#: .\BaCa2\widgets\forms\course.py:2358
+msgid "Submit ID"
+msgstr "ID zgłoszenia"
+
+#: .\BaCa2\widgets\forms\course.py:2368
+msgid "Submit rejudged successfully"
+msgstr "Ponowna ocena zgłoszenia została zainicjowana pomyślnie"
+
+#: .\BaCa2\widgets\forms\course.py:2387 .\BaCa2\widgets\forms\course.py:2391
+msgid "Rejudge submit"
+msgstr "Oceń zgłoszenie ponownie"
+
+#: .\BaCa2\widgets\forms\course.py:2389
+msgid "Confirm submit rejudging"
+msgstr "Potwierdź ponowną ocenę zgłoszenia"
+
+#: .\BaCa2\widgets\forms\course.py:2390
+msgid "Are you sure you want to rejudge this submit?"
+msgstr "Czy na pewno chcesz ocenić ponownie to zgłoszenie?"
+
+#: .\BaCa2\widgets\forms\fields\base.py:62
 msgid "This field can only contain the following characters: "
 msgstr "To pole może zawierać tylko następujące znaki: "
 
-#: .\widgets\forms\fields\base.py:95
+#: .\BaCa2\widgets\forms\fields\base.py:95
 msgid "This field can only contain alphanumeric characters."
 msgstr "To pole może zawierać tylko znaki alfanumeryczne."
 
-#: .\widgets\forms\fields\base.py:125
+#: .\BaCa2\widgets\forms\fields\base.py:125
 msgid "This field cannot contain trailing whitespaces."
 msgstr "To pole nie może zawierać końcowych białych znaków."
 
-#: .\widgets\forms\fields\base.py:137
+#: .\BaCa2\widgets\forms\fields\base.py:137
 msgid "This field cannot contain double spaces."
 msgstr "To pole nie może zawierać podwójnych spacji."
 
-#: .\widgets\forms\fields\base.py:147
+#: .\BaCa2\widgets\forms\fields\base.py:147
 msgid "This field can only contain alphanumeric characters and spaces."
 msgstr "To pole może zawierać tylko znaki alfanumeryczne i spacje."
 
-#: .\widgets\forms\fields\base.py:197
+#: .\BaCa2\widgets\forms\fields\base.py:197
 msgid "This field must be a comma-separated list of strings."
 msgstr "To pole musi być listą ciągów znaków oddzielonych przecinkami."
 
-#: .\widgets\forms\fields\base.py:216
+#: .\BaCa2\widgets\forms\fields\base.py:216
 msgid "This field cannot contain empty strings."
 msgstr "To pole nie może zawierać pustych ciągów znaków."
 
-#: .\widgets\forms\fields\base.py:229
+#: .\BaCa2\widgets\forms\fields\base.py:229
 msgid ""
 "This field must be a comma-separated list of strings from the following "
 "list: "
@@ -1149,11 +1242,11 @@ msgstr ""
 "To pole musi być listą ciągów znaków oddzielonych przecinkami z następującej "
 "listy: "
 
-#: .\widgets\forms\fields\base.py:274
+#: .\BaCa2\widgets\forms\fields\base.py:274
 msgid "This field must be a comma-separated list of integers."
 msgstr "To pole musi być listą liczb całkowitych oddzielonych przecinkami."
 
-#: .\widgets\forms\fields\base.py:284
+#: .\BaCa2\widgets\forms\fields\base.py:284
 msgid ""
 "This field must be a comma-separated list of integers from the following "
 "list: "
@@ -1161,20 +1254,22 @@ msgstr ""
 "To pole musi być listą liczb całkowitych oddzielonych przecinkami z "
 "następującej listy: "
 
-#: .\widgets\forms\fields\base.py:329
+#: .\BaCa2\widgets\forms\fields\base.py:329
 #, python-brace-format
 msgid "This field must be a comma-separated list of {self.model.__name__} IDs"
-msgstr "To pole musi być listą ID {self.model.__name__} oddzielonych przecinkami"
+msgstr ""
+"To pole musi być listą ID {self.model.__name__} oddzielonych przecinkami"
 
-#: .\widgets\forms\fields\base.py:547
+#: .\BaCa2\widgets\forms\fields\base.py:547
 msgid "Loading..."
 msgstr "Ładowanie..."
 
-#: .\widgets\forms\fields\base.py:573 .\widgets\forms\fields\validation.py:81
+#: .\BaCa2\widgets\forms\fields\base.py:574
+#: .\BaCa2\widgets\forms\fields\validation.py:81
 msgid "This field is required."
 msgstr "To pole jest wymagane."
 
-#: .\widgets\forms\fields\course.py:29
+#: .\BaCa2\widgets\forms\fields\course.py:29
 msgid ""
 "Course name can only contain alphanumeric characters and the following "
 "special characters: "
@@ -1182,19 +1277,19 @@ msgstr ""
 "Nazwa kursu może zawierać tylko znaki alfanumeryczne i następujące znaki "
 "specjalne: "
 
-#: .\widgets\forms\fields\course.py:41
+#: .\BaCa2\widgets\forms\fields\course.py:41
 msgid "Course code"
 msgstr "Kod kursu"
 
-#: .\widgets\forms\fields\course.py:60
+#: .\BaCa2\widgets\forms\fields\course.py:60
 msgid "Course with this code already exists."
 msgstr "Kurs o tym kodzie już istnieje."
 
-#: .\widgets\forms\fields\course.py:74
+#: .\BaCa2\widgets\forms\fields\course.py:74
 msgid "Course code can only contain alphanumeric characters andunderscores."
 msgstr "Kurs może zawierać tylko znaki alfanumeryczne i podkreślenia."
 
-#: .\widgets\forms\fields\course.py:101
+#: .\BaCa2\widgets\forms\fields\course.py:101
 msgid ""
 "USOS code can only contain alphanumeric characters and the following special "
 "characters: - + . /"
@@ -1202,105 +1297,111 @@ msgstr ""
 "Kod USOS może zawierać tylko znaki alfanumeryczne i następujące znaki "
 "specjalne: - + . /"
 
-#: .\widgets\forms\fields\validation.py:60
+#: .\BaCa2\widgets\forms\fields\validation.py:60
 msgid "This field cannot be empty."
 msgstr "To pole nie może być puste."
 
-#: .\widgets\forms\fields\validation.py:66
+#: .\BaCa2\widgets\forms\fields\validation.py:66
 msgid "This field must contain at least "
 msgstr "To pole musi zawierać co najmniej "
 
-#: .\widgets\forms\fields\validation.py:97
+#: .\BaCa2\widgets\forms\fields\validation.py:97
 msgid "This file type is not allowed. Supported file types: "
 msgstr "Ten typ pliku nie jest dozwolony. Obsługiwane typy plików: "
 
-#: .\widgets\forms\main.py:21
+#: .\BaCa2\widgets\forms\main.py:21
 msgid "We will send an email with login and password to this address."
 msgstr "Wyślemy e-mail z loginem i hasłem na ten adres."
 
-#: .\widgets\forms\main.py:37
+#: .\BaCa2\widgets\forms\main.py:37
 msgid "User with this email already exists."
 msgstr "Użytkownik z tym adresem e-mail już istnieje."
 
-#: .\widgets\forms\main.py:49
+#: .\BaCa2\widgets\forms\main.py:49
 msgid "Your new BaCa2 account"
 msgstr "Twoje nowe konto BaCa2"
 
-#: .\widgets\forms\main.py:58
+#: .\BaCa2\widgets\forms\main.py:58
 msgid "User created and email sent."
 msgstr "Użytkownik utworzony i e-mail wysłany."
 
-#: .\widgets\forms\main.py:76
+#: .\BaCa2\widgets\forms\main.py:76
 msgid "Add new user"
 msgstr "Dodaj nowego użytkownika"
 
-#: .\widgets\forms\main.py:91
+#: .\BaCa2\widgets\forms\main.py:91
 msgid "Nickname"
 msgstr "Pseudonim"
 
-#: .\widgets\forms\main.py:101 .\widgets\forms\main.py:114
+#: .\BaCa2\widgets\forms\main.py:101 .\BaCa2\widgets\forms\main.py:114
 msgid "Personal data changed."
 msgstr "Dane osobowe zmienione."
 
-#: .\widgets\forms\main.py:103
+#: .\BaCa2\widgets\forms\main.py:103
 msgid "No changes to apply."
 msgstr "Brak zmian do zastosowania."
 
-#: .\widgets\forms\main.py:108
+#: .\BaCa2\widgets\forms\main.py:108
 msgid "Nickname is too long."
 msgstr "Pseudonim jest za długi."
 
-#: .\widgets\forms\main.py:110
+#: .\BaCa2\widgets\forms\main.py:110
 msgid "Nickname is too short."
 msgstr "Pseudonim jest za krótki."
 
-#: .\widgets\forms\main.py:135
+#: .\BaCa2\widgets\forms\main.py:135
 msgid "Save changes"
 msgstr "Zapisz zmiany"
 
-#: .\widgets\listing\base.py:404
+#: .\BaCa2\widgets\listing\base.py:412
 msgid "Confirm record deletion"
 msgstr "Potwierdź usunięcie rekordu"
 
-#: .\widgets\listing\base.py:405
+#: .\BaCa2\widgets\listing\base.py:413
 msgid "Are you sure you want to delete this record"
 msgstr "Czy na pewno chcesz usunąć ten rekord"
 
-#: .\widgets\navigation.py:27
+#: .\BaCa2\widgets\navigation.py:27
 msgid "Dashboard"
 msgstr "Pulpit"
 
-#: .\widgets\navigation.py:88
+#: .\BaCa2\widgets\navigation.py:88
 msgid "Expand"
 msgstr "Rozwiń"
 
-#: .\widgets\navigation.py:89
+#: .\BaCa2\widgets\navigation.py:89
 msgid "Collapse"
 msgstr "Zwiń"
 
-#: .\widgets\popups\forms.py:52
+#: .\BaCa2\widgets\popups\forms.py:52
 msgid "Confirm"
 msgstr "Potwierdź"
 
-#: .\widgets\popups\forms.py:54
+#: .\BaCa2\widgets\popups\forms.py:54
 msgid "Cancel"
 msgstr "Anuluj"
 
-#: .\widgets\popups\forms.py:113
+#: .\BaCa2\widgets\popups\forms.py:113
 msgid "Success"
 msgstr "Sukces"
 
-#: .\widgets\popups\forms.py:115 .\widgets\popups\forms.py:165
+#: .\BaCa2\widgets\popups\forms.py:115 .\BaCa2\widgets\popups\forms.py:165
 msgid "OK"
 msgstr "OK"
 
-#: .\widgets\popups\forms.py:163
+#: .\BaCa2\widgets\popups\forms.py:163
 msgid "Failure"
 msgstr "Błąd"
 
-#: .\widgets\text_display.py:31 .\widgets\text_display.py:58
+#: .\BaCa2\widgets\text_display.py:31 .\BaCa2\widgets\text_display.py:58
 msgid "No file to display"
 msgstr "Brak pliku do wyświetlenia"
+
+#~ msgid "Add members"
+#~ msgstr "Dodaj uczestników"
+
+#~ msgid "Choose users to add"
+#~ msgstr "Wybierz użytkowników do dodania"
 
 #~ msgid "Account Inactive"
 #~ msgstr "Konto nieaktywne"
