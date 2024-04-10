@@ -590,7 +590,7 @@ class CourseView(CourseTemplateView):
                                     header=_('Score selection policy'))],
                 'refresh_button': True,
                 'default_order_col': 'start_date',
-                'default_order_asc': False,
+                'default_order_asc': True,
             }
 
             if user.has_course_permission(Course.CourseAction.EDIT_ROUND.label, course):
