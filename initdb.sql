@@ -1,0 +1,26 @@
+CREATE ROLE root WITH
+    LOGIN
+    SUPERUSER
+    CREATEDB
+    CREATEROLE
+    INHERIT
+    REPLICATION
+    CONNECTION LIMIT -1
+    PASSWORD 'BaCa2root';
+GRANT postgres TO root WITH ADMIN OPTION;
+COMMENT ON ROLE root IS 'root db user for db management purposes';
+
+CREATE ROLE baca2
+    LOGIN
+    SUPERUSER
+    CREATEDB
+    CREATEROLE
+    REPLICATION
+    PASSWORD 'zaqwsxcde';
+
+GRANT postgres TO baca2 WITH ADMIN OPTION;
+
+CREATE DATABASE "baca2db"
+    WITH OWNER root
+    ENCODING 'UTF8'
+    CONNECTION LIMIT = -1;

@@ -4,7 +4,7 @@ from django.apps import AppConfig
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
-from course.manager import resend_pending_submits
+# from course.manager import resend_pending_submits
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +19,8 @@ class CourseConfig(AppConfig):
         """
 
         settings.DB_MANAGER.migrate_all()
-        try:
-            resend_pending_submits()
-        except Exception as e:
-            logger.error(f'Error while resending submits: {e}')
-            pass
+        # try:
+        #     resend_pending_submits()
+        # except Exception as e:
+        #     logger.error(f'Error while resending submits: {e}')
+        #     pass

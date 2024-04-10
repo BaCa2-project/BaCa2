@@ -1,0 +1,26 @@
+apiVesrion: apps/v1
+kind: Deployment
+
+metadata:
+  name: baca2-web-app
+  labels:
+    app: baca2-web-app
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: baca2-web-app
+
+  template:
+    metadata:
+      labels:
+        app: baca2-web-app
+
+    spec:
+      containers:
+        - name: baca2-web-app-container
+          image: baca2-web:v1.0.1-beta
+          ports:
+            - containerPort: 8000
+          env:

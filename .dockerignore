@@ -1,0 +1,36 @@
+# Development files
+.editorconfig
+.flake8
+.gitignore
+.pre-commit-config.yaml
+baca2cli.sh
+.github/
+.git/
+.idea/
+.vscode/
+
+# Local settings
+local.env
+#local/
+BaCa2/core/db/db.cache
+
+# Lib files
+node_modules/
+
+# Temp files
+BaCa2/backup/
+BaCa2/logs/
+BaCa2/task_descriptions/
+BaCa2/uploads/
+BaCa2/submits/
+BaCa2/packages_source/
+
+# Env files
+.env
+venv/
+.venv
+__pycache__/
+
+# Migrations
+migrations/
+#!migrations/__init__.py
