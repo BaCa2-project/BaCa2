@@ -1,4 +1,5 @@
 function preInitCommon() {
+    ajaxErrorHandlingSetup();
     formsPreSetup();
     tablesPreSetup();
     themePreSetup();
@@ -14,6 +15,14 @@ function initCommon() {
     formsSetup();
     sideNavSetup();
     themeSetup();
+}
+
+function ajaxErrorHandlingSetup() {
+    $(document).ajaxError(function (event, jqxhr, settings, thrownError) {
+        if (jqxhr.status === 401) {
+            location.reload();
+        }
+    });
 }
 
 function showPage() {
