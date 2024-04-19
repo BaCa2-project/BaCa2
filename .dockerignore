@@ -27,6 +27,7 @@ BaCa2/packages_source/
 
 # Env files
 .env
+.env.prod
 venv/
 .venv
 __pycache__/

@@ -2,27 +2,26 @@ apiVersion: apps/v1
 kind: Deployment
 
 metadata:
-  name: baca2-web-app
+  name: baca2-postgres
   labels:
-    app: baca2-web-app
+    app: baca2-postgres
 
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: baca2-web-app
+      app: baca2-postgres
 
   template:
     metadata:
       labels:
-        app: baca2-web-app
-
+        app: baca2-postgres
     spec:
       containers:
-        - name: baca2-web-app-container
-          image: 192.168.49.2:5000/baca2-web
+        - name: baca2-postgres-container
+          image: 192.168.49.2:5000/baca2-postgres
           ports:
-            - containerPort: 8000
+            - containerPort: 5432
           envFrom:
             - secretRef:
                 name: baca2-secret
@@ -32,14 +31,13 @@ apiVersion: v1
 kind: Service
 
 metadata:
-  name: baca2-web-app
+  name: baca2-postgres
 
 spec:
   selector:
-    app: baca2-web-app
+    app: baca2-postgres
   ports:
     - protocol: TCP
-      port: 8000
-      targetPort: 8000
-      nodePort: 30808
-  type: NodePort
+      port: 5432
+      targetPort: 5432
+  type: ClusterIP
