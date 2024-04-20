@@ -17,6 +17,7 @@ from main.views import RoleModelView, UserModelView
 from util.models_registry import ModelsRegistry
 from util.responses import BaCa2JsonResponse
 from util.views import BaCa2LoggedInView, BaCa2ModelView
+from widgets.attachment import Attachment
 from widgets.brief_result_summary import BriefResultSummary
 from widgets.code_block import CodeBlock
 from widgets.forms.course import (
@@ -826,6 +827,15 @@ class CourseTask(CourseTemplateView):
                                               file_path=description_file,
                                               **kwargs)
         self.add_widget(context, description_displayer)
+
+        attachments_static = task.package_instance.attachments
+        attachments = []
+        for attachment in attachments_static:
+            attachments.append(Attachment(
+                name=attachment.name,
+                link=attachment.path,
+            ))
+        context['attachments'] = attachments
 
         # edit task ------------------------------------------------------------------------------
         can_reupload = user.has_course_permission(Course.CourseAction.REUPLOAD_TASK.label, course)
