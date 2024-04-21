@@ -19,7 +19,7 @@ function initCommon() {
 
 function ajaxErrorHandlingSetup() {
     $(document).ajaxError(function (event, jqxhr, settings, thrownError) {
-        if (jqxhr.status === 401) {
+        if (jqxhr.status === 403) {
             location.reload();
         }
     });
