@@ -825,6 +825,7 @@ class CourseTask(CourseTemplateView):
 
         description_displayer = TextDisplayer(name='description',
                                               file_path=description_file,
+                                              download_name='description.pdf',
                                               **kwargs)
         self.add_widget(context, description_displayer)
 
