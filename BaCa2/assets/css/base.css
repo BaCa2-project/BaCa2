@@ -14,6 +14,7 @@ html, body {
   color: #D3CABD;
   text-align: left;
   font-size: 0.8em;
+  width: fit-content;
 }
 
 :root {
