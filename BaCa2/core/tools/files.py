@@ -103,7 +103,8 @@ class CsvFileHandler(FileHandler):
                     raise self.FileContentError(
                         f'The field {field_name} is missing in the csv file (row: {row})')
 
-class DocFileHandler:
+
+class StaticFileHandler:
     """
     A class used to handle document file operations such as saving and deleting.
 
@@ -115,6 +116,7 @@ class DocFileHandler:
     :type file_id: str, optional
     :raises FileNotFoundError: If the path does not exist or is not a file
     """
+    DEFAULT_STATIC_DIR = 'TASK_DESCRIPTIONS_DIR'
 
     class FileNotStaticError(Exception):
         """
@@ -122,9 +124,19 @@ class DocFileHandler:
         """
         pass
 
-    def __init__(self, path: Path, extension: str, file_id: str = None):
+    def __init__(self, path: Path, extension: str, file_id: str = None,
+                 doc_static_dir: Path = None):
+        from django.conf import settings
+
         if not (path.exists() and path.is_file()):
             raise FileNotFoundError('The path does not exist or is not a file')
+        if doc_static_dir is None:
+            self.doc_static_dir = getattr(settings, self.DEFAULT_STATIC_DIR)
+        else:
+            self.doc_static_dir = doc_static_dir
+        if not self.doc_static_dir.exists() or not self.doc_static_dir.is_dir():
+            raise FileNotFoundError('The static directory does not exist or is not a directory')
+
         self.path = path
         self.extension = extension
         if file_id:
@@ -144,12 +156,13 @@ class DocFileHandler:
         """
         from django.conf import settings
 
-        if settings.TASK_DESCRIPTIONS_DIR in path.parents:
-            return True
+        for static_dir in settings.STATICFILES_DIRS:
+            if static_dir in path.parents:
+                return True
         return False
 
     @classmethod
-    def delete_doc(cls, path: Path) -> None:
+    def delete_static(cls, path: Path) -> None:
         """
         Deletes the document file from a static directory.
 
@@ -170,12 +183,10 @@ class DocFileHandler:
         :return: The path to the saved file
         :rtype: Path
         """
-        from django.conf import settings
-
-        static_path = settings.TASK_DESCRIPTIONS_DIR / f'{self.file_id}.{self.extension}'
+        static_path = self.doc_static_dir / f'{self.file_id}.{self.extension}'
         while static_path.exists():
             self.file_id = random_id()
-            static_path = settings.TASK_DESCRIPTIONS_DIR / f'{self.file_id}.{self.extension}'
+            static_path = self.doc_static_dir / f'{self.file_id}.{self.extension}'
 
         with open(self.path, 'rb') as file:
             with open(static_path, 'wb+') as static_file:

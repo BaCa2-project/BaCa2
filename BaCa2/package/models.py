@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from baca2PackageManager import Package
 from baca2PackageManager.validators import isStr
-from core.tools.files import DocFileHandler
+from core.tools.files import StaticFileHandler
 from core.tools.misc import random_id
 from main.models import User
 from util.models_registry import ModelsRegistry
@@ -288,7 +288,7 @@ class PackageInstanceManager(models.Manager):
 
         try:
             pdf_docs = new_package.doc_path('pdf')
-            doc = DocFileHandler(pdf_docs, 'pdf')
+            doc = StaticFileHandler(pdf_docs, 'pdf')
             static_path = doc.save_as_static()
         except FileNotFoundError:
             static_path = None
@@ -309,7 +309,7 @@ class PackageInstanceManager(models.Manager):
 
             return new_instance
         except Exception as e:
-            DocFileHandler.delete_doc(static_path)
+            StaticFileHandler.delete_static(static_path)
             raise e
 
     @transaction.atomic
@@ -359,7 +359,7 @@ class PackageInstanceManager(models.Manager):
 
         try:
             pdf_docs = pkg.doc_path('pdf')
-            doc = DocFileHandler(pdf_docs, 'pdf')
+            doc = StaticFileHandler(pdf_docs, 'pdf')
             static_path = doc.save_as_static()
         except FileNotFoundError:
             static_path = None
@@ -380,7 +380,7 @@ class PackageInstanceManager(models.Manager):
                 PackageInstanceUser.objects.create_package_instance_user(creator, package_instance)
             return package_instance
         except Exception as e:
-            DocFileHandler.delete_doc(static_path)
+            StaticFileHandler.delete_static(static_path)
             raise e
 
     def exists_validator(self, pkg_id: int) -> bool:
@@ -498,8 +498,12 @@ class PackageInstance(models.Model):
             if delete_files:
                 self.package.delete()
             if self.pdf_docs:
-                DocFileHandler.delete_doc(Path(self.pdf_docs))
+                StaticFileHandler.delete_static(Path(self.pdf_docs))
             settings.PACKAGES.pop(self.key)
+
+            # deleting package instance attachments
+            PackageInstanceAttachment.objects.delete_package_instance_attachments(self)
+
             # self delete instance
             super().delete(using, keep_parents)
 
@@ -523,6 +527,20 @@ class PackageInstance(models.Model):
         """
         PackageInstanceUser.objects.create_package_instance_user(user, self)
 
+    @property
+    def attachments(self) -> List[PackageInstanceAttachment]:
+        """
+        It returns the attachments of the package instance.
+
+        :return: The attachments of the package instance.
+        """
+        pkg_att = self.package.get_attachments()
+        pi_att = PackageInstanceAttachment.objects.filter(package_instance=self)
+        if len(pkg_att) != len(pi_att):
+            PackageInstanceAttachment.objects.delete_package_instance_attachments(self)
+            pi_att = PackageInstanceAttachment.objects.get_attachments_from_package_instance(self)
+        return pi_att
+
     def check_user(self, user: int | str | User) -> bool:
         """
         Checks if user is associated with package instance.
@@ -534,3 +552,75 @@ class PackageInstance(models.Model):
         :rtype: bool
         """
         return PackageInstanceUser.objects.check_user(user, self)
+
+
+class PackageInstanceAttachmentManager(models.Manager):
+    """
+    PackageInstanceAttachmentManager is a manager for the PackageInstanceAttachment class
+    """
+
+    @transaction.atomic
+    def get_attachments_from_package_instance(
+        self,
+        package_instance: int | str | PackageInstance
+    ) -> List[PackageInstanceAttachment]:
+        """
+        Get an attachment from the package instance
+
+        :param package_instance: The package instance
+        :type package_instance: PackageInstance
+
+        :return: A PackageInstanceAttachment object.
+        """
+        static_attachments = []
+        package_instance = ModelsRegistry.get_package_instance(package_instance)
+        attachments = package_instance.package.get_attachments()
+        for attachment in attachments:
+            static_att = StaticFileHandler(
+                path=attachment,
+                extension=attachment.suffix[1:],
+                doc_static_dir=settings.ATTACHMENTS_DIR
+            )
+            static_attachment_path = static_att.save_as_static()
+            pi_attachment = self.model(
+                package_instance=package_instance,
+                name=attachment.name,
+                path=static_attachment_path
+            )
+            pi_attachment.save()
+            static_attachments.append(pi_attachment)
+        return static_attachments
+
+    @transaction.atomic
+    def delete_package_instance_attachments(self, package_instance: int | str | PackageInstance):
+        """
+        If the package instance is not in the database, raise an exception.
+        Otherwise, delete the package instance attachments from the database
+
+        :param package_instance: The package instance to delete attachments
+        :type package_instance: int | PackageInstance
+        """
+        package_instance = ModelsRegistry.get_package_instance(package_instance)
+        attachments = self.filter(package_instance=package_instance)
+        for attachment in attachments:
+            StaticFileHandler.delete_static(Path(attachment.path))
+            attachment.delete()
+
+
+class PackageInstanceAttachment(models.Model):
+    """
+    A PackageInstanceAttachment is an attachment to a package instance.
+    """
+    #: foreign key to the PackageInstance class :py:class:`PackageInstance`
+    #: This means that each PackageInstanceAttachment is associated with a single PackageInstance
+    package_instance = models.ForeignKey(PackageInstance, on_delete=models.CASCADE)
+    #: name of the attachment
+    name = models.CharField(max_length=511)
+    #: path to the attachment
+    path = models.FilePathField(path=settings.ATTACHMENTS_DIR, max_length=2047)
+
+    #: manager for the PackageInstanceAttachment class
+    objects = PackageInstanceAttachmentManager()
+
+    def __str__(self):
+        return f'PackageInstanceAttachment {self.pk}: {self.name}: \n{self.package_instance}'
