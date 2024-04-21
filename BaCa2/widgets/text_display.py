@@ -38,6 +38,7 @@ class TextDisplayer(Widget):
     def __init__(self,
                  name: str,
                  file_path: Path,
+                 download_name: str = '',
                  no_file_message: str = None,
                  **kwargs) -> None:
         """
@@ -47,6 +48,9 @@ class TextDisplayer(Widget):
             plain text. If no file is provided, a special case displayer widget will be used to
             display a message in place of the file.
         :type file_path: Path
+        :param download_name: Name of the file to be downloaded if text displayer offers a PDF
+            download option. Default is the name of the file.
+        :type download_name: str
         :param no_file_message: Message to be displayed in place of the file if no file is provided.
             Default is "No file to display".
         :type no_file_message: str
@@ -63,10 +67,15 @@ class TextDisplayer(Widget):
             self.displayer = self.EmptyDisplayer(name=name, message=no_file_message)
         elif file_path.suffix == '.pdf':
             self.displayer_type = 'pdf'
-            self.displayer = PDFDisplayer(name=name, file_path=file_path)
+            self.displayer = PDFDisplayer(name=name,
+                                          file_path=file_path,
+                                          download_name=download_name)
         else:
             self.displayer_type = 'markup'
-            self.displayer = MarkupDisplayer(name=name, file_path=file_path, **kwargs)
+            self.displayer = MarkupDisplayer(name=name,
+                                             file_path=file_path,
+                                             pdf_download_name=download_name,
+                                             **kwargs)
 
     def get_context(self) -> dict:
         return super().get_context() | {
@@ -95,7 +104,8 @@ class MarkupDisplayer(Widget):
                  line_height: float = 1.2,
                  limit_display_height: bool = True,
                  display_height: int = 40,
-                 pdf_download: Path = None) -> None:
+                 pdf_download: Path = None,
+                 pdf_download_name: str = '') -> None:
         """
         :param name: Name of the widget.
         :type name: str
@@ -114,6 +124,9 @@ class MarkupDisplayer(Widget):
         :param pdf_download: Path to the PDF file to be downloaded. If provided, a download button
             will be displayed above the text.
         :type pdf_download: Path
+        :param pdf_download_name: Name of the PDF file to be downloaded. Default is the name of the
+            file.
+        :type pdf_download_name: str
         """
         super().__init__(name=name)
 
@@ -137,6 +150,10 @@ class MarkupDisplayer(Widget):
         else:
             self.pdf_download = False
 
+        if not pdf_download_name:
+            pdf_download_name = pdf_download.name
+        self.pdf_download_name = pdf_download_name
+
         self.line_height = f'{round(line_height, 2)}rem'
         self.limit_display_height = limit_display_height
         self.display_height = f'{round(display_height * line_height, 2)}rem'
@@ -147,7 +164,8 @@ class MarkupDisplayer(Widget):
             'line_height': self.line_height,
             'limit_display_height': self.limit_display_height,
             'display_height': self.display_height,
-            'pdf_download': self.pdf_download
+            'pdf_download': self.pdf_download,
+            'pdf_download_name': self.pdf_download_name
         }
 
 
@@ -156,12 +174,14 @@ class PDFDisplayer(Widget):
     Widget used to display PDF files.
     """
 
-    def __init__(self, name: str, file_path: Path) -> None:
+    def __init__(self, name: str, file_path: Path, download_name: str = '') -> None:
         """
         :param name: Name of the widget.
         :type name: str
         :param file_path: Path to the PDF file to be displayed.
         :type file_path: Path
+        :param download_name: Name of the file to be downloaded. Default is the name of the file.
+        :type download_name: str
         """
         super().__init__(name=name)
 
@@ -172,5 +192,12 @@ class PDFDisplayer(Widget):
 
         self.file_path = str(file_path.name).replace('\\', '/')
 
+        if not download_name:
+            download_name = file_path.name
+        self.download_name = download_name
+
     def get_context(self) -> dict:
-        return super().get_context() | {'file_path': self.file_path}
+        return super().get_context() | {
+            'file_path': self.file_path,
+            'download_name': self.download_name
+        }

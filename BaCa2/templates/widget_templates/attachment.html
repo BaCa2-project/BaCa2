@@ -1,7 +1,7 @@
 {% load static %}
 
 <a {% if attachment.source_type == 'page' %} href="{{ attachment.link }}"
-{% else %} href="{% static attachment.link %}" download {% endif %}
+{% else %} href="data:{% static attachment.link %}" download="{{ attachment.download_name }}" {% endif %}
    id="{{ attachment.name }}"
    class="attachment btn btn-sm btn-outline-light_muted {{ attachment.widget_class }}">
     <i class="{{ attachment.icon }}"></i> {{ attachment.title }}
