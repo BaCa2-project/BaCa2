@@ -385,8 +385,6 @@ function initTable(
                     location.reload();
                 } else if (xhr.status !== 0) {
                     console.log(xhr, error, thrown);
-                    alert('An error occurred while fetching data.\n' +
-                          'Error: ' + xhr.status + ' ' + xhr.statusText);
                 }
             }
         }
