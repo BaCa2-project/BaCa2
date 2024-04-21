@@ -825,17 +825,21 @@ class CourseTask(CourseTemplateView):
 
         description_displayer = TextDisplayer(name='description',
                                               file_path=description_file,
-                                              download_name='description.pdf',
+                                              download_name=f'{task.task_name}.pdf',
                                               **kwargs)
         self.add_widget(context, description_displayer)
 
         attachments_static = task.package_instance.attachments
         attachments = []
+        cnt = 0
         for attachment in attachments_static:
             attachments.append(Attachment(
-                name=attachment.name,
+                name=f'attachment_{cnt}',
+                title=attachment.name,
                 link=attachment.path,
+                download_name=attachment.name
             ))
+            cnt += 1
         context['attachments'] = attachments
 
         # edit task ------------------------------------------------------------------------------
