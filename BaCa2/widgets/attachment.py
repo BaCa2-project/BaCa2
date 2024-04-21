@@ -34,6 +34,9 @@ class Attachment(Widget):
                 content_type = self.ContentType.UNSPECIFIED_PAGE
             else:
                 content_type = self.ContentType.UNSPECIFIED_FILE
+
+        if source_type == self.SourceType.FILE:
+            link = str(link).replace('\\', '/')
         self.content_type = content_type
         self.icon = content_type.value[1]
 
