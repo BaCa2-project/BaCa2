@@ -1120,7 +1120,7 @@ class SubmitSummaryView(CourseTemplateView):
         # solution code --------------------------------------------------------------------------
 
         if user.has_course_permission(Course.CourseAction.VIEW_CODE.label, course):
-            sidenav.add_tab(_('Code'))
+            sidenav.add_tab('Code')
             context['code_tab'] = 'code-tab'
             source_code = CodeBlock(
                 name='source_code_block',
