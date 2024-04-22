@@ -375,6 +375,9 @@ class FormWidget {
     }
 
     handleAjaxSubmit() {
+        const loaderModal = $('#loader-modal');
+        loaderModal.modal('show');
+
         const formData = new FormData(this.form[0]);
         const formWidget = this;
 
@@ -385,6 +388,7 @@ class FormWidget {
                    contentType: false,
                    processData: false,
                    success: function (data) {
+                       loaderModal.modal('hide');
                        formWidget.resetForm();
                        formWidget.form.trigger('submit-complete', [data]);
 
@@ -406,8 +410,12 @@ class FormWidget {
                                formWidget.form.trigger('submit-error', [data]);
                                break;
                        }
+                   },
+                   error: function (jqxhr, settings, thrownError) {
+                       loaderModal.modal('hide');
+                       console.log('ajax submit error', jqxhr, settings, thrownError);
                    }
-               })
+               });
     }
 
     getInputs(ids = null) {
