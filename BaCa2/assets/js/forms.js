@@ -117,6 +117,10 @@ class FormInput {
 
 
 class SelectInput extends FormInput {
+    constructor(input) {
+        super(input);
+    }
+
     getDefaultVal() {
         const selectedOption = this.input.find('option:selected');
         return selectedOption.length > 0 ? selectedOption.val() : '';
@@ -376,46 +380,48 @@ class FormWidget {
 
     handleAjaxSubmit() {
         const loaderModal = $('#loader-modal');
-        loaderModal.modal('show');
-
-        const formData = new FormData(this.form[0]);
         const formWidget = this;
+        const formData = new FormData(formWidget.form[0]);
 
-        $.ajax({
-                   type: 'POST',
-                   url: formWidget.postUrl,
-                   data: formData,
-                   contentType: false,
-                   processData: false,
-                   success: function (data) {
-                       loaderModal.modal('hide');
-                       formWidget.resetForm();
-                       formWidget.form.trigger('submit-complete', [data]);
+        loaderModal.one('shown.bs.modal', function () {
+            $.ajax({
+                       type: 'POST',
+                       url: formWidget.postUrl,
+                       data: formData,
+                       contentType: false,
+                       processData: false,
+                       success: function (data) {
+                           loaderModal.modal('hide');
+                           formWidget.resetForm();
+                           formWidget.form.trigger('submit-complete', [data]);
 
-                       if (data.status === 'success') {
-                           formWidget.form.trigger('submit-success', [data]);
-                           return;
+                           if (data.status === 'success') {
+                               formWidget.form.trigger('submit-success', [data]);
+                               return;
+                           }
+
+                           formWidget.form.trigger('submit-failure', [data]);
+
+                           switch (data.status) {
+                               case 'invalid':
+                                   formWidget.form.trigger('submit-invalid', [data]);
+                                   break;
+                               case 'impermissible':
+                                   formWidget.form.trigger('submit-impermissible', [data]);
+                                   break;
+                               case 'error':
+                                   formWidget.form.trigger('submit-error', [data]);
+                                   break;
+                           }
+                       },
+                       error: function (jqxhr, settings, thrownError) {
+                           loaderModal.modal('hide');
+                           console.log('ajax submit error', jqxhr, settings, thrownError);
                        }
+                   });
+        });
 
-                       formWidget.form.trigger('submit-failure', [data]);
-
-                       switch (data.status) {
-                           case 'invalid':
-                               formWidget.form.trigger('submit-invalid', [data]);
-                               break;
-                           case 'impermissible':
-                               formWidget.form.trigger('submit-impermissible', [data]);
-                               break;
-                           case 'error':
-                               formWidget.form.trigger('submit-error', [data]);
-                               break;
-                       }
-                   },
-                   error: function (jqxhr, settings, thrownError) {
-                       loaderModal.modal('hide');
-                       console.log('ajax submit error', jqxhr, settings, thrownError);
-                   }
-               });
+        loaderModal.modal('show');
     }
 
     getInputs(ids = null) {
@@ -441,8 +447,9 @@ class FormWidget {
     static getInputObj(inputElement) {
         if (inputElement.hasClass('table-select-input'))
             return new TableSelectField(inputElement);
-        else if (inputElement.is('select'))
+        else if (inputElement.is('select')) {
             return new SelectInput(inputElement);
+        }
         else
             return new FormInput(inputElement);
     }
