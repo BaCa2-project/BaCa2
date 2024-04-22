@@ -495,6 +495,7 @@ class Course(models.Model):
 
             # Task related permissions
             ('reupload_task', _('Can reupload task')),
+            ('rejudge_task', _('Can rejudge task')),
         ]
 
     class BasicAction(ModelAction):

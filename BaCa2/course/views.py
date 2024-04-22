@@ -17,6 +17,7 @@ from main.views import RoleModelView, UserModelView
 from util.models_registry import ModelsRegistry
 from util.responses import BaCa2JsonResponse
 from util.views import BaCa2LoggedInView, BaCa2ModelView
+from widgets.attachment import Attachment
 from widgets.brief_result_summary import BriefResultSummary
 from widgets.code_block import CodeBlock
 from widgets.forms.course import (
@@ -590,7 +591,7 @@ class CourseView(CourseTemplateView):
                                     header=_('Score selection policy'))],
                 'refresh_button': True,
                 'default_order_col': 'start_date',
-                'default_order_asc': False,
+                'default_order_asc': True,
             }
 
             if user.has_course_permission(Course.CourseAction.EDIT_ROUND.label, course):
@@ -824,8 +825,22 @@ class CourseTask(CourseTemplateView):
 
         description_displayer = TextDisplayer(name='description',
                                               file_path=description_file,
+                                              download_name=f'{task.task_name}.pdf',
                                               **kwargs)
         self.add_widget(context, description_displayer)
+
+        attachments_static = task.package_instance.attachments
+        attachments = []
+        cnt = 0
+        for attachment in attachments_static:
+            attachments.append(Attachment(
+                name=f'attachment_{cnt}',
+                title=attachment.name,
+                link=attachment.path,
+                download_name=attachment.name
+            ))
+            cnt += 1
+        context['attachments'] = attachments
 
         # edit task ------------------------------------------------------------------------------
         can_reupload = user.has_course_permission(Course.CourseAction.REUPLOAD_TASK.label, course)

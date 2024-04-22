@@ -252,4 +252,17 @@ $codeblock_theme_variables: (
         dark: (
                 bg_color: $darker,
         ),
-)
+);
+
+// ------------------------------------------ loader ------------------------------------------ //
+
+$loader_default_variables: (
+        color: white,
+);
+
+$loader_theme_variables: (
+        light: (),
+        dark: (
+                color: white,
+        ),
+);

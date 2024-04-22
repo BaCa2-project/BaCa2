@@ -5,7 +5,8 @@
     <div class="card-header">
         <div class="row align-items-center">
             <div class="col">
-                <a href="{% static displayer.file_path %}" download
+                <a href="data:{% static displayer.file_path %}"
+                   download="{{ displayer.download_name }}"
                    class="btn btn-sm btn-outline-light_muted">
                     <i class="bi bi-download"></i> {% trans "Download" %}
                 </a>

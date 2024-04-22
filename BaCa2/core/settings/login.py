@@ -6,7 +6,7 @@ LOGIN_REDIRECT_URL = '/main/dashboard'
 OIDC_RP_CLIENT_ID = os.getenv('OIDC_RP_CLIENT_ID')  # noqa: F821
 OIDC_RP_CLIENT_SECRET = os.getenv('OIDC_RP_CLIENT_SECRET')  # noqa: F821
 
-AUTH_DOMAIN = 'auth.dev.uj.edu.pl'
+AUTH_DOMAIN = os.getenv('AUTH_DOMAIN')  # noqa: F821
 
 OIDC_OP_AUTHORIZATION_ENDPOINT = (
     f'https://{AUTH_DOMAIN}/auth/realms/uj/protocol/openid-connect/auth')

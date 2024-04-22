@@ -16,6 +16,7 @@ class Attachment(Widget):
                  name: str,
                  link: str,
                  title: str = '',
+                 download_name: str = '',
                  source_type: 'Attachment.SourceType' = None,
                  content_type: 'Attachment.ContentType' = None) -> None:
         super().__init__(name=name)
@@ -24,6 +25,10 @@ class Attachment(Widget):
         if not title:
             title = name
         self.title = title
+
+        if not download_name:
+            download_name = title
+        self.download_name = download_name
 
         if not source_type:
             source_type = self.SourceType.FILE
@@ -34,6 +39,9 @@ class Attachment(Widget):
                 content_type = self.ContentType.UNSPECIFIED_PAGE
             else:
                 content_type = self.ContentType.UNSPECIFIED_FILE
+
+        if source_type == self.SourceType.FILE:
+            link = str(link).replace('\\', '/')
         self.content_type = content_type
         self.icon = content_type.value[1]
 
@@ -41,6 +49,7 @@ class Attachment(Widget):
         return super().get_context() | {
             'link': self.link,
             'title': self.title,
+            'download_name': self.download_name,
             'source_type': self.source_type.value,
             'content_type': self.content_type.value[0],
             'icon': self.icon

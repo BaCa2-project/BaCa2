@@ -15,13 +15,13 @@ BACA2_DB_PASSWORD = os.getenv('BACA2_DB_PASSWORD')
 BACA2_DB_ROOT_USER = os.getenv('BACA2_DB_ROOT_USER', 'root')
 BACA2_DB_ROOT_PASSWORD = os.getenv('BACA2_DB_ROOT_PASSWORD')
 DEFAULT_DB_KEY = 'baca2db'
-DEFAULT_DB_HOST = 'localhost'
+DEFAULT_DB_HOST = os.getenv('BACA2_DB_HOST', 'localhost')
 
 DEFAULT_DB_SETTINGS = {
     'ENGINE': 'django.db.backends.postgresql_psycopg2',
     'USER': BACA2_DB_USER,
     'PASSWORD': BACA2_DB_PASSWORD,
-    'HOST': 'localhost',
+    'HOST': DEFAULT_DB_HOST,
     'PORT': '',
     'TIME_ZONE': None,
     'CONN_HEALTH_CHECKS': False,

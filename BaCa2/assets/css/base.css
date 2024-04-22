@@ -4,7 +4,7 @@ html, body {
 }
 
 :root {
-  --bs-form-valid-border-color: $ red;
+  --bs-form-valid-border-color: $red;
 }
 
 #version_footer {
@@ -14,6 +14,7 @@ html, body {
   color: #D3CABD;
   text-align: left;
   font-size: 0.8em;
+  width: fit-content;
 }
 
 :root {
@@ -1142,9 +1143,69 @@ pre.code-block.wrap-lines code {
   overflow: hidden;
 }
 
+:root {
+  --bs-form-valid-border-color: $red;
+}
+
+[data-bs-theme=light] .loader {
+  color: white;
+}
+
+[data-bs-theme=dark] .loader {
+  color: white;
+}
+
+.loader {
+  height: 5px;
+  width: 5px;
+  box-shadow: -10px -10px 0 5px, -10px -10px 0 5px, -10px -10px 0 5px, -10px -10px 0 5px;
+  animation: loader-38 6s infinite;
+}
+
+@keyframes loader-38 {
+  0% {
+    box-shadow: -10px -10px 0 5px, -10px -10px 0 5px, -10px -10px 0 5px, -10px -10px 0 5px;
+  }
+  8.33% {
+    box-shadow: -10px -10px 0 5px, 10px -10px 0 5px, 10px -10px 0 5px, 10px -10px 0 5px;
+  }
+  16.66% {
+    box-shadow: -10px -10px 0 5px, 10px -10px 0 5px, 10px 10px 0 5px, 10px 10px 0 5px;
+  }
+  24.99% {
+    box-shadow: -10px -10px 0 5px, 10px -10px 0 5px, 10px 10px 0 5px, -10px 10px 0 5px;
+  }
+  33.32% {
+    box-shadow: -10px -10px 0 5px, 10px -10px 0 5px, 10px 10px 0 5px, -10px -10px 0 5px;
+  }
+  41.65% {
+    box-shadow: 10px -10px 0 5px, 10px -10px 0 5px, 10px 10px 0 5px, 10px -10px 0 5px;
+  }
+  49.98% {
+    box-shadow: 10px 10px 0 5px, 10px 10px 0 5px, 10px 10px 0 5px, 10px 10px 0 5px;
+  }
+  58.31% {
+    box-shadow: -10px 10px 0 5px, -10px 10px 0 5px, 10px 10px 0 5px, -10px 10px 0 5px;
+  }
+  66.64% {
+    box-shadow: -10px -10px 0 5px, -10px -10px 0 5px, 10px 10px 0 5px, -10px 10px 0 5px;
+  }
+  74.97% {
+    box-shadow: -10px -10px 0 5px, 10px -10px 0 5px, 10px 10px 0 5px, -10px 10px 0 5px;
+  }
+  83.3% {
+    box-shadow: -10px -10px 0 5px, 10px 10px 0 5px, 10px 10px 0 5px, -10px 10px 0 5px;
+  }
+  91.63% {
+    box-shadow: -10px -10px 0 5px, -10px 10px 0 5px, -10px 10px 0 5px, -10px 10px 0 5px;
+  }
+  100% {
+    box-shadow: -10px -10px 0 5px, -10px -10px 0 5px, -10px -10px 0 5px, -10px -10px 0 5px;
+  }
+}
 /*!
- * Bootstrap Icons v1.11.3 (https://icons.getbootstrap.com/)
- * Copyright 2019-2024 The Bootstrap Authors
+ * Bootstrap Icons v1.11.2 (https://icons.getbootstrap.com/)
+ * Copyright 2019-2023 The Bootstrap Authors
  * Licensed under MIT (https://github.com/twbs/icons/blob/main/LICENSE)
  */
 @font-face {

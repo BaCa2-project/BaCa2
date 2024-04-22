@@ -1,5 +1,5 @@
-from importlib.metadata import version
+from django.conf import settings
 
 
 def version_tag(request):
-    return {'version': version('baca2')}
+    return {'version': settings.BACA2_VERSION}

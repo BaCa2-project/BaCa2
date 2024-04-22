@@ -378,7 +378,16 @@ function initTable(
     const table = $(`#${tableId}`);
 
     if (ajax)
-        tableParams['ajax'] = dataSourceUrl;
+        tableParams['ajax'] = {
+            'url': dataSourceUrl,
+            'error': function (xhr, error, thrown) {
+                if (xhr.status === 403) {
+                    location.reload();
+                } else if (xhr.status !== 0) {
+                    console.log(xhr, error, thrown);
+                }
+            }
+        }
     else
         tableParams['data'] = dataSource;
 
@@ -393,7 +402,7 @@ function initTable(
         tableParams['scrollCollapse'] = true;
     }
 
-    if (localisation_cdn){
+    if (localisation_cdn) {
         tableParams['language'] = {
             "url": localisation_cdn
         }
@@ -557,7 +566,7 @@ function renderFormSubmitField(col) {
     const form_id = col['form_id'];
     const btnIcon = col['btn_icon'];
     const btnText = col['btn_text'];
-    const conditional =JSON.parse(col['conditional']);
+    const conditional = JSON.parse(col['conditional']);
     const conditionKey = col['condition_key'];
     const conditionValue = col['condition_value'];
 
