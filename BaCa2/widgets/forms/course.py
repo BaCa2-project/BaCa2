@@ -471,7 +471,7 @@ class AddMembersFromCSVForm(CourseActionForm):
                                   required=True)
 
     #: Role to be assigned to the newly added members.
-    role = ModelChoiceField(
+    role_csv = ModelChoiceField(
         label=_('Role'),
         data_source_url='',
         label_format_string='[[name]]',
@@ -502,7 +502,7 @@ class AddMembersFromCSVForm(CourseActionForm):
 
         super().__init__(form_instance_id=form_instance_id, request=request, **kwargs)
 
-        self.fields['role'].data_source_url = RoleModelView.get_url(
+        self.fields['role_csv'].data_source_url = RoleModelView.get_url(
             mode=RoleModelView.GetMode.FILTER,
             filter_params={'course': course_id}
         )
@@ -519,7 +519,7 @@ class AddMembersFromCSVForm(CourseActionForm):
         """
         course = cls.get_context_course(request)
 
-        role = int(request.POST.get('role'))
+        role = int(request.POST.get('role_csv'))
 
         fieldnames = ['Imię', 'Nazwisko', 'E-mail']
         file = CsvFileHandler(path=settings.UPLOAD_DIR,
@@ -562,7 +562,7 @@ class AddMembersFromCSVForm(CourseActionForm):
         :rtype: bool
         """
         course = cls.get_context_course(request)
-        role = int(request.POST.get('role'))
+        role = int(request.POST.get('role_csv'))
 
         if role == course.admin_role.id:
             return request.user.has_course_permission(Course.CourseAction.ADD_ADMIN.label, course)
