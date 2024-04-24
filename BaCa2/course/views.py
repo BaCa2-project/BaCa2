@@ -816,12 +816,12 @@ class CourseTask(CourseTemplateView):
         kwargs = {}
 
         if package.doc_has_extension('pdf'):
-            pdf_path = task.package_instance.pdf_docs_path
+            pdf_docs = task.package_instance.pdf_docs
 
             if description_extension == 'pdf':
-                description_file = pdf_path
+                description_file = pdf_docs.url
             else:
-                kwargs['pdf_download'] = pdf_path
+                kwargs['pdf_download'] = pdf_docs.url
 
         description_displayer = TextDisplayer(name='description',
                                               file_path=description_file,
@@ -836,7 +836,7 @@ class CourseTask(CourseTemplateView):
             attachments.append(Attachment(
                 name=f'attachment_{cnt}',
                 title=attachment.name,
-                link=attachment.path,
+                link=attachment.path.url,
                 download_name=attachment.name
             ))
             cnt += 1

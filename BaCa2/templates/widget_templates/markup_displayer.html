@@ -17,7 +17,7 @@
 <div id="{{ displayer.name }}" class="card markup-display">
     {% if displayer.pdf_download %}
         <div class="card-header">
-            <a href="data:{% static displayer.pdf_download %}"
+            <a href="{{ displayer.pdf_download }}"
                download="{{ displayer.pdf_download_name }}"
                class="btn btn-sm btn-outline-light_muted">
                 <i class="bi bi-download"></i> {% trans "Download PDF" %}
