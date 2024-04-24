@@ -32,6 +32,7 @@ django-split-settings = "^1.2.0"
 markdown = "^3.5.2"
 python-markdown-math = "^0.8"
 django-bootstrap-icons = "^0.8.7"
+whitenoise = "^6.6.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.6.0"

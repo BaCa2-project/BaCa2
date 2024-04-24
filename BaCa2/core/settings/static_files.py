@@ -10,7 +10,6 @@ STATICFILES_DIRS = (
     TASK_DESCRIPTIONS_DIR,  # noqa: F821
     SUBMITS_DIR,  # noqa: F821
     ATTACHMENTS_DIR,  # noqa: F821
-    BASE_DIR.parent / 'node_modules',  # noqa: F821
 )
 for d in STATICFILES_DIRS:
     _auto_create_dirs.assert_exists_dir(d)  # noqa: F821

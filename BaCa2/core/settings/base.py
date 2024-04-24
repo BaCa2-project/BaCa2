@@ -9,3 +9,5 @@ DATE_FORMAT = '%Y-%m-%d'
 TIME_FORMAT = '%H:%M'
 
 SITE_ID = 1
+
+# STORAGES = {}
