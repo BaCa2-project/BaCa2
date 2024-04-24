@@ -1,6 +1,7 @@
 @charset "UTF-8";
 html, body {
   height: 100%;
+  scroll-behavior: auto !important;
 }
 
 :root {
@@ -1203,9 +1204,65 @@ pre.code-block.wrap-lines code {
     box-shadow: -10px -10px 0 5px, -10px -10px 0 5px, -10px -10px 0 5px, -10px -10px 0 5px;
   }
 }
+:root {
+  --bs-form-valid-border-color: $red;
+}
+
+.timeline .timeline-event {
+  display: flex;
+  position: relative;
+}
+.timeline .timeline-event:not(:last-child):before {
+  content: "";
+  position: absolute;
+  top: 15px;
+  left: 19px;
+  width: 2px;
+  height: 100%;
+  z-index: -1;
+}
+.timeline .timeline-event .timeline-event-card:hover {
+  box-shadow: 0 0 5px #FE2E63;
+}
+.timeline .timeline-event .timeline-event-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 15px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 1rem;
+}
+.timeline .timeline-event .timeline-event-content {
+  margin-bottom: 1.5rem;
+}
+.timeline .timeline-event .timeline-event-content .timeline-event-card {
+  max-height: 300px;
+}
+.timeline .timeline-event .timeline-event-content .timeline-event-card .card-title {
+  margin-bottom: 0;
+}
+
+[data-bs-theme=light] .timeline .timeline-event:before {
+  background-color: gray;
+}
+[data-bs-theme=light] .timeline .timeline-event .timeline-event-icon {
+  background-color: #FE2E63;
+  color: #fff;
+}
+
+[data-bs-theme=dark] .timeline .timeline-event:before {
+  background-color: gray;
+}
+[data-bs-theme=dark] .timeline .timeline-event .timeline-event-icon {
+  background-color: #FE2E63;
+  color: #fff;
+}
+
 /*!
- * Bootstrap Icons v1.11.3 (https://icons.getbootstrap.com/)
- * Copyright 2019-2024 The Bootstrap Authors
+ * Bootstrap Icons v1.11.2 (https://icons.getbootstrap.com/)
+ * Copyright 2019-2023 The Bootstrap Authors
  * Licensed under MIT (https://github.com/twbs/icons/blob/main/LICENSE)
  */
 @font-face {

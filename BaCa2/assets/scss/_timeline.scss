@@ -1,0 +1,66 @@
+@import "baca2_variables";
+@import "functions";
+
+.timeline .timeline-event {
+    display: flex;
+    position: relative;
+
+    &:not(:last-child):before {
+        content: '';
+        position: absolute;
+        top: 15px;
+        left: 19px;
+        width: 2px;
+        height: 100%;
+        z-index: -1;
+    }
+
+    .timeline-event-card:hover {
+        box-shadow: 0 0 5px $baca2_pink;
+    }
+
+    .timeline-event-icon {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 15px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-right: 1rem;
+    }
+
+    .timeline-event-content {
+        margin-bottom: 1.5rem;
+
+        .timeline-event-card {
+            max-height: 300px;
+
+            .card-title {
+                margin-bottom: 0;
+            }
+        }
+    }
+}
+
+@each $theme, $variables in $timeline_theme_variables {
+    [data-bs-theme="#{$theme}"] .timeline .timeline-event {
+        $line_color: safe_get($variables, $timeline_default_variables, line_color);
+        $event_icon_bg_color: safe_get(
+                        $variables,
+                        $timeline_default_variables,
+                        event_icon_bg_color
+        );
+        $event_icon_color: safe_get($variables, $timeline_default_variables, event_icon_color);
+
+
+        &:before {
+            background-color: $line_color;
+        }
+
+        .timeline-event-icon {
+            background-color: $event_icon_bg_color;
+            color: $event_icon_color;
+        }
+    }
+}

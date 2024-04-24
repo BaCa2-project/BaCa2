@@ -266,3 +266,16 @@ $loader_theme_variables: (
                 color: white,
         ),
 );
+
+// ----------------------------------------- timeline ----------------------------------------- //
+
+$timeline_default_variables: (
+        line_color: $muted,
+        event_icon_bg_color: $baca2_pink,
+        event_icon_color: $white,
+);
+
+$timeline_theme_variables: (
+        light: (),
+        dark: (),
+);
