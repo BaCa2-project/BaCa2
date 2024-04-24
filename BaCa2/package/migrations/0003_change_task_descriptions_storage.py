@@ -34,17 +34,18 @@ def reupload_submits(apps, schema_editor):
     with OptionalInCourse(course_):
         file_model = apps.get_model(sett.APP_NAME, sett.MODEL_NAME)
         for file_field in file_model.objects.all():
-            file_path = str(getattr(file_field, sett.FIELD_NAME))
+            file_path = getattr(file_field, sett.FIELD_NAME + '__path')
             if not file_path and sett.NULLABLE:
                 continue
+            file_path = str(file_path)
             if file_path.startswith(sett.MEDIA_PATH_PREFIX):
                 return
             with open(file_path, mode='rb') as f:
-                setattr(file_model,
+                setattr(file_field,
                         sett.FIELD_NAME,
                         File(f, name=Path(file_path).name)
                         )
-                file_model.save()
+                file_field.save()
 
 
 class Migration(migrations.Migration):
