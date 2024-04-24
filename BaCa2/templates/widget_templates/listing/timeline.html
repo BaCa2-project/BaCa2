@@ -1,0 +1,17 @@
+<div class="timeline {{ timeline.widget_class }}" id="{{ timeline.name }}">
+    {% for event in timeline.events %}
+        {% include 'widget_templates/listing/timeline_event.html' %}
+    {% endfor %}
+</div>
+
+{% if timeline.scroll_to %}
+    <script>
+        const timelineTop = $('#{{ timeline.name }}').offset().top;
+        const targetOffset = $('#v\\.1\\.1-beta').offset().top - timelineTop;
+        $(document).ready(function () {
+            $('html, body').stop(true, true).animate({
+                scrollTop: targetOffset
+            }, 1500, 'easeInOutQuad');
+        });
+    </script>
+{% endif %}

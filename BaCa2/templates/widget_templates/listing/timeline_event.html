@@ -1,0 +1,28 @@
+<div class="timeline-event {{ event.widget_class }}" id="{{ event.name }}">
+    <div class="timeline-section">
+        <div class="timeline-event-icon">
+            <i class="bi bi-{{ event.icon }} m-0 h4"></i>
+        </div>
+    </div>
+    <div class="timeline-event-content">
+        <div class="card timeline-event-card">
+            <div class="card-header">
+                <div class="row">
+                    <div class="col-auto">
+                        <h5 class="card-title">
+                            {{ event.title }}
+                        </h5>
+                    </div>
+                    <div class="col d-flex justify-content-end text-muted">
+                        {{ event.date }}
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="card-text">
+                    {{ event.content|safe }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

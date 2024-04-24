@@ -1,5 +1,6 @@
 html, body {
     height: 100%;
+    scroll-behavior: auto !important;
 }
 
 @import "version_footer";
@@ -19,4 +20,5 @@ html, body {
 @import "scrollbar";
 @import "code_block";
 @import "loader";
+@import "timeline";
 @import "../../../node_modules/bootstrap-icons/font/bootstrap-icons.scss";

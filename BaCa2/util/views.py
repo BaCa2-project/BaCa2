@@ -23,7 +23,7 @@ from widgets.brief_result_summary import BriefResultSummary
 from widgets.code_block import CodeBlock
 from widgets.forms import FormWidget
 from widgets.forms.fields.validation import get_field_validation_status
-from widgets.listing import TableWidget
+from widgets.listing import TableWidget, Timeline
 from widgets.navigation import NavBar, SideNav
 from widgets.text_display import MarkupDisplayer, PDFDisplayer, TextDisplayer
 
@@ -55,6 +55,7 @@ class BaCa2ContextMixin:
         PDFDisplayer,
         CodeBlock,
         BriefResultSummary,
+        Timeline
     ]
     #: List of all widgets which are unique (i.e. there can only be one instance of each widget type
     #: can exist in the context dictionary).

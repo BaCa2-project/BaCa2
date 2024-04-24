@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block head %}
+    <style>
+        .released .timeline-event-icon {
+            background-color: gray !important;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    {% with widgets.Timeline.dev_timeline as timeline %}
+        {% include 'widget_templates/listing/timeline.html' %}
+    {% endwith %}
+{% endblock %}
