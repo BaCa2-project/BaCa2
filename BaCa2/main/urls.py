@@ -5,6 +5,7 @@ from .views import (
     CourseModelView,
     CoursesView,
     DashboardView,
+    DevelopmentTimelineView,
     PermissionModelView,
     ProfileView,
     RoleModelView,
@@ -26,6 +27,7 @@ urlpatterns = [
     # --------------------------------------- Main views --------------------------------------- #
     path('admin/', AdminView.as_view(), name='admin'),
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
+    path('dev_timeline/', DevelopmentTimelineView.as_view(), name='dev-timeline'),
     path('courses/', CoursesView.as_view(), name='courses'),
     path('profile/', ProfileView.as_view(), name='profile'),
     path('role/<int:role_id>/', RoleView.as_view(), name='role'),

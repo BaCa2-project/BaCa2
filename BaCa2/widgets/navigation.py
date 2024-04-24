@@ -25,6 +25,7 @@ class NavBar(Widget):
 
         self.links = [
             {'name': _('Dashboard'), 'url': reverse_lazy('main:dashboard')},
+            {'name': _('Timeline'), 'url': reverse_lazy('main:dev-timeline')},
             {'name': _('Courses'), 'url': reverse_lazy('main:courses')},
             # {'name': _('Tasks'), 'url': '#'}
         ]

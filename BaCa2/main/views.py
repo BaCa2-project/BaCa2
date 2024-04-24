@@ -13,6 +13,7 @@ from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.generic.base import RedirectView
 
+from htbuilder import div, li, ul
 from main.models import Course, Role, User
 from util import decode_url_to_dict, encode_dict_to_url
 from util.models_registry import ModelsRegistry
@@ -39,8 +40,9 @@ from widgets.forms.main import (
     CreateUser,
     CreateUserWidget
 )
-from widgets.listing import TableWidget, TableWidgetPaging
+from widgets.listing import TableWidget, TableWidgetPaging, Timeline
 from widgets.listing.columns import TextColumn
+from widgets.listing.timeline import ReleaseEvent
 from widgets.navigation import SideNav
 
 logger = logging.getLogger(__name__)
@@ -489,6 +491,95 @@ class DashboardView(BaCa2LoggedInView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['user_first_name'] = self.request.user.first_name
+        return context
+
+
+class DevelopmentTimelineView(BaCa2LoggedInView):
+    template_name = 'development_timeline.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        releases = [
+            ReleaseEvent(tag='v.1.0-beta',
+                         date='17-04-2024',
+                         description=str(div('Otwarcie dostępu beta aplikacji dla członków kursu '
+                                             'Metody Numeryczne')),
+                         released=True),
+            ReleaseEvent(tag='v.1.1-beta',
+                         date='24-04-2024',
+                         description=str(div(
+                             'Zmiany widoczne dla użytkowników:',
+                             ul(
+                                 li('Zamieszczenie planu rozwoju aplikacji na stronie'),
+                                 li('Poprawki w tłumaczeniu na język polski'),
+                                 li('Naprawa wyglądu stopki na telefonach')
+                             ),
+                             'Zmiany wewnętrzne:',
+                             ul(_class='mb-0')(
+                                 li('Ustalenie planu rozwoju aplikacji'),
+                                 li('Monitoring i optymalizacja systemu'),
+                                 li('Zapewnienie poprawnego zapisu plików do MEDIA files'),
+                                 li('Opracowanie projektu nowego package managera')
+                             )
+                         )),
+                         released=True),
+            ReleaseEvent(tag='v.1.2-beta',
+                         date='01-05-2024',
+                         description=str(div(
+                             'Zmiany widoczne dla użytkowników:',
+                             ul(
+                                 li('Naprawa tłumaczenia na język polski widegtów wygenerowanych z '
+                                    'pomocą DataTables'),
+                             ),
+                             'Zmiany wewnętrzne:',
+                             ul(_class='mb-0')(
+                                 li('Refaktoryzacja logiki widoków z pomocą wzorca Builder'),
+                                 li('Usprawnienie logiki walidacji "live" w formularzach'),
+                                 li('Zapewnienie poprawnego zapisu plików do MEDIA files'),
+                                 li('Przygotowanie konfiguracji deploymentu aplikacji na serwerze '
+                                    'z pomocą systemu Kubernetes'),
+                                 li('Praca nad rozwojem nowego package managera')
+                             )
+                         )),
+                         released=False),
+            ReleaseEvent(tag='v.1.3-beta',
+                         date='08-05-2024',
+                         description=str(div(
+                             'Zmiany widoczne dla użytkowników:',
+                             ul(
+                                 li('Kolorowanie wierszy w tabelach zadań i submisji w zależności '
+                                    'od uzyskanego wyniku'),
+                                 li('Dodanie funkcjonalności grupowania wierszy w tabelach'),
+                             ),
+                             'Zmiany wewnętrzne:',
+                             ul(_class='mb-0')(
+                                 li('Finalizacja konfiguracji oraz deployment na serwerze '
+                                    'produkcyjnym z pomocą systemu Kubernetes'),
+                                 li('Finalizacja refaktoryzacji logiki formularzy'),
+                                 li('Implementacja nowego package managera'),
+                             )
+                         )),
+                         released=False),
+            ReleaseEvent(tag='v.1.4-beta',
+                         date='15-05-2024',
+                         description=str(div(
+                             'Zmiany widoczne dla użytkowników:',
+                             ul(
+                                 li('Rozbudowanie funkcjonalności tabeli przez wprowadzenie '
+                                    'rozwijanych wierszy i formularzy w formie popup'),
+                                 li('Poprawki dotyczące UI/UX'),
+                             ),
+                             'Zmiany wewnętrzne:',
+                             ul(_class='mb-0')(
+                                 li('Zmiany w brokerze w celu sprawniejszego wykorzystania '
+                                    'systemu KOLEJKA dzięki multitask support'),
+                             )
+                         )),
+                         released=False),
+        ]
+        self.add_widget(context, Timeline(name='dev_timeline',
+                                          events=releases,
+                                          scroll_to='v.1.1-beta'))
         return context
 
 
