@@ -7,7 +7,7 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
 from core.choices import FallOffPolicy, ResultStatus, ScoreSelectionPolicy, TaskJudgingMode
-from core.tools.files import CsvFileHandler, FileHandler
+from core.tools.files import CsvFileHandler, UploadedFileHandler
 from core.tools.mailer import TemplateMailer
 from course.models import Round, Submit, Task
 from course.routing import InCourse
@@ -1401,26 +1401,21 @@ class CreateTaskForm(CourseModelForm):
             judge_mode = TaskJudgingMode.LIN
         else:
             judge_mode = TaskJudgingMode[judge_mode]
-        file = FileHandler(settings.UPLOAD_DIR, 'zip', request.FILES['package'])
+        file = UploadedFileHandler(settings.UPLOAD_DIR, 'zip', request.FILES['package'], )
         file.save()
-        try:
-            package_instance = PackageSource.objects.create_package_source_from_zip(
-                name=task_name,
-                zip_file=file.path,
-                creator=request.user,
-                return_package_instance=True
-            )
-            Task.objects.create_task(
-                package_instance=package_instance,
-                round_=round_id,
-                task_name=task_name,
-                points=points,
-                judging_mode=judge_mode,
-            )
-        except Exception as e:
-            file.delete()
-            raise e
-        file.delete()
+        package_instance = PackageSource.objects.create_package_source_from_zip(
+            name=task_name,
+            zip_file=file.path,
+            creator=request.user,
+            return_package_instance=True
+        )
+        Task.objects.create_task(
+            package_instance=package_instance,
+            round_=round_id,
+            task_name=task_name,
+            points=points,
+            judging_mode=judge_mode,
+        )
         return {'message': _('Task ') + task_name + _(' created successfully')}
 
 
@@ -1626,7 +1621,7 @@ class ReuploadTaskForm(CourseModelForm):
         task_id = int(request.POST.get('task_id'))
         course = InCourse.get_context_course()
         task = course.get_task(task_id)
-        file = FileHandler(settings.UPLOAD_DIR, 'zip', request.FILES['package'])
+        file = UploadedFileHandler(settings.UPLOAD_DIR, 'zip', request.FILES['package'], )
         file.save()
         new_package_instance = None
         new_task = None
@@ -1640,13 +1635,11 @@ class ReuploadTaskForm(CourseModelForm):
             new_task = Task.objects.update_task(task,
                                                 new_package_instance=new_package_instance)
         except Exception as e:
-            file.delete()
             if new_package_instance is not None:
                 new_package_instance.delete(delete_files=True)
             if new_task is not None:
                 new_task.delete()
             raise e
-        file.delete()
         return {'message': _('Task re-uploaded successfully')}
 
 
@@ -2270,14 +2263,13 @@ class CreateSubmitForm(CourseModelForm):
         :rtype: Dict[str, str]
         """
         file_extension = request.FILES['source_code'].name.split('.')[-1]
-        source_code_file = FileHandler(settings.SUBMITS_DIR,
-                                       file_extension,
-                                       request.FILES['source_code'])
+        source_code_file = UploadedFileHandler(settings.UPLOAD_DIR,
+                                               file_extension,
+                                               request.FILES['source_code'], )
         source_code_file.save()
         task_id = int(request.POST.get('task_id'))
         task = ModelsRegistry.get_task(task_id)
         if not task:
-            source_code_file.delete()
             raise ValueError('Task not found')
 
         task.package_instance.package.check_source(source_code_file.path)
@@ -2288,18 +2280,14 @@ class CreateSubmitForm(CourseModelForm):
         if settings.MOCK_BROKER:
             available_statuses = request.POST.getlist('result_types')
             available_statuses = [ResultStatus[status] for status in available_statuses]
-
-        try:
+        with source_code_file.file as source_code:
             Submit.objects.create_submit(
-                source_code=source_code_file.path,
+                source_code=source_code,
                 task=task_id,
                 user=user,
                 auto_send=True,
                 available_statuses=available_statuses,
             )
-        except Exception as e:
-            source_code_file.delete()
-            raise e
         return {'message': _('Submit created successfully')}
 
 

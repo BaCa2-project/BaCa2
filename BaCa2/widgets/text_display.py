@@ -37,7 +37,7 @@ class TextDisplayer(Widget):
 
     def __init__(self,
                  name: str,
-                 file_path: Path,
+                 file_path,
                  download_name: str = '',
                  no_file_message: str = None,
                  **kwargs) -> None:
@@ -65,7 +65,7 @@ class TextDisplayer(Widget):
         if not file_path:
             self.displayer_type = 'none'
             self.displayer = self.EmptyDisplayer(name=name, message=no_file_message)
-        elif file_path.suffix == '.pdf':
+        elif str(file_path).endswith('.pdf'):
             self.displayer_type = 'pdf'
             self.displayer = PDFDisplayer(name=name,
                                           file_path=file_path,
@@ -144,9 +144,9 @@ class MarkupDisplayer(Widget):
             self.content = self.content.replace('\n', '<br>')\
 
         if pdf_download:
-            if pdf_download.suffix != '.pdf':
-                raise self.WidgetParameterError(f'File format {suffix} not supported.')
-            self.pdf_download = str(pdf_download.name).replace('\\', '/')
+            if not pdf_download.endswith('.pdf'):
+                raise self.WidgetParameterError('Wrong pdf download file format.')
+            self.pdf_download = pdf_download
         else:
             self.pdf_download = False
 
@@ -174,7 +174,7 @@ class PDFDisplayer(Widget):
     Widget used to display PDF files.
     """
 
-    def __init__(self, name: str, file_path: Path, download_name: str = '') -> None:
+    def __init__(self, name: str, file_path, download_name: str = '') -> None:
         """
         :param name: Name of the widget.
         :type name: str
@@ -185,15 +185,13 @@ class PDFDisplayer(Widget):
         """
         super().__init__(name=name)
 
-        suffix = file_path.suffix
+        if not file_path.endswith('.pdf'):
+            raise self.WidgetParameterError('File format not supported.')
 
-        if suffix != '.pdf':
-            raise self.WidgetParameterError(f'File format {suffix} not supported.')
-
-        self.file_path = str(file_path.name).replace('\\', '/')
+        self.file_path = file_path
 
         if not download_name:
-            download_name = file_path.name
+            download_name = file_path.split('/')[~0]
         self.download_name = download_name
 
     def get_context(self) -> dict:

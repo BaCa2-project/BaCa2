@@ -1,4 +1,4 @@
-BACA2_VERSION = '1.0.3-beta'
+BACA2_VERSION = '1.1-beta'
 
 ROOT_URLCONF = 'core.urls'
 WSGI_APPLICATION = 'core.wsgi.application'
@@ -9,3 +9,5 @@ DATE_FORMAT = '%Y-%m-%d'
 TIME_FORMAT = '%H:%M'
 
 SITE_ID = 1
+
+# STORAGES = {}

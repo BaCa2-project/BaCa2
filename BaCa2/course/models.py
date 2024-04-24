@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, List, Self
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.files import File
 from django.db import models, transaction
 from django.db.models import Count
 from django.db.models.base import ModelBase
@@ -28,6 +29,7 @@ from core.choices import (
 )
 from core.exceptions import DataError
 from core.tools.falloff import FallOff
+from core.tools.files import MediaFileHandler
 from core.tools.misc import str_to_datetime
 from course.routing import InCourse, OptionalInCourse
 from util.models_registry import ModelsRegistry
@@ -1001,7 +1003,7 @@ class TestSetManager(models.Manager):
         """
         task = ModelsRegistry.get_task(task)
         sets = task.sets
-        if sets.filter(short_name=short_name).exists():
+        if len(filter(lambda x: x.short_name == short_name, sets)) > 0:
             raise ValidationError(f'TestSet: Test set with short name {short_name} already exists.')
 
         new_test_set = self.model(short_name=short_name,
@@ -1190,7 +1192,7 @@ class Test(models.Model, metaclass=ReadCourseMeta):
 class SubmitManager(models.Manager):
     @transaction.atomic
     def create_submit(self,
-                      source_code: str | Path,
+                      source_code: Path | File,
                       task: int | Task,
                       user: str | int | User,
                       submit_date: datetime = None,
@@ -1237,21 +1239,39 @@ class SubmitManager(models.Manager):
         submit_date = submit_date or now()
         task = ModelsRegistry.get_task(task)
         user = ModelsRegistry.get_user(user)
-        source_code = ModelsRegistry.get_source_code(source_code)
         if fixed_fall_off_factor is None and submit_type == SubmitType.CTR:
             fixed_fall_off_factor = 1
-        new_submit = self.model(submit_date=submit_date,
-                                source_code=source_code,
-                                task=task,
-                                usr=user.pk,
-                                final_score=final_score,
-                                submit_type=submit_type,
-                                submit_status=submit_status,
-                                error_msg=error_msg,
-                                retries=retry,
-                                fixed_fall_off_factor=fixed_fall_off_factor,
-                                )
-        new_submit.save()
+        if isinstance(source_code, Path):
+            source_code_handler = MediaFileHandler(
+                path=source_code,
+                extension=source_code.suffix[1:],
+            )
+            with source_code_handler.file as source_code_file:
+                new_submit = self.model(submit_date=submit_date,
+                                        source_code=source_code_file,
+                                        task=task,
+                                        usr=user.pk,
+                                        final_score=final_score,
+                                        submit_type=submit_type,
+                                        submit_status=submit_status,
+                                        error_msg=error_msg,
+                                        retries=retry,
+                                        fixed_fall_off_factor=fixed_fall_off_factor,
+                                        )
+                new_submit.save()
+        else:
+            new_submit = self.model(submit_date=submit_date,
+                                    source_code=source_code,
+                                    task=task,
+                                    usr=user.pk,
+                                    final_score=final_score,
+                                    submit_type=submit_type,
+                                    submit_status=submit_status,
+                                    error_msg=error_msg,
+                                    retries=retry,
+                                    fixed_fall_off_factor=fixed_fall_off_factor,
+                                    )
+            new_submit.save()
         if auto_send:
             new_submit.send(**kwargs)
         return new_submit
@@ -1292,10 +1312,11 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
     #: Datetime when submit took place.
     submit_date = models.DateTimeField()
     #: Field submitted to the task
-    source_code = models.FilePathField(path=settings.SUBMITS_DIR,
-                                       allow_files=True,
-                                       null=True,
-                                       max_length=2047)
+    # source_code = models.FilePathField(path=settings.SUBMITS_DIR,
+    #                                    allow_files=True,
+    #                                    null=True,
+    #                                    max_length=2047)
+    source_code = models.FileField(upload_to='submits/', null=False, blank=False)
     #: :py:class:`Task` model, to which submit is assigned.
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
     #: Pseudo-foreign key to :py:class:`main.models.User` model (user), who submitted to the task.
@@ -1349,7 +1370,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         :return: Path to the source code file.
         :rtype: Path
         """
-        return Path(self.source_code)
+        return Path(self.source_code.path).absolute()
 
     @property
     def is_legacy(self) -> bool:
@@ -1655,7 +1676,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         res = {
             'id': self.pk,
             'submit_date': self.submit_date,
-            'source_code': self.source_code,
+            'source_code': self.source_code.path,
             'task_name': self.task.task_name,
             'task_score': task_score if score > -1 else '---',
             'final_score': self.format_score(score),

@@ -654,10 +654,6 @@ Baca2/submits/
 
 secrets.yaml
 
-**/migrations/*
-migrations
-!migrations/__init__.py
-
 db.cache
 uploads/
 
@@ -669,3 +665,7 @@ packages_source/
 /local/
 
 attachments
+/static/
+
+/media/
+/BaCa2/media/

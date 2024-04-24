@@ -1,5 +1,6 @@
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
-from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include, path
 
 from main.views import BaCa2LoginView, BaCa2LogoutView, LoginRedirectView
@@ -24,4 +25,5 @@ urlpatterns = [
     path('field_validation', FieldValidationView.as_view(), name='field-validation'),
 ]
 
-urlpatterns += staticfiles_urlpatterns()
+if settings.MEDIA_OFFLINE_SERVING:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

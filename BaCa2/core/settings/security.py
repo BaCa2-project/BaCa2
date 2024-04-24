@@ -1,7 +1,7 @@
 import os
 
 SECRET_KEY = os.getenv('SECRET_KEY')
-DEBUG = os.getenv('DEBUG')
+DEBUG = os.getenv('DEBUG', False)
 
 HOST_NAME = os.getenv('HOST_NAME')
 HOST_IP = os.getenv('HOST_IP')

@@ -2,10 +2,12 @@ import csv
 from pathlib import Path
 from typing import List, Optional, Sequence, Tuple
 
+from django.core.files import File
+
 from .misc import random_id
 
 
-class FileHandler:
+class BaseFileHandler:
     """
     A class used to handle file operations such as saving and deleting.
 
@@ -13,10 +15,30 @@ class FileHandler:
     :type path: Path
     :param extension: The extension of the file
     :type extension: str
-    :param file_data: The data that will be written to the file
-    :type file_data: Any
     :raises FileNotFoundError: If the path does not exist or is not a directory
     """
+
+    class FileContextMng:
+        """
+        A context manager for the file object. It is used to open and close the file as django
+        db object.
+        """
+
+        def __init__(self, path: Path, mode: str = 'rb'):
+            if path is None:
+                self.file_obj = None
+            else:
+                self.file_obj = open(path, mode)
+            self.path = path
+
+        def __enter__(self):
+            if self.file_obj is None:
+                return None
+            return File(self.file_obj, name=self.path.name)
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            if self.file_obj is not None:
+                self.file_obj.close()
 
     class FileContentError(Exception):
         """
@@ -24,11 +46,107 @@ class FileHandler:
         """
         pass
 
-    def __init__(self, path: Path, extension: str, file_data):
+    def __init__(self, path: Path, extension: str, delete_on_exit: bool = False):
+        """
+        Initializes the basic file handler.
+
+        :param path: Path to the file or directory
+        :type path: Path
+        :param extension: The extension of the file
+        :type extension: str
+        :param delete_on_exit: If True, the file will be deleted when the object is deleted
+            (default is False)
+        :type delete_on_exit: bool
+        """
+        self.path = path
+        self.extension = extension
+        self.saved = False
+        self.deleted = False
+        self.delete_on_exit = delete_on_exit
+
+    def __del__(self):
+        """
+        Deletes the file if the delete_on_exit is True and the file has not been deleted yet.
+        """
+        if self.delete_on_exit and not self.deleted:
+            self.delete()
+
+    def delete(self):
+        """
+        Deletes the file from the file path.
+        """
+        if not self.saved:
+            raise self.FileContentError('The file has not been saved yet')
+        if self.deleted:
+            raise self.FileContentError('The file has already been deleted')
+        self.path.unlink()
+        self.deleted = True
+
+    @property
+    def file(self) -> FileContextMng:
+        """
+        :return: A context manager for the file object.
+        :rtype: FileContextMng
+        """
+        return self.FileContextMng(self.path)
+
+
+class MediaFileHandler(BaseFileHandler):
+    """
+    Base file handler with auto path validation.
+    """
+
+    def __init__(self,
+                 path: Path,
+                 extension: str,
+                 delete_on_exit: bool = False,
+                 nullable: bool = False):
+        """
+        Initializes the media file handler.
+
+        :param path: Path to the file or directory
+        :type path: Path
+        :param extension: The extension of the file
+        :type extension: str
+        :param delete_on_exit: If True, the file will be deleted when the object is deleted
+            (default is False)
+        :type delete_on_exit: bool
+        :param nullable: If True, the file path can be None
+        :type nullable: bool
+        """
+        if path is None or not path.exists() or not path.is_file():
+            if nullable:
+                path = None
+            else:
+                raise FileNotFoundError('The path does not exist or is not a directory')
+        super().__init__(path, extension, delete_on_exit)
+        self.saved = True
+
+
+class UploadedFileHandler(BaseFileHandler):
+    """
+    A class used to handle uploaded files. It is used to save the file data to the file path,
+    and optionally convert it to django db file object.
+    """
+
+    def __init__(self, path: Path, extension: str, file_data, delete_on_exit: bool = True) -> None:
+        """
+        Initializes the file handler, used to save the file data to the file path.
+
+        :param path: Path to the file or directory
+        :type path: Path
+        :param extension: The extension of the file
+        :type extension: str
+        :param file_data: The file data to be saved
+        :type file_data: django.core.files.uploadedfile.InMemoryUploadedFile
+        :param delete_on_exit: If True, the file will be deleted when the object is deleted.
+            Default is True.
+        :type delete_on_exit: bool
+        """
         if not path.exists() or not path.is_dir():
             raise FileNotFoundError('The path does not exist or is not a directory')
         self.file_data = file_data
-        self.extension = extension
+        super().__init__(path, extension, delete_on_exit)
         self.file_id = random_id()
         self.path = path / f'{self.file_id}.{extension}'
 
@@ -36,18 +154,14 @@ class FileHandler:
         """
         Saves the file data to the file path.
         """
+
         with open(self.path, 'wb+') as file:
             for chunk in self.file_data.chunks():
                 file.write(chunk)
-
-    def delete(self):
-        """
-        Deletes the file from the file path.
-        """
-        self.path.unlink()
+        self.saved = True
 
 
-class CsvFileHandler(FileHandler):
+class CsvFileHandler(UploadedFileHandler):
     def __init__(self, path: Path, file_data, fieldnames: Optional[List[str]] = None):
         super().__init__(path, 'csv', file_data)
         self.fieldnames = fieldnames
@@ -56,7 +170,7 @@ class CsvFileHandler(FileHandler):
     def read_csv(self,
                  force_fieldnames: Optional[List[str]] = None,
                  restkey: Optional[str] = 'restkey',
-                 ignore_first_line: bool = False) -> Tuple[Sequence[str], List[dict]]:
+                 ignore_first_line: bool = False) -> Tuple[Sequence[str] | None, List[str]]:
         """
         Reads the csv file and returns the data as a list of dictionaries.
 
@@ -102,93 +216,3 @@ class CsvFileHandler(FileHandler):
                 if field_name not in row:
                     raise self.FileContentError(
                         f'The field {field_name} is missing in the csv file (row: {row})')
-
-
-class StaticFileHandler:
-    """
-    A class used to handle document file operations such as saving and deleting.
-
-    :param path: The file path of the document
-    :type path: Path
-    :param extension: The extension of the document file
-    :type extension: str
-    :param file_id: The unique identifier of the file, if not provided a random id will be generated
-    :type file_id: str, optional
-    :raises FileNotFoundError: If the path does not exist or is not a file
-    """
-    DEFAULT_STATIC_DIR = 'TASK_DESCRIPTIONS_DIR'
-
-    class FileNotStaticError(Exception):
-        """
-        An exception raised when the file is not saved in a static directory.
-        """
-        pass
-
-    def __init__(self, path: Path, extension: str, file_id: str = None,
-                 doc_static_dir: Path = None):
-        from django.conf import settings
-
-        if not (path.exists() and path.is_file()):
-            raise FileNotFoundError('The path does not exist or is not a file')
-        if doc_static_dir is None:
-            self.doc_static_dir = getattr(settings, self.DEFAULT_STATIC_DIR)
-        else:
-            self.doc_static_dir = doc_static_dir
-        if not self.doc_static_dir.exists() or not self.doc_static_dir.is_dir():
-            raise FileNotFoundError('The static directory does not exist or is not a directory')
-
-        self.path = path
-        self.extension = extension
-        if file_id:
-            self.file_id = file_id
-        else:
-            self.file_id = random_id()
-
-    @classmethod
-    def check_if_path_in_docs(cls, path: Path) -> bool:
-        """
-        Checks if the document file is saved in a static directory.
-
-        :param path: The path to the file
-        :type path: Path
-        :return: True if the file is saved in a static directory, False otherwise
-        :rtype: bool
-        """
-        from django.conf import settings
-
-        for static_dir in settings.STATICFILES_DIRS:
-            if static_dir in path.parents:
-                return True
-        return False
-
-    @classmethod
-    def delete_static(cls, path: Path) -> None:
-        """
-        Deletes the document file from a static directory.
-
-        :param path: The path to the file
-        :type path: Path
-        :raises FileNotStaticError: If the file is not saved in a static directory
-        """
-        if not cls.check_if_path_in_docs(path):
-            raise cls.FileNotStaticError('The file is not saved in a static directory')
-
-        if path.exists():
-            path.unlink()
-
-    def save_as_static(self) -> Path:
-        """
-        Saves the document file to a static directory.
-
-        :return: The path to the saved file
-        :rtype: Path
-        """
-        static_path = self.doc_static_dir / f'{self.file_id}.{self.extension}'
-        while static_path.exists():
-            self.file_id = random_id()
-            static_path = self.doc_static_dir / f'{self.file_id}.{self.extension}'
-
-        with open(self.path, 'rb') as file:
-            with open(static_path, 'wb+') as static_file:
-                static_file.write(file.read())
-        return static_path

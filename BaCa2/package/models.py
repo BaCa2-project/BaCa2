@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from baca2PackageManager import Package
 from baca2PackageManager.validators import isStr
-from core.tools.files import StaticFileHandler
+from core.tools.files import MediaFileHandler
 from core.tools.misc import random_id
 from main.models import User
 from util.models_registry import ModelsRegistry
@@ -288,29 +288,25 @@ class PackageInstanceManager(models.Manager):
 
         try:
             pdf_docs = new_package.doc_path('pdf')
-            doc = StaticFileHandler(pdf_docs, 'pdf')
-            static_path = doc.save_as_static()
         except FileNotFoundError:
-            static_path = None
+            pdf_docs = None
+        doc = MediaFileHandler(pdf_docs, 'pdf', nullable=True)
 
-        try:
+        with doc.file as doc_file:
             new_instance = self.model(
                 package_source=package_instance.package_source,
                 commit=new_commit,
-                pdf_docs=static_path
+                pdf_docs=doc_file
             )
             new_instance.save()
 
-            if copy_permissions:
-                for user in package_instance.permitted_users:
-                    new_instance.add_permitted_user(user)
-            elif creator:
-                PackageInstanceUser.objects.create_package_instance_user(creator, new_instance)
+        if copy_permissions:
+            for user in package_instance.permitted_users:
+                new_instance.add_permitted_user(user)
+        elif creator:
+            PackageInstanceUser.objects.create_package_instance_user(creator, new_instance)
 
-            return new_instance
-        except Exception as e:
-            StaticFileHandler.delete_static(static_path)
-            raise e
+        return new_instance
 
     @transaction.atomic
     def delete_package_instance(self,
@@ -359,29 +355,26 @@ class PackageInstanceManager(models.Manager):
 
         try:
             pdf_docs = pkg.doc_path('pdf')
-            doc = StaticFileHandler(pdf_docs, 'pdf')
-            static_path = doc.save_as_static()
         except FileNotFoundError:
-            static_path = None
-        try:
+            pdf_docs = None
+        doc = MediaFileHandler(pdf_docs, 'pdf', nullable=True)
+
+        with doc.file as doc_file:
             package_instance = self.model(
                 package_source=package_source,
                 commit=commit_name,
-                pdf_docs=static_path
+                pdf_docs=doc_file
             )
-
             package_instance.save()
-            if permissions_from_instance:
-                permissions_from_instance = ModelsRegistry.get_package_instance(
-                    permissions_from_instance)
-                for user in permissions_from_instance.permitted_users:
-                    PackageInstanceUser.objects.create_package_instance_user(user, package_instance)
-            if creator:
-                PackageInstanceUser.objects.create_package_instance_user(creator, package_instance)
-            return package_instance
-        except Exception as e:
-            StaticFileHandler.delete_static(static_path)
-            raise e
+
+        if permissions_from_instance:
+            permissions_from_instance = ModelsRegistry.get_package_instance(
+                permissions_from_instance)
+            for user in permissions_from_instance.permitted_users:
+                PackageInstanceUser.objects.create_package_instance_user(user, package_instance)
+        if creator:
+            PackageInstanceUser.objects.create_package_instance_user(creator, package_instance)
+        return package_instance
 
     def exists_validator(self, pkg_id: int) -> bool:
         """
@@ -405,8 +398,9 @@ class PackageInstance(models.Model):
     #: unique identifier for every package instance
     commit = models.CharField(max_length=2047)
     #: pdf docs file path
-    pdf_docs = models.FilePathField(path=settings.TASK_DESCRIPTIONS_DIR, null=True, blank=True,
-                                    default=None, max_length=2047)
+    # pdf_docs = models.FilePathField(path=settings.TASK_DESCRIPTIONS_DIR, null=True, blank=True,
+    #                                 default=None, max_length=2047)
+    pdf_docs = models.FileField(upload_to='task_descriptions/', null=True, blank=True, default=None)
 
     #: manager for the PackageInstance class
     objects = PackageInstanceManager()
@@ -478,7 +472,7 @@ class PackageInstance(models.Model):
 
         :return: The path to the pdf docs file.
         """
-        return Path(str(self.pdf_docs))
+        return Path(self.pdf_docs.path)
 
     def delete(self, delete_files: bool = False, using=None, keep_parents=False):
         """
@@ -497,8 +491,6 @@ class PackageInstance(models.Model):
             # deleting instance in source directory
             if delete_files:
                 self.package.delete()
-            if self.pdf_docs:
-                StaticFileHandler.delete_static(Path(self.pdf_docs))
             settings.PACKAGES.pop(self.key)
 
             # deleting package instance attachments
@@ -576,18 +568,17 @@ class PackageInstanceAttachmentManager(models.Manager):
         package_instance = ModelsRegistry.get_package_instance(package_instance)
         attachments = package_instance.package.get_attachments()
         for attachment in attachments:
-            static_att = StaticFileHandler(
+            att = MediaFileHandler(
                 path=attachment,
                 extension=attachment.suffix[1:],
-                doc_static_dir=settings.ATTACHMENTS_DIR
             )
-            static_attachment_path = static_att.save_as_static()
-            pi_attachment = self.model(
-                package_instance=package_instance,
-                name=attachment.name,
-                path=static_attachment_path
-            )
-            pi_attachment.save()
+            with att.file as attachment_file:
+                pi_attachment = self.model(
+                    package_instance=package_instance,
+                    name=attachment.name,
+                    path=attachment_file
+                )
+                pi_attachment.save()
             static_attachments.append(pi_attachment)
         return static_attachments
 
@@ -603,7 +594,6 @@ class PackageInstanceAttachmentManager(models.Manager):
         package_instance = ModelsRegistry.get_package_instance(package_instance)
         attachments = self.filter(package_instance=package_instance)
         for attachment in attachments:
-            StaticFileHandler.delete_static(Path(attachment.path))
             attachment.delete()
 
 
@@ -617,8 +607,8 @@ class PackageInstanceAttachment(models.Model):
     #: name of the attachment
     name = models.CharField(max_length=511)
     #: path to the attachment
-    path = models.FilePathField(path=settings.ATTACHMENTS_DIR, max_length=2047)
-
+    # path = models.FilePathField(path=settings.ATTACHMENTS_DIR, max_length=2047)
+    path = models.FileField(upload_to='attachments/', null=True, blank=True, default=None)
     #: manager for the PackageInstanceAttachment class
     objects = PackageInstanceAttachmentManager()
 

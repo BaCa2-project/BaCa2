@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING, List
 
 from django.db.models import QuerySet
@@ -648,27 +647,6 @@ class ModelsRegistry:
             if isinstance(result, int):
                 return Result.objects.get(id=result)
         return result
-
-    @staticmethod
-    def get_source_code(src: str | Path) -> Path:
-        """
-        Returns a Path object to the source code file.
-        :param src: Path to the source code file or its name.
-        :return: Path to the source code file.
-        """
-        from django.conf import settings
-        if isinstance(src, str):
-            path = Path(src)
-            path = path.absolute()
-            if not path.is_relative_to(settings.SUBMITS_DIR):
-                path = settings.SUBMITS_DIR / src
-        else:
-            path = src
-        if not path.exists():
-            raise FileNotFoundError(f'File {path} does not exist.')
-        if not path.is_relative_to(settings.SUBMITS_DIR):
-            raise FileNotFoundError(f'Path {path} is not a file.')
-        return path
 
     @staticmethod
     def get_result_status(status: str) -> str:
