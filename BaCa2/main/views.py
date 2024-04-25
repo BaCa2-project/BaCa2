@@ -511,8 +511,6 @@ class DevelopmentTimelineView(BaCa2LoggedInView):
                              'Zmiany widoczne dla użytkowników:',
                              ul(
                                  li('Zamieszczenie planu rozwoju aplikacji na stronie'),
-                                 li('Poprawki w tłumaczeniu na język polski'),
-                                 li('Naprawa wyglądu stopki na telefonach')
                              ),
                              'Zmiany wewnętrzne:',
                              ul(_class='mb-0')(
@@ -528,6 +526,8 @@ class DevelopmentTimelineView(BaCa2LoggedInView):
                          description=str(div(
                              'Zmiany widoczne dla użytkowników:',
                              ul(
+                                 li('Poprawki w tłumaczeniu na język polski'),
+                                 li('Naprawa wyglądu stopki na telefonach'),
                                  li('Naprawa tłumaczenia na język polski widegtów wygenerowanych z '
                                     'pomocą DataTables'),
                              ),
