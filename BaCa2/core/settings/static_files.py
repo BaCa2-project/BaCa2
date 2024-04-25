@@ -4,6 +4,8 @@ MEDIA_ROOT = BASE_DIR.parent / 'media'  # noqa: F821
 MEDIA_URL = '/data/'
 MEDIA_OFFLINE_SERVING = False
 
+_auto_create_dirs.add_dir(MEDIA_ROOT)  # noqa: F821
+
 ASSETS_ROOT = BASE_DIR / 'assets'  # noqa: F821
 
 STATICFILES_DIRS = (

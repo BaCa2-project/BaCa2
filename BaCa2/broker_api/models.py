@@ -254,7 +254,7 @@ class BrokerSubmit(models.Model):
         :return: source code of this submit
         """  # TODO: specify return type
         with InCourse(self.course.short_name):
-            return Submit.objects.get(id=self.submit_id).source_code
+            return Submit.objects.get(id=self.submit_id).source_code.path
 
     @transaction.atomic
     def update_status(self, new_status: StatusEnum):
