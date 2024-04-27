@@ -669,3 +669,6 @@ attachments
 
 /media/
 /BaCa2/media/
+
+.env.prod
+.env.dev
