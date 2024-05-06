@@ -1238,10 +1238,13 @@ pre.code-block.wrap-lines code {
   margin-bottom: 1.5rem;
 }
 .timeline .timeline-event .timeline-event-content .timeline-event-card {
-  max-height: 300px;
+  max-height: 270px;
 }
 .timeline .timeline-event .timeline-event-content .timeline-event-card .card-title {
   margin-bottom: 0;
+}
+.timeline .timeline-event .timeline-event-content .timeline-event-card .card-body {
+  overflow-y: auto;
 }
 
 [data-bs-theme=light] .timeline .timeline-event:before {
@@ -1261,8 +1264,8 @@ pre.code-block.wrap-lines code {
 }
 
 /*!
- * Bootstrap Icons v1.11.3 (https://icons.getbootstrap.com/)
- * Copyright 2019-2024 The Bootstrap Authors
+ * Bootstrap Icons v1.11.2 (https://icons.getbootstrap.com/)
+ * Copyright 2019-2023 The Bootstrap Authors
  * Licensed under MIT (https://github.com/twbs/icons/blob/main/LICENSE)
  */
 @font-face {
