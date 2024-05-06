@@ -25,6 +25,7 @@ from widgets.forms import FormWidget
 from widgets.forms.fields.validation import get_field_validation_status
 from widgets.listing import TableWidget, Timeline
 from widgets.navigation import NavBar, SideNav
+from widgets.notification import Announcement, AnnouncementBlock
 from widgets.text_display import MarkupDisplayer, PDFDisplayer, TextDisplayer
 
 
@@ -55,7 +56,9 @@ class BaCa2ContextMixin:
         PDFDisplayer,
         CodeBlock,
         BriefResultSummary,
-        Timeline
+        Timeline,
+        Announcement,
+        AnnouncementBlock
     ]
     #: List of all widgets which are unique (i.e. there can only be one instance of each widget type
     #: can exist in the context dictionary).

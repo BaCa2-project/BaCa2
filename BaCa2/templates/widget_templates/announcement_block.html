@@ -1,0 +1,8 @@
+<div class="announcement-block {{ annonucement_block.widget_class }}"
+     id="{{ annonucement_block.name }}">
+    {% for announcement in announcement_block.announcements %}
+        <div class="mb-3">
+            {% include 'widget_templates/announcement.html' %}
+        </div>
+    {% endfor %}
+</div>

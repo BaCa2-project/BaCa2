@@ -14,7 +14,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views.generic.base import RedirectView
 
 from htbuilder import div, li, ul
-from main.models import Course, Role, User
+from main.models import Announcement, Course, Role, User
 from util import decode_url_to_dict, encode_dict_to_url
 from util.models_registry import ModelsRegistry
 from util.responses import BaCa2JsonResponse, BaCa2ModelResponse
@@ -44,6 +44,7 @@ from widgets.listing import TableWidget, TableWidgetPaging, Timeline
 from widgets.listing.columns import TextColumn
 from widgets.listing.timeline import ReleaseEvent
 from widgets.navigation import SideNav
+from widgets.notification import AnnouncementBlock
 
 logger = logging.getLogger(__name__)
 
@@ -490,6 +491,8 @@ class DashboardView(BaCa2LoggedInView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        self.add_widget(context, AnnouncementBlock(name='announcements',
+                                                   announcements=Announcement.objects.all()))
         context['user_first_name'] = self.request.user.first_name
         return context
 

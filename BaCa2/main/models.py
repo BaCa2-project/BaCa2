@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Callable, List
 
 from django.conf import settings
@@ -2416,3 +2417,49 @@ class RolePresetUser(models.Model):
         :rtype: str
         """
         return f'{self.preset}_{self.user}'
+
+
+class Announcement(models.Model):
+    """
+    Model representing an announcement. Announcements are used to inform users about important
+    events, changes, etc. Each announcement has a title, date and HTML-formatted content.
+    """
+
+    #: Title of the announcement.
+    title = models.CharField(max_length=100, null=False, blank=False)
+    #: Date of creation of the announcement.
+    date_created = models.DateTimeField(auto_now_add=True)
+    #: Custom date for the announcement (if different from the creation date).
+    custom_date = models.DateTimeField(null=True, blank=True)
+    #: Content of the announcement in HTML format.
+    content = models.TextField(null=False, blank=False)
+
+    @property
+    def date(self) -> datetime:
+        """
+        :return: Custom date if it is set, creation date otherwise.
+        :rtype: datetime
+        """
+        return self.custom_date if self.custom_date else self.date_created
+
+    def __str__(self) -> str:
+        """
+        :return: String representation containing the title and the creation date of the
+            announcement.
+        :rtype: str
+        """
+        return f'{self.title} - {self.date_created}'
+
+    def get_data(self) -> dict:
+        """
+        :return: Serialized data of the announcement.
+        :rtype: dict
+        """
+        return {
+            'id': self.id,
+            'title': self.title,
+            'date_created': self.date_created,
+            'custom_date': self.custom_date,
+            'date': self.date,
+            'content': self.content
+        }

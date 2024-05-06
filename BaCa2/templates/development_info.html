@@ -1,6 +1,10 @@
 {% extends 'base.html' %}
 
 {% block content %}
+    {% with widgets.AnnouncementBlock.announcements as announcement_block %}
+        {% include 'widget_templates/announcement_block.html' %}
+    {% endwith %}
+
     <h1>Cześć {{ user_first_name }},</h1>
     <p>Witaj w dostępie beta aplikacji BaCa2. W tym semestrze aplikacja będzie przechodzić dużą
         metamorfozę, do której możesz się przyczynić. W ramach kursów Metody Numeryczne oraz

@@ -1,0 +1,20 @@
+<div class="card announcement {{ announcement.widdget_class }}"
+     id="{{ announcement.name }}">
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col-auto">
+                <h5 class="card-title">{{ announcement.title }}</h5>
+            </div>
+            {% if announcement.display_date %}
+                <div class="col d-flex justify-content-end text-muted">
+                    {{ announcement.date }}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="card-text">
+            {{ announcement.content|safe }}
+        </div>
+    </div>
+</div>

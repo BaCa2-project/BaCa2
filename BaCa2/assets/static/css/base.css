@@ -1263,6 +1263,10 @@ pre.code-block.wrap-lines code {
   color: #fff;
 }
 
+.announcement .card-title {
+  margin-bottom: 0;
+}
+
 /*!
  * Bootstrap Icons v1.11.2 (https://icons.getbootstrap.com/)
  * Copyright 2019-2023 The Bootstrap Authors
