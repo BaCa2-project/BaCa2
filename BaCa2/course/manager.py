@@ -50,7 +50,8 @@ def resend_pending_submits(silent: bool = False) -> int:
         with InCourse(course):
             broker_submits = BrokerSubmit.objects.filter(course=course)
             broker_submit_ids = [broker_submit.submit_id for broker_submit in broker_submits]
-            submits = Submit.objects.filter(status=ResultStatus.PND, id__in=broker_submit_ids)
+            submits = Submit.objects.filter(submit_status=ResultStatus.PND,
+                                            id__in=broker_submit_ids)
             for submit in submits:
                 if not BrokerSubmit.objects.filter(course=course,
                                                    submit_id=submit.pk,
