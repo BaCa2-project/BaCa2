@@ -28,9 +28,15 @@ def delete_course(course_name: str):
     settings.DB_MANAGER.delete_db(course_name)
 
 
-def resend_pending_submits():
+def resend_pending_submits(silent: bool = False) -> int:
     """
     This function resends all pending submits to broker
+
+    :param silent: If True, the function will not log anything
+    :type silent: bool
+
+    :return: The number of resent submits
+    :rtype: int
     """
     from broker_api.models import BrokerSubmit
     from main.models import Course
@@ -38,18 +44,23 @@ def resend_pending_submits():
     from .models import Submit
     from .routing import InCourse
 
-    courses = Course.objects.all()
+    courses = Course.objects.filter(is_active=True)
     resent_submits = 0
     for course in courses:
         with InCourse(course):
-            submits = Submit.objects.filter(submit_status=ResultStatus.PND)
+            broker_submits = BrokerSubmit.objects.filter(course=course)
+            broker_submit_ids = [broker_submit.submit_id for broker_submit in broker_submits]
+            submits = Submit.objects.filter(status=ResultStatus.PND, id__in=broker_submit_ids)
             for submit in submits:
                 if not BrokerSubmit.objects.filter(course=course,
                                                    submit_id=submit.pk,
                                                    ).exists():
                     submit.send()
-                    logger.debug(f'Submit {submit.pk} resent to broker')
+                    if not silent:
+                        logger.debug(f'Submit {submit.pk} resent to broker')
                     resent_submits += 1
 
-    if resent_submits > 0:
+    if resent_submits > 0 and not silent:
         logger.info(f'Resent {resent_submits} submits to broker')
+
+    return resent_submits

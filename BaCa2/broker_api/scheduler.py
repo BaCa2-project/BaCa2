@@ -21,3 +21,10 @@ def check_model_updates():
 def delete_old_errors():
     """Deletes errors that are older than BrokerRetryPolicy.error_deletion_time."""
     call_command('deleteErrors')
+
+
+@scheduler.scheduled_job('interval',
+                         minutes=settings.BROKER_RETRY_POLICY.untracked_check_interval)
+def send_untracked():
+    """Checks for submits that were not tracked by the broker api app and sends them."""
+    call_command('sendUntracked')

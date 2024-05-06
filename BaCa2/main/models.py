@@ -447,6 +447,11 @@ class Course(models.Model):
         null=True
     )
 
+    is_active = models.BooleanField(
+        verbose_name=_('is active'),
+        default=True
+    )
+
     # ------------------------------------- Course roles --------------------------------------- #
 
     #: The default role assigned to users within the course, if no other role is specified.

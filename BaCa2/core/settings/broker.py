@@ -27,6 +27,9 @@ class BrokerRetryPolicy:
     # (In minutes) how often should expiration check be performed
     retry_check_interval = 5
 
+    # (In minutes) how often system should perform a check for untracked pending submits
+    untracked_check_interval = 30.0
+
     # (In minutes) specify how old should error submits be before they are deleted
     deletion_timeout = 60.0 * 24
     # (In minutes) specify how often should the deletion check be performed
