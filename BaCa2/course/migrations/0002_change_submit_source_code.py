@@ -26,10 +26,12 @@ def reupload_submits(apps, schema_editor):
             return
         if course_name.endswith('_db'):
             course_name = course_name[:-3]
-        course_model = apps.get_model('main', 'Course')
+
+        from main.models import Course
+
         try:
             course_ = ModelsRegistry.get_course(course_name)
-        except course_model.DoesNotExist:
+        except Course.DoesNotExist:
             return
     with OptionalInCourse(course_):
         file_model = apps.get_model(sett.APP_NAME, sett.MODEL_NAME)
