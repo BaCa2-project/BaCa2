@@ -948,6 +948,18 @@ class Task(models.Model, metaclass=ReadCourseMeta):
         for submit in self.submits(add_control=True):
             submit.score(rejudge=True)
 
+    def has_user_ok_status(self, user: int | str | User) -> bool:
+        """
+        Checks if user has a submit with status OK for the task.
+
+        :param user: The user for whom the status should be checked.
+        :type user: int | str | User
+        :return: True if user has a submit with status OK, False otherwise.
+        :rtype: bool
+        """
+        user = ModelsRegistry.get_user(user)
+        return Submit.objects.filter(task=self, usr=user.pk, submit_status=ResultStatus.OK).exists()
+
     def get_data(self,
                  submitter: int | str | User = None,
                  add_legacy_submits_amount: bool = False) -> dict:
@@ -966,6 +978,10 @@ class Task(models.Model, metaclass=ReadCourseMeta):
             submit = self.user_scored_submit(submitter)
             additional_data['user_score'] = submit.score() if submit else None
             additional_data['user_formatted_score'] = submit.summary_score if submit else '---'
+
+            additional_data['user_submit_status'] = submit.submit_status if submit else '---'
+            if self.has_user_ok_status(submitter):
+                additional_data['user_submit_status'] = 'OK'
 
         if add_legacy_submits_amount:
             submits_amount = self.legacy_submits_amount
