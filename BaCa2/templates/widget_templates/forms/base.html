@@ -8,6 +8,7 @@
       data-submit-success-popup="{{ form_widget.submit_success_popup.name }}"
       data-submit-failure-popup="{{ form_widget.submit_failure_popup.name }}"
         {% endif %}
+      data-reset-on-submit="{{ form_widget.reset_on_submit }}"
       enctype="multipart/form-data">
     {% csrf_token %}
 

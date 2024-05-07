@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import json
 from abc import ABC, ABCMeta, abstractmethod
 from enum import Enum
 from typing import Any, Dict, List, Self
@@ -436,6 +437,7 @@ class FormWidget(Widget):
                  name: str = '',
                  button_text: str = None,
                  refresh_button: bool = True,
+                 reset_on_submit: bool = True,
                  display_non_field_validation: bool = True,
                  display_field_errors: bool = True,
                  floating_labels: bool = True,
@@ -462,6 +464,9 @@ class FormWidget(Widget):
         :type button_text: str
         :param refresh_button: Determines whether the form should have a refresh button.
         :type refresh_button: bool
+        :param reset_on_submit: Determines whether the form should be reset upon successful
+            submission.
+        :type reset_on_submit: bool
         :param display_non_field_validation: Determines whether non-field validation errors should
             be displayed.
         :type display_non_field_validation: bool
@@ -530,6 +535,7 @@ class FormWidget(Widget):
         self.post_url = post_target_url
         self.button_text = button_text
         self.refresh_button = refresh_button
+        self.reset_on_submit = reset_on_submit
         self.display_non_field_validation = display_non_field_validation
         self.display_field_errors = display_field_errors
         self.floating_labels = floating_labels
@@ -626,6 +632,7 @@ class FormWidget(Widget):
             'elements': self.elements,
             'button_text': self.button_text,
             'refresh_button': self.refresh_button,
+            'reset_on_submit': json.dumps(self.reset_on_submit),
             'display_non_field_errors': self.display_non_field_validation,
             'display_field_errors': self.display_field_errors,
             'floating_labels': self.floating_labels,

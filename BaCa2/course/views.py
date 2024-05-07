@@ -1025,7 +1025,7 @@ class RoundEditView(CourseTemplateView):
             rounds_context.append({
                 'tab_name': SideNav.normalize_tab_name(r.name),
                 'round_name': r.name,
-                'round_edit_form': round_edit_form,
+                'round_edit_form': round_edit_form.get_context(),
             })
             form_instance_id += 1
 

@@ -271,6 +271,7 @@ class EditAnnouncementFormWidget(FormWidget):
             form=form,
             post_target_url=AnnouncementModelView.post_url(),
             button_text=_('Save changes'),
+            reset_on_submit=False,
             **kwargs
         )
 

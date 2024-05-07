@@ -1254,6 +1254,7 @@ class EditRoundFormWidget(FormWidget):
             form=form,
             post_target_url=RoundModelView.post_url(**{'course_id': course_id}),
             button_text=f"{_('Edit round')} {round_obj.name}",
+            reset_on_submit=False,
             element_groups=[
                 FormElementGroup(name='round_name_gr',
                                  elements=['round_name'],

@@ -259,6 +259,7 @@ class FormWidget {
         this.wrapper = form.closest('.form-wrapper');
         this.submitBtn = form.find('.submit-btn');
         this.ajaxSubmit = form.attr('action') !== undefined;
+        this.resetOnSubmit = form.data('reset-on-submit');
         this.postUrl = this.ajaxSubmit ? form.attr('action') : null;
         this.inputs = this.getInputs().get().reduce((dict, input) => {
             dict[input.inputId] = input;
@@ -392,7 +393,12 @@ class FormWidget {
                        processData: false,
                        success: function (data) {
                            loaderModal.modal('hide');
-                           formWidget.resetForm();
+
+                           if (formWidget.resetOnSubmit)
+                               formWidget.resetForm();
+                           else
+                               formWidget.submitBtn.attr('disabled', true);
+
                            formWidget.form.trigger('submit-complete', [data]);
 
                            if (data.status === 'success') {
