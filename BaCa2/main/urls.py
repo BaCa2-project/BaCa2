@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     AdminView,
+    AnnouncementModelView,
     CourseModelView,
     CoursesView,
     DashboardView,
@@ -23,6 +24,7 @@ urlpatterns = [
     path('models/user/', UserModelView.as_view(), name='user-model-view'),
     path('models/role/', RoleModelView.as_view(), name='role-model-view'),
     path('models/permission/', PermissionModelView.as_view(), name='permission-model-view'),
+    path('models/announcement/', AnnouncementModelView.as_view(), name='announcement-model-view'),
 
     # --------------------------------------- Main views --------------------------------------- #
     path('admin/', AdminView.as_view(), name='admin'),

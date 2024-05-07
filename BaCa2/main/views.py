@@ -37,11 +37,15 @@ from widgets.forms.course import (
 from widgets.forms.main import (
     ChangePersonalData,
     ChangePersonalDataWidget,
+    CreateAnnouncementForm,
+    CreateAnnouncementWidget,
     CreateUser,
-    CreateUserWidget
+    CreateUserWidget,
+    DeleteAnnouncementForm
 )
 from widgets.listing import TableWidget, TableWidgetPaging, Timeline
 from widgets.listing.columns import TextColumn
+from widgets.listing.main import AnnouncementsTable
 from widgets.listing.timeline import ReleaseEvent
 from widgets.navigation import SideNav
 from widgets.notification import AnnouncementBlock
@@ -312,6 +316,20 @@ class PermissionModelView(BaCa2ModelView):
         return f'/main/models/{cls.MODEL._meta.model_name}/'
 
 
+class AnnouncementModelView(BaCa2ModelView):
+    MODEL = Announcement
+
+    def post(self, request, **kwargs) -> BaCa2JsonResponse:
+        form_name = request.POST.get('form_name')
+
+        if form_name == f'{Announcement.BasicAction.ADD.label}_form':
+            return CreateAnnouncementForm.handle_post_request(request)
+        if form_name == f'{Announcement.BasicAction.DEL.label}_form':
+            return DeleteAnnouncementForm.handle_post_request(request)
+
+        return self.handle_unknown_form(request, **kwargs)
+
+
 # --------------------------------------- Authentication --------------------------------------- #
 
 class LoginRedirectView(RedirectView):
@@ -420,10 +438,11 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
         sidenav = SideNav(request=self.request,
                           collapsed=False,
                           toggle_button=True,
-                          tabs=['Courses', 'Users', 'Packages'],
+                          tabs=['Courses', 'Users', 'Packages', 'Announcements'],
                           sub_tabs={'Users': ['New User', 'Users Table'],
                                     'Courses': ['New Course', 'Courses Table'],
-                                    'Packages': ['New Package', 'Packages Table']})
+                                    'Packages': ['New Package', 'Packages Table'],
+                                    'Announcements': ['New Announcement', 'Announcements Table']})
         self.add_widget(context, sidenav)
 
         if not self.has_widget(context, FormWidget, 'create_course_form_widget'):
@@ -473,6 +492,12 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
 
         add_user_form = CreateUserWidget(request=self.request)
         self.add_widget(context, add_user_form)
+
+        create_announcement_form = CreateAnnouncementWidget(request=self.request)
+        self.add_widget(context, create_announcement_form)
+
+        announcements_table = AnnouncementsTable(request=self.request)
+        self.add_widget(context, announcements_table)
 
         return context
 

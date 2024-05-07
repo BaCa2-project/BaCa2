@@ -2434,6 +2434,12 @@ class Announcement(models.Model):
     #: Content of the announcement in HTML format.
     content = models.TextField(null=False, blank=False)
 
+    class BasicAction(ModelAction):
+        ADD = 'add', 'add_announcement'
+        DEL = 'delete', 'delete_announcement'
+        EDIT = 'edit', 'change_announcement'
+        VIEW = 'view', 'view_announcement'
+
     @property
     def date(self) -> datetime:
         """
@@ -2450,12 +2456,15 @@ class Announcement(models.Model):
         """
         return f'{self.title} - {self.date_created}'
 
-    def get_data(self) -> dict:
+    def get_data(self, add_formatted_dates: bool = True) -> dict:
         """
         :return: Serialized data of the announcement.
         :rtype: dict
+        :param add_formatted_dates: If set to `True`, the method will add formatted date strings
+            to the dictionary.
+        :type add_formatted_dates: bool
         """
-        return {
+        res = {
             'id': self.id,
             'title': self.title,
             'date_created': self.date_created,
@@ -2463,3 +2472,13 @@ class Announcement(models.Model):
             'date': self.date,
             'content': self.content
         }
+
+        if add_formatted_dates:
+            res |= {
+                'f_date': self.date.strftime('%Y-%m-%d %H:%M'),
+                'f_date_created': self.date_created.strftime('%Y-%m-%d %H:%M'),
+                'f_custom_date': self.custom_date.strftime('%Y-%m-%d %H:%M') if self.custom_date
+                else None
+            }
+
+        return res
