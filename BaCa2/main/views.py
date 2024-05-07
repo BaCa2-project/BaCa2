@@ -41,7 +41,9 @@ from widgets.forms.main import (
     CreateAnnouncementWidget,
     CreateUser,
     CreateUserWidget,
-    DeleteAnnouncementForm
+    DeleteAnnouncementForm,
+    EditAnnouncementForm,
+    EditAnnouncementFormWidget
 )
 from widgets.listing import TableWidget, TableWidgetPaging, Timeline
 from widgets.listing.columns import TextColumn
@@ -324,6 +326,8 @@ class AnnouncementModelView(BaCa2ModelView):
 
         if form_name == f'{Announcement.BasicAction.ADD.label}_form':
             return CreateAnnouncementForm.handle_post_request(request)
+        if form_name == f'{Announcement.BasicAction.EDIT.label}_form':
+            return EditAnnouncementForm.handle_post_request(request)
         if form_name == f'{Announcement.BasicAction.DEL.label}_form':
             return DeleteAnnouncementForm.handle_post_request(request)
 
@@ -499,6 +503,22 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
         announcements_table = AnnouncementsTable(request=self.request)
         self.add_widget(context, announcements_table)
 
+        return context
+
+
+class AnnouncementEditView(BaCa2LoggedInView, UserPassesTestMixin):
+    template_name = 'announcement_edit.html'
+
+    def test_func(self) -> bool:
+        return self.request.user.is_superuser
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = _('Edit Announcement')
+        announcement_id = self.kwargs.get('announcement_id')
+        edit_announcement_form = EditAnnouncementFormWidget(request=self.request,
+                                                            announcement_id=announcement_id)
+        self.add_widget(context, edit_announcement_form)
         return context
 
 

@@ -31,7 +31,7 @@ class AnnouncementsTable(TableWidget):
             data_post_url = ''
 
         if record_links:
-            kwargs['link_format_string'] = '/announcement/[[id]]'
+            kwargs['link_format_string'] = '/main/announcement/[[id]]/'
 
         if 'paging' not in kwargs:
             kwargs['paging'] = TableWidgetPaging()

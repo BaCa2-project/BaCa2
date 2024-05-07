@@ -7,7 +7,7 @@ from django.utils.translation import gettext_lazy as _
 from core.tools.mailer import TemplateMailer
 from main.models import Announcement, User
 from widgets.forms import BaCa2ModelForm, FormWidget
-from widgets.forms.fields import AlphanumericField, DateTimeField
+from widgets.forms.fields import AlphanumericField, AlphanumericStringField, DateTimeField
 
 logger = logging.getLogger(__name__)
 
@@ -202,7 +202,77 @@ class CreateAnnouncementWidget(FormWidget):
 # -------------------------------------- edit announcement ------------------------------------- #
 
 class EditAnnouncementForm(BaCa2ModelForm):
-    pass
+    MODEL = Announcement
+    ACTION = Announcement.BasicAction.EDIT
+
+    announcement_title = AlphanumericStringField(
+        label=_('Title'),
+        required=True,
+        min_length=1,
+        max_length=Announcement._meta.get_field('title').max_length
+    )
+    announcement_content = forms.CharField(
+        label=_('Text'),
+        required=True,
+        widget=forms.Textarea(attrs={'rows': 5}),
+        min_length=1
+    )
+    announcement_custom_date = DateTimeField(label=_('Announcement date'), required=False)
+    announcement_id = forms.IntegerField(widget=forms.HiddenInput())
+
+    def __init__(self, *,
+                 announcement_id: int,
+                 form_instance_id: int = 0,
+                 request=None,
+                 **kwargs):
+        super().__init__(form_instance_id=form_instance_id, request=request, **kwargs)
+
+        announcement = Announcement.objects.get(id=announcement_id)
+
+        self.fields['announcement_title'].initial = announcement.title
+        self.fields['announcement_content'].initial = announcement.content
+        self.fields['announcement_custom_date'].initial = announcement.custom_date
+        self.fields['announcement_id'].initial = announcement_id
+
+    @classmethod
+    def handle_valid_request(cls, request) -> Dict[str, str]:
+        announcement_id = request.POST.get('announcement_id')
+        title = request.POST.get('announcement_title')
+        content = request.POST.get('announcement_content')
+        custom_date = request.POST.get('announcement_custom_date')
+
+        if not custom_date:
+            custom_date = None
+
+        announcement = Announcement.objects.get(id=announcement_id)
+        announcement.title = title
+        announcement.content = content
+        announcement.custom_date = custom_date
+        announcement.save()
+
+        message = _('Announcement') + ' ' + title + ' ' + _('successfully updated.')
+        return {'message': message}
+
+
+class EditAnnouncementFormWidget(FormWidget):
+    def __init__(self,
+                 request,
+                 announcement_id: int,
+                 form: EditAnnouncementForm = None,
+                 **kwargs) -> None:
+        from main.views import AnnouncementModelView
+
+        if not form:
+            form = EditAnnouncementForm(request=request, announcement_id=announcement_id)
+
+        super().__init__(
+            name='edit_announcement_form_widget',
+            request=request,
+            form=form,
+            post_target_url=AnnouncementModelView.post_url(),
+            button_text=_('Save changes'),
+            **kwargs
+        )
 
 
 # ------------------------------------- delete announcement ------------------------------------ #

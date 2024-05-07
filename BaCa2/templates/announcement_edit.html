@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    {% with widgets.FormWidget.edit_announcement_form_widget as form_widget %}
+        {% include 'widget_templates/forms/default.html' %}
+    {% endwith %}
+{% endblock %}
