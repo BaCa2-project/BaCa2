@@ -5,10 +5,15 @@ from django.utils.translation import gettext_lazy as _
 
 from widgets.forms.main import DeleteAnnouncementForm
 from widgets.listing import TableWidget, TableWidgetPaging
-from widgets.listing.columns import Column, TextColumn
+from widgets.listing.columns import Column, DatetimeColumn, TextColumn
 
 
 class AnnouncementsTable(TableWidget):
+    """
+    Table widget for displaying announcement data in the admin panel. To render announcements for
+    users use the :class:`widgets.notification.AnnouncementBlock` widget.
+    """
+
     def __init__(self,
                  request: HttpRequest | None = None,
                  cols: List[Column] | None = None,
@@ -16,12 +21,27 @@ class AnnouncementsTable(TableWidget):
                  allow_delete: bool = True,
                  record_links: bool = True,
                  **kwargs) -> None:
+        """
+        :param request: The request object received by the view this widget is rendered in.
+        :type request: HttpRequest
+        :param cols: A list of columns to display in the table. If not provided, the default columns
+            are used (title, content, formatted date).
+        :type cols: List[Column]
+        :param allow_select: Whether to display checkboxes for selecting rows in the table.
+        :type allow_select: bool
+        :param allow_delete: Whether to display a delete button for deleting records.
+        :type allow_delete: bool
+        :param record_links: Whether to link table rows to announcement edit views for the
+            corresponding records.
+        :type record_links: bool
+        :param kwargs: Additional keyword arguments to pass to the parent constructor.
+        """
         from main.views import AnnouncementModelView
 
         if not cols:
             cols = [TextColumn(name='title', header=_('Title'), searchable=True),
                     TextColumn(name='content', header=_('Content'), searchable=True),
-                    TextColumn(name='f_date', header=_('Announcement date'), searchable=True)]
+                    DatetimeColumn(name='date', header=_('Announcement date'), searchable=True)]
 
         if allow_delete:
             delete_form = DeleteAnnouncementForm()

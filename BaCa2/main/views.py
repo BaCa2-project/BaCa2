@@ -319,9 +319,24 @@ class PermissionModelView(BaCa2ModelView):
 
 
 class AnnouncementModelView(BaCa2ModelView):
+    """
+    View used to retrieve serialized announcement model data to be displayed in the front-end and to
+    interface between POST requests and model forms used to manage announcement instances.
+    """
+
     MODEL = Announcement
 
     def post(self, request, **kwargs) -> BaCa2JsonResponse:
+        """
+        Delegates the handling of the POST request to the appropriate form based on the `form_name`
+        parameter received in the request.
+
+        :param request: HTTP POST request object received by the view
+        :type request: HttpRequest
+        :return: JSON response to the POST request containing information about the success or
+            failure of the request
+        :rtype: :py:class:`JsonResponse`
+        """
         form_name = request.POST.get('form_name')
 
         if form_name == f'{Announcement.BasicAction.ADD.label}_form':
@@ -507,6 +522,11 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
 
 
 class AnnouncementEditView(BaCa2LoggedInView, UserPassesTestMixin):
+    """
+    Simple view for editing announcements. Accessible by superusers from the admin view
+    announcements table widget.
+    """
+
     template_name = 'announcement_edit.html'
 
     def test_func(self) -> bool:
@@ -536,8 +556,10 @@ class DashboardView(BaCa2LoggedInView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        announcements = [a for a in Announcement.objects.all() if a.released]
+        announcements.sort(reverse=True)
         self.add_widget(context, AnnouncementBlock(name='announcements',
-                                                   announcements=Announcement.objects.all()))
+                                                   announcements=announcements))
         context['user_first_name'] = self.request.user.first_name
         return context
 
