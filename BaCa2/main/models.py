@@ -2423,6 +2423,10 @@ class Announcement(models.Model):
     """
     Model representing an announcement. Announcements are used to inform users about important
     events, changes, etc. Each announcement has a title, date and HTML-formatted content.
+
+    Announcement data can be rendered to the frontend individually using the
+    :class:`widgets.notification.Announcement` widget or as a list using the
+    :class:`widgets.notification.AnnouncementBlock` widget.
     """
 
     #: Title of the announcement.
@@ -2448,6 +2452,14 @@ class Announcement(models.Model):
         """
         return self.custom_date if self.custom_date else self.date_created
 
+    @property
+    def released(self) -> bool:
+        """
+        :return: `True` if the announcement is released, `False` otherwise.
+        :rtype: bool
+        """
+        return self.date <= timezone.now()
+
     def __str__(self) -> str:
         """
         :return: String representation containing the title and the creation date of the
@@ -2455,6 +2467,44 @@ class Announcement(models.Model):
         :rtype: str
         """
         return f'{self.title} - {self.date_created}'
+
+    def __lt__(self, other) -> bool:
+        """
+        :return: `True` if the announcement is older than the other announcement, `False` otherwise.
+        :rtype: bool
+        """
+        return self.date < other.date
+
+    def __gt__(self, other) -> bool:
+        """
+        :return: `True` if the announcement is newer than the other announcement, `False` otherwise.
+        :rtype: bool
+        """
+        return self.date > other.date
+
+    def __le__(self, other) -> bool:
+        """
+        :return: `True` if the announcement is older or the same age as the other announcement,
+            `False` otherwise.
+        :rtype: bool
+        """
+        return self.date <= other.date
+
+    def __ge__(self, other) -> bool:
+        """
+        :return: `True` if the announcement is newer or the same age as the other announcement,
+            `False` otherwise.
+        :rtype: bool
+        """
+        return self.date >= other.date
+
+    def __eq__(self, other) -> bool:
+        """
+        :return: `True` if the announcement is the same age as the other announcement, `False`
+            otherwise.
+        :rtype: bool
+        """
+        return self.date == other.date
 
     def get_data(self, add_formatted_dates: bool = True) -> dict:
         """

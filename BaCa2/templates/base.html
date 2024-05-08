@@ -178,6 +178,8 @@
     {% endif %}
 
     {% include 'widget_templates/popups/loader.html' %}
+
+    <div id="version-footer-padding"></div>
 </div>
 
 <script>
@@ -197,25 +199,27 @@
 <!-- Prism JS and autoloader -->
 
 {% block version_footer %}
-    <div class="container" id="version_footer">
-        <div class="row">
-            BaCa2 v.{{ version }}
-        </div>
-        <div class="row">
-            User: {{ user.email }}
-        </div>
-        {% if user %}
-            <div class="row">
-                Access:
-                {% if user.is_superuser %}SU
-                {% else %}U
-                {% endif %}
-                |
-                {% if user.usos_id %}UJ
-                {% else %}EXT
-                {% endif %}
+    <div id="version-footer">
+        <div class="row" id="version-footer-row">
+            <div class="col-auto">
+                BaCa2 v.{{ version }}
             </div>
-        {% endif %}
+            <div class="col-auto">
+                User: {{ user.email }}
+            </div>
+            {% if user %}
+                <div class="col-auto">
+                    Access:
+                    {% if user.is_superuser %}SU
+                    {% else %}U
+                    {% endif %}
+                    |
+                    {% if user.usos_id %}UJ
+                    {% else %}EXT
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
     </div>
 {% endblock %}
 

@@ -279,3 +279,18 @@ $timeline_theme_variables: (
         light: (),
         dark: (),
 );
+
+// ------------------------------------------ footer ------------------------------------------ //
+
+$footer_default_variables: (
+        bg_color: $light,
+        text_color: $dark,
+);
+
+$footer_theme_variables: (
+        light: (),
+        dark: (
+                bg_color: $black,
+                text_color: $light,
+        ),
+);

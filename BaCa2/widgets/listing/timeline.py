@@ -83,7 +83,7 @@ class Timeline(Widget):
 
         self.events = events
         self.default_icon = default_icon
-        self.scroll_to = scroll_to
+        self.scroll_to = scroll_to.replace('.', '\\\\.')
 
     def get_context(self) -> dict:
         return super().get_context() | {

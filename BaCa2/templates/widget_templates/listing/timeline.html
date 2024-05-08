@@ -7,7 +7,7 @@
 {% if timeline.scroll_to %}
     <script>
         const timelineTop = $('#{{ timeline.name }}').offset().top;
-        const targetOffset = $('#v\\.1\\.1-beta').offset().top - timelineTop;
+        const targetOffset = $('#{{ timeline.scroll_to|safe }}').offset().top - timelineTop;
         $(document).ready(function () {
             $('html, body').stop(true, true).animate({
                 scrollTop: targetOffset

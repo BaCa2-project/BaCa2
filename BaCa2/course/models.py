@@ -11,6 +11,7 @@ from django.core.files import File
 from django.db import models, transaction
 from django.db.models import Count
 from django.db.models.base import ModelBase
+from django.utils import timezone
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
@@ -30,7 +31,7 @@ from core.choices import (
 from core.exceptions import DataError
 from core.tools.falloff import FallOff
 from core.tools.files import MediaFileHandler
-from core.tools.misc import str_to_datetime
+from core.tools.misc import as_perc, str_to_datetime
 from course.routing import InCourse, OptionalInCourse
 from util.models_registry import ModelsRegistry
 
@@ -995,6 +996,7 @@ class Task(models.Model, metaclass=ReadCourseMeta):
             'judging_mode': self.judging_mode,
             'points': self.points,
             'is_legacy': self.is_legacy,
+            'fall_off_factor': as_perc(self.get_fall_off().get_factor(timezone.now()))
         } | additional_data
 
 
@@ -1645,8 +1647,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
             return '---'
 
         _score = score
-        score = round(score * 100, rnd)
-        f_score = f'{score:.{rnd}f} %'
+        f_score = as_perc(_score, precision=rnd, sep='')
 
         if not include_submit_points:
             return f_score

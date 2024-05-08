@@ -1,11 +1,66 @@
 @import "baca2_variables";
+@import "functions";
 
-#version_footer {
+// ---------------------------------- narrow screens display ---------------------------------- //
+
+#version-footer {
     position: fixed;
-    bottom: 10px;
-    left: 10px;
-    color: $baca2_beige;
-    text-align: left;
-    font-size: 0.8em;
-    width: fit-content;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    font-size: 0.8rem;
+    padding-top: 0.4rem;
+    padding-bottom: 0.4rem;
+
+    #version-footer-row {
+        justify-content: center;
+    }
+}
+
+#version-footer-padding {
+    height: 1.8rem;
+}
+
+// ---------------------------------- wide screens display ------------------------------------ //
+
+@media(min-width: 1700px) {
+    #version-footer {
+        bottom: 10px;
+        left: 10px;
+        text-align: left;
+        width: fit-content;
+        padding: 0;
+
+        .col-auto {
+            width: 100% !important;
+        }
+    }
+
+    #version-footer-padding {
+        display: none;
+    }
+}
+
+// ------------------------------------------ colors ------------------------------------------ //
+
+@each $theme, $map in $footer_theme_variables {
+    $bg_color: safe_get(
+                    $map,
+                    $footer_default_variables,
+                    bg_color
+    );
+    $text_color: safe_get(
+                    $map,
+                    $footer_default_variables,
+                    text_color
+    );
+
+    [data-bs-theme="#{$theme}"] #version-footer {
+        @media (max-width: 1700px) {
+            background: $bg_color;
+        }
+
+        color: $text_color;
+    }
 }

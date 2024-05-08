@@ -319,9 +319,24 @@ class PermissionModelView(BaCa2ModelView):
 
 
 class AnnouncementModelView(BaCa2ModelView):
+    """
+    View used to retrieve serialized announcement model data to be displayed in the front-end and to
+    interface between POST requests and model forms used to manage announcement instances.
+    """
+
     MODEL = Announcement
 
     def post(self, request, **kwargs) -> BaCa2JsonResponse:
+        """
+        Delegates the handling of the POST request to the appropriate form based on the `form_name`
+        parameter received in the request.
+
+        :param request: HTTP POST request object received by the view
+        :type request: HttpRequest
+        :return: JSON response to the POST request containing information about the success or
+            failure of the request
+        :rtype: :py:class:`JsonResponse`
+        """
         form_name = request.POST.get('form_name')
 
         if form_name == f'{Announcement.BasicAction.ADD.label}_form':
@@ -507,6 +522,11 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
 
 
 class AnnouncementEditView(BaCa2LoggedInView, UserPassesTestMixin):
+    """
+    Simple view for editing announcements. Accessible by superusers from the admin view
+    announcements table widget.
+    """
+
     template_name = 'announcement_edit.html'
 
     def test_func(self) -> bool:
@@ -536,8 +556,10 @@ class DashboardView(BaCa2LoggedInView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        announcements = [a for a in Announcement.objects.all() if a.released]
+        announcements.sort(reverse=True)
         self.add_widget(context, AnnouncementBlock(name='announcements',
-                                                   announcements=Announcement.objects.all()))
+                                                   announcements=announcements))
         context['user_first_name'] = self.request.user.first_name
         return context
 
@@ -570,14 +592,33 @@ class DevelopmentTimelineView(BaCa2LoggedInView):
                          )),
                          released=True),
             ReleaseEvent(tag='v.1.2-beta',
-                         date='01-05-2024',
+                         date='08-05-2024',
                          description=str(div(
                              'Zmiany widoczne dla użytkowników:',
                              ul(
-                                 li('Poprawki w tłumaczeniu na język polski'),
-                                 li('Naprawa wyglądu stopki na telefonach'),
-                                 li('Naprawa tłumaczenia na język polski widegtów wygenerowanych z '
-                                    'pomocą DataTables'),
+                                 li('Dodanie strony "przerwa techniczna"'),
+                                 li('Dodanie panelu ogłoszeń na stronie głównej'),
+                                 li('Dodanie współczynnika spadku do tabeli zadań'),
+                                 li('Dodanie statusu rozwiązania zadania w tabeli zadań'),
+                                 li('Poprawiono wyświetlanie stopki na urządzeniach '
+                                    'z mniejszą rozdzielczością ekranu')
+                             ),
+                             'Zmiany wewnętrzne:',
+                             ul(_class='mb-0')(
+                                 li('Uprzątnięcie po wycieku danych'),
+                                 li('Zarządzanie ogłoszeniami z poziomu panelu admina'),
+                                 li('Dodanie autodetekcji niewysłanych zgłoszeń i obsługa ich')
+                             )
+                         )),
+                         released=True),
+            ReleaseEvent(tag='v.1.3-beta',
+                         date='15-05-2024',
+                         description=str(div(
+                             'Zmiany widoczne dla użytkowników:',
+                             ul(
+                                 li('Kolorowanie wierszy w tabelach zadań i submisji w zależności '
+                                    'od uzyskanego wyniku'),
+                                 li('Tłumaczenie aplikacji na język polski'),
                              ),
                              'Zmiany wewnętrzne:',
                              ul(_class='mb-0')(
@@ -590,13 +631,12 @@ class DevelopmentTimelineView(BaCa2LoggedInView):
                              )
                          )),
                          released=False),
-            ReleaseEvent(tag='v.1.3-beta',
-                         date='08-05-2024',
+
+            ReleaseEvent(tag='v.1.4-beta',
+                         date='22-05-2024',
                          description=str(div(
                              'Zmiany widoczne dla użytkowników:',
                              ul(
-                                 li('Kolorowanie wierszy w tabelach zadań i submisji w zależności '
-                                    'od uzyskanego wyniku'),
                                  li('Dodanie funkcjonalności grupowania wierszy w tabelach'),
                              ),
                              'Zmiany wewnętrzne:',
@@ -608,8 +648,8 @@ class DevelopmentTimelineView(BaCa2LoggedInView):
                              )
                          )),
                          released=False),
-            ReleaseEvent(tag='v.1.4-beta',
-                         date='15-05-2024',
+            ReleaseEvent(tag='v.1.5-beta',
+                         date='29-05-2024',
                          description=str(div(
                              'Zmiany widoczne dla użytkowników:',
                              ul(
@@ -627,7 +667,7 @@ class DevelopmentTimelineView(BaCa2LoggedInView):
         ]
         self.add_widget(context, Timeline(name='dev_timeline',
                                           events=releases,
-                                          scroll_to='v.1.1-beta'))
+                                          scroll_to='v.1.2-beta'))
         return context
 
 

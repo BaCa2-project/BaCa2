@@ -8,14 +8,55 @@ html, body {
   --bs-form-valid-border-color: $red;
 }
 
-#version_footer {
+#version-footer {
   position: fixed;
-  bottom: 10px;
-  left: 10px;
-  color: #D3CABD;
-  text-align: left;
-  font-size: 0.8em;
-  width: fit-content;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 0.8rem;
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+}
+#version-footer #version-footer-row {
+  justify-content: center;
+}
+
+#version-footer-padding {
+  height: 1.8rem;
+}
+
+@media (min-width: 1700px) {
+  #version-footer {
+    bottom: 10px;
+    left: 10px;
+    text-align: left;
+    width: fit-content;
+    padding: 0;
+  }
+  #version-footer .col-auto {
+    width: 100% !important;
+  }
+  #version-footer-padding {
+    display: none;
+  }
+}
+[data-bs-theme=light] #version-footer {
+  color: #212529;
+}
+@media (max-width: 1700px) {
+  [data-bs-theme=light] #version-footer {
+    background: #f8f9fa;
+  }
+}
+
+[data-bs-theme=dark] #version-footer {
+  color: #f8f9fa;
+}
+@media (max-width: 1700px) {
+  [data-bs-theme=dark] #version-footer {
+    background: #000;
+  }
 }
 
 :root {
