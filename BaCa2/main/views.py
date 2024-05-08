@@ -556,8 +556,9 @@ class DashboardView(BaCa2LoggedInView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        announcements = [a for a in Announcement.objects.all() if a.released]
         self.add_widget(context, AnnouncementBlock(name='announcements',
-                                                   announcements=Announcement.objects.all()))
+                                                   announcements=announcements))
         context['user_first_name'] = self.request.user.first_name
         return context
 

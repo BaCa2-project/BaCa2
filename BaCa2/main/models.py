@@ -2452,6 +2452,14 @@ class Announcement(models.Model):
         """
         return self.custom_date if self.custom_date else self.date_created
 
+    @property
+    def released(self) -> bool:
+        """
+        :return: `True` if the announcement is released, `False` otherwise.
+        :rtype: bool
+        """
+        return self.date <= timezone.now()
+
     def __str__(self) -> str:
         """
         :return: String representation containing the title and the creation date of the
