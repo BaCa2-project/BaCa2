@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 
 from widgets.forms.main import DeleteAnnouncementForm
 from widgets.listing import TableWidget, TableWidgetPaging
-from widgets.listing.columns import Column, TextColumn
+from widgets.listing.columns import Column, DatetimeColumn, TextColumn
 
 
 class AnnouncementsTable(TableWidget):
@@ -41,7 +41,7 @@ class AnnouncementsTable(TableWidget):
         if not cols:
             cols = [TextColumn(name='title', header=_('Title'), searchable=True),
                     TextColumn(name='content', header=_('Content'), searchable=True),
-                    TextColumn(name='f_date', header=_('Announcement date'), searchable=True)]
+                    DatetimeColumn(name='date', header=_('Announcement date'), searchable=True)]
 
         if allow_delete:
             delete_form = DeleteAnnouncementForm()

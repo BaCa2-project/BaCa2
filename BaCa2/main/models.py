@@ -2468,6 +2468,44 @@ class Announcement(models.Model):
         """
         return f'{self.title} - {self.date_created}'
 
+    def __lt__(self, other) -> bool:
+        """
+        :return: `True` if the announcement is older than the other announcement, `False` otherwise.
+        :rtype: bool
+        """
+        return self.date < other.date
+
+    def __gt__(self, other) -> bool:
+        """
+        :return: `True` if the announcement is newer than the other announcement, `False` otherwise.
+        :rtype: bool
+        """
+        return self.date > other.date
+
+    def __le__(self, other) -> bool:
+        """
+        :return: `True` if the announcement is older or the same age as the other announcement,
+            `False` otherwise.
+        :rtype: bool
+        """
+        return self.date <= other.date
+
+    def __ge__(self, other) -> bool:
+        """
+        :return: `True` if the announcement is newer or the same age as the other announcement,
+            `False` otherwise.
+        :rtype: bool
+        """
+        return self.date >= other.date
+
+    def __eq__(self, other) -> bool:
+        """
+        :return: `True` if the announcement is the same age as the other announcement, `False`
+            otherwise.
+        :rtype: bool
+        """
+        return self.date == other.date
+
     def get_data(self, add_formatted_dates: bool = True) -> dict:
         """
         :return: Serialized data of the announcement.
