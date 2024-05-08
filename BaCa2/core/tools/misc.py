@@ -45,3 +45,23 @@ def try_getting_name_from_email(email: str) -> Tuple[str, str]:
         return prefix.split('.')[0], prefix.split('.')[1]
     except ValueError:
         return prefix, ''
+
+
+def as_perc(val: float | int,
+            *,
+            precision: int = 2,
+            sep: str = '') -> str:
+    """
+    Return the value as a percentage string
+
+    :param val: The value to convert
+    :type val: float
+    :param precision: The number of decimal places to use (default 2)
+    :type precision: int
+    :param sep: The separator to use (default '')
+    :type sep: str
+
+    :return: The value as a percentage string
+    """
+    val = round(float(val) * 100, precision)
+    return f'{val:.{precision}f}{sep}%'
