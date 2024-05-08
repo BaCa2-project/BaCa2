@@ -592,14 +592,33 @@ class DevelopmentTimelineView(BaCa2LoggedInView):
                          )),
                          released=True),
             ReleaseEvent(tag='v.1.2-beta',
-                         date='01-05-2024',
+                         date='08-05-2024',
                          description=str(div(
                              'Zmiany widoczne dla użytkowników:',
                              ul(
-                                 li('Poprawki w tłumaczeniu na język polski'),
-                                 li('Naprawa wyglądu stopki na telefonach'),
-                                 li('Naprawa tłumaczenia na język polski widegtów wygenerowanych z '
-                                    'pomocą DataTables'),
+                                 li('Dodanie strony "przerwa techniczna"'),
+                                 li('Dodanie panelu ogłoszeń na stronie głównej'),
+                                 li('Dodanie współczynnika spadku do tabeli zadań'),
+                                 li('Dodanie statusu rozwiązania zadania w tabeli zadań'),
+                                 li('Poprawiono wyświetlanie stopki na urządzeniach '
+                                    'z mniejszą rozdzielczością ekranu')
+                             ),
+                             'Zmiany wewnętrzne:',
+                             ul(_class='mb-0')(
+                                 li('Uprzątnięcie po wycieku danych'),
+                                 li('Zarządzanie ogłoszeniami z poziomu panelu admina'),
+                                 li('Dodanie autodetekcji niewysłanych zgłoszeń i obsługa ich')
+                             )
+                         )),
+                         released=True),
+            ReleaseEvent(tag='v.1.3-beta',
+                         date='15-05-2024',
+                         description=str(div(
+                             'Zmiany widoczne dla użytkowników:',
+                             ul(
+                                 li('Kolorowanie wierszy w tabelach zadań i submisji w zależności '
+                                    'od uzyskanego wyniku'),
+                                 li('Tłumaczenie aplikacji na język polski'),
                              ),
                              'Zmiany wewnętrzne:',
                              ul(_class='mb-0')(
@@ -612,13 +631,12 @@ class DevelopmentTimelineView(BaCa2LoggedInView):
                              )
                          )),
                          released=False),
-            ReleaseEvent(tag='v.1.3-beta',
-                         date='08-05-2024',
+
+            ReleaseEvent(tag='v.1.4-beta',
+                         date='22-05-2024',
                          description=str(div(
                              'Zmiany widoczne dla użytkowników:',
                              ul(
-                                 li('Kolorowanie wierszy w tabelach zadań i submisji w zależności '
-                                    'od uzyskanego wyniku'),
                                  li('Dodanie funkcjonalności grupowania wierszy w tabelach'),
                              ),
                              'Zmiany wewnętrzne:',
@@ -630,8 +648,8 @@ class DevelopmentTimelineView(BaCa2LoggedInView):
                              )
                          )),
                          released=False),
-            ReleaseEvent(tag='v.1.4-beta',
-                         date='15-05-2024',
+            ReleaseEvent(tag='v.1.5-beta',
+                         date='29-05-2024',
                          description=str(div(
                              'Zmiany widoczne dla użytkowników:',
                              ul(
@@ -649,7 +667,7 @@ class DevelopmentTimelineView(BaCa2LoggedInView):
         ]
         self.add_widget(context, Timeline(name='dev_timeline',
                                           events=releases,
-                                          scroll_to='v.1.1-beta'))
+                                          scroll_to='v.1.2-beta'))
         return context
 
 
