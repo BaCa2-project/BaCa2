@@ -1,4 +1,4 @@
-BACA2_VERSION = '1.1.1-beta'
+BACA2_VERSION = '1.2.0-beta'
 
 ROOT_URLCONF = 'core.urls'
 WSGI_APPLICATION = 'core.wsgi.application'
