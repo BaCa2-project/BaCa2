@@ -2423,6 +2423,10 @@ class Announcement(models.Model):
     """
     Model representing an announcement. Announcements are used to inform users about important
     events, changes, etc. Each announcement has a title, date and HTML-formatted content.
+
+    Announcement data can be rendered to the frontend individually using the
+    :class:`widgets.notification.Announcement` widget or as a list using the
+    :class:`widgets.notification.AnnouncementBlock` widget.
     """
 
     #: Title of the announcement.
