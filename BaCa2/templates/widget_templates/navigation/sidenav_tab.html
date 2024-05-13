@@ -1,0 +1,30 @@
+<li class="{{ tab.widget_class }}" id="{{ tab.name }}">
+    <div class="tab-header">
+        {% if tab.icon %}
+            <div class="tab-icon">
+                <i class="bi bi-{{ tab.icon }}"></i>
+            </div>
+        {% endif %}
+        <div class="tab-text">
+            <div class="tab-title">
+                {{ tab.title }}
+            </div>
+            {% if tab.hint_text %}
+                <div class="tab-hint">
+                    {{ tab.hint_text }}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% if tab.sub_tabs %}
+        <div class="sub-tabs-wrapper">
+            <ul class="sub-tabs">
+                {% for sub_tab in tab.sub_tabs %}
+                    {% with sub_tab as tab %}
+                        {% include 'widget_templates/navigation/sidenav_tab.html' %}
+                    {% endwith %}
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+</li>

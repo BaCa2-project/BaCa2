@@ -743,6 +743,100 @@ html, body {
   --bs-form-valid-border-color: $red;
 }
 
+.sidenav {
+  overflow: hidden;
+  width: 20rem;
+}
+@media (min-width: 768px) {
+  .sidenav.sticky {
+    position: sticky;
+    top: 4.25rem;
+  }
+}
+.sidenav .sidenav-content {
+  list-style: none;
+  display: flex;
+  flex-direction: column-reverse;
+}
+.sidenav .sidenav-tab {
+  display: flex;
+}
+.sidenav .tab-header {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+}
+.sidenav .tab-header .tab-icon {
+  width: 2rem;
+  display: flex;
+  justify-content: center;
+  align-content: center;
+  flex-wrap: wrap;
+}
+.sidenav .tab-header .tab-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.sidenav .sub-tabs {
+  overflow: hidden;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidenav {
+  padding: 0;
+}
+.sidenav .sidenav-content {
+  padding: 0;
+  margin: 0;
+}
+.sidenav .tab-header {
+  padding: 0.5rem 0.7rem;
+  margin: 0;
+}
+.sidenav .tab-header .tab-icon {
+  margin-right: 0.7rem;
+}
+.sidenav .sub-tabs {
+  padding: 0;
+}
+
+.sidenav .tab-icon {
+  font-size: 1.5rem;
+}
+.sidenav .tab-title {
+  font-size: 1rem;
+}
+.sidenav .tab-hint {
+  font-size: 0.8rem;
+}
+
+.sidenav .sidenav-tab .sub-tabs-wrapper {
+  height: 100%;
+  width: 20rem;
+  position: absolute;
+  top: 0;
+  left: 20rem;
+  transition: left 0.5s;
+  background-color: #0a53be;
+}
+.sidenav .sidenav-tab:hover > .sub-tabs-wrapper {
+  left: 3.4rem;
+}
+.sidenav .sidenav-tab:hover {
+  background-color: #0b2d5e;
+}
+
+.sidenav-tab {
+  background-color: #0a53be;
+}
+
+:root {
+  --bs-form-valid-border-color: $red;
+}
+
 .link-records tbody tr[data-record-link] {
   cursor: pointer;
 }

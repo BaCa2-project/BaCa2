@@ -883,3 +883,58 @@ def change_password(request) -> BaCa2JsonResponse:
             return BaCa2JsonResponse(status=BaCa2JsonResponse.Status.INVALID,
                                      message=_('Password not changed.'),
                                      errors=validation_errors)
+
+
+class TestView(BaCa2LoggedInView):
+    template_name = 'test.html'
+
+    def get_context_data(self, **kwargs):
+        from widgets.sidenav import SideNav, SideNavTab
+
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = _('Test')
+
+        sidenav = SideNav()
+        tab_1 = SideNavTab(name='tab_1', title='Tab 1', icon='1-circle', hint_text='Hint 1')
+        tab_2 = SideNavTab(name='tab_2', title='Tab 2', icon='2-circle')
+        tab_3 = SideNavTab(name='tab_3', title='Tab 3')
+
+        tab_1_1 = SideNavTab(name='tab_1_1', title='Tab 1.1')
+        tab_1_2 = SideNavTab(name='tab_1_2', title='Tab 1.2')
+        tab_1_3 = SideNavTab(name='tab_1_3', title='Tab 1.3')
+
+        tab_2_1 = SideNavTab(name='tab_2_1', title='Tab 2.1')
+        tab_2_2 = SideNavTab(name='tab_2_2', title='Tab 2.2')
+
+        tab_3_1 = SideNavTab(name='tab_3_1', title='Tab 3.1')
+        tab_3_2 = SideNavTab(name='tab_3_2', title='Tab 3.2')
+
+        tab_1_1_1 = SideNavTab(name='tab_1_1_1', title='Tab 1.1.1')
+        tab_1_1_2 = SideNavTab(name='tab_1_1_2', title='Tab 1.1.2')
+
+        tab_1_3_1 = SideNavTab(name='tab_1_3_1', title='Tab 1.3.1')
+        tab_1_3_2 = SideNavTab(name='tab_1_3_2', title='Tab 1.3.2')
+
+        tab_1_1.add_sub_tab(tab_1_1_1)
+        tab_1_1.add_sub_tab(tab_1_1_2)
+
+        tab_1_3.add_sub_tab(tab_1_3_1)
+        tab_1_3.add_sub_tab(tab_1_3_2)
+
+        tab_1.add_sub_tab(tab_1_1)
+        tab_1.add_sub_tab(tab_1_2)
+        tab_1.add_sub_tab(tab_1_3)
+
+        tab_2.add_sub_tab(tab_2_1)
+        tab_2.add_sub_tab(tab_2_2)
+
+        tab_3.add_sub_tab(tab_3_1)
+        tab_3.add_sub_tab(tab_3_2)
+
+        sidenav.add_tab(tab_1)
+        sidenav.add_tab(tab_2)
+        sidenav.add_tab(tab_3)
+
+        context['sidenav'] = sidenav.get_context()
+
+        return context

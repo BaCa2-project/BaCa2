@@ -1,0 +1,7 @@
+<div class="{{ sidenav.widget_class }}" id="{{ sidenav.name }}">
+    <ul class="sidenav-content">
+        {% for tab in sidenav.tabs reversed %}
+            {% include 'widget_templates/navigation/sidenav_tab.html' %}
+        {% endfor %}
+    </ul>
+</div>

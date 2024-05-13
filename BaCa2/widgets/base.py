@@ -30,7 +30,7 @@ class Widget(ABC):  # noqa: B024
         """
         self.name = name
         self.request = request
-        self.widget_class = widget_class
+        self.widget_class = set(widget_class.split(' '))
 
     def add_class(self, widget_class: str) -> None:
         """
@@ -39,7 +39,18 @@ class Widget(ABC):  # noqa: B024
         :param widget_class: CSS class to add.
         :type widget_class: str
         """
-        self.widget_class += ' ' + widget_class
+        for cls in widget_class.split(' '):
+            self.widget_class.add(cls)
+
+    def remove_class(self, widget_class: str) -> None:
+        """
+        Removes a CSS class from the widget.
+
+        :param widget_class: CSS class to remove.
+        :type widget_class: str
+        """
+        for cls in widget_class.split(' '):
+            self.widget_class.discard(cls)
 
     def get_context(self) -> Dict[str, Any]:
         """
@@ -49,4 +60,4 @@ class Widget(ABC):  # noqa: B024
         :return: A dictionary containing all the data needed to render the widget.
         :rtype: Dict[str, Any]
         """
-        return {'name': self.name, 'widget_class': self.widget_class}
+        return {'name': self.name, 'widget_class': ' '.join(self.widget_class)}

@@ -1,0 +1,121 @@
+@import "baca2_variables";
+@import "functions";
+
+// ---------------------------------------- display ------------------------------------------- //
+
+.sidenav {
+    overflow: hidden;
+    width: 20rem;
+
+    @media (min-width: 768px) {
+        &.sticky {
+            position: sticky;
+            top: $navbar_padding;
+        }
+    }
+
+    .sidenav-content {
+        list-style: none;
+        display: flex;
+        flex-direction: column-reverse;
+    }
+
+    .sidenav-tab {
+        display: flex;
+    }
+
+    .tab-header {
+        width: 100%;
+        box-sizing: border-box;
+        display: flex;
+
+        .tab-icon {
+            width: 2rem;
+            display: flex;
+            justify-content: center;
+            align-content: center;
+            flex-wrap: wrap;
+        }
+
+        .tab-text {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+    }
+
+    .sub-tabs {
+        overflow: hidden;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+    }
+}
+
+// ------------------------------------ padding & margin -------------------------------------- //
+
+.sidenav {
+    padding: 0;
+
+    .sidenav-content {
+        padding: 0;
+        margin: 0;
+    }
+
+    .tab-header {
+        padding: 0.5rem 0.7rem;
+        margin: 0;
+
+        .tab-icon {
+            margin-right: 0.7rem;
+        }
+    }
+
+    .sub-tabs {
+        padding: 0;
+    }
+}
+
+// ------------------------------------------- fonts ------------------------------------------ //
+
+.sidenav {
+    .tab-icon {
+        font-size: 1.5rem;
+    }
+
+    .tab-title {
+        font-size: 1rem;
+    }
+
+    .tab-hint {
+        font-size: 0.8rem;
+    }
+}
+
+// ----------------------------------------- dropdown ----------------------------------------- //
+
+.sidenav {
+    .sidenav-tab {
+        .sub-tabs-wrapper {
+            height: 100%;
+            width: 20rem;
+            position: absolute;
+            top: 0;
+            left: 20rem;
+            transition: left 0.5s;
+            background-color: #0a53be;
+        }
+
+        &:hover > .sub-tabs-wrapper {
+            left: 3.4rem;
+        }
+
+        &:hover {
+            background-color: #0b2d5e;
+        }
+    }
+}
+
+.sidenav-tab {
+    background-color: #0a53be;
+}
