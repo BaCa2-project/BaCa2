@@ -758,14 +758,13 @@ html, body {
 }
 .sidenav .sidenav-tabs {
   display: flex;
-  flex-direction: column-reverse;
+  flex-direction: column;
   list-style: none;
 }
 .sidenav .sidenav-tab {
   display: flex;
 }
 .sidenav .tab-header {
-  width: 100%;
   box-sizing: border-box;
   display: flex;
 }
@@ -784,6 +783,7 @@ html, body {
   display: flex;
   flex-direction: column;
   list-style: none;
+  overflow-y: auto;
 }
 .sidenav .sidenav-tabs {
   padding: 0;
@@ -793,6 +793,7 @@ html, body {
   height: 3.5rem;
 }
 .sidenav .tab-header {
+  width: 100%;
   padding: 0.5rem 0.7rem;
   margin: 0;
 }
@@ -810,9 +811,15 @@ html, body {
 .sidenav .sub-tabs-wrapper {
   height: 100%;
   width: 100%;
+  min-height: fit-content;
 }
 .sidenav .sub-tabs {
   padding: 0;
+  height: 100%;
+  min-height: fit-content;
+}
+.sidenav .sub-tabs-spacer {
+  flex-grow: 1;
 }
 .sidenav .sidenav-tab .sub-tabs-wrapper {
   position: absolute;
@@ -822,6 +829,60 @@ html, body {
 }
 .sidenav .sidenav-tab:hover > .sub-tabs-wrapper {
   left: 3.4rem;
+}
+
+[data-bs-theme=light] .sidenav .sub-tabs-wrapper {
+  background-color: #3e4042;
+}
+[data-bs-theme=light] .sidenav .sidenav-tab {
+  background-color: #3e4042;
+  border-bottom: #a0a0a0 solid 1px;
+  transition: border-bottom-color ease 0.5s;
+}
+[data-bs-theme=light] .sidenav .sidenav-tab:hover {
+  background-color: #000;
+}
+[data-bs-theme=light] .sidenav .sidenav-tab:hover.has-sub-tabs:not(:last-child) {
+  border-bottom-color: #000;
+}
+[data-bs-theme=light] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sidenav-tab, [data-bs-theme=light] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sub-tabs-spacer, [data-bs-theme=light] .sidenav .sidenav-tab:has(~ .sidenav-tab.has-sub-tabs:hover) {
+  background-color: #171a1d;
+}
+[data-bs-theme=light] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sidenav-tab:not(:last-child), [data-bs-theme=light] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sub-tabs-spacer:not(:last-child), [data-bs-theme=light] .sidenav .sidenav-tab:has(~ .sidenav-tab.has-sub-tabs:hover):not(:last-child) {
+  border-bottom-color: #171a1d;
+}
+[data-bs-theme=light] .sidenav .sidenav-tab:last-child {
+  border-bottom: none;
+}
+[data-bs-theme=light] .sidenav .sub-tabs-spacer:has(~ .sidenav-tab.has-sub-tabs:hover) {
+  background-color: #171a1d;
+}
+
+[data-bs-theme=dark] .sidenav .sub-tabs-wrapper {
+  background-color: #3e4042;
+}
+[data-bs-theme=dark] .sidenav .sidenav-tab {
+  background-color: #3e4042;
+  border-bottom: #a0a0a0 solid 1px;
+  transition: border-bottom-color ease 0.5s;
+}
+[data-bs-theme=dark] .sidenav .sidenav-tab:hover {
+  background-color: #000;
+}
+[data-bs-theme=dark] .sidenav .sidenav-tab:hover.has-sub-tabs:not(:last-child) {
+  border-bottom-color: #000;
+}
+[data-bs-theme=dark] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sidenav-tab, [data-bs-theme=dark] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sub-tabs-spacer, [data-bs-theme=dark] .sidenav .sidenav-tab:has(~ .sidenav-tab.has-sub-tabs:hover) {
+  background-color: #171a1d;
+}
+[data-bs-theme=dark] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sidenav-tab:not(:last-child), [data-bs-theme=dark] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sub-tabs-spacer:not(:last-child), [data-bs-theme=dark] .sidenav .sidenav-tab:has(~ .sidenav-tab.has-sub-tabs:hover):not(:last-child) {
+  border-bottom-color: #171a1d;
+}
+[data-bs-theme=dark] .sidenav .sidenav-tab:last-child {
+  border-bottom: none;
+}
+[data-bs-theme=dark] .sidenav .sub-tabs-spacer:has(~ .sidenav-tab.has-sub-tabs:hover) {
+  background-color: #171a1d;
 }
 
 :root {

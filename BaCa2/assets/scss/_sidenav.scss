@@ -15,7 +15,7 @@
 
     .sidenav-tabs {
         display: flex;
-        flex-direction: column-reverse;
+        flex-direction: column;
         list-style: none;
     }
 
@@ -24,7 +24,6 @@
     }
 
     .tab-header {
-        width: 100%;
         box-sizing: border-box;
         display: flex;
     }
@@ -46,6 +45,7 @@
         display: flex;
         flex-direction: column;
         list-style: none;
+        overflow-y: auto;
     }
 
 // ----------------------------------- size & padding/margin ---------------------------------- //
@@ -63,6 +63,7 @@
     }
 
     .tab-header {
+        width: 100%;
         padding: 0.5rem 0.7rem;
         margin: 0;
     }
@@ -84,10 +85,17 @@
     .sub-tabs-wrapper {
         height: 100%;
         width: 100%;
+        min-height: fit-content;
     }
 
     .sub-tabs {
         padding: 0;
+        height: 100%;
+        min-height: fit-content;
+    }
+
+    .sub-tabs-spacer {
+        flex-grow: 1;
     }
 
 // ------------------------------------- sub-tab slide-in ------------------------------------- //
@@ -105,41 +113,49 @@
     }
 }
 
-//.sidenav, .sub-tabs-wrapper {
-//    background-color: #0a53be;
-//
-//    &:hover {
-//        background-color: #113672;
-//
-//        .sidenav-tab:hover {
-//            background-color: #102d5e;
-//
-//            .sub-tabs-wrapper:not(:hover) .sidenav-tab {
-//                background-color: #0a53be;
-//            }
-//        }
-//
-//        .sidenav-tab:not(:hover) {
-//            background-color: #124898;
-//
-//            .sub-tabs-wrapper .sidenav-tab {
-//                background-color: #0a53be;
-//            }
-//        }
-//    }
-//}
-//.sidenav, .sub-tabs-wrapper {
-//    background-color: red;
-//
-//    .sidenav-tab:hover {
-//        background-color: #102d5e;
-//
-//        &:not(.has-sub-tabs) ~ .sidenav-tab {
-//            background-color: #0a53be;
-//        }
-//    }
-//
-//    .sidenav-tab:has(~ .sidenav-tab:hover:not(.has-sub-tabs)) {
-//        background-color: #0a53be;
-//    }
-//}
+// ------------------------------------------- color ------------------------------------------ //
+
+@each $theme, $map in $sidenav_theme_variables {
+    [data-bs-theme="#{$theme}"] .sidenav {
+        $tab_bg_color: safe_get($map, $sidenav_default_variables, tab_bg_color);
+        $tab_bg_color_hover: safe_get($map, $sidenav_default_variables, tab_bg_color_hover);
+        $tabs_bg_color_hover: safe_get($map, $sidenav_default_variables, tabs_bg_color_hover);
+        $tab_border_color: safe_get($map, $sidenav_default_variables, tab_border_color);
+
+        .sub-tabs-wrapper {
+            background-color: $tab_bg_color;
+        }
+
+        .sidenav-tab {
+            background-color: $tab_bg_color;
+            border-bottom: $tab_border_color solid $sidenav_tab_border_width;
+            transition: border-bottom-color ease 0.5s;
+
+            &:hover {
+                background-color: $tab_bg_color_hover;
+
+                &.has-sub-tabs:not(:last-child) {
+                    border-bottom-color: $tab_bg_color_hover;
+                }
+            }
+
+            &.has-sub-tabs:hover ~ .sidenav-tab,
+            &.has-sub-tabs:hover ~ .sub-tabs-spacer,
+            &:has(~ .sidenav-tab.has-sub-tabs:hover) {
+                background-color: $tabs_bg_color_hover;
+
+                &:not(:last-child) {
+                    border-bottom-color: $tabs_bg_color_hover;
+                }
+            }
+
+            &:last-child {
+                border-bottom: none;
+            }
+        }
+
+        .sub-tabs-spacer:has(~ .sidenav-tab.has-sub-tabs:hover) {
+            background-color: $tabs_bg_color_hover;
+        }
+    }
+}

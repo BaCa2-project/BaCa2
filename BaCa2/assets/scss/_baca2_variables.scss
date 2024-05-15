@@ -186,6 +186,20 @@ $sidenav_tab_icon_width: 2rem;
 $sidenav_tab_icon_font_size: 1.5rem;
 $sidenav_tab_title_font_size: 1rem;
 $sidenav_tab_hint_font_size: 0.8rem;
+$sidenav_tab_border_width: 1px;
+
+$sidenav_default_variables: (
+        tab_bg_color: $dark_muted,
+        tab_bg_color_hover: $black,
+        tabs_bg_color_hover: $darker,
+        tab_border_color: $light_muted,
+);
+$sidenav_theme_variables: (
+        light: (),
+        dark: (
+
+        )
+);
 
 // ------------------------------------------ tables ------------------------------------------ //
 

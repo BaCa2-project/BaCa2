@@ -60,6 +60,9 @@ class SideNavTab(Widget):
                 return sub_tab.get_tab(name)
 
     def get_context(self) -> dict:
+        if self.sub_tabs:
+            self.add_class('has-sub-tabs')
+
         return super().get_context() | {
             'title': self.title,
             'hint_text': self.hint_text,
