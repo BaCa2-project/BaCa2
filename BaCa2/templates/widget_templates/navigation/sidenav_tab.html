@@ -15,6 +15,11 @@
                 </div>
             {% endif %}
         </div>
+        {% if tab.sub_tabs %}
+            <div class="tab-arrow">
+                <i class="bi bi-chevron-right"></i>
+            </div>
+        {% endif %}
     </div>
     {% if tab.sub_tabs %}
         <div class="sub-tabs-wrapper">

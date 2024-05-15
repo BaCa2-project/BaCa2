@@ -1,6 +1,16 @@
 @import "baca2_variables";
 @import "functions";
 
+@mixin sidenav_tab_padding($level: 0) {
+    padding-right: ($sidenav_tab_icon_width + 1.4rem) * $level + 0.7rem;
+
+    @if $level < 5 {
+        .sidenav-tab {
+            @include sidenav_tab_padding($level + 1);
+        }
+    }
+}
+
 .sidenav {
 // ---------------------------------------- display ------------------------------------------- //
     overflow: hidden;
@@ -41,6 +51,14 @@
         justify-content: center;
     }
 
+    .tab-arrow {
+        display: flex;
+        justify-content: right;
+        align-content: center;
+        flex-wrap: wrap;
+        flex-grow: 1;
+    }
+
     .sub-tabs {
         display: flex;
         flex-direction: column;
@@ -60,6 +78,7 @@
 
     .sidenav-tab {
         height: $sidenav_tab_height;
+        @include sidenav_tab_padding();
     }
 
     .tab-header {
@@ -80,6 +99,10 @@
 
     .tab-hint {
         font-size: $sidenav_tab_hint_font_size;
+    }
+
+    .tab-arrow {
+        font-size: $sidenav_tab_arrow_font_size;
     }
 
     .sub-tabs-wrapper {
@@ -149,7 +172,8 @@
                 }
             }
 
-            &:last-child {
+            &:last-child,
+            .sidenav-tab:nth-last-child(2) {
                 border-bottom: none;
             }
         }
