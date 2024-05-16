@@ -1,4 +1,24 @@
 function sidenavSetup() {
+    const sidenavTabs = $('.sidenav').find('.sidenav-tabs');
+
+    if (sidenavTabs.length === 0)
+        return;
+
+    $(document).ready(function () {
+        function setSubTabsHeight() {
+            $('.sub-tabs-wrapper').each(function () {
+                $(this).css('height', sidenavTabs.height() + 'px')
+            });
+        }
+
+        setSubTabsHeight();
+
+        $(window).resize(function () {
+            console.log('resize');
+            setSubTabsHeight();
+        });
+    });
+
     $('.sidenav-tab:not(.has-sub-tabs)').click(function () {
         sidenavTabClickHandler($(this));
     });

@@ -746,14 +746,19 @@ html, body {
 .sidenav {
   overflow: hidden;
   border-radius: 6px;
-  width: 100%;
   padding: 0;
   margin: 0;
+  height: fit-content;
 }
 @media (min-width: 768px) {
   .sidenav.sticky {
     position: sticky;
     top: 4.25rem;
+  }
+}
+@media (max-width: 767px) {
+  .sidenav {
+    position: relative;
   }
 }
 .sidenav .sidenav-tabs {
@@ -792,6 +797,11 @@ html, body {
   flex-direction: column;
   list-style: none;
   overflow-y: auto;
+}
+@media (max-width: 767px) {
+  .sidenav {
+    margin-bottom: 1rem;
+  }
 }
 .sidenav .sidenav-tabs {
   padding: 0;
@@ -952,6 +962,11 @@ html, body {
   overflow: hidden;
 }
 
+@media (max-width: 767px) {
+  .sidenav-tabs-content {
+    padding: 0;
+  }
+}
 :root {
   --bs-form-valid-border-color: $red;
 }

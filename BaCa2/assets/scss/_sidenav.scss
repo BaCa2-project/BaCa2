@@ -23,6 +23,10 @@
         }
     }
 
+    @media (max-width: 767px) {
+        position: relative;
+    }
+
     .sidenav-tabs {
         display: flex;
         flex-direction: column;
@@ -68,9 +72,13 @@
     }
 
 // ----------------------------------- size & padding/margin ---------------------------------- //
-    width: 100%;
     padding: 0;
     margin: 0;
+    height: fit-content;
+
+    @media (max-width: 767px) {
+        margin-bottom: 1rem;
+    }
 
     .sidenav-tabs {
         padding: 0;
@@ -225,5 +233,11 @@
 
     .tab-content {
         overflow: hidden;
+    }
+}
+
+@media (max-width: 767px) {
+    .sidenav-tabs-content {
+        padding: 0;
     }
 }
