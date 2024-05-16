@@ -177,12 +177,12 @@
                 border-bottom-color: $tab_bg_color_hover;
             }
 
-            &.has-sub-tabs:hover ~ .sidenav-tab,
+            &.has-sub-tabs:hover ~ .sidenav-tab:not(:hover),
             &.has-sub-tabs:hover ~ .sub-tabs-spacer,
-            &.has-sub-tabs.active ~ .sidenav-tab,
+            &.has-sub-tabs.active ~ .sidenav-tab:not(:hover),
             &.has-sub-tabs.active ~ .sub-tabs-spacer,
-            &:has(~ .sidenav-tab.has-sub-tabs:hover),
-            &:has(~ .sidenav-tab.has-sub-tabs.active) {
+            &:has(~ .sidenav-tab.has-sub-tabs:hover):not(:hover),
+            &:has(~ .sidenav-tab.has-sub-tabs.active):not(:hover) {
                 background-color: $tabs_bg_color_hover;
 
                 &:not(:last-child) {
