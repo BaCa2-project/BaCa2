@@ -29,6 +29,9 @@ function sidenavSetup() {
         const tab = $(`#${tabID}`);
         if (tab.length > 0)
             sidenavTabClickHandler(tab);
+    } else {
+        const firstTab = $('.sidenav-tab:not(.has-sub-tabs):first');
+        sidenavTabClickHandler(firstTab);
     }
 }
 
