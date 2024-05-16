@@ -155,13 +155,19 @@
     {% endif %}
     {% if display_sidenav %}
         <div class="row main-row">
-        {% with widgets.SideNav.sidenav as sidenav_widget %}
-            {% include 'widget_templates/sidenav.html' %}
-        {% endwith %}
+        {% if widgets.Sidenav.sidenav %}
+            {% with widgets.Sidenav.sidenav as sidenav %}
+                {% include 'widget_templates/navigation/sidenav.html' %}
+            {% endwith %}
+        {% else %}
+            {% with widgets.SideNav.sidenav as sidenav_widget %}
+                {% include 'widget_templates/sidenav.html' %}
+            {% endwith %}
+        {% endif %}
     {% endif %}
 
     {% if display_sidenav %}
-        <div class="col-lg-9 col-md-8 col-12">
+        <div class="col-lg-9 col-md-8 col-12 sidenav-tabs-content">
     {% endif %}
 
     {% block content %}

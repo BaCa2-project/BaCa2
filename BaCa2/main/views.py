@@ -49,7 +49,7 @@ from widgets.listing import TableWidget, TableWidgetPaging, Timeline
 from widgets.listing.columns import TextColumn
 from widgets.listing.main import AnnouncementsTable
 from widgets.listing.timeline import ReleaseEvent
-from widgets.navigation import SideNav
+from widgets.navigation import SideNav, Sidenav, SidenavTab
 from widgets.notification import AnnouncementBlock
 
 logger = logging.getLogger(__name__)
@@ -454,14 +454,43 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
         context = super().get_context_data(**kwargs)
         context['page_title'] = _('Admin')
 
-        sidenav = SideNav(request=self.request,
-                          collapsed=False,
-                          toggle_button=True,
-                          tabs=['Courses', 'Users', 'Packages', 'Announcements'],
-                          sub_tabs={'Users': ['New User', 'Users Table'],
-                                    'Courses': ['New Course', 'Courses Table'],
-                                    'Packages': ['New Package', 'Packages Table'],
-                                    'Announcements': ['New Announcement', 'Announcements Table']})
+        courses_tab = SidenavTab(name='courses-tab',
+                                 title='Courses',
+                                 icon='journal-code')
+        courses_tab.add_sub_tab(SidenavTab(name='new-course-tab',
+                                           title='New Course',
+                                           icon='plus-square'))
+        courses_tab.add_sub_tab(SidenavTab(name='courses-table-tab',
+                                           title='View Courses',
+                                           icon='list-ul'))
+        users_tab = SidenavTab(name='users-tab',
+                               title='Users',
+                               icon='people')
+        users_tab.add_sub_tab(SidenavTab(name='new-user-tab',
+                                         title='New User',
+                                         icon='person-plus'))
+        users_tab.add_sub_tab(SidenavTab(name='users-table-tab',
+                                         title='View Users',
+                                         icon='person-lines-fill'))
+        announcements_tab = SidenavTab(name='announcements-tab',
+                                       title='Announcements',
+                                       icon='megaphone')
+        announcements_tab.add_sub_tab(SidenavTab(name='new-announcement-tab',
+                                                 title='New Announcement',
+                                                 icon='plus-square'))
+        announcements_tab.add_sub_tab(SidenavTab(name='announcements-table-tab',
+                                                 title='View Announcements',
+                                                 icon='list-ul'))
+        sidenav = Sidenav(tabs=[courses_tab, users_tab, announcements_tab])
+
+        # sidenav = SideNav(request=self.request,
+        #                   collapsed=False,
+        #                   toggle_button=True,
+        #                   tabs=['Courses', 'Users', 'Packages', 'Announcements'],
+        #                   sub_tabs={'Users': ['New User', 'Users Table'],
+        #                             'Courses': ['New Course', 'Courses Table'],
+        #                             'Packages': ['New Package', 'Packages Table'],
+        #                             'Announcements': ['New Announcement', 'Announcements Table']})
         self.add_widget(context, sidenav)
 
         if not self.has_widget(context, FormWidget, 'create_course_form_widget'):
@@ -889,36 +918,34 @@ class TestView(BaCa2LoggedInView):
     template_name = 'test.html'
 
     def get_context_data(self, **kwargs):
-        from widgets.sidenav import SideNav, SideNavTab
-
         context = super().get_context_data(**kwargs)
         context['page_title'] = _('Test')
 
-        sidenav = SideNav()
-        tab_1 = SideNavTab(name='tab_1', title='Tab 1', icon='1-circle', hint_text='Hint 1')
-        tab_2 = SideNavTab(name='tab_2', title='Tab 2', icon='2-circle')
-        tab_3 = SideNavTab(name='tab_3', title='Tab 3')
+        sidenav = Sidenav()
+        tab_1 = SidenavTab(name='tab_1', title='Tab 1', icon='1-circle', hint_text='Hint 1')
+        tab_2 = SidenavTab(name='tab_2', title='Tab 2', icon='2-circle')
+        tab_3 = SidenavTab(name='tab_3', title='Tab 3')
 
-        tab_1_1 = SideNavTab(name='tab_1_1', title='Tab 1.1')
-        tab_1_3 = SideNavTab(name='tab_1_3', title='Tab 1.3')
+        tab_1_1 = SidenavTab(name='tab_1_1', title='Tab 1.1')
+        tab_1_3 = SidenavTab(name='tab_1_3', title='Tab 1.3')
 
-        tab_2_1 = SideNavTab(name='tab_2_1', title='Tab 2.1')
-        tab_2_2 = SideNavTab(name='tab_2_2', title='Tab 2.2')
+        tab_2_1 = SidenavTab(name='tab_2_1', title='Tab 2.1')
+        tab_2_2 = SidenavTab(name='tab_2_2', title='Tab 2.2')
 
-        tab_3_1 = SideNavTab(name='tab_3_1', title='Tab 3.1')
-        tab_3_2 = SideNavTab(name='tab_3_2', title='Tab 3.2')
+        tab_3_1 = SidenavTab(name='tab_3_1', title='Tab 3.1')
+        tab_3_2 = SidenavTab(name='tab_3_2', title='Tab 3.2')
 
-        tab_1_1_1 = SideNavTab(name='tab_1_1_1', title='Tab 1.1.1')
-        tab_1_1_2 = SideNavTab(name='tab_1_1_2', title='Tab 1.1.2')
-        tab_1_1_3 = SideNavTab(name='tab_1_1_3', title='Tab 1.1.3')
-        tab_1_1_4 = SideNavTab(name='tab_1_1_4', title='Tab 1.1.4')
+        tab_1_1_1 = SidenavTab(name='tab_1_1_1', title='Tab 1.1.1')
+        tab_1_1_2 = SidenavTab(name='tab_1_1_2', title='Tab 1.1.2')
+        tab_1_1_3 = SidenavTab(name='tab_1_1_3', title='Tab 1.1.3')
+        tab_1_1_4 = SidenavTab(name='tab_1_1_4', title='Tab 1.1.4')
 
-        tab_1_3_1 = SideNavTab(name='tab_1_3_1', title='Tab 1.3.1')
-        tab_1_3_2 = SideNavTab(name='tab_1_3_2', title='Tab 1.3.2')
+        tab_1_3_1 = SidenavTab(name='tab_1_3_1', title='Tab 1.3.1')
+        tab_1_3_2 = SidenavTab(name='tab_1_3_2', title='Tab 1.3.2')
 
-        tab_3_1_1 = SideNavTab(name='tab_3_1_1', title='Tab 3.1.1')
-        tab_3_1_2 = SideNavTab(name='tab_3_1_2', title='Tab 3.1.2')
-        tab_3_1_3 = SideNavTab(name='tab_3_1_3', title='Tab 3.1.3')
+        tab_3_1_1 = SidenavTab(name='tab_3_1_1', title='Tab 3.1.1')
+        tab_3_1_2 = SidenavTab(name='tab_3_1_2', title='Tab 3.1.2')
+        tab_3_1_3 = SidenavTab(name='tab_3_1_3', title='Tab 3.1.3')
 
         tab_1_1.add_sub_tab(tab_1_1_1)
         tab_1_1.add_sub_tab(tab_1_1_2)
