@@ -916,10 +916,18 @@ class TestView(BaCa2LoggedInView):
         tab_1_3_1 = SideNavTab(name='tab_1_3_1', title='Tab 1.3.1')
         tab_1_3_2 = SideNavTab(name='tab_1_3_2', title='Tab 1.3.2')
 
+        tab_3_1_1 = SideNavTab(name='tab_3_1_1', title='Tab 3.1.1')
+        tab_3_1_2 = SideNavTab(name='tab_3_1_2', title='Tab 3.1.2')
+        tab_3_1_3 = SideNavTab(name='tab_3_1_3', title='Tab 3.1.3')
+
         tab_1_1.add_sub_tab(tab_1_1_1)
         tab_1_1.add_sub_tab(tab_1_1_2)
         tab_1_1.add_sub_tab(tab_1_1_3)
         tab_1_1.add_sub_tab(tab_1_1_4)
+
+        tab_3_1.add_sub_tab(tab_3_1_1)
+        tab_3_1.add_sub_tab(tab_3_1_2)
+        tab_3_1.add_sub_tab(tab_3_1_3)
 
         tab_1_3.add_sub_tab(tab_1_3_1)
         tab_1_3.add_sub_tab(tab_1_3_2)

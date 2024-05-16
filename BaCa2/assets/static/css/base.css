@@ -767,6 +767,7 @@ html, body {
 .sidenav .tab-header {
   box-sizing: border-box;
   display: flex;
+  cursor: pointer;
 }
 .sidenav .tab-icon {
   display: flex;
@@ -853,8 +854,11 @@ html, body {
   left: 100%;
   transition: left 0.5s;
 }
-.sidenav .sidenav-tab:hover > .sub-tabs-wrapper {
+.sidenav .sidenav-tab:hover:not(.active) > .sub-tabs-wrapper, .sidenav .sidenav-tab.active:hover > .sub-tabs-wrapper:hover, .sidenav .sidenav-tab.active:not(:hover) > .sub-tabs-wrapper {
   left: 3.4rem;
+}
+.sidenav .sidenav-tab:hover ~ .sidenav-tab > .sub-tabs-wrapper, .sidenav .sidenav-tab:has(~ .sidenav-tab:hover) > .sub-tabs-wrapper {
+  left: 100% !important;
 }
 
 [data-bs-theme=light] .sidenav .sub-tabs-wrapper {
@@ -863,24 +867,38 @@ html, body {
 [data-bs-theme=light] .sidenav .sidenav-tab {
   background-color: #f8f9fa;
   border-bottom: #d0d0d0 solid 1px;
-  transition: border-bottom-color ease 0.5s;
+  border-top: transparent solid 1px;
+  transition: border-bottom-color ease 0.5s, border-top-color ease 0.5s;
 }
-[data-bs-theme=light] .sidenav .sidenav-tab:hover {
+[data-bs-theme=light] .sidenav .sidenav-tab:hover, [data-bs-theme=light] .sidenav .sidenav-tab.active {
   background-color: #D3CABD;
 }
-[data-bs-theme=light] .sidenav .sidenav-tab:hover.has-sub-tabs:not(:last-child) {
+[data-bs-theme=light] .sidenav .sidenav-tab:hover.has-sub-tabs:not(:last-child), [data-bs-theme=light] .sidenav .sidenav-tab.active.has-sub-tabs:not(:last-child) {
   border-bottom-color: #D3CABD;
 }
-[data-bs-theme=light] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sidenav-tab, [data-bs-theme=light] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sub-tabs-spacer, [data-bs-theme=light] .sidenav .sidenav-tab:has(~ .sidenav-tab.has-sub-tabs:hover) {
+[data-bs-theme=light] .sidenav .sidenav-tab.active:not(.has-sub-tabs) {
+  border-bottom-color: #D3CABD;
+}
+[data-bs-theme=light] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sidenav-tab, [data-bs-theme=light] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sub-tabs-spacer, [data-bs-theme=light] .sidenav .sidenav-tab.has-sub-tabs.active ~ .sidenav-tab, [data-bs-theme=light] .sidenav .sidenav-tab.has-sub-tabs.active ~ .sub-tabs-spacer, [data-bs-theme=light] .sidenav .sidenav-tab:has(~ .sidenav-tab.has-sub-tabs:hover), [data-bs-theme=light] .sidenav .sidenav-tab:has(~ .sidenav-tab.has-sub-tabs.active) {
   background-color: #f0f0f0;
 }
-[data-bs-theme=light] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sidenav-tab:not(:last-child), [data-bs-theme=light] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sub-tabs-spacer:not(:last-child), [data-bs-theme=light] .sidenav .sidenav-tab:has(~ .sidenav-tab.has-sub-tabs:hover):not(:last-child) {
+[data-bs-theme=light] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sidenav-tab:not(:last-child), [data-bs-theme=light] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sub-tabs-spacer:not(:last-child), [data-bs-theme=light] .sidenav .sidenav-tab.has-sub-tabs.active ~ .sidenav-tab:not(:last-child), [data-bs-theme=light] .sidenav .sidenav-tab.has-sub-tabs.active ~ .sub-tabs-spacer:not(:last-child), [data-bs-theme=light] .sidenav .sidenav-tab:has(~ .sidenav-tab.has-sub-tabs:hover):not(:last-child), [data-bs-theme=light] .sidenav .sidenav-tab:has(~ .sidenav-tab.has-sub-tabs.active):not(:last-child) {
   border-bottom-color: #f0f0f0;
+}
+[data-bs-theme=light] .sidenav .sidenav-tab.active:not(.has-sub-tabs) ~ .sidenav-tab:not(:hover), [data-bs-theme=light] .sidenav .sidenav-tab:has(~ .sidenav-tab.active:not(.has-sub-tabs)):not(:hover) {
+  border-bottom-color: #f8f9fa;
+}
+[data-bs-theme=light] .sidenav .sidenav-tab.active:not(.has-sub-tabs) ~ .sidenav-tab:hover:not(:first-child), [data-bs-theme=light] .sidenav .sidenav-tab:has(~ .sidenav-tab.active:not(.has-sub-tabs)):hover:not(:first-child) {
+  border-top-color: #d0d0d0;
 }
 [data-bs-theme=light] .sidenav .sidenav-tab:last-child,
 [data-bs-theme=light] .sidenav .sidenav-tab .sidenav-tab:nth-last-child(2) {
   border-bottom: none;
 }
+[data-bs-theme=light] .sidenav .sidenav-tab.active > .tab-header .tab-icon {
+  color: #fff;
+}
+[data-bs-theme=light] .sidenav .sub-tabs-spacer:has(~ .sidenav-tab.has-sub-tabs.active),
 [data-bs-theme=light] .sidenav .sub-tabs-spacer:has(~ .sidenav-tab.has-sub-tabs:hover) {
   background-color: #f0f0f0;
 }
@@ -891,26 +909,47 @@ html, body {
 [data-bs-theme=dark] .sidenav .sidenav-tab {
   background-color: #3e4042;
   border-bottom: #a0a0a0 solid 1px;
-  transition: border-bottom-color ease 0.5s;
+  border-top: transparent solid 1px;
+  transition: border-bottom-color ease 0.5s, border-top-color ease 0.5s;
 }
-[data-bs-theme=dark] .sidenav .sidenav-tab:hover {
+[data-bs-theme=dark] .sidenav .sidenav-tab:hover, [data-bs-theme=dark] .sidenav .sidenav-tab.active {
   background-color: #000;
 }
-[data-bs-theme=dark] .sidenav .sidenav-tab:hover.has-sub-tabs:not(:last-child) {
+[data-bs-theme=dark] .sidenav .sidenav-tab:hover.has-sub-tabs:not(:last-child), [data-bs-theme=dark] .sidenav .sidenav-tab.active.has-sub-tabs:not(:last-child) {
   border-bottom-color: #000;
 }
-[data-bs-theme=dark] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sidenav-tab, [data-bs-theme=dark] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sub-tabs-spacer, [data-bs-theme=dark] .sidenav .sidenav-tab:has(~ .sidenav-tab.has-sub-tabs:hover) {
+[data-bs-theme=dark] .sidenav .sidenav-tab.active:not(.has-sub-tabs) {
+  border-bottom-color: #000;
+}
+[data-bs-theme=dark] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sidenav-tab, [data-bs-theme=dark] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sub-tabs-spacer, [data-bs-theme=dark] .sidenav .sidenav-tab.has-sub-tabs.active ~ .sidenav-tab, [data-bs-theme=dark] .sidenav .sidenav-tab.has-sub-tabs.active ~ .sub-tabs-spacer, [data-bs-theme=dark] .sidenav .sidenav-tab:has(~ .sidenav-tab.has-sub-tabs:hover), [data-bs-theme=dark] .sidenav .sidenav-tab:has(~ .sidenav-tab.has-sub-tabs.active) {
   background-color: #171a1d;
 }
-[data-bs-theme=dark] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sidenav-tab:not(:last-child), [data-bs-theme=dark] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sub-tabs-spacer:not(:last-child), [data-bs-theme=dark] .sidenav .sidenav-tab:has(~ .sidenav-tab.has-sub-tabs:hover):not(:last-child) {
+[data-bs-theme=dark] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sidenav-tab:not(:last-child), [data-bs-theme=dark] .sidenav .sidenav-tab.has-sub-tabs:hover ~ .sub-tabs-spacer:not(:last-child), [data-bs-theme=dark] .sidenav .sidenav-tab.has-sub-tabs.active ~ .sidenav-tab:not(:last-child), [data-bs-theme=dark] .sidenav .sidenav-tab.has-sub-tabs.active ~ .sub-tabs-spacer:not(:last-child), [data-bs-theme=dark] .sidenav .sidenav-tab:has(~ .sidenav-tab.has-sub-tabs:hover):not(:last-child), [data-bs-theme=dark] .sidenav .sidenav-tab:has(~ .sidenav-tab.has-sub-tabs.active):not(:last-child) {
   border-bottom-color: #171a1d;
+}
+[data-bs-theme=dark] .sidenav .sidenav-tab.active:not(.has-sub-tabs) ~ .sidenav-tab:not(:hover), [data-bs-theme=dark] .sidenav .sidenav-tab:has(~ .sidenav-tab.active:not(.has-sub-tabs)):not(:hover) {
+  border-bottom-color: #3e4042;
+}
+[data-bs-theme=dark] .sidenav .sidenav-tab.active:not(.has-sub-tabs) ~ .sidenav-tab:hover:not(:first-child), [data-bs-theme=dark] .sidenav .sidenav-tab:has(~ .sidenav-tab.active:not(.has-sub-tabs)):hover:not(:first-child) {
+  border-top-color: #a0a0a0;
 }
 [data-bs-theme=dark] .sidenav .sidenav-tab:last-child,
 [data-bs-theme=dark] .sidenav .sidenav-tab .sidenav-tab:nth-last-child(2) {
   border-bottom: none;
 }
+[data-bs-theme=dark] .sidenav .sidenav-tab.active > .tab-header .tab-icon {
+  color: #FE2E63;
+}
+[data-bs-theme=dark] .sidenav .sub-tabs-spacer:has(~ .sidenav-tab.has-sub-tabs.active),
 [data-bs-theme=dark] .sidenav .sub-tabs-spacer:has(~ .sidenav-tab.has-sub-tabs:hover) {
   background-color: #171a1d;
+}
+
+.tab-content-wrapper {
+  display: none;
+}
+.tab-content-wrapper .tab-content {
+  overflow: hidden;
 }
 
 :root {

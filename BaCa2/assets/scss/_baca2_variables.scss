@@ -195,6 +195,7 @@ $sidenav_default_variables: (
         tab_bg_color_hover: $baca2_beige,
         tabs_bg_color_hover: $white_muted,
         tab_border_color: $pale_muted,
+        tab_icon_color_active: $white,
 );
 $sidenav_theme_variables: (
         light: (),
@@ -203,6 +204,7 @@ $sidenav_theme_variables: (
                 tab_bg_color_hover: $black,
                 tabs_bg_color_hover: $darker,
                 tab_border_color: $light_muted,
+                tab_icon_color_active: $baca2_pink,
         )
 );
 

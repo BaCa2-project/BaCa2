@@ -14,6 +14,7 @@ function initCommon() {
     tablesSetup();
     formsSetup();
     sideNavSetup();
+    sidenavSetup();
     themeSetup();
 }
 

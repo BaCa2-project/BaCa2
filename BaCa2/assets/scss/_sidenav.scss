@@ -36,6 +36,7 @@
     .tab-header {
         box-sizing: border-box;
         display: flex;
+        cursor: pointer;
     }
 
     .tab-icon {
@@ -130,8 +131,15 @@
             transition: left 0.5s;
         }
 
-        &:hover > .sub-tabs-wrapper {
+        &:hover:not(.active) > .sub-tabs-wrapper,
+        &.active:hover > .sub-tabs-wrapper:hover,
+        &.active:not(:hover) > .sub-tabs-wrapper {
             left: $sidenav_tab_icon_width + 1.4rem;
+        }
+
+        &:hover ~ .sidenav-tab > .sub-tabs-wrapper,
+        &:has(~ .sidenav-tab:hover) > .sub-tabs-wrapper {
+            left: 100% !important;
         }
     }
 }
@@ -144,6 +152,7 @@
         $tab_bg_color_hover: safe_get($map, $sidenav_default_variables, tab_bg_color_hover);
         $tabs_bg_color_hover: safe_get($map, $sidenav_default_variables, tabs_bg_color_hover);
         $tab_border_color: safe_get($map, $sidenav_default_variables, tab_border_color);
+        $tab_icon_color_active: safe_get($map, $sidenav_default_variables, tab_icon_color_active);
 
         .sub-tabs-wrapper {
             background-color: $tab_bg_color;
@@ -152,19 +161,28 @@
         .sidenav-tab {
             background-color: $tab_bg_color;
             border-bottom: $tab_border_color solid $sidenav_tab_border_width;
-            transition: border-bottom-color ease 0.5s;
+            border-top: transparent solid $sidenav_tab_border_width;
+            transition: border-bottom-color ease 0.5s,
+                        border-top-color ease 0.5s;
 
-            &:hover {
+            &:hover, &.active {
                 background-color: $tab_bg_color_hover;
 
-                &.has-sub-tabs:not(:last-child) {
+                &.has-sub-tabs:not(:last-child), {
                     border-bottom-color: $tab_bg_color_hover;
                 }
             }
 
+            &.active:not(.has-sub-tabs) {
+                border-bottom-color: $tab_bg_color_hover;
+            }
+
             &.has-sub-tabs:hover ~ .sidenav-tab,
             &.has-sub-tabs:hover ~ .sub-tabs-spacer,
-            &:has(~ .sidenav-tab.has-sub-tabs:hover) {
+            &.has-sub-tabs.active ~ .sidenav-tab,
+            &.has-sub-tabs.active ~ .sub-tabs-spacer,
+            &:has(~ .sidenav-tab.has-sub-tabs:hover),
+            &:has(~ .sidenav-tab.has-sub-tabs.active) {
                 background-color: $tabs_bg_color_hover;
 
                 &:not(:last-child) {
@@ -172,14 +190,40 @@
                 }
             }
 
+            &.active:not(.has-sub-tabs) ~ .sidenav-tab,
+            &:has(~ .sidenav-tab.active:not(.has-sub-tabs)) {
+                &:not(:hover) {
+                    border-bottom-color: $tab_bg_color;
+                }
+
+                &:hover:not(:first-child) {
+                    border-top-color: $tab_border_color;
+                }
+            }
+
             &:last-child,
             .sidenav-tab:nth-last-child(2) {
                 border-bottom: none;
             }
+
+            &.active > .tab-header .tab-icon {
+                color: $tab_icon_color_active;
+            }
         }
 
+        .sub-tabs-spacer:has(~ .sidenav-tab.has-sub-tabs.active),
         .sub-tabs-spacer:has(~ .sidenav-tab.has-sub-tabs:hover) {
             background-color: $tabs_bg_color_hover;
         }
+    }
+}
+
+// ---------------------------------------- tab content --------------------------------------- //
+
+.tab-content-wrapper {
+    display: none;
+
+    .tab-content {
+        overflow: hidden;
     }
 }
