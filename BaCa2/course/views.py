@@ -48,7 +48,7 @@ from widgets.forms.course import (
 from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.col_defs import RejudgeSubmitColumn
 from widgets.listing.columns import DatetimeColumn, FormSubmitColumn, TextColumn
-from widgets.navigation import SideNav, Sidenav, SidenavTab
+from widgets.navigation import Sidenav, SidenavTab
 from widgets.text_display import TextDisplayer
 
 # ----------------------------------- Course views abstraction ---------------------------------- #
@@ -1000,10 +1000,11 @@ class RoundEditView(CourseTemplateView):
         context['page_title'] = course.name + _(' - rounds')
         rounds = course.rounds()
         rounds = sorted(rounds, key=lambda x: x.name)
-        round_names = [r.name for r in rounds]
-        sidenav = SideNav(request=self.request,
-                          collapsed=True,
-                          tabs=round_names, )
+
+        tabs = [SidenavTab(name=f'round-{r.id}-tab',
+                           title=r.name,
+                           icon='calendar-week') for r in rounds]
+        sidenav = Sidenav(tabs=tabs)
         self.add_widget(context, sidenav)
 
         rounds_context = []
@@ -1017,7 +1018,7 @@ class RoundEditView(CourseTemplateView):
                 form_instance_id=form_instance_id,
             )
             rounds_context.append({
-                'tab_name': SideNav.normalize_tab_name(r.name),
+                'tab_name': f'round-{r.id}-tab',
                 'round_name': r.name,
                 'round_edit_form': round_edit_form.get_context(),
             })
@@ -1072,11 +1073,10 @@ class SubmitSummaryView(CourseTemplateView):
         course = ModelsRegistry.get_course(course_id)
         context['page_title'] = f'{task.task_name} - submit #{submit.pk}'
 
-        sidenav = SideNav(request=self.request,
-                          collapsed=True,
-                          tabs=['Summary'])
-
-        context['summary_tab'] = 'summary-tab'
+        sidenav = Sidenav(tabs=[SidenavTab(name='summary-tab',
+                                           title=_('Summary'),
+                                           icon='card-list')])
+        context['summary_tab'] = True
 
         # summary table --------------------------------------------------------------------------
 
@@ -1115,8 +1115,8 @@ class SubmitSummaryView(CourseTemplateView):
         # solution code --------------------------------------------------------------------------
 
         if user.has_course_permission(Course.CourseAction.VIEW_CODE.label, course):
-            sidenav.add_tab('Code')
-            context['code_tab'] = 'code-tab'
+            sidenav.add_tab(SidenavTab(name='code-tab', title=_('Code'), icon='file-earmark-code'))
+            context['code_tab'] = True
             source_code = CodeBlock(
                 name='source_code_block',
                 title=_('Source code'),
@@ -1133,6 +1133,10 @@ class SubmitSummaryView(CourseTemplateView):
 
         # sets -----------------------------------------------------------------------------------
 
+        sidenav.add_tab(SidenavTab(name='test-sets-tab',
+                                   title=_('Test sets'),
+                                   icon='folder2-open',
+                                   parent_tab=True))
         sets = task.sets
         sets = sorted(sets, key=lambda x: x.short_name)
         sets_list = []
@@ -1160,7 +1164,10 @@ class SubmitSummaryView(CourseTemplateView):
             }
 
             if display_test_summaries:
-                sidenav.add_tab(tab_name=s.short_name)
+                sidenav.add_tab(tab=SidenavTab(name=f'{s.short_name}-tab',
+                                               title=s.short_name,
+                                               icon='list-ul'),
+                                under='test-sets-tab')
 
             serialize_kwargs = {'include_time': False, 'include_memory': False}
 

@@ -2,8 +2,8 @@
 
 {% block content %}
     {% if display_sidenav %}
-    <div class="tab-wrapper" id="{{ summary_tab }}">
-        <div class="side-nav-tab">
+    <div class="tab-content-wrapper" data-tab-id="summary-tab">
+        <div class="tab-content">
     {% endif %}
             <div class="mb-3">
                 {% with widgets.TableWidget.summary_table_widget as table_widget %}
@@ -23,8 +23,8 @@
     </div>
     {% endif %}
 
-    <div class="tab-wrapper" id="{{ code_tab }}">
-        <div class="side-nav-tab">
+    <div class="tab-content-wrapper" data-tab-id="code-tab">
+        <div class="tab-content">
             {% with widgets.CodeBlock.source_code_block as codeblock %}
                 {% include "widget_templates/code_block.html" %}
             {% endwith %}
@@ -33,8 +33,8 @@
 
     {% if display_test_summaries %}
         {% for s in sets %}
-            <div class="tab-wrapper" id="{{ s.set_name }}-tab">
-                <div class="side-nav-tab">
+            <div class="tab-content-wrapper" data-tab-id="{{ s.set_name }}-tab">
+                <div class="tab-content">
                     {% for test_summary in s.tests %}
                         {% with test_summary as brief_result_summary %}
                             {% include "widget_templates/brief_result_summary.html" %}
