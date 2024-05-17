@@ -31,7 +31,7 @@ from widgets.forms.fields import (
 from widgets.forms.fields.course import CourseName, CourseShortName, USOSCode
 from widgets.forms.fields.table_select import TableSelectField
 from widgets.listing.columns import TextColumn
-from widgets.navigation import SideNav
+from widgets.navigation import Sidenav, SidenavTab
 from widgets.popups.forms import SubmitConfirmationPopup, SubmitFailurePopup, SubmitSuccessPopup
 
 logger = logging.getLogger(__name__)
@@ -2068,19 +2068,24 @@ class EditTaskFormWidget(FormWidget):
         fields.remove(field_name)
         return field_name
 
-    def get_sidenav(self, request) -> SideNav:
-        sidenav = SideNav(request=request,
-                          collapsed=True,
-                          tabs=['General settings'],
-                          toggle_button=True)
+    def get_sidenav(self) -> Sidenav:
+        sidenav = Sidenav(tabs=[SidenavTab(name='general-settings-tab',
+                                           title=_('General settings'),
+                                           icon='gear')])
         set_groups = getattr(self.form, 'set_groups', [])
 
         for test_set in set_groups:
-            sidenav.add_tab(
-                tab_name=test_set['name'],
-                sub_tabs=[f'{test_set["name"]} settings'] +
-                         [test_set_test['name'] for test_set_test in test_set['test_groups']]
-            )
+            test_set_tab = SidenavTab(name=f'{test_set["name"]}-tab',
+                                      title=test_set['name'],
+                                      icon='folder2-open')
+            test_set_tab.add_sub_tab(SidenavTab(name=f'{test_set["name"]}-settings-tab',
+                                                title=_('Settings'),
+                                                icon='gear'))
+            for test_set_test in test_set['test_groups']:
+                test_set_tab.add_sub_tab(SidenavTab(name=f'{test_set_test["name"]}-tab',
+                                                    title=test_set_test['name'],
+                                                    icon='file-earmark-code'))
+            sidenav.add_tab(test_set_tab)
 
         return sidenav
 

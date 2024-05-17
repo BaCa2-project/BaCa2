@@ -35,7 +35,6 @@ from widgets.forms.course import (
     DeleteTaskForm,
     EditRoundForm,
     EditRoundFormWidget,
-    EditTaskForm,
     EditTaskFormWidget,
     RejudgeSubmitForm,
     RejudgeTaskForm,
@@ -976,21 +975,6 @@ class TaskEditView(CourseTemplateView):
 
         return user.has_course_permission(Course.CourseAction.EDIT_TASK.label, course_id)
 
-    def get_sidenav(self, task_form: EditTaskForm) -> SideNav:
-        sidenav = SideNav(request=self.request,
-                          collapsed=True,
-                          tabs=['General settings'], )
-        for test_set in task_form.set_groups:
-            sidenav.add_tab(
-                tab_name=test_set['name'],
-                sub_tabs=[f'{test_set["name"]} settings'] + [
-                    test_set_test['name']
-                    for test_set_test in
-                    test_set['test_groups']
-                ]
-            )
-        return sidenav
-
     def get_context_data(self, **kwargs) -> dict:
         context = super().get_context_data(**kwargs)
         course_id = self.kwargs.get('course_id')
@@ -999,7 +983,7 @@ class TaskEditView(CourseTemplateView):
         context['page_title'] = task.task_name + _(' - edit')
         task_form = EditTaskFormWidget(request=self.request, course_id=course_id, task_id=task_id)
         self.add_widget(context, task_form)
-        self.add_widget(context, task_form.get_sidenav(self.request))
+        self.add_widget(context, task_form.get_sidenav())
 
         return context
 
