@@ -152,12 +152,14 @@ class SidenavTab(Widget):
                  title: str,
                  icon: str | None = None,
                  hint_text: str | None = None,
-                 sub_tabs: List['SidenavTab'] = None) -> None:
+                 sub_tabs: List['SidenavTab'] = None,
+                 parent_tab: bool = False) -> None:
         super().__init__(name=name, widget_class='sidenav-tab')
         self.title = title
         self.icon = icon or self.DEFAULT_ICON
         self.hint_text = hint_text
         self.sub_tabs = sub_tabs or []
+        self.parent_tab = parent_tab
 
         names = self.get_names()
         self.name_set = set()
@@ -200,7 +202,13 @@ class SidenavTab(Widget):
             if name in sub_tab.name_set:
                 return sub_tab.get_tab(name)
 
+    def to_remove(self) -> bool:
+        return self.parent_tab and not self.sub_tabs
+
     def get_context(self) -> dict:
+        if len(self.sub_tabs) == 1:
+            self.name = self.sub_tabs[0].name
+            self.sub_tabs = []
         if self.sub_tabs:
             self.add_class('has-sub-tabs')
 
@@ -267,7 +275,7 @@ class Sidenav(Widget):
 
     def get_context(self) -> dict:
         return super().get_context() | {
-            'tabs': [tab.get_context() for tab in self.tabs],
+            'tabs': [tab.get_context() for tab in self.tabs if not tab.to_remove()],
             'sticky': self.sticky,
             'toggle_button': self.toggle_button
         }
