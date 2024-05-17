@@ -807,7 +807,13 @@ class CourseTask(CourseTemplateView):
         task_id = self.kwargs.get('task_id')
         task = ModelsRegistry.get_task(task_id, course_id)
         context['page_title'] = task.task_name
-        sidenav_tabs = ['Description']
+        sidenav = Sidenav(tabs=[SidenavTab(name='description-tab',
+                                           title=_('Description'),
+                                           icon='file-earmark-text'),
+                                SidenavTab(name='edit-tab',
+                                           title=_('Edit'),
+                                           icon='pencil-square',
+                                           parent_tab=True)])
 
         # description ----------------------------------------------------------------------------
         package = task.package_instance.package
@@ -854,8 +860,11 @@ class CourseTask(CourseTemplateView):
                 task_id=task_id,
             )
             self.add_widget(context, simple_edit_task_form)
-            sidenav_tabs.append('Edit')
-            context['edit_tab'] = 'edit-tab'
+            sidenav.add_tab(tab=SidenavTab(name='simple-edit-tab',
+                                           title=_('Simple edit'),
+                                           icon='pen'),
+                            under='edit-tab')
+            context['simple_edit_tab'] = True
         if can_reupload:
             reupload_package_form = ReuploadTaskFormWidget(
                 request=self.request,
@@ -863,14 +872,19 @@ class CourseTask(CourseTemplateView):
                 task_id=task_id,
             )
             self.add_widget(context, reupload_package_form)
-            sidenav_tabs.append('Reupload')
-            context['reupload_tab'] = 'reupload-tab'
+            sidenav.add_tab(tab=SidenavTab(name='reupload-tab',
+                                           title=_('Reupload'),
+                                           icon='arrow-clockwise'),
+                            under='edit-tab')
+            context['reupload_tab'] = True
 
         # submit form ----------------------------------------------------------------------------
 
         if task.can_submit(user):
-            sidenav_tabs.append('Submit')
-            context['submit_tab'] = 'submit-tab'
+            sidenav.add_tab(SidenavTab(name='submit-tab',
+                                       title=_('Submit'),
+                                       icon='file-earmark-arrow-up'))
+            context['submit_tab'] = True
             submit_form = CreateSubmitFormWidget(request=self.request,
                                                  course_id=course_id,
                                                  task_id=task_id)
@@ -888,8 +902,10 @@ class CourseTask(CourseTemplateView):
                                                       course)
 
         if view_all_submits or view_own_submits:
-            sidenav_tabs.append('Results')
-            context['results_tab'] = 'results-tab'
+            sidenav.add_tab(SidenavTab(name='results-tab',
+                                       title=_('Results'),
+                                       icon='file-earmark-check'))
+            context['results_tab'] = True
 
             results_table_kwargs = {
                 'name': 'results_table_widget',
@@ -944,13 +960,7 @@ class CourseTask(CourseTemplateView):
 
             self.add_widget(context, TableWidget(**results_table_kwargs))
 
-        # side nav -------------------------------------------------------------------------------
-
-        sidenav = SideNav(request=self.request,
-                          collapsed=True,
-                          tabs=sidenav_tabs)
         self.add_widget(context, sidenav)
-
         return context
 
 
