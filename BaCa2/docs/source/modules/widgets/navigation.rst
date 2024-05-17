@@ -9,6 +9,6 @@ Module containing widgets used for navigating the web application.
     :members:
     :private-members:
 
-.. autoclass:: SideNav
+.. autoclass:: Sidenav
     :members:
     :private-members:

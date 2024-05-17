@@ -145,7 +145,7 @@
 
 {% if display_navbar %}
     {% with widgets.NavBar.navbar as navbar_widget %}
-        {% include 'widget_templates/navbar.html' %}
+        {% include 'widget_templates/navigation/navbar.html' %}
     {% endwith %}
 {% endif %}
 
@@ -155,15 +155,9 @@
     {% endif %}
     {% if display_sidenav %}
         <div class="row main-row">
-        {% if widgets.Sidenav.sidenav %}
             {% with widgets.Sidenav.sidenav as sidenav %}
                 {% include 'widget_templates/navigation/sidenav.html' %}
             {% endwith %}
-        {% else %}
-            {% with widgets.SideNav.sidenav as sidenav_widget %}
-                {% include 'widget_templates/sidenav.html' %}
-            {% endwith %}
-        {% endif %}
     {% endif %}
 
     {% if display_sidenav %}
