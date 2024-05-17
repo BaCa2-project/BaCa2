@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
-    <div class="tab-wrapper" id="profile-tab">
-        <div class="side-nav-tab">
+    <div class="tab-content-wrapper" data-tab-id="profile-tab">
+        <div class="tab-content">
             <div class="mb-3">
                 {% with widgets.TableWidget.personal_data_table_widget as table_widget %}
                     {% include "widget_templates/listing/table.html" %}
@@ -13,8 +13,8 @@
         </div>
     </div>
     {% if not change_password_header %}
-        <div class="tab-wrapper" id="security-tab">
-            <div class="side-nav-tab">
+        <div class="tab-content-wrapper" data-tab-id="security-tab">
+            <div class="tab-content">
                 <div class="card">
                     <div class="card-header">
                         <h2>{{ change_password_title }}</h2>

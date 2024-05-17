@@ -49,7 +49,7 @@ from widgets.listing import TableWidget, TableWidgetPaging, Timeline
 from widgets.listing.columns import TextColumn
 from widgets.listing.main import AnnouncementsTable
 from widgets.listing.timeline import ReleaseEvent
-from widgets.navigation import SideNav, Sidenav, SidenavTab
+from widgets.navigation import Sidenav, SidenavTab
 from widgets.notification import AnnouncementBlock
 
 logger = logging.getLogger(__name__)
@@ -482,15 +482,6 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
                                                  title='View Announcements',
                                                  icon='list-ul'))
         sidenav = Sidenav(tabs=[courses_tab, users_tab, announcements_tab])
-
-        # sidenav = SideNav(request=self.request,
-        #                   collapsed=False,
-        #                   toggle_button=True,
-        #                   tabs=['Courses', 'Users', 'Packages', 'Announcements'],
-        #                   sub_tabs={'Users': ['New User', 'Users Table'],
-        #                             'Courses': ['New Course', 'Courses Table'],
-        #                             'Packages': ['New Package', 'Packages Table'],
-        #                             'Announcements': ['New Announcement', 'Announcements Table']})
         self.add_widget(context, sidenav)
 
         if not self.has_widget(context, FormWidget, 'create_course_form_widget'):
@@ -753,8 +744,10 @@ class RoleView(BaCa2LoggedInView, UserPassesTestMixin):
         self.request.course_id = course.id
         context = super().get_context_data(**kwargs)
         user = getattr(self.request, 'user')
-        sidenav_tabs = ['Overview', 'Members']
         context['page_title'] = f'{course.name} - {role.name}'
+
+        sidenav = Sidenav(tabs=[SidenavTab(name='overview-tab', title='Overview', icon='file-text'),
+                                SidenavTab(name='members-tab', title='Members', icon='people')])
 
         # overview -------------------------------------------------------------------------------
 
@@ -793,26 +786,28 @@ class RoleView(BaCa2LoggedInView, UserPassesTestMixin):
         # add/remove permissions -----------------------------------------------------------------
 
         if user.has_course_permission(Course.CourseAction.EDIT_ROLE.label, course):
-            sidenav_tabs.append('Add permissions')
+            permissions_tab = SidenavTab(name='permissions-tab',
+                                         title='Permissions',
+                                         icon='shield')
+            permissions_tab.add_sub_tab(SidenavTab(name='add-permissions-tab',
+                                                   title='Add permissions',
+                                                   icon='shield-plus'))
+            permissions_tab.add_sub_tab(SidenavTab(name='remove-permissions-tab',
+                                                   title='Remove permissions',
+                                                   icon='shield-minus'))
+            sidenav.add_tab(permissions_tab)
+
             add_permissions_form = AddRolePermissionsFormWidget(request=self.request,
                                                                 course_id=course.id,
                                                                 role_id=role.id)
             self.add_widget(context, add_permissions_form)
 
-            sidenav_tabs.append('Remove permissions')
             remove_permissions_form = RemoveRolePermissionsFormWidget(request=self.request,
                                                                       course_id=course.id,
                                                                       role_id=role.id)
             self.add_widget(context, remove_permissions_form)
 
-        # sidenav --------------------------------------------------------------------------------
-
-        sidenav = SideNav(request=self.request,
-                          collapsed=False,
-                          toggle_button=False,
-                          tabs=sidenav_tabs)
         self.add_widget(context, sidenav)
-
         return context
 
 
@@ -830,9 +825,9 @@ class ProfileView(BaCa2LoggedInView):
         context['page_title'] = _('Profile')
         user = self.request.user
 
-        sidenav = SideNav(
-            request=self.request,
-            tabs=['Profile', 'Security'],
+        sidenav = Sidenav(
+            tabs=[SidenavTab(name='profile-tab', title='Profile', icon='person'),
+                  SidenavTab(name='security-tab', title='Security', icon='shield')]
         )
         self.add_widget(context, sidenav)
 
