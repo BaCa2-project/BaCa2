@@ -8,7 +8,7 @@ from core.choices import (
 from widgets.listing import RowStylingRule
 
 
-def get_submit_rules():
+def get_status_rules():
     return [
         OKSubmitRule(),
         PendingSubmitRule(),
@@ -21,7 +21,9 @@ def get_submit_rules():
 class OKSubmitRule(RowStylingRule):
     def __init__(self):
         super().__init__(
-            mappings={'_submit_status': list(map(str, OK_FINAL_STATUSES))},
+            strict=False,
+            mappings={'_submit_status': list(map(str, OK_FINAL_STATUSES)),
+                      'status': list(map(str, OK_FINAL_STATUSES))},
             row_class='ok-submit-row'
         )
 
@@ -29,7 +31,9 @@ class OKSubmitRule(RowStylingRule):
 class PendingSubmitRule(RowStylingRule):
     def __init__(self):
         super().__init__(
-            mappings={'_submit_status': list(map(str, PENDING_STATUSES))},
+            strict=False,
+            mappings={'_submit_status': list(map(str, PENDING_STATUSES)),
+                      'status': list(map(str, PENDING_STATUSES))},
             row_class='pending-submit-row'
         )
 
@@ -37,7 +41,9 @@ class PendingSubmitRule(RowStylingRule):
 class JudgingErrorSubmitRule(RowStylingRule):
     def __init__(self):
         super().__init__(
-            mappings={'_submit_status': list(map(str, JUDGING_ERROR_STATUSES))},
+            strict=False,
+            mappings={'_submit_status': list(map(str, JUDGING_ERROR_STATUSES)),
+                      'status': list(map(str, JUDGING_ERROR_STATUSES))},
             row_class='judging-error-submit-row'
         )
 
@@ -45,7 +51,9 @@ class JudgingErrorSubmitRule(RowStylingRule):
 class SourceErrorSubmitRule(RowStylingRule):
     def __init__(self):
         super().__init__(
-            mappings={'_submit_status': list(map(str, SOURCE_ERROR_STATUSES))},
+            strict=False,
+            mappings={'_submit_status': list(map(str, SOURCE_ERROR_STATUSES)),
+                      'status': list(map(str, SOURCE_ERROR_STATUSES))},
             row_class='source-error-submit-row'
         )
 
@@ -53,6 +61,8 @@ class SourceErrorSubmitRule(RowStylingRule):
 class InternalErrorSubmitRule(RowStylingRule):
     def __init__(self):
         super().__init__(
-            mappings={'_submit_status': list(map(str, INTERNAL_ERROR_STATUSES))},
+            strict=False,
+            mappings={'_submit_status': list(map(str, INTERNAL_ERROR_STATUSES)),
+                      'status': list(map(str, INTERNAL_ERROR_STATUSES))},
             row_class='internal-error-submit-row'
         )
