@@ -12,6 +12,7 @@ from .views import (
     ProfileView,
     RoleModelView,
     RoleView,
+    TestView,
     UserModelView,
     change_password,
     change_theme
@@ -39,4 +40,6 @@ urlpatterns = [
 
     path('change_theme', change_theme, name='change-theme'),
     path('change_password', change_password, name='change-password'),
+
+    path('test/', TestView.as_view(), name='test'),
 ]

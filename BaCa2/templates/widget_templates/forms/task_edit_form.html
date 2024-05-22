@@ -20,8 +20,8 @@
     {% endfor %}
 
     {% for element_group in form_widget.elements.elements %}
-        <div class="tab-wrapper" id="{{ element_group.name }}-tab">
-            <div class="side-nav-tab">
+        <div class="tab-content-wrapper" data-tab-id="{{ element_group.name }}-tab">
+            <div class="tab-content">
                 {% include "widget_templates/forms/element_group.html" %}
             </div>
         </div>

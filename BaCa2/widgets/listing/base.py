@@ -71,6 +71,7 @@ class TableWidget(Widget):
                  stripe_rows: bool = True,
                  highlight_rows_on_hover: bool = False,
                  hide_col_headers: bool = False,
+                 row_styling_rules: List[RowStylingRule] = None,
                  language: str = 'pl', ) -> None:
         """
         :param name: The name of the table widget. Names are used as ids for the HTML <table>
@@ -146,6 +147,10 @@ class TableWidget(Widget):
         :type highlight_rows_on_hover: bool
         :param hide_col_headers: Whether to hide the column headers.
         :type hide_col_headers: bool
+        :param row_styling_rules: List of row styling rules. Each row styling rule defines a set of
+            key-value pairs required for the row data to match the styling rule and a set of CSS
+            styles to apply to the row if the row data matches the styling rule.
+        :type row_styling_rules: List[:class:`RowStylingRule`]
         :param language: The language of the table. The language is used to set the DataTables
             language option. If not set, the language is set up from default django/user settings.
         :type language: str
@@ -242,6 +247,7 @@ class TableWidget(Widget):
             self.table_height = ''
             self.resizable_height = False
 
+        self.row_styling_rules = row_styling_rules or []
         self.language_cdn = ''  # self.LOCALISATION.get(language)
         # TODO: Localisation overwrites our table styling. For now it's disabled. BWA-65
 
@@ -290,6 +296,7 @@ class TableWidget(Widget):
             'delete_button': self.delete_button,
             'delete_record_form_widget': self.delete_record_form_widget.get_context()
             if self.delete_record_form_widget else None,
+            'row_styling_rules': [rule.get_context() for rule in self.row_styling_rules],
             'localisation_cdn': self.language_cdn
         }
 
@@ -374,6 +381,51 @@ class TableWidgetPaging:
             'allow_length_change': json.dumps(self.allow_length_change),
             'length_change_options': self.length_change_options,
             'deselect_on_page_change': json.dumps(self.deselect_on_page_change)
+        }
+
+
+class RowStylingRule:
+    """
+    Helper class for table widget used to define row styling rules. Used to apply custom CSS styles
+    and/or add classes to table rows based on the row data matching specified mappings.
+
+    See also:
+        - :class:`TableWidget`
+    """
+
+    def __init__(self, *,
+                 mappings: Dict[str, str | List[str]],
+                 strict: bool = False,
+                 styles: Dict[str, str] = None,
+                 row_class: str = '') -> None:
+        """
+        :param mappings: Key-value pairs required for the row data to match the styling rule. The
+            values can be strings or lists of strings. If the value is a string, the row data must
+            have the key with the exact value. If the value is a list of strings, the row data must
+            have the key with one of the values in the list.
+        :type mappings: Dict[str, str | List[str]]
+        :param strict: Whether to apply the styling rule only if all mappings are present in the row
+            data. If False, the styling rule is applied if any of the mappings are present in the
+            row data.
+        :type strict: bool
+        :param styles: CSS styles to apply to the row if the row data matches the styling rule.
+            The keys of the dictionary should correspond to CSS style properties and the values to
+            the CSS style values.
+        :type styles: Dict[str, str]
+        :param row_class: Class to add to the row if the row data matches the styling rule.
+        :type row_class: str
+        """
+        self.mappings = mappings
+        self.strict = strict
+        self.styles = styles or {}
+        self.row_class = row_class
+
+    def get_context(self) -> Dict[str, Any]:
+        return {
+            'mappings': self.mappings,
+            'strict': json.dumps(self.strict),
+            'styles': self.styles,
+            'row_class': self.row_class
         }
 
 

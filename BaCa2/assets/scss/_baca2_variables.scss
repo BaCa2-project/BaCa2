@@ -20,6 +20,7 @@ $baca2_blue: #08D9D6;
 $dark_muted: #3e4042;
 $light_muted: #A0A0A0FF;
 $pale_muted: #d0d0d0;
+$white_muted: #f0f0f0;
 $darker: #171a1d;
 
 // ------------------------ imports necessary for extending theme-colors ---------------------- //
@@ -177,6 +178,35 @@ $side_nav_theme_variables: (
 );
 $side_nav_border_line_width: 1px;
 $side_nav_corner_radius: 6px;
+
+// ----------------------------------------- sidenav ------------------------------------------ //
+
+$sidenav_border_radius: 6px;
+$sidenav_tab_height: 3.5rem;
+$sidenav_tab_icon_width: 2rem;
+$sidenav_tab_icon_font_size: 1.5rem;
+$sidenav_tab_title_font_size: 1rem;
+$sidenav_tab_hint_font_size: 0.8rem;
+$sidenav_tab_arrow_font_size: 0.7rem;
+$sidenav_tab_border_width: 1px;
+
+$sidenav_default_variables: (
+        tab_bg_color: $light,
+        tab_bg_color_hover: $baca2_beige,
+        tabs_bg_color_hover: $white_muted,
+        tab_border_color: $white,
+        tab_icon_color_active: $white,
+);
+$sidenav_theme_variables: (
+        light: (),
+        dark: (
+                tab_bg_color: $dark_muted,
+                tab_bg_color_hover: $black,
+                tabs_bg_color_hover: $darker,
+                tab_border_color: $light_muted,
+                tab_icon_color_active: $baca2_pink,
+        )
+);
 
 // ------------------------------------------ tables ------------------------------------------ //
 

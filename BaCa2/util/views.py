@@ -24,7 +24,7 @@ from widgets.code_block import CodeBlock
 from widgets.forms import FormWidget
 from widgets.forms.fields.validation import get_field_validation_status
 from widgets.listing import TableWidget, Timeline
-from widgets.navigation import NavBar, SideNav
+from widgets.navigation import NavBar, Sidenav
 from widgets.notification import Announcement, AnnouncementBlock
 from widgets.text_display import MarkupDisplayer, PDFDisplayer, TextDisplayer
 
@@ -49,7 +49,7 @@ class BaCa2ContextMixin:
     WIDGET_TYPES = [
         FormWidget,
         NavBar,
-        SideNav,
+        Sidenav,
         TableWidget,
         TextDisplayer,
         MarkupDisplayer,
@@ -62,7 +62,7 @@ class BaCa2ContextMixin:
     ]
     #: List of all widgets which are unique (i.e. there can only be one instance of each widget type
     #: can exist in the context dictionary).
-    UNIQUE_WIDGETS = [NavBar, SideNav]
+    UNIQUE_WIDGETS = [NavBar, Sidenav]
     #: Default theme for users who are not logged in.
     DEFAULT_THEME = 'dark'
 
@@ -137,7 +137,7 @@ class BaCa2ContextMixin:
             raise BaCa2ContextMixin.WidgetException(f'Widget of type {widget_type} already '
                                                     f'exists in the context dictionary.')
 
-        if widget_type == SideNav:
+        if widget_type == Sidenav:
             context['display_sidenav'] = True
 
         context['widgets'][widget_type.__name__][widget.name] = widget.get_context()

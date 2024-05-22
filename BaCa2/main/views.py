@@ -49,7 +49,7 @@ from widgets.listing import TableWidget, TableWidgetPaging, Timeline
 from widgets.listing.columns import TextColumn
 from widgets.listing.main import AnnouncementsTable
 from widgets.listing.timeline import ReleaseEvent
-from widgets.navigation import SideNav
+from widgets.navigation import Sidenav, SidenavTab
 from widgets.notification import AnnouncementBlock
 
 logger = logging.getLogger(__name__)
@@ -454,14 +454,34 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
         context = super().get_context_data(**kwargs)
         context['page_title'] = _('Admin')
 
-        sidenav = SideNav(request=self.request,
-                          collapsed=False,
-                          toggle_button=True,
-                          tabs=['Courses', 'Users', 'Packages', 'Announcements'],
-                          sub_tabs={'Users': ['New User', 'Users Table'],
-                                    'Courses': ['New Course', 'Courses Table'],
-                                    'Packages': ['New Package', 'Packages Table'],
-                                    'Announcements': ['New Announcement', 'Announcements Table']})
+        courses_tab = SidenavTab(name='courses-tab',
+                                 title='Courses',
+                                 icon='journal-code')
+        courses_tab.add_sub_tab(SidenavTab(name='new-course-tab',
+                                           title='New Course',
+                                           icon='plus-square'))
+        courses_tab.add_sub_tab(SidenavTab(name='courses-table-tab',
+                                           title='View Courses',
+                                           icon='list-ul'))
+        users_tab = SidenavTab(name='users-tab',
+                               title='Users',
+                               icon='people')
+        users_tab.add_sub_tab(SidenavTab(name='new-user-tab',
+                                         title='New User',
+                                         icon='person-plus'))
+        users_tab.add_sub_tab(SidenavTab(name='users-table-tab',
+                                         title='View Users',
+                                         icon='person-lines-fill'))
+        announcements_tab = SidenavTab(name='announcements-tab',
+                                       title='Announcements',
+                                       icon='megaphone')
+        announcements_tab.add_sub_tab(SidenavTab(name='new-announcement-tab',
+                                                 title='New Announcement',
+                                                 icon='plus-square'))
+        announcements_tab.add_sub_tab(SidenavTab(name='announcements-table-tab',
+                                                 title='View Announcements',
+                                                 icon='list-ul'))
+        sidenav = Sidenav(tabs=[courses_tab, users_tab, announcements_tab])
         self.add_widget(context, sidenav)
 
         if not self.has_widget(context, FormWidget, 'create_course_form_widget'):
@@ -612,44 +632,43 @@ class DevelopmentTimelineView(BaCa2LoggedInView):
                          )),
                          released=True),
             ReleaseEvent(tag='v.1.3-beta',
-                         date='15-05-2024',
+                         date='22-05-2024',
                          description=str(div(
                              'Zmiany widoczne dla użytkowników:',
                              ul(
                                  li('Kolorowanie wierszy w tabelach zadań i submisji w zależności '
                                     'od uzyskanego wyniku'),
-                                 li('Tłumaczenie aplikacji na język polski'),
+                                 li('Zmiana panelu nawigacji bocznej')
                              ),
                              'Zmiany wewnętrzne:',
                              ul(_class='mb-0')(
-                                 li('Refaktoryzacja logiki widoków z pomocą wzorca Builder'),
-                                 li('Usprawnienie logiki walidacji "live" w formularzach'),
                                  li('Zapewnienie poprawnego zapisu plików do MEDIA files'),
                                  li('Przygotowanie konfiguracji deploymentu aplikacji na serwerze '
                                     'z pomocą systemu Kubernetes'),
                                  li('Praca nad rozwojem nowego package managera')
                              )
                          )),
-                         released=False),
+                         released=True),
 
             ReleaseEvent(tag='v.1.4-beta',
-                         date='22-05-2024',
+                         date='29-05-2024',
                          description=str(div(
                              'Zmiany widoczne dla użytkowników:',
                              ul(
                                  li('Dodanie funkcjonalności grupowania wierszy w tabelach'),
+                                 li('Tłumaczenie aplikacji na język polski'),
                              ),
                              'Zmiany wewnętrzne:',
                              ul(_class='mb-0')(
+                                 li('Refaktoryzacja logiki widoków z pomocą wzorca Builder'),
+                                 li('Usprawnienie logiki walidacji "live" w formularzach'),
                                  li('Finalizacja konfiguracji oraz deployment na serwerze '
                                     'produkcyjnym z pomocą systemu Kubernetes'),
-                                 li('Finalizacja refaktoryzacji logiki formularzy'),
-                                 li('Implementacja nowego package managera'),
                              )
                          )),
                          released=False),
             ReleaseEvent(tag='v.1.5-beta',
-                         date='29-05-2024',
+                         date='05-06-2024',
                          description=str(div(
                              'Zmiany widoczne dla użytkowników:',
                              ul(
@@ -661,13 +680,15 @@ class DevelopmentTimelineView(BaCa2LoggedInView):
                              ul(_class='mb-0')(
                                  li('Zmiany w brokerze w celu sprawniejszego wykorzystania '
                                     'systemu KOLEJKA dzięki multitask support'),
+                                 li('Finalizacja refaktoryzacji logiki formularzy'),
+                                 li('Implementacja nowego package managera'),
                              )
                          )),
                          released=False),
         ]
         self.add_widget(context, Timeline(name='dev_timeline',
                                           events=releases,
-                                          scroll_to='v.1.2-beta'))
+                                          scroll_to='v.1.3-beta'))
         return context
 
 
@@ -724,8 +745,10 @@ class RoleView(BaCa2LoggedInView, UserPassesTestMixin):
         self.request.course_id = course.id
         context = super().get_context_data(**kwargs)
         user = getattr(self.request, 'user')
-        sidenav_tabs = ['Overview', 'Members']
         context['page_title'] = f'{course.name} - {role.name}'
+
+        sidenav = Sidenav(tabs=[SidenavTab(name='overview-tab', title='Overview', icon='file-text'),
+                                SidenavTab(name='members-tab', title='Members', icon='people')])
 
         # overview -------------------------------------------------------------------------------
 
@@ -764,26 +787,28 @@ class RoleView(BaCa2LoggedInView, UserPassesTestMixin):
         # add/remove permissions -----------------------------------------------------------------
 
         if user.has_course_permission(Course.CourseAction.EDIT_ROLE.label, course):
-            sidenav_tabs.append('Add permissions')
+            permissions_tab = SidenavTab(name='permissions-tab',
+                                         title='Permissions',
+                                         icon='shield')
+            permissions_tab.add_sub_tab(SidenavTab(name='add-permissions-tab',
+                                                   title='Add permissions',
+                                                   icon='shield-plus'))
+            permissions_tab.add_sub_tab(SidenavTab(name='remove-permissions-tab',
+                                                   title='Remove permissions',
+                                                   icon='shield-minus'))
+            sidenav.add_tab(permissions_tab)
+
             add_permissions_form = AddRolePermissionsFormWidget(request=self.request,
                                                                 course_id=course.id,
                                                                 role_id=role.id)
             self.add_widget(context, add_permissions_form)
 
-            sidenav_tabs.append('Remove permissions')
             remove_permissions_form = RemoveRolePermissionsFormWidget(request=self.request,
                                                                       course_id=course.id,
                                                                       role_id=role.id)
             self.add_widget(context, remove_permissions_form)
 
-        # sidenav --------------------------------------------------------------------------------
-
-        sidenav = SideNav(request=self.request,
-                          collapsed=False,
-                          toggle_button=False,
-                          tabs=sidenav_tabs)
         self.add_widget(context, sidenav)
-
         return context
 
 
@@ -801,9 +826,9 @@ class ProfileView(BaCa2LoggedInView):
         context['page_title'] = _('Profile')
         user = self.request.user
 
-        sidenav = SideNav(
-            request=self.request,
-            tabs=['Profile', 'Security'],
+        sidenav = Sidenav(
+            tabs=[SidenavTab(name='profile-tab', title='Profile', icon='person'),
+                  SidenavTab(name='security-tab', title='Security', icon='shield')]
         )
         self.add_widget(context, sidenav)
 
@@ -883,3 +908,66 @@ def change_password(request) -> BaCa2JsonResponse:
             return BaCa2JsonResponse(status=BaCa2JsonResponse.Status.INVALID,
                                      message=_('Password not changed.'),
                                      errors=validation_errors)
+
+
+class TestView(BaCa2LoggedInView):
+    template_name = 'test.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = _('Test')
+
+        sidenav = Sidenav()
+        tab_1 = SidenavTab(name='tab_1', title='Tab 1', icon='1-circle', hint_text='Hint 1')
+        tab_2 = SidenavTab(name='tab_2', title='Tab 2', icon='2-circle')
+        tab_3 = SidenavTab(name='tab_3', title='Tab 3')
+
+        tab_1_1 = SidenavTab(name='tab_1_1', title='Tab 1.1')
+        tab_1_3 = SidenavTab(name='tab_1_3', title='Tab 1.3')
+
+        tab_2_1 = SidenavTab(name='tab_2_1', title='Tab 2.1')
+        tab_2_2 = SidenavTab(name='tab_2_2', title='Tab 2.2')
+
+        tab_3_1 = SidenavTab(name='tab_3_1', title='Tab 3.1')
+        tab_3_2 = SidenavTab(name='tab_3_2', title='Tab 3.2')
+
+        tab_1_1_1 = SidenavTab(name='tab_1_1_1', title='Tab 1.1.1')
+        tab_1_1_2 = SidenavTab(name='tab_1_1_2', title='Tab 1.1.2')
+        tab_1_1_3 = SidenavTab(name='tab_1_1_3', title='Tab 1.1.3')
+        tab_1_1_4 = SidenavTab(name='tab_1_1_4', title='Tab 1.1.4')
+
+        tab_1_3_1 = SidenavTab(name='tab_1_3_1', title='Tab 1.3.1')
+        tab_1_3_2 = SidenavTab(name='tab_1_3_2', title='Tab 1.3.2')
+
+        tab_3_1_1 = SidenavTab(name='tab_3_1_1', title='Tab 3.1.1')
+        tab_3_1_2 = SidenavTab(name='tab_3_1_2', title='Tab 3.1.2')
+        tab_3_1_3 = SidenavTab(name='tab_3_1_3', title='Tab 3.1.3')
+
+        tab_1_1.add_sub_tab(tab_1_1_1)
+        tab_1_1.add_sub_tab(tab_1_1_2)
+        tab_1_1.add_sub_tab(tab_1_1_3)
+        tab_1_1.add_sub_tab(tab_1_1_4)
+
+        tab_3_1.add_sub_tab(tab_3_1_1)
+        tab_3_1.add_sub_tab(tab_3_1_2)
+        tab_3_1.add_sub_tab(tab_3_1_3)
+
+        tab_1_3.add_sub_tab(tab_1_3_1)
+        tab_1_3.add_sub_tab(tab_1_3_2)
+
+        tab_1.add_sub_tab(tab_1_1)
+        tab_1.add_sub_tab(tab_1_3)
+
+        tab_2.add_sub_tab(tab_2_1)
+        tab_2.add_sub_tab(tab_2_2)
+
+        tab_3.add_sub_tab(tab_3_1)
+        tab_3.add_sub_tab(tab_3_2)
+
+        sidenav.add_tab(tab_1)
+        sidenav.add_tab(tab_2)
+        sidenav.add_tab(tab_3)
+
+        context['sidenav'] = sidenav.get_context()
+
+        return context

@@ -35,7 +35,6 @@ from widgets.forms.course import (
     DeleteTaskForm,
     EditRoundForm,
     EditRoundFormWidget,
-    EditTaskForm,
     EditTaskFormWidget,
     RejudgeSubmitForm,
     RejudgeTaskForm,
@@ -49,7 +48,8 @@ from widgets.forms.course import (
 from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.col_defs import RejudgeSubmitColumn
 from widgets.listing.columns import DatetimeColumn, FormSubmitColumn, TextColumn
-from widgets.navigation import SideNav
+from widgets.listing.course import get_status_rules
+from widgets.navigation import Sidenav, SidenavTab
 from widgets.text_display import TextDisplayer
 
 # ----------------------------------- Course views abstraction ---------------------------------- #
@@ -486,14 +486,23 @@ class CourseView(CourseTemplateView):
         course_id = self.kwargs.get('course_id')
         course = ModelsRegistry.get_course(course_id)
         context['page_title'] = course.name
-        sidenav_tabs = ['Members', 'Roles', 'Rounds', 'Tasks', 'Results']
-        sidenav_sub_tabs = {tab: [] for tab in sidenav_tabs}
+
+        sidenav = Sidenav(tabs=[
+            SidenavTab(name='members-tab', title=_('Members'), icon='people', parent_tab=True),
+            SidenavTab(name='roles-tab', title=_('Roles'), icon='person-badge', parent_tab=True),
+            SidenavTab(name='rounds-tab', title=_('Rounds'), icon='calendar-week', parent_tab=True),
+            SidenavTab(name='tasks-tab', title=_('Tasks'), icon='file-earmark-code',
+                       parent_tab=True),
+        ])
 
         # members --------------------------------------------------------------------------------
 
         if user.has_course_permission(Course.CourseAction.VIEW_MEMBER.label, course):
-            sidenav_sub_tabs.get('Members').append('View members')
-            context['view_members_tab'] = 'view-members-tab'
+            sidenav.add_tab(tab=SidenavTab(name='view-members-tab',
+                                           title=_('View members'),
+                                           icon='person-lines-fill'),
+                            under='members-tab')
+            context['view_members_tab'] = True
 
             members_table = TableWidget(
                 name='members_table_widget',
@@ -513,23 +522,32 @@ class CourseView(CourseTemplateView):
             self.add_widget(context, members_table)
 
         if user.has_course_permission(Course.CourseAction.ADD_MEMBER.label, course):
-            sidenav_sub_tabs.get('Members').append('Add member')
-            context['add_member_tab'] = 'add-member-tab'
+            sidenav.add_tab(tab=SidenavTab(name='add-member-tab',
+                                           title=_('Add member'),
+                                           icon='person-add'),
+                            under='members-tab')
+            context['add_member_tab'] = True
 
             add_member_form = AddMemberFormWidget(request=self.request, course_id=course_id)
             self.add_widget(context, add_member_form)
 
         if user.has_course_permission(Course.CourseAction.ADD_MEMBERS_CSV.label, course):
-            sidenav_sub_tabs.get('Members').append('Add members from CSV')
-            context['add_members_csv_tab'] = 'add-members-from-csv-tab'
+            sidenav.add_tab(tab=SidenavTab(name='add-members-from-csv-tab',
+                                           title=_('Add members from CSV'),
+                                           icon='filetype-csv'),
+                            under='members-tab')
+            context['add_members_csv_tab'] = True
 
             add_members_csv_form = AddMembersFromCSVFormWidget(request=self.request,
                                                                course_id=course_id)
             self.add_widget(context, add_members_csv_form)
 
         if user.has_course_permission(Course.CourseAction.DEL_MEMBER.label, course):
-            sidenav_sub_tabs.get('Members').append('Remove members')
-            context['remove_members_tab'] = 'remove-members-tab'
+            sidenav.add_tab(tab=SidenavTab(name='remove-members-tab',
+                                           title=_('Remove members'),
+                                           icon='person-dash'),
+                            under='members-tab')
+            context['remove_members_tab'] = True
 
             remove_members_form = RemoveMembersFormWidget(request=self.request, course_id=course_id)
             self.add_widget(context, remove_members_form)
@@ -537,8 +555,11 @@ class CourseView(CourseTemplateView):
         # roles ----------------------------------------------------------------------------------
 
         if user.has_course_permission(Course.CourseAction.VIEW_ROLE.label, course):
-            sidenav_sub_tabs.get('Roles').append('View roles')
-            context['view_roles_tab'] = 'view-roles-tab'
+            sidenav.add_tab(tab=SidenavTab(name='view-roles-tab',
+                                           title=_('View roles'),
+                                           icon='person-vcard'),
+                            under='roles-tab')
+            context['view_roles_tab'] = True
 
             roles_table_kwargs = {
                 'name': 'roles_table_widget',
@@ -565,8 +586,11 @@ class CourseView(CourseTemplateView):
             self.add_widget(context, TableWidget(**roles_table_kwargs))
 
         if user.has_course_permission(Course.CourseAction.ADD_ROLE.label, course):
-            sidenav_sub_tabs.get('Roles').append('Add role')
-            context['add_role_tab'] = 'add-role-tab'
+            sidenav.add_tab(tab=SidenavTab(name='add-role-tab',
+                                           title=_('Add role'),
+                                           icon='plus-square'),
+                            under='roles-tab')
+            context['add_role_tab'] = True
 
             add_role_form = AddRoleFormWidget(request=self.request, course_id=course_id)
             self.add_widget(context, add_role_form)
@@ -574,8 +598,11 @@ class CourseView(CourseTemplateView):
         # rounds ---------------------------------------------------------------------------------
 
         if user.has_course_permission(Course.CourseAction.VIEW_ROUND.label, course):
-            sidenav_sub_tabs.get('Rounds').append('View rounds')
-            context['view_rounds_tab'] = 'view-rounds-tab'
+            sidenav.add_tab(tab=SidenavTab(name='view-rounds-tab',
+                                           title=_('View rounds'),
+                                           icon='list-ul'),
+                            under='rounds-tab')
+            context['view_rounds_tab'] = True
 
             rounds_table_kwargs = {
                 'name': 'rounds_table_widget',
@@ -596,7 +623,7 @@ class CourseView(CourseTemplateView):
 
             if user.has_course_permission(Course.CourseAction.EDIT_ROUND.label, course):
                 rounds_table_kwargs['link_format_string'] = (f'/course/{course_id}/round-edit/'
-                                                             f'?tab=[[normalized_name]]-tab#')
+                                                             f'?tab=round-[[id]]-tab')
 
             if user.has_course_permission(Course.CourseAction.DEL_ROUND.label, course):
                 rounds_table_kwargs = rounds_table_kwargs | {
@@ -609,8 +636,11 @@ class CourseView(CourseTemplateView):
             self.add_widget(context, TableWidget(**rounds_table_kwargs))
 
         if user.has_course_permission(Course.CourseAction.ADD_ROUND.label, course):
-            sidenav_sub_tabs.get('Rounds').append('Add round')
-            context['add_round_tab'] = 'add-round-tab'
+            sidenav.add_tab(tab=SidenavTab(name='add-round-tab',
+                                           title=_('Add round'),
+                                           icon='calendar-plus'),
+                            under='rounds-tab')
+            context['add_round_tab'] = True
 
             add_round_form = CreateRoundFormWidget(request=self.request, course_id=course_id)
             self.add_widget(context, add_round_form)
@@ -618,8 +648,11 @@ class CourseView(CourseTemplateView):
         # tasks ----------------------------------------------------------------------------------
 
         if user.has_course_permission(Course.CourseAction.VIEW_TASK.label, course):
-            sidenav_sub_tabs.get('Tasks').append('View tasks')
-            context['view_tasks_tab'] = 'view-tasks-tab'
+            sidenav.add_tab(tab=SidenavTab(name='view-tasks-tab',
+                                           title=_('View tasks'),
+                                           icon='list-ul'),
+                            under='tasks-tab')
+            context['view_tasks_tab'] = True
 
             tasks_table_kwargs = {
                 'name': 'tasks_table_widget',
@@ -671,8 +704,11 @@ class CourseView(CourseTemplateView):
             self.add_widget(context, TableWidget(**tasks_table_kwargs))
 
         if user.has_course_permission(Course.CourseAction.ADD_TASK.label, course):
-            sidenav_sub_tabs.get('Tasks').append('Add task')
-            context['add_task_tab'] = 'add-task-tab'
+            sidenav.add_tab(tab=SidenavTab(name='add-task-tab',
+                                           title=_('Add task'),
+                                           icon='plus-square'),
+                            under='tasks-tab')
+            context['add_task_tab'] = True
 
             add_task_form = CreateTaskFormWidget(request=self.request, course_id=course_id)
             self.add_widget(context, add_task_form)
@@ -689,8 +725,10 @@ class CourseView(CourseTemplateView):
                                                       course)
 
         if view_all_submits or view_own_submits:
-            sidenav_sub_tabs.get('Results').append('View results')
-            context['results_tab'] = 'results-tab'
+            sidenav.add_tab(tab=SidenavTab(name='results-tab',
+                                           title=_('Results'),
+                                           icon='file-earmark-check'))
+            context['results_tab'] = True
 
             results_table_kwargs = {
                 'name': 'results_table_widget',
@@ -706,6 +744,7 @@ class CourseView(CourseTemplateView):
                                             length_change_options=[10, 25, 50, 100]),
                 'default_order_col': 'submit_date',
                 'default_order_asc': False,
+                'row_styling_rules': get_status_rules(),
             }
 
             if view_all_submits:
@@ -745,46 +784,7 @@ class CourseView(CourseTemplateView):
 
             self.add_widget(context, TableWidget(**results_table_kwargs))
 
-        # side nav -------------------------------------------------------------------------------
-
-        sidenav_tabs = [tab for tab in sidenav_tabs if sidenav_sub_tabs.get(tab)]
-        sidenav_sub_tabs = {tab: sub_tabs for tab, sub_tabs in sidenav_sub_tabs.items()
-                            if len(sub_tabs) > 1}
-
-        if len(sidenav_sub_tabs) > 1:
-            toggle_button = True
-        else:
-            toggle_button = False
-
-        sidenav = SideNav(request=self.request,
-                          collapsed=False,
-                          toggle_button=toggle_button,
-                          tabs=sidenav_tabs,
-                          sub_tabs=sidenav_sub_tabs)
         self.add_widget(context, sidenav)
-
-        if context.get('view_members_tab') and 'Members' not in sidenav_sub_tabs:
-            context['view_members_tab'] = 'members-tab'
-        if context.get('add_members_tab') and 'Members' not in sidenav_sub_tabs:
-            context['add_members_tab'] = 'members-tab'
-        if context.get('remove_members_tab') and 'Members' not in sidenav_sub_tabs:
-            context['remove_members_tab'] = 'members-tab'
-
-        if context.get('view_roles_tab') and 'Roles' not in sidenav_sub_tabs:
-            context['view_roles_tab'] = 'roles-tab'
-        if context.get('add_role_tab') and 'Roles' not in sidenav_sub_tabs:
-            context['add_role_tab'] = 'roles-tab'
-
-        if context.get('view_rounds_tab') and 'Rounds' not in sidenav_sub_tabs:
-            context['view_rounds_tab'] = 'rounds-tab'
-        if context.get('add_round_tab') and 'Rounds' not in sidenav_sub_tabs:
-            context['add_round_tab'] = 'rounds-tab'
-
-        if context.get('view_tasks_tab') and 'Tasks' not in sidenav_sub_tabs:
-            context['view_tasks_tab'] = 'tasks-tab'
-        if context.get('add_task_tab') and 'Tasks' not in sidenav_sub_tabs:
-            context['add_task_tab'] = 'tasks-tab'
-
         return context
 
 
@@ -808,7 +808,13 @@ class CourseTask(CourseTemplateView):
         task_id = self.kwargs.get('task_id')
         task = ModelsRegistry.get_task(task_id, course_id)
         context['page_title'] = task.task_name
-        sidenav_tabs = ['Description']
+        sidenav = Sidenav(tabs=[SidenavTab(name='description-tab',
+                                           title=_('Description'),
+                                           icon='file-earmark-text'),
+                                SidenavTab(name='edit-tab',
+                                           title=_('Edit'),
+                                           icon='pencil-square',
+                                           parent_tab=True)])
 
         # description ----------------------------------------------------------------------------
         package = task.package_instance.package
@@ -855,8 +861,11 @@ class CourseTask(CourseTemplateView):
                 task_id=task_id,
             )
             self.add_widget(context, simple_edit_task_form)
-            sidenav_tabs.append('Edit')
-            context['edit_tab'] = 'edit-tab'
+            sidenav.add_tab(tab=SidenavTab(name='simple-edit-tab',
+                                           title=_('Simple edit'),
+                                           icon='pen'),
+                            under='edit-tab')
+            context['simple_edit_tab'] = True
         if can_reupload:
             reupload_package_form = ReuploadTaskFormWidget(
                 request=self.request,
@@ -864,14 +873,19 @@ class CourseTask(CourseTemplateView):
                 task_id=task_id,
             )
             self.add_widget(context, reupload_package_form)
-            sidenav_tabs.append('Reupload')
-            context['reupload_tab'] = 'reupload-tab'
+            sidenav.add_tab(tab=SidenavTab(name='reupload-tab',
+                                           title=_('Reupload'),
+                                           icon='arrow-clockwise'),
+                            under='edit-tab')
+            context['reupload_tab'] = True
 
         # submit form ----------------------------------------------------------------------------
 
         if task.can_submit(user):
-            sidenav_tabs.append('Submit')
-            context['submit_tab'] = 'submit-tab'
+            sidenav.add_tab(SidenavTab(name='submit-tab',
+                                       title=_('Submit'),
+                                       icon='file-earmark-arrow-up'))
+            context['submit_tab'] = True
             submit_form = CreateSubmitFormWidget(request=self.request,
                                                  course_id=course_id,
                                                  task_id=task_id)
@@ -889,8 +903,10 @@ class CourseTask(CourseTemplateView):
                                                       course)
 
         if view_all_submits or view_own_submits:
-            sidenav_tabs.append('Results')
-            context['results_tab'] = 'results-tab'
+            sidenav.add_tab(SidenavTab(name='results-tab',
+                                       title=_('Results'),
+                                       icon='file-earmark-check'))
+            context['results_tab'] = True
 
             results_table_kwargs = {
                 'name': 'results_table_widget',
@@ -906,6 +922,7 @@ class CourseTask(CourseTemplateView):
                                             length_change_options=[10, 25, 50, 100]),
                 'default_order_col': 'submit_date',
                 'default_order_asc': False,
+                'row_styling_rules': get_status_rules(),
             }
 
             if view_all_submits:
@@ -945,13 +962,7 @@ class CourseTask(CourseTemplateView):
 
             self.add_widget(context, TableWidget(**results_table_kwargs))
 
-        # side nav -------------------------------------------------------------------------------
-
-        sidenav = SideNav(request=self.request,
-                          collapsed=True,
-                          tabs=sidenav_tabs)
         self.add_widget(context, sidenav)
-
         return context
 
 
@@ -967,21 +978,6 @@ class TaskEditView(CourseTemplateView):
 
         return user.has_course_permission(Course.CourseAction.EDIT_TASK.label, course_id)
 
-    def get_sidenav(self, task_form: EditTaskForm) -> SideNav:
-        sidenav = SideNav(request=self.request,
-                          collapsed=True,
-                          tabs=['General settings'], )
-        for test_set in task_form.set_groups:
-            sidenav.add_tab(
-                tab_name=test_set['name'],
-                sub_tabs=[f'{test_set["name"]} settings'] + [
-                    test_set_test['name']
-                    for test_set_test in
-                    test_set['test_groups']
-                ]
-            )
-        return sidenav
-
     def get_context_data(self, **kwargs) -> dict:
         context = super().get_context_data(**kwargs)
         course_id = self.kwargs.get('course_id')
@@ -990,7 +986,7 @@ class TaskEditView(CourseTemplateView):
         context['page_title'] = task.task_name + _(' - edit')
         task_form = EditTaskFormWidget(request=self.request, course_id=course_id, task_id=task_id)
         self.add_widget(context, task_form)
-        self.add_widget(context, task_form.get_sidenav(self.request))
+        self.add_widget(context, task_form.get_sidenav())
 
         return context
 
@@ -1007,10 +1003,11 @@ class RoundEditView(CourseTemplateView):
         context['page_title'] = course.name + _(' - rounds')
         rounds = course.rounds()
         rounds = sorted(rounds, key=lambda x: x.name)
-        round_names = [r.name for r in rounds]
-        sidenav = SideNav(request=self.request,
-                          collapsed=True,
-                          tabs=round_names, )
+
+        tabs = [SidenavTab(name=f'round-{r.id}-tab',
+                           title=r.name,
+                           icon='calendar-week') for r in rounds]
+        sidenav = Sidenav(tabs=tabs)
         self.add_widget(context, sidenav)
 
         rounds_context = []
@@ -1024,7 +1021,7 @@ class RoundEditView(CourseTemplateView):
                 form_instance_id=form_instance_id,
             )
             rounds_context.append({
-                'tab_name': SideNav.normalize_tab_name(r.name),
+                'tab_name': f'round-{r.id}-tab',
                 'round_name': r.name,
                 'round_edit_form': round_edit_form.get_context(),
             })
@@ -1079,11 +1076,10 @@ class SubmitSummaryView(CourseTemplateView):
         course = ModelsRegistry.get_course(course_id)
         context['page_title'] = f'{task.task_name} - submit #{submit.pk}'
 
-        sidenav = SideNav(request=self.request,
-                          collapsed=True,
-                          tabs=['Summary'])
-
-        context['summary_tab'] = 'summary-tab'
+        sidenav = Sidenav(tabs=[SidenavTab(name='summary-tab',
+                                           title=_('Summary'),
+                                           icon='card-list')])
+        context['summary_tab'] = True
 
         # summary table --------------------------------------------------------------------------
 
@@ -1122,8 +1118,8 @@ class SubmitSummaryView(CourseTemplateView):
         # solution code --------------------------------------------------------------------------
 
         if user.has_course_permission(Course.CourseAction.VIEW_CODE.label, course):
-            sidenav.add_tab('Code')
-            context['code_tab'] = 'code-tab'
+            sidenav.add_tab(SidenavTab(name='code-tab', title=_('Code'), icon='file-earmark-code'))
+            context['code_tab'] = True
             source_code = CodeBlock(
                 name='source_code_block',
                 title=_('Source code'),
@@ -1140,6 +1136,10 @@ class SubmitSummaryView(CourseTemplateView):
 
         # sets -----------------------------------------------------------------------------------
 
+        sidenav.add_tab(SidenavTab(name='test-sets-tab',
+                                   title=_('Test sets'),
+                                   icon='folder2-open',
+                                   parent_tab=True))
         sets = task.sets
         sets = sorted(sets, key=lambda x: x.short_name)
         sets_list = []
@@ -1167,7 +1167,10 @@ class SubmitSummaryView(CourseTemplateView):
             }
 
             if display_test_summaries:
-                sidenav.add_tab(tab_name=s.short_name)
+                sidenav.add_tab(tab=SidenavTab(name=f'{s.short_name}-tab',
+                                               title=s.short_name,
+                                               icon='list-ul'),
+                                under='test-sets-tab')
 
             serialize_kwargs = {'include_time': False, 'include_memory': False}
 
@@ -1202,6 +1205,7 @@ class SubmitSummaryView(CourseTemplateView):
                 cols=cols,
                 title=f'{_("Set")} {s.short_name} - {_("weight:")} {s.weight}',
                 default_order_col='test_name',
+                row_styling_rules=get_status_rules()
             )
             set_context['table_widget'] = set_summary.get_context()
 

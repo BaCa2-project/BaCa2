@@ -129,6 +129,7 @@
     <script src="{% static 'js/forms.js' %}"></script>
     <script src="{% static 'js/pdf_displayer.js' %}"></script>
     <script src="{% static 'js/side_nav.js' %}"></script>
+    <script src="{% static 'js/sidenav.js' %}"></script>
 
     <!-- template-specific -->
     {% block head %}
@@ -144,7 +145,7 @@
 
 {% if display_navbar %}
     {% with widgets.NavBar.navbar as navbar_widget %}
-        {% include 'widget_templates/navbar.html' %}
+        {% include 'widget_templates/navigation/navbar.html' %}
     {% endwith %}
 {% endif %}
 
@@ -154,13 +155,13 @@
     {% endif %}
     {% if display_sidenav %}
         <div class="row main-row">
-        {% with widgets.SideNav.sidenav as sidenav_widget %}
-            {% include 'widget_templates/sidenav.html' %}
-        {% endwith %}
+            {% with widgets.Sidenav.sidenav as sidenav %}
+                {% include 'widget_templates/navigation/sidenav.html' %}
+            {% endwith %}
     {% endif %}
 
     {% if display_sidenav %}
-        <div class="col-lg-9 col-md-8 col-12">
+        <div class="col-lg-9 col-md-8 col-12 sidenav-tabs-content">
     {% endif %}
 
     {% block content %}

@@ -51,94 +51,138 @@ class NavBar(Widget):
         return {'links': self.links}
 
 
-class SideNav(Widget):
-    """
-    Side navigation widget containing a custom set of tabs. Tabs are all part of the same page and
-    unlike in the navbar do not represent links to other urls.
-    """
+class SidenavTab(Widget):
+    DEFAULT_ICON = 'hexagon-half'
 
-    def __init__(self,
-                 request: HttpRequest,
-                 tabs: List[str],
-                 sub_tabs: Dict[str, List[str]] = None,
-                 collapsed: bool = False,
-                 toggle_button: bool = False,
-                 sticky: bool = True) -> None:
-        """
-        :param request: HTTP request object received by the view this side nav panel is rendered in.
-        :type request: HttpRequest
-        :param tabs: List of tab names.
-        :type tabs: List[str]
-        :param sub_tabs: Dictionary of sub-tabs. Each key is the name of the tab and the value is a
-            list of sub-tab names.
-        :type sub_tabs: Dict[str, List[str]]
-        :param collapsed: Whether the side navigation sub-tabs should be collapsed by default and
-            expand only on hover/use (or when the toggle button is clicked).
-        :type collapsed: bool
-        :param toggle_button: Whether the toggle button should be displayed. Toggle button is used
-            to expand/collapse the side navigation sub-tabs.
-        :type toggle_button: bool
-        :param sticky: Whether the side navigation should be sticky and always visible.
-        :type sticky: bool
-        """
-        super().__init__(name='sidenav', request=request)
-        sub_tabs = sub_tabs or {}
+    def __init__(self, *,
+                 name: str,
+                 title: str,
+                 icon: str | None = None,
+                 hint_text: str | None = None,
+                 sub_tabs: List['SidenavTab'] = None,
+                 parent_tab: bool = False) -> None:
+        super().__init__(name=name, widget_class='sidenav-tab')
+        self.title = title
+        self.icon = icon or self.DEFAULT_ICON
+        self.hint_text = hint_text
+        self.sub_tabs = sub_tabs or []
+        self.parent_tab = parent_tab
 
-        self.toggle_button = {'on': toggle_button,
-                              'state': collapsed,
-                              'text_collapsed': _('Expand'),
-                              'text_expanded': _('Collapse')}
+        names = self.get_names()
+        self.name_set = set()
 
-        self.tabs = [
-            {
-                'name': tab_name,
-                'data_id': SideNav.normalize_tab_name(tab_name) + '-tab',
-                'sub_tabs': [{'name': sub_tab_name,
-                              'data_id': SideNav.normalize_tab_name(sub_tab_name) + '-tab'}
-                             for sub_tab_name in sub_tabs.get(tab_name, [])]
-            }
-            for tab_name in tabs
-        ]
+        for name in names:
+            if name in self.name_set:
+                raise ValueError(f'Duplicate tab name: {name}')
+            self.name_set.add(name)
 
-        if sticky:
-            self.add_class('sticky-side-nav')
-        if collapsed:
-            self.add_class('collapsed')
+    def get_names(self) -> List[str]:
+        out = [self.name]
+
+        for sub_tab in self.sub_tabs:
+            out.extend(sub_tab.get_names())
+
+        return out
+
+    def add_sub_tab(self, sub_tab: 'SidenavTab', index: int = -1) -> None:
+        names = sub_tab.get_names()
+
+        for name in names:
+            if name in self.name_set:
+                raise ValueError(f'Duplicate tab name: {name}')
+
+        self.name_set.update(names)
+
+        if index == -1:
+            self.sub_tabs.append(sub_tab)
         else:
-            self.add_class('expanded')
+            self.sub_tabs.insert(index, sub_tab)
 
-    @staticmethod
-    def normalize_tab_name(tab_name: str) -> str:
-        """
-        Normalizes tab name by replacing spaces with dashes and converting to lowercase.
+    def get_tab(self, name: str) -> 'SidenavTab':
+        if name not in self.name_set:
+            raise ValueError(f'Tab not found: {name}')
 
-        :param tab_name: Tab name to normalize.
-        :type tab_name: str
+        if name == self.name:
+            return self
 
-        :return: Normalized tab name.
-        :rtype: str
-        """
-        return tab_name.replace(' ', '-').lower()
+        for sub_tab in self.sub_tabs:
+            if name in sub_tab.name_set:
+                return sub_tab.get_tab(name)
 
-    def get_context(self) -> Dict[str, Any]:
-        return super().get_context() | {'tabs': self.tabs, 'toggle_button': self.toggle_button}
+    def to_remove(self) -> bool:
+        return self.parent_tab and not self.sub_tabs
 
-    def add_tab(self, tab_name: str, sub_tabs: List[str] = None) -> None:
-        """
-        Adds a new tab to the side navigation.
+    def get_context(self) -> dict:
+        if len(self.sub_tabs) == 1:
+            self.name = self.sub_tabs[0].name
+            self.sub_tabs = []
+        if self.sub_tabs:
+            self.add_class('has-sub-tabs')
 
-        :param tab_name: Name of the tab to add.
-        :type tab_name: str
-        :param sub_tabs: List of sub-tab names.
-        :type sub_tabs: List[str]
-        """
-        new_tab = {
-            'name': tab_name,
-            'data_id': SideNav.normalize_tab_name(tab_name) + '-tab',
-            'sub_tabs': []
+        return super().get_context() | {
+            'title': self.title,
+            'hint_text': self.hint_text,
+            'icon': self.icon,
+            'sub_tabs': [sub_tab.get_context() for sub_tab in self.sub_tabs]
         }
-        if sub_tabs:
-            new_tab['sub_tabs'] = [{'name': sub_tab_name,
-                                    'data_id': SideNav.normalize_tab_name(sub_tab_name) + '-tab'}
-                                   for sub_tab_name in sub_tabs]
-        self.tabs.append(new_tab)
+
+
+class Sidenav(Widget):
+    def __init__(self, *,
+                 tabs: List[SidenavTab] = None,
+                 sticky: bool = True,
+                 toggle_button: bool = False) -> None:
+        super().__init__(name='sidenav', widget_class='sidenav')
+        self.tabs = tabs or []
+        self.name_set = set()
+        self.sticky = sticky
+        self.toggle_button = toggle_button
+
+        for tab in self.tabs:
+            names = tab.get_names()
+
+            for name in names:
+                if name in self.name_set:
+                    raise ValueError(f'Duplicate tab name: {name}')
+                self.name_set.add(name)
+
+    @property
+    def sticky(self) -> bool:
+        return 'sticky' in self.widget_class
+
+    @sticky.setter
+    def sticky(self, value: bool) -> None:
+        if value:
+            self.add_class('sticky')
+        else:
+            self.remove_class('sticky')
+
+    def get_tab(self, name: str) -> SidenavTab:
+        for tab in self.tabs:
+            if name in tab.name_set:
+                return tab.get_tab(name)
+        raise ValueError(f'Tab not found: {name}')
+
+    def add_tab(self, tab: SidenavTab, index: int = -1, under: str | None = None) -> None:
+        names = tab.get_names()
+
+        for name in names:
+            if name in self.name_set:
+                raise ValueError(f'Duplicate tab name: {name}')
+
+        if under:
+            self.get_tab(under).add_sub_tab(tab, index)
+        else:
+            if index == -1:
+                self.tabs.append(tab)
+            else:
+                self.tabs.insert(index, tab)
+
+        self.name_set.update(names)
+
+    def get_context(self) -> dict:
+        return super().get_context() | {
+            'tabs': [tab.get_context() for tab in self.tabs if not tab.to_remove()],
+            'sticky': self.sticky,
+            'toggle_button': self.toggle_button
+        }

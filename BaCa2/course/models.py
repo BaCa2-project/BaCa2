@@ -402,7 +402,6 @@ class Round(models.Model, metaclass=ReadCourseMeta):
         :return: The data of the round.
         :rtype: dict
         """
-        from widgets.navigation import SideNav
         res = {
             'id': self.pk,
             'name': self.name,
@@ -410,7 +409,6 @@ class Round(models.Model, metaclass=ReadCourseMeta):
             'end_date': self.end_date,
             'deadline_date': self.deadline_date,
             'reveal_date': self.reveal_date,
-            'normalized_name': SideNav.normalize_tab_name(self.name),
             'score_selection_policy': self.score_selection_policy,
         }
         if add_formatted_dates:
@@ -1698,6 +1696,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
             'task_score': task_score if score > -1 else '---',
             'final_score': self.format_score(score),
             'submit_status': self.formatted_submit_status,
+            '_submit_status': self.submit_status,
             'is_legacy': self.is_legacy,
         }
         if show_user:

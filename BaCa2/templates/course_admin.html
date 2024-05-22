@@ -2,8 +2,8 @@
 
 {% block content %}
     {% if view_members_tab %}
-        <div class="tab-wrapper" id="{{ view_members_tab }}">
-            <div class="side-nav-tab">
+        <div class="tab-content-wrapper" data-tab-id="view-members-tab">
+            <div class="tab-content">
                 {% with widgets.TableWidget.members_table_widget as table_widget %}
                     {% include "widget_templates/listing/table.html" %}
                 {% endwith %}
@@ -11,8 +11,8 @@
         </div>
     {% endif %}
     {% if add_member_tab %}
-        <div class="tab-wrapper" id="{{ add_member_tab }}">
-            <div class="side-nav-tab">
+        <div class="tab-content-wrapper" data-tab-id="add-member-tab">
+            <div class="tab-content">
                 {% with widgets.FormWidget.add_member_form_widget as form_widget %}
                     {% include "widget_templates/forms/default.html" %}
                 {% endwith %}
@@ -20,8 +20,8 @@
         </div>
     {% endif %}
     {% if add_members_csv_tab %}
-        <div class="tab-wrapper" id="{{ add_members_csv_tab }}">
-            <div class="side-nav-tab">
+        <div class="tab-content-wrapper" data-tab-id="add-members-from-csv-tab">
+            <div class="tab-content">
                 {% with widgets.FormWidget.add_members_from_csv_form_widget as form_widget %}
                     {% include "widget_templates/forms/default.html" %}
                 {% endwith %}
@@ -29,8 +29,8 @@
         </div>
     {% endif %}
     {% if remove_members_tab %}
-        <div class="tab-wrapper" id="{{ remove_members_tab }}">
-            <div class="side-nav-tab">
+        <div class="tab-content-wrapper" data-tab-id="remove-members-tab">
+            <div class="tab-content">
                 {% with widgets.FormWidget.remove_members_form_widget as form_widget %}
                     {% include "widget_templates/forms/default.html" %}
                 {% endwith %}
@@ -38,8 +38,8 @@
         </div>
     {% endif %}
     {% if view_roles_tab %}
-        <div class="tab-wrapper" id="{{ view_roles_tab }}">
-            <div class="side-nav-tab">
+        <div class="tab-content-wrapper" data-tab-id="view-roles-tab">
+            <div class="tab-content">
                 {% with widgets.TableWidget.roles_table_widget as table_widget %}
                     {% include "widget_templates/listing/table.html" %}
                 {% endwith %}
@@ -47,8 +47,8 @@
         </div>
     {% endif %}
     {% if add_role_tab %}
-        <div class="tab-wrapper" id="{{ add_role_tab }}">
-            <div class="side-nav-tab">
+        <div class="tab-content-wrapper" data-tab-id="add-role-tab">
+            <div class="tab-content">
                 {% with widgets.FormWidget.add_role_form_widget as form_widget %}
                     {% include "widget_templates/forms/default.html" %}
                 {% endwith %}
@@ -56,8 +56,8 @@
         </div>
     {% endif %}
     {% if view_rounds_tab %}
-        <div class="tab-wrapper" id="{{ view_rounds_tab }}">
-            <div class="side-nav-tab">
+        <div class="tab-content-wrapper" data-tab-id="view-rounds-tab">
+            <div class="tab-content">
                 {% with widgets.TableWidget.rounds_table_widget as table_widget %}
                     {% include "widget_templates/listing/table.html" %}
                 {% endwith %}
@@ -65,8 +65,8 @@
         </div>
     {% endif %}
     {% if add_round_tab %}
-        <div class="tab-wrapper" id="{{ add_round_tab }}">
-            <div class="side-nav-tab">
+        <div class="tab-content-wrapper" data-tab-id="add-round-tab">
+            <div class="tab-content">
                 {% with widgets.FormWidget.create_round_form_widget as form_widget %}
                     {% include "widget_templates/forms/default.html" %}
                 {% endwith %}
@@ -74,8 +74,8 @@
         </div>
     {% endif %}
     {% if view_tasks_tab %}
-        <div class="tab-wrapper" id="{{ view_tasks_tab }}">
-            <div class="side-nav-tab">
+        <div class="tab-content-wrapper" data-tab-id="view-tasks-tab">
+            <div class="tab-content">
                 {% with widgets.TableWidget.tasks_table_widget as table_widget %}
                     {% include "widget_templates/listing/table.html" %}
                 {% endwith %}
@@ -83,8 +83,8 @@
         </div>
     {% endif %}
     {% if add_task_tab %}
-        <div class="tab-wrapper" id="{{ add_task_tab }}">
-            <div class="side-nav-tab">
+        <div class="tab-content-wrapper" data-tab-id="add-task-tab">
+            <div class="tab-content">
                 {% with widgets.FormWidget.create_task_form_widget as form_widget %}
                     {% include "widget_templates/forms/default.html" %}
                 {% endwith %}
@@ -92,8 +92,8 @@
         </div>
     {% endif %}
     {% if results_tab %}
-        <div class="tab-wrapper" id="{{ results_tab }}">
-            <div class="side-nav-tab">
+        <div class="tab-content-wrapper" data-tab-id="results-tab">
+            <div class="tab-content">
                 {% with widgets.TableWidget.results_table_widget as table_widget %}
                     {% include "widget_templates/listing/table.html" %}
                 {% endwith %}

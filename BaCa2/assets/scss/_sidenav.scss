@@ -1,0 +1,238 @@
+@import "baca2_variables";
+@import "functions";
+
+@mixin sidenav_tab_padding($level: 0) {
+    padding-right: ($sidenav_tab_icon_width + 1.4rem) * $level + 0.7rem;
+
+    @if $level < 5 {
+        .sidenav-tab {
+            @include sidenav_tab_padding($level + 1);
+        }
+    }
+}
+
+.sidenav {
+// ---------------------------------------- display ------------------------------------------- //
+    overflow: hidden;
+    border-radius: $sidenav_border_radius;
+
+    @media (min-width: 768px) {
+        &.sticky {
+            position: sticky;
+            top: $navbar_padding;
+        }
+    }
+
+    @media (max-width: 767px) {
+        position: relative;
+    }
+
+    .sidenav-tabs {
+        display: flex;
+        flex-direction: column;
+        list-style: none;
+    }
+
+    .sidenav-tab {
+        display: flex;
+    }
+
+    .tab-header {
+        box-sizing: border-box;
+        display: flex;
+        cursor: pointer;
+    }
+
+    .tab-icon {
+        display: flex;
+        justify-content: center;
+        align-content: center;
+        flex-wrap: wrap;
+    }
+
+    .tab-text {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .tab-arrow {
+        display: flex;
+        justify-content: right;
+        align-content: center;
+        flex-wrap: wrap;
+        flex-grow: 1;
+    }
+
+    .sub-tabs {
+        display: flex;
+        flex-direction: column;
+        list-style: none;
+        overflow-y: auto;
+    }
+
+// ----------------------------------- size & padding/margin ---------------------------------- //
+    padding: 0;
+    margin: 0;
+    height: fit-content;
+
+    @media (max-width: 767px) {
+        margin-bottom: 1rem;
+    }
+
+    .sidenav-tabs {
+        padding: 0;
+        margin: 0;
+    }
+
+    .sidenav-tab {
+        height: $sidenav_tab_height;
+        @include sidenav_tab_padding();
+    }
+
+    .tab-header {
+        width: 100%;
+        padding: 0.5rem 0.7rem;
+        margin: 0;
+    }
+
+    .tab-icon {
+        width: $sidenav_tab_icon_width;
+        font-size: $sidenav_tab_icon_font_size;
+        margin-right: 0.7rem;
+    }
+
+    .tab-title {
+        font-size: $sidenav_tab_title_font_size;
+    }
+
+    .tab-hint {
+        font-size: $sidenav_tab_hint_font_size;
+    }
+
+    .tab-arrow {
+        font-size: $sidenav_tab_arrow_font_size;
+    }
+
+    .sub-tabs-wrapper {
+        height: 100%;
+        width: 100%;
+        min-height: fit-content;
+    }
+
+    .sub-tabs {
+        padding: 0;
+        height: 100%;
+        min-height: fit-content;
+    }
+
+    .sub-tabs-spacer {
+        flex-grow: 1;
+    }
+
+// ------------------------------------- sub-tab slide-in ------------------------------------- //
+    .sidenav-tab {
+        .sub-tabs-wrapper {
+            position: absolute;
+            top: 0;
+            left: 100%;
+            transition: left 0.5s;
+        }
+
+        &:hover:not(.active) > .sub-tabs-wrapper,
+        &.active:hover > .sub-tabs-wrapper:hover,
+        &.active:not(:hover) > .sub-tabs-wrapper {
+            left: $sidenav_tab_icon_width + 1.4rem;
+        }
+
+        &:hover ~ .sidenav-tab > .sub-tabs-wrapper,
+        &:has(~ .sidenav-tab:hover) > .sub-tabs-wrapper {
+            left: 100% !important;
+        }
+    }
+}
+
+// ------------------------------------------- color ------------------------------------------ //
+
+@each $theme, $map in $sidenav_theme_variables {
+    [data-bs-theme="#{$theme}"] .sidenav {
+        $tab_bg_color: safe_get($map, $sidenav_default_variables, tab_bg_color);
+        $tab_bg_color_hover: safe_get($map, $sidenav_default_variables, tab_bg_color_hover);
+        $tabs_bg_color_hover: safe_get($map, $sidenav_default_variables, tabs_bg_color_hover);
+        $tab_border_color: safe_get($map, $sidenav_default_variables, tab_border_color);
+        $tab_icon_color_active: safe_get($map, $sidenav_default_variables, tab_icon_color_active);
+
+        .sub-tabs-spacer {
+            background-color: $tab_bg_color;
+        }
+
+        .sidenav-tab {
+            background-color: $tab_bg_color;
+            border-bottom: $tab_border_color solid $sidenav_tab_border_width;
+            border-top: transparent solid $sidenav_tab_border_width;
+            transition: border-bottom-color ease 0.5s,
+                        border-top-color ease 0.5s;
+
+            &:hover, &.active {
+                background-color: $tab_bg_color_hover;
+            }
+
+            &.has-sub-tabs:hover, &.active {
+                border-top-color: transparent;
+                border-bottom-color: transparent;
+            }
+
+            &.has-sub-tabs:hover ~ .sidenav-tab:not(:hover),
+            &.has-sub-tabs:hover ~ .sub-tabs-spacer,
+            &.has-sub-tabs.active ~ .sidenav-tab:not(:hover),
+            &.has-sub-tabs.active ~ .sub-tabs-spacer,
+            &:has(~ .sidenav-tab.has-sub-tabs:hover):not(:hover),
+            &:has(~ .sidenav-tab.has-sub-tabs.active):not(:hover) {
+                background-color: $tabs_bg_color_hover;
+                border-top-color: transparent;
+                border-bottom-color: transparent;
+            }
+
+            &.active:not(.has-sub-tabs) ~ .sidenav-tab:not(:hover),
+            &:has(~ .sidenav-tab.active:not(.has-sub-tabs)):not(:hover) {
+                border-bottom-color: transparent;
+                border-top-color: transparent;
+            }
+
+            &.active ~ .sidenav-tab:not(.has-sub-tabs):hover,
+            &:has(~ .active):not(.has-sub-tabs):hover {
+                border-top-color: $tab_border_color;
+            }
+
+            &:first-child {
+                border-top: none;
+            }
+
+            &:last-child,
+            .sidenav-tab:nth-last-child(2) {
+                border-bottom: none;
+            }
+
+            &.active > .tab-header .tab-icon {
+                color: $tab_icon_color_active;
+            }
+        }
+
+        .sub-tabs-spacer:has(~ .sidenav-tab.has-sub-tabs.active),
+        .sub-tabs-spacer:has(~ .sidenav-tab.has-sub-tabs:hover) {
+            background-color: $tabs_bg_color_hover;
+        }
+    }
+}
+
+// ---------------------------------------- tab content --------------------------------------- //
+
+.tab-content-wrapper {
+    display: none;
+}
+
+@media (max-width: 767px) {
+    .sidenav-tabs-content {
+        padding: 0;
+    }
+}
