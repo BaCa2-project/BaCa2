@@ -31,6 +31,24 @@ class ResultStatus(models.TextChoices):
 EMPTY_FINAL_STATUSES = [ResultStatus.EXT, ResultStatus.ITL, ResultStatus.INT, ResultStatus.EXT]
 HALF_EMPTY_FINAL_STATUSES = [ResultStatus.CME, ResultStatus.RTE, ResultStatus.RUL]
 
+PENDING_STATUSES = [ResultStatus.PND]
+OK_FINAL_STATUSES = [ResultStatus.OK]
+JUDGING_ERROR_STATUSES = [
+    ResultStatus.ANS,
+    ResultStatus.TLE,
+    ResultStatus.MEM,
+    ResultStatus.CME,
+    ResultStatus.RTE
+]
+SOURCE_ERROR_STATUSES = [
+    ResultStatus.RUL,
+    ResultStatus.EXT,
+]
+INTERNAL_ERROR_STATUSES = [
+    ResultStatus.ITL,
+    ResultStatus.INT
+]
+
 
 class PermissionCheck(models.TextChoices):
     INDV = 'individual', _('Individual Permissions')
