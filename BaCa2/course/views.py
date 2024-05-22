@@ -46,6 +46,7 @@ from widgets.forms.course import (
     SimpleEditTaskFormWidget
 )
 from widgets.listing import TableWidget, TableWidgetPaging
+from widgets.listing.course import get_submit_rules
 from widgets.listing.col_defs import RejudgeSubmitColumn
 from widgets.listing.columns import DatetimeColumn, FormSubmitColumn, TextColumn
 from widgets.navigation import Sidenav, SidenavTab
@@ -743,6 +744,7 @@ class CourseView(CourseTemplateView):
                                             length_change_options=[10, 25, 50, 100]),
                 'default_order_col': 'submit_date',
                 'default_order_asc': False,
+                'row_styling_rules': get_submit_rules(),
             }
 
             if view_all_submits:
@@ -920,6 +922,7 @@ class CourseTask(CourseTemplateView):
                                             length_change_options=[10, 25, 50, 100]),
                 'default_order_col': 'submit_date',
                 'default_order_asc': False,
+                'row_styling_rules': get_submit_rules(),
             }
 
             if view_all_submits:

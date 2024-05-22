@@ -371,6 +371,7 @@ function initTable(
         height,
         refresh,
         refreshInterval,
+        rowStylingRules,
         localisation_cdn,
     } = {}
 ) {
@@ -420,7 +421,7 @@ function initTable(
     cols.forEach(col => columnDefs.push(createColumnDef(col, cols.indexOf(col))));
     tableParams['columnDefs'] = columnDefs;
 
-    tableParams['rowCallback'] = createRowCallback(linkFormatString);
+    tableParams['rowCallback'] = createRowCallback(linkFormatString, rowStylingRules);
 
     createPagingDef(paging, tableParams, table, tableId);
 
@@ -480,7 +481,7 @@ function setRefresh(tableId, interval) {
 }
 
 
-function createRowCallback(linkFormatString) {
+function createRowCallback(linkFormatString, rowStylingRules) {
     return function (row, data) {
         $(row).attr('data-record-id', `${data.id}`);
         $(row).attr('data-record-data', JSON.stringify(data));
@@ -488,7 +489,51 @@ function createRowCallback(linkFormatString) {
         if (linkFormatString) {
             $(row).attr('data-record-link', generateFormattedString(data, linkFormatString));
         }
+
+        if (rowStylingRules) {
+            rowStylingRules.forEach(rule => {
+                applyRowStylingRule(row, data, rule)
+            });
+        }
     }
+}
+
+
+function applyRowStylingRule(row, data, rule) {
+    const mappings = rule['mappings'];
+    const styles = rule['styles'];
+    const rowClass = rule['row_class'];
+    const strict = JSON.parse(rule['strict']);
+    let anyMatch = false;
+
+    for (const key in mappings) {
+        const target = mappings[key];
+        let match = false;
+
+        console.log(target, data[key]);
+
+        if (target instanceof Array) {
+            target.forEach(t => {
+                if (data[key] === t)
+                    match = true;
+            });
+        } else {
+            match = data[key] === target;
+        }
+
+        if (!match && strict)
+            return;
+        else if (match)
+            anyMatch = true;
+    }
+
+    if (!anyMatch)
+        return;
+
+    for (const key in styles)
+        $(row).css(key, styles[key]);
+
+    $(row).addClass(rowClass);
 }
 
 

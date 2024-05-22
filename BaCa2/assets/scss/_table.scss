@@ -120,3 +120,11 @@
         }
     }
 }
+
+.success-submit-row {
+    background-color: rgba($success, 0.5) !important;
+}
+
+.failure-submit-row {
+    background-color: rgba($danger, 0.5) !important;
+}

@@ -1696,6 +1696,7 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
             'task_score': task_score if score > -1 else '---',
             'final_score': self.format_score(score),
             'submit_status': self.formatted_submit_status,
+            '_submit_status': self.submit_status,
             'is_legacy': self.is_legacy,
         }
         if show_user:
