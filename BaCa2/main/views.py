@@ -632,44 +632,43 @@ class DevelopmentTimelineView(BaCa2LoggedInView):
                          )),
                          released=True),
             ReleaseEvent(tag='v.1.3-beta',
-                         date='15-05-2024',
+                         date='22-05-2024',
                          description=str(div(
                              'Zmiany widoczne dla użytkowników:',
                              ul(
                                  li('Kolorowanie wierszy w tabelach zadań i submisji w zależności '
                                     'od uzyskanego wyniku'),
-                                 li('Tłumaczenie aplikacji na język polski'),
+                                 li('Zmiana panelu nawigacji bocznej')
                              ),
                              'Zmiany wewnętrzne:',
                              ul(_class='mb-0')(
-                                 li('Refaktoryzacja logiki widoków z pomocą wzorca Builder'),
-                                 li('Usprawnienie logiki walidacji "live" w formularzach'),
                                  li('Zapewnienie poprawnego zapisu plików do MEDIA files'),
                                  li('Przygotowanie konfiguracji deploymentu aplikacji na serwerze '
                                     'z pomocą systemu Kubernetes'),
                                  li('Praca nad rozwojem nowego package managera')
                              )
                          )),
-                         released=False),
+                         released=True),
 
             ReleaseEvent(tag='v.1.4-beta',
-                         date='22-05-2024',
+                         date='29-05-2024',
                          description=str(div(
                              'Zmiany widoczne dla użytkowników:',
                              ul(
                                  li('Dodanie funkcjonalności grupowania wierszy w tabelach'),
+                                 li('Tłumaczenie aplikacji na język polski'),
                              ),
                              'Zmiany wewnętrzne:',
                              ul(_class='mb-0')(
+                                 li('Refaktoryzacja logiki widoków z pomocą wzorca Builder'),
+                                 li('Usprawnienie logiki walidacji "live" w formularzach'),
                                  li('Finalizacja konfiguracji oraz deployment na serwerze '
                                     'produkcyjnym z pomocą systemu Kubernetes'),
-                                 li('Finalizacja refaktoryzacji logiki formularzy'),
-                                 li('Implementacja nowego package managera'),
                              )
                          )),
                          released=False),
             ReleaseEvent(tag='v.1.5-beta',
-                         date='29-05-2024',
+                         date='05-06-2024',
                          description=str(div(
                              'Zmiany widoczne dla użytkowników:',
                              ul(
@@ -681,13 +680,15 @@ class DevelopmentTimelineView(BaCa2LoggedInView):
                              ul(_class='mb-0')(
                                  li('Zmiany w brokerze w celu sprawniejszego wykorzystania '
                                     'systemu KOLEJKA dzięki multitask support'),
+                                 li('Finalizacja refaktoryzacji logiki formularzy'),
+                                 li('Implementacja nowego package managera'),
                              )
                          )),
                          released=False),
         ]
         self.add_widget(context, Timeline(name='dev_timeline',
                                           events=releases,
-                                          scroll_to='v.1.2-beta'))
+                                          scroll_to='v.1.3-beta'))
         return context
 
 
