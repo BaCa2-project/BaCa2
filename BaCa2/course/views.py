@@ -622,7 +622,7 @@ class CourseView(CourseTemplateView):
 
             if user.has_course_permission(Course.CourseAction.EDIT_ROUND.label, course):
                 rounds_table_kwargs['link_format_string'] = (f'/course/{course_id}/round-edit/'
-                                                             f'?tab=[[normalized_name]]-tab#')
+                                                             f'?tab=round-[[id]]-tab')
 
             if user.has_course_permission(Course.CourseAction.DEL_ROUND.label, course):
                 rounds_table_kwargs = rounds_table_kwargs | {
