@@ -2232,7 +2232,8 @@ class CreateSubmitForm(CourseModelForm):
                 initial=[ResultStatus.OK, ResultStatus.ANS, ResultStatus.TLE, ResultStatus.MEM],
                 help_text=_(
                     'Mocking broker is enabled. No submissions will be sent to the broker.'),
-                required=False
+                required=False,
+                widget=forms.SelectMultiple(attrs={'style': 'height: 10rem;'})
             )
         course = ModelsRegistry.get_course(course_id)
         task = course.get_task(task_id)
