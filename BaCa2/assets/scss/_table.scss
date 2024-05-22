@@ -122,9 +122,11 @@
 }
 
 .success-submit-row {
-    background-color: rgba($success, 0.5) !important;
+    box-shadow: inset 0 0 0 3px rgba($success, 1) !important;
+    background-color: rgba($success, 0.3) !important;
 }
 
 .failure-submit-row {
-    background-color: rgba($danger, 0.5) !important;
+    box-shadow: inset 0 0 0 3px rgba($danger, 1) !important;
+    background-color: rgba($danger, 0.3) !important;
 }
