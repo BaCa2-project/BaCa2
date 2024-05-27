@@ -657,6 +657,8 @@ class DevelopmentTimelineView(BaCa2LoggedInView):
                              ul(
                                  li('Dodanie funkcjonalności grupowania wierszy w tabelach'),
                                  li('Tłumaczenie aplikacji na język polski'),
+                                 li('Poprawa czytelności stylizacji wierszy w tabelach zadań'
+                                    ' i submisji')
                              ),
                              'Zmiany wewnętrzne:',
                              ul(_class='mb-0')(

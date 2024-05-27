@@ -24,6 +24,11 @@
         display: none;
     }
 
+    table {
+        border-collapse: separate !important;
+        border-spacing: 0;
+    }
+
     td.form-submit {
         padding-left: 0.25rem;
         padding-right: 0.25rem;
@@ -121,27 +126,115 @@
     }
 }
 
-.ok-submit-row {
-    box-shadow: inset 0 0 0 3px rgba($success, 1) !important;
-    background-color: rgba($success, 0.3) !important;
-}
+// ------------------------------------- row styling rules ------------------------------------ //
 
-.pending-submit-row {
-    box-shadow: inset 0 0 0 3px rgba($secondary, 1) !important;
-    background-color: rgba($secondary, 0.3) !important;
-}
+@each $theme, $map in $submit_row_theme_variables {
+    $ok_bg_color: safe_get($map, $submit_row_default_variables, ok_bg_color);
+    $ok_border_color: safe_get($map, $submit_row_default_variables, ok_border_color);
+    $pending_bg_color: safe_get($map, $submit_row_default_variables, pending_bg_color);
+    $pending_border_color: safe_get($map, $submit_row_default_variables, pending_border_color);
+    $judging_error_bg_color: safe_get($map, $submit_row_default_variables, judging_error_bg_color);
+    $judging_error_border_color: safe_get(
+                    $map,
+                    $submit_row_default_variables,
+                    judging_error_border_color
+    );
+    $source_error_bg_color: safe_get($map, $submit_row_default_variables, source_error_bg_color);
+    $source_error_border_color: safe_get(
+                    $map,
+                    $submit_row_default_variables,
+                    source_error_border_color
+    );
+    $internal_error_bg_color: safe_get(
+                    $map,
+                    $submit_row_default_variables,
+                    internal_error_bg_color
+    );
+    $internal_error_border_color: safe_get(
+                    $map,
+                    $submit_row_default_variables,
+                    internal_error_border_color
+    );
 
-.judging-error-submit-row {
-    box-shadow: inset 0 0 0 3px rgba($danger, 1) !important;
-    background-color: rgba($danger, 0.3) !important;
-}
+    [data-bs-theme="#{$theme}"] {
+        .ok-submit-row {
+            background-color: $ok_bg_color !important;
 
-.source-error-submit-row {
-    box-shadow: inset 0 0 0 3px rgba($danger, 1) !important;
-    background-color: rgba($black, 0.3) !important;
-}
+            &:not(:has(+ .ok-submit-row)) td {
+                border-bottom: 2px solid $ok_border_color !important;
+            }
 
-.internal-error-submit-row {
-    box-shadow: inset 0 0 0 3px rgba($black, 1) !important;
-    background-color: rgba($black, 0.3) !important;
+            &:first-child td {
+                border-top: 2px solid $ok_border_color !important;
+            }
+        }
+
+        tr:not(.ok-submit-row) + .ok-submit-row td {
+            border-top: 2px solid $ok_border_color !important;
+        }
+
+        .pending-submit-row {
+            background-color: $pending_bg_color !important;
+
+            &:not(:has(+ .pending-submit-row)) td {
+                border-bottom: 2px solid $pending_border_color !important;
+            }
+
+            &:first-child td {
+                border-top: 2px solid $pending_border_color !important;
+            }
+        }
+
+        tr:not(.pending-submit-row) + .pending-submit-row td {
+            border-top: 2px solid $pending_border_color !important;
+        }
+
+        .judging-error-submit-row {
+            background-color: $judging_error_bg_color !important;
+
+            &:not(:has(+ .judging-error-submit-row)) td {
+                border-bottom: 2px solid $judging_error_border_color !important;
+            }
+
+            &:first-child td {
+                border-top: 2px solid $judging_error_border_color !important;
+            }
+        }
+
+        tr:not(.judging-error-submit-row) + .judging-error-submit-row td {
+            border-top: 2px solid $judging_error_border_color !important;
+        }
+
+        .source-error-submit-row {
+            background-color: $source_error_bg_color !important;
+
+            &:not(:has(+ .source-error-submit-row)):not(:has(+ .judging-error-submit-row)) td {
+                border-bottom: 2px solid $source_error_border_color !important;
+            }
+
+            &:first-child td {
+                border-top: 2px solid $source_error_border_color !important;
+            }
+        }
+
+        tr:not(.source-error-submit-row):not(.judging-error-submit-row) + .source-error-submit-row td {
+            border-top: 2px solid $source_error_border_color !important;
+        }
+
+        .internal-error-submit-row {
+            background-color: $internal_error_bg_color !important;
+
+            &:not(:has(+ .internal-error-submit-row)) td {
+                border-bottom: 2px solid $internal_error_border_color !important;
+            }
+
+            &:first-child td {
+                border-top: 2px solid $internal_error_border_color !important;
+            }
+        }
+
+        tr:not(.internal-error-submit-row) + .internal-error-submit-row td {
+            border-top: 2px solid $internal_error_border_color !important;
+        }
+    }
 }
