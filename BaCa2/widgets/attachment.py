@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Self
 
 from widgets.base import Widget
 
@@ -52,8 +53,11 @@ class Attachment(Widget):
             page/file if not specified.
         :type content_type: :class:`Attachment.ContentType`
         """
-        super().__init__(name=name)
-        self.widget_class = 'attachment btn btn-sm btn-outline-light_muted'
+        super().__init__(
+            name=name,
+            widget_class='attachment btn btn-sm btn-outline-light_muted'
+        )
+
         self.link = link
         self.title = title
         self.download_name = download_name
@@ -61,7 +65,7 @@ class Attachment(Widget):
         self.content_type = content_type
         self.icon = icon
 
-    def build(self) -> None:
+    def build(self) -> Self:
         self.title = self.title or self.name
         self.download_name = self.download_name or self.title
         self.source_type = self.source_type or self.ResourceType.FILE
@@ -75,7 +79,7 @@ class Attachment(Widget):
         if not self.icon:
             self.icon = self.content_type.value[1]
 
-        super().build()
+        return super().build()
 
     def get_context(self) -> dict:
         return super().get_context() | {
