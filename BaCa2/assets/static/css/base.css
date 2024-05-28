@@ -780,6 +780,9 @@ html, body {
 .table-wrapper .resize-wrapper .table-responsive, .table-wrapper .resize-wrapper .dataTables_wrapper, .table-wrapper .resize-wrapper .dataTables_scroll {
   height: 100%;
 }
+.table-wrapper .dataTables_scrollBody table {
+  border-bottom: none;
+}
 .table-wrapper .dataTables_scrollBody th.sorting:after, .table-wrapper .dataTables_scrollBody th.sorting:before, .table-wrapper .dataTables_scrollBody th.sorting_asc:after, .table-wrapper .dataTables_scrollBody th.sorting_asc:before, .table-wrapper .dataTables_scrollBody th.sorting_desc:after, .table-wrapper .dataTables_scrollBody th.sorting_desc:before {
   display: none;
 }
@@ -1240,28 +1243,45 @@ html, body {
   --bs-form-valid-border-color: $red;
 }
 
-.os-theme-scrollable {
-  --os-size: 10px;
-  --os-padding-perpendicular: 2px;
-  --os-padding-axis: 2px;
-}
-
 .os-theme-body {
   --os-size: 14px;
   --os-padding-perpendicular: 3px;
   --os-padding-axis: 3px;
 }
 
-[data-bs-theme=light] .os-theme-scrollable, [data-bs-theme=light] .os-theme-body {
-  --os-handle-bg: #a0a0a0;
-  --os-handle-bg-hover: gray;
-  --os-handle-bg-active: #3e4042;
+.os-theme-scrollable {
+  --os-size: 10px;
+  --os-padding-perpendicular: 2px;
+  --os-padding-axis: 2px;
 }
 
-[data-bs-theme=dark] .os-theme-scrollable, [data-bs-theme=dark] .os-theme-body {
+.os-theme-table {
+  --os-size: 6px;
+  --os-padding-perpendicular: 0;
+  --os-padding-axis: 0;
+  --os-track-border-radius: 0;
+}
+
+[data-bs-theme=light] .os-theme-body, [data-bs-theme=light] .os-theme-scrollable, [data-bs-theme=light] .os-theme-table {
+  --os-handle-bg: #a0a0a0;
+  --os-handle-bg-hover: gray;
+  --os-handle-bg-active: #D3CABD;
+}
+[data-bs-theme=light] .os-theme-table {
+  --os-track-bg: #f8f9fa;
+  --os-track-bg-hover: #f8f9fa;
+  --os-track-bg-active: #f8f9fa;
+}
+
+[data-bs-theme=dark] .os-theme-body, [data-bs-theme=dark] .os-theme-scrollable, [data-bs-theme=dark] .os-theme-table {
   --os-handle-bg: #3e4042;
   --os-handle-bg-hover: #a0a0a0;
-  --os-handle-bg-active: #000;
+  --os-handle-bg-active: #FE2E63;
+}
+[data-bs-theme=dark] .os-theme-table {
+  --os-track-bg: #212529;
+  --os-track-bg-hover: #212529;
+  --os-track-bg-active: #212529;
 }
 
 :root {

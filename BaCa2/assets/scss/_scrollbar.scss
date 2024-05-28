@@ -1,16 +1,23 @@
 @import "baca2_variables";
 @import "functions";
 
+.os-theme-body {
+    --os-size: #{$body_scrollbar_width};
+    --os-padding-perpendicular: #{$body_scrollbar_padding_x};
+    --os-padding-axis: #{$body_scrollbar_padding_y};
+}
+
 .os-theme-scrollable {
     --os-size: #{$scrollbar_width};
     --os-padding-perpendicular: #{$scrollbar_padding};
     --os-padding-axis: #{$scrollbar_padding};
 }
 
-.os-theme-body {
-    --os-size: #{$body_scrollbar_width};
-    --os-padding-perpendicular: #{$body_scrollbar_padding_x};
-    --os-padding-axis: #{$body_scrollbar_padding_y};
+.os-theme-table {
+    --os-size: #{$table_scrollbar_width};
+    --os-padding-perpendicular: #{$table_scrollbar_padding};
+    --os-padding-axis: #{$table_scrollbar_padding};
+    --os-track-border-radius: 0;
 }
 
 @each $theme, $map in $scrollbar_theme_variables {
@@ -18,11 +25,18 @@
         $handle_color: safe_get($map, $scrollbar_default_variables, handle_color);
         $handle_color_hover: safe_get($map, $scrollbar_default_variables, handle_color_hover);
         $handle_color_active: safe_get($map, $scrollbar_default_variables, handle_color_active);
+        $table_track_color: safe_get($map, $scrollbar_default_variables, table_track_color);
 
-        .os-theme-scrollable, .os-theme-body {
+        .os-theme-body, .os-theme-scrollable, .os-theme-table {
             --os-handle-bg: #{$handle_color};
             --os-handle-bg-hover: #{$handle_color_hover};
             --os-handle-bg-active: #{$handle_color_active};
+        }
+
+        .os-theme-table {
+            --os-track-bg: #{$table_track_color};
+            --os-track-bg-hover: #{$table_track_color};
+            --os-track-bg-active: #{$table_track_color};
         }
     }
 }

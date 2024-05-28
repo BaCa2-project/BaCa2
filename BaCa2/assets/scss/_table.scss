@@ -67,6 +67,10 @@
     }
 
     .dataTables_scrollBody {
+        table {
+            border-bottom: none;
+        }
+
         th.sorting, th.sorting_asc, th.sorting_desc {
             &:after, &:before {
                 display: none;

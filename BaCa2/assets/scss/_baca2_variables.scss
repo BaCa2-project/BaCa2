@@ -97,23 +97,27 @@ $card_sizes: (
 
 // ----------------------------------------- scrollbar ---------------------------------------- //
 
-$scrollbar_width: 10px;
-$scrollbar_padding: 2px;
 $body_scrollbar_width: 14px;
 $body_scrollbar_padding_x: 3px;
 $body_scrollbar_padding_y: 3px;
+$scrollbar_width: 10px;
+$scrollbar_padding: 2px;
+$table_scrollbar_width: 6px;
+$table_scrollbar_padding: 0;
 
 $scrollbar_default_variables: (
         handle_color: $light_muted,
         handle_color_hover: $muted,
-        handle_color_active: $dark_muted,
+        handle_color_active: $baca2_beige,
+        table_track_color: $light,
 );
 $scrollbar_theme_variables: (
         light: (),
         dark: (
                 handle_color: $dark_muted,
                 handle_color_hover: $light_muted,
-                handle_color_active: $black,
+                handle_color_active: $baca2_pink,
+                table_track_color: $dark,
         )
 );
 

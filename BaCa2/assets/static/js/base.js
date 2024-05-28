@@ -48,10 +48,19 @@ function scrollbarSetup() {
             }
         });
 
-        $('.scrollable, .dataTables_scrollBody').each(function () {
+        $('.scrollable').each(function () {
             OverlayScrollbars(this, {
                 scrollbars: {
                     theme: 'os-theme-dark os-theme-scrollable',
+                    dragScroll: true
+                }
+            });
+        });
+
+        $('.dataTables_scrollBody').each(function () {
+            OverlayScrollbars(this, {
+                scrollbars: {
+                    theme: 'os-theme-dark os-theme-table',
                     dragScroll: true
                 }
             });
