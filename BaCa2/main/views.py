@@ -512,6 +512,7 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
             data_post_url=CourseModelView.post_url(),
             paging=TableWidgetPaging(10, False),
             link_format_string='/course/[[id]]/',
+            table_height=50,
         ))
 
         users_table = TableWidget(
@@ -526,6 +527,7 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
                 TextColumn(name='f_is_superuser', header=_('Superuser'), searchable=True),
             ],
             paging=TableWidgetPaging(25, False),
+            table_height=50,
         )
         self.add_widget(context, users_table)
 

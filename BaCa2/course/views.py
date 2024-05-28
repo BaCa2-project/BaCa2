@@ -518,6 +518,7 @@ class CourseView(CourseTemplateView):
                       TextColumn(name='email', header=_('Email address')),
                       TextColumn(name='user_role', header=_('Role'))],
                 refresh_button=True,
+                table_height=50,
             )
             self.add_widget(context, members_table)
 
@@ -572,7 +573,8 @@ class CourseView(CourseTemplateView):
                 'cols': [TextColumn(name='name', header=_('Role name')),
                          TextColumn(name='description', header=_('Description'))],
                 'refresh_button': True,
-                'link_format_string': '/main/role/[[id]]/'
+                'link_format_string': '/main/role/[[id]]/',
+                'table_height': 50,
             }
 
             if user.has_course_permission(Course.CourseAction.DEL_ROLE.label, course):
@@ -619,6 +621,7 @@ class CourseView(CourseTemplateView):
                 'refresh_button': True,
                 'default_order_col': 'start_date',
                 'default_order_asc': True,
+                'table_height': 50,
             }
 
             if user.has_course_permission(Course.CourseAction.EDIT_ROUND.label, course):
@@ -674,6 +677,7 @@ class CourseView(CourseTemplateView):
                 'refresh_button': True,
                 'default_order_col': 'round_name',
                 'link_format_string': f'/course/{course_id}/task/[[id]]',
+                'table_height': 50,
             }
 
             if user.has_course_permission(Course.CourseAction.DEL_TASK.label, course):
@@ -745,6 +749,7 @@ class CourseView(CourseTemplateView):
                 'default_order_col': 'submit_date',
                 'default_order_asc': False,
                 'row_styling_rules': get_status_rules(),
+                'table_height': 50,
             }
 
             if view_all_submits:
@@ -923,6 +928,7 @@ class CourseTask(CourseTemplateView):
                 'default_order_col': 'submit_date',
                 'default_order_asc': False,
                 'row_styling_rules': get_status_rules(),
+                'table_height': 50,
             }
 
             if view_all_submits:

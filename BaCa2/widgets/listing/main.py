@@ -61,6 +61,9 @@ class AnnouncementsTable(TableWidget):
                 mode=AnnouncementModelView.GetMode.ALL
             )
 
+        if 'table_height' not in kwargs:
+            kwargs['table_height'] = 50
+
         super().__init__(
             name='announcements_table_widget',
             request=request,
