@@ -62,8 +62,6 @@ class Attachment(Widget):
         self.icon = icon
 
     def build(self) -> None:
-        super().build()
-
         self.title = self.title or self.name
         self.download_name = self.download_name or self.title
         self.source_type = self.source_type or self.ResourceType.FILE
@@ -76,6 +74,8 @@ class Attachment(Widget):
 
         if not self.icon:
             self.icon = self.content_type.value[1]
+
+        super().build()
 
     @Widget.require_built
     def get_context(self) -> dict:
