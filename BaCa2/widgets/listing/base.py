@@ -171,11 +171,9 @@ class TableWidget(Widget):
 
         if allow_delete:
             if not delete_form:
-                raise Widget.ParameterError('Delete form must be set if allow_delete is '
-                                            'True.')
+                raise self.ParameterError('Delete form must be set if allow_delete is True.')
             if not data_post_url:
-                raise Widget.ParameterError('Data post url must be set if allow_delete is '
-                                            'True.')
+                raise self.ParameterError('Data post url must be set if allow_delete is True.')
 
             delete_record_form_widget = DeleteRecordFormWidget(
                 request=request,

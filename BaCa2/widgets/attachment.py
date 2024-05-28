@@ -77,7 +77,6 @@ class Attachment(Widget):
 
         super().build()
 
-    @Widget.require_built
     def get_context(self) -> dict:
         return super().get_context() | {
             'link': self.link,

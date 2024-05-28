@@ -851,7 +851,7 @@ class CourseTask(CourseTemplateView):
                 title=attachment.name,
                 link=attachment.path.url,
                 download_name=attachment.name
-            ))
+            ).get_context())
             cnt += 1
         context['attachments'] = attachments
 

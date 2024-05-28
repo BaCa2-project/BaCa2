@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Any, Callable, Dict, Iterable
+from typing import Any, Callable, Dict, Iterable, Self
 
 from django.http import HttpRequest
 
@@ -73,12 +73,16 @@ class Widget(ABC):  # noqa: B024
             raise Widget.AlreadyBuiltError('Widget has already been built and cannot be modified.')
         super().__setattr__(key, value)
 
-    def build(self) -> None:
+    def build(self) -> Self:
         """
         Builds the widget. This method is called once all the parameters have been set to perform
         all the necessary state-altering operations before the widget is rendered.
+
+        :return: The widget instance.
+        :rtype: :class:`Widget`
         """
         self._built = True
+        return self
 
     @property
     def built(self) -> bool:
@@ -125,7 +129,13 @@ class Widget(ABC):  # noqa: B024
 
     def get_context(self) -> Dict[str, Any]:
         """
+        Builds the widget (if it has not been built yet) and returns a dictionary containing all the
+        data needed to render it.
+
         :return: A dictionary containing all the data needed to render the widget.
         :rtype: Dict[str, Any]
         """
+        if not self.built:
+            self.build()
+
         return {'name': self.name, 'widget_class': self.widget_class}
