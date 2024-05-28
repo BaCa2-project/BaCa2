@@ -21,6 +21,14 @@ class Widget(ABC):  # noqa: B024
         Exception raised when an operation is attempted on a widget that has not been built yet
         which requires the widget to be built.
         """
+        pass
+
+    class AlreadyBuiltError(Exception):
+        """
+        Exception raised when an operation is attempted on a widget that has already been built
+        which requires the widget to be built.
+        """
+        pass
 
     @staticmethod
     def require_built(func) -> Callable:
@@ -56,6 +64,14 @@ class Widget(ABC):  # noqa: B024
         self.request = request
         self._widget_class = set()
         self.widget_class = widget_class
+
+    def __setattr__(self, key, value):
+        """
+        Prevents changing the value of any attribute after the widget has been built.
+        """
+        if getattr(self, 'built', False):
+            raise Widget.AlreadyBuiltError('Widget has already been built and cannot be modified.')
+        super().__setattr__(key, value)
 
     def build(self) -> None:
         """
