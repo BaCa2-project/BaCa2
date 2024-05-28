@@ -1,4 +1,5 @@
 function preInitCommon() {
+    scrollbarSetup();
     ajaxErrorHandlingSetup();
     formsPreSetup();
     tablesPreSetup();
@@ -33,5 +34,27 @@ function showPage() {
 function generateFormattedString(data, formatString) {
     return formatString.replace(/\[\[(\w+)]]/g, function (match, key) {
         return data[key].toString() || match;
+    });
+}
+
+function scrollbarSetup() {
+    $(document).ready(function () {
+        const {OverlayScrollbars} = OverlayScrollbarsGlobal;
+
+        OverlayScrollbars(document.body, {
+            scrollbars: {
+                theme: 'os-theme-dark os-theme-body',
+                dragScroll: true
+            }
+        });
+
+        $('.scrollable').each(function () {
+            OverlayScrollbars(this, {
+                scrollbars: {
+                    theme: 'os-theme-dark os-theme-scrollable',
+                    dragScroll: true
+                }
+            });
+        });
     });
 }

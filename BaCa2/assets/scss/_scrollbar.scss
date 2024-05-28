@@ -1,24 +1,28 @@
 @import "baca2_variables";
 @import "functions";
 
-::-webkit-scrollbar {
-    width: $scrollbar_width;
+.os-theme-scrollable {
+    --os-size: #{$scrollbar_width};
+    --os-padding-perpendicular: #{$scrollbar_padding};
+    --os-padding-axis: #{$scrollbar_padding};
 }
 
-::-webkit-scrollbar-thumb {
-    border-radius: $scrollbar_width;
-    border: 6px solid transparent;
-    background-clip: content-box;
+.os-theme-body {
+    --os-size: #{$body_scrollbar_width};
+    --os-padding-perpendicular: #{$body_scrollbar_padding_x};
+    --os-padding-axis: #{$body_scrollbar_padding_y};
 }
 
 @each $theme, $map in $scrollbar_theme_variables {
     [data-bs-theme="#{$theme}"] {
-        ::-webkit-scrollbar-thumb {
-            background-color: safe_get($map, $scrollbar_default_variables, color);
+        $handle_color: safe_get($map, $scrollbar_default_variables, handle_color);
+        $handle_color_hover: safe_get($map, $scrollbar_default_variables, handle_color_hover);
+        $handle_color_active: safe_get($map, $scrollbar_default_variables, handle_color_active);
 
-            &:hover {
-                background-color: safe_get($map, $scrollbar_default_variables, color_hover);
-            }
+        .os-theme-scrollable, .os-theme-body {
+            --os-handle-bg: #{$handle_color};
+            --os-handle-bg-hover: #{$handle_color_hover};
+            --os-handle-bg-active: #{$handle_color_active};
         }
     }
 }

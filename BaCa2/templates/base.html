@@ -1,7 +1,7 @@
 {% load static %}
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-overlayscrollbars-initialize>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width initial-scale=1.0">
@@ -45,6 +45,9 @@
                 processEscapes: true
             }
         });
+
+
+
     </script>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script type="text/javascript" async
@@ -112,6 +115,16 @@
         integrity="sha512-Kit4oPSAREacS6LEF4LGcL6MMlG3O1GqRFDGSX1Vg4JrozGU7hHoMKFkiMWevWq/xmNq8pzMhO2PcZCPHe/gmQ=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
+    <!-- OverlayScrollbars -->
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/overlayscrollbars/2.8.3/browser/overlayscrollbars.browser.es6.min.js"
+        integrity="sha512-1hS0dWkqFqR8itbjKH8fEujRkHPJcSm3HN/txMvOb1JzT+RbmbGo4qaromzMKZmPdg0frGDAAIOkF4yigV5B7Q=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/overlayscrollbars/2.8.3/styles/overlayscrollbars.css"
+          integrity="sha512-8zM1Exu45IRHLtl/+UOPWMTZE/5xasxjm9Tps6pka3BJDzDIyq9fyI8GYdSTkYsRZtvWsiiSzjQb2rLAbvF5zQ=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
+
 
     <!-- favicon -->
     <link rel="icon" href="{% static 'img/favicon.png' %}" type="image/x-icon">
@@ -137,7 +150,7 @@
 
 </head>
 
-<body data-bs-theme="{{ data_bs_theme }}">
+<body data-bs-theme="{{ data_bs_theme }}" data-overlayscrollbars-initialize>
 
 <script>
     preInitCommon();
@@ -155,17 +168,19 @@
     {% endif %}
     {% if display_sidenav %}
         <div class="row main-row">
-            {% with widgets.Sidenav.sidenav as sidenav %}
-                {% include 'widget_templates/navigation/sidenav.html' %}
-            {% endwith %}
+        {% with widgets.Sidenav.sidenav as sidenav %}
+            {% include 'widget_templates/navigation/sidenav.html' %}
+        {% endwith %}
     {% endif %}
 
     {% if display_sidenav %}
         <div class="col-lg-9 col-md-8 col-12 sidenav-tabs-content">
     {% endif %}
 
-    {% block content %}
-    {% endblock %}
+    <div id="content">
+        {% block content %}
+        {% endblock %}
+    </div>
 
     {% if display_sidenav %}
         </div>
