@@ -66,6 +66,14 @@
         }
     }
 
+    .dataTables_scrollBody {
+        th.sorting, th.sorting_asc, th.sorting_desc {
+            &:after, &:before {
+                display: none;
+            }
+        }
+    }
+
     .resize-handle {
         cursor: pointer;
     }

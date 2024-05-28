@@ -780,6 +780,9 @@ html, body {
 .table-wrapper .resize-wrapper .table-responsive, .table-wrapper .resize-wrapper .dataTables_wrapper, .table-wrapper .resize-wrapper .dataTables_scroll {
   height: 100%;
 }
+.table-wrapper .dataTables_scrollBody th.sorting:after, .table-wrapper .dataTables_scrollBody th.sorting:before, .table-wrapper .dataTables_scrollBody th.sorting_asc:after, .table-wrapper .dataTables_scrollBody th.sorting_asc:before, .table-wrapper .dataTables_scrollBody th.sorting_desc:after, .table-wrapper .dataTables_scrollBody th.sorting_desc:before {
+  display: none;
+}
 .table-wrapper .resize-handle {
   cursor: pointer;
 }

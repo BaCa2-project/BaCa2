@@ -48,7 +48,7 @@ function scrollbarSetup() {
             }
         });
 
-        $('.scrollable').each(function () {
+        $('.scrollable, .dataTables_scrollBody').each(function () {
             OverlayScrollbars(this, {
                 scrollbars: {
                     theme: 'os-theme-dark os-theme-scrollable',
