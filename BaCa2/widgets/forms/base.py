@@ -519,13 +519,13 @@ class FormWidget(Widget):
             if form_name:
                 name = f'{form_name}_widget'
             else:
-                raise Widget.WidgetParameterError(
+                raise Widget.ParameterError(
                     'Cannot create form widget for an unnamed form without specifying the widget '
                     'name.'
                 )
 
         if (submit_success_popup is None) ^ (submit_failure_popup is None):
-            raise Widget.WidgetParameterError(
+            raise Widget.ParameterError(
                 'Both submit success popup and submit failure popup must be specified or neither.'
             )
 

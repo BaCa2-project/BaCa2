@@ -72,9 +72,9 @@ class Column(Widget):
         :type width: str
         """
         if auto_width and width:
-            raise self.WidgetParameterError('Cannot set column width when auto width is enabled.')
+            raise self.ParameterError('Cannot set column width when auto width is enabled.')
         if not auto_width and not width:
-            raise self.WidgetParameterError('Must set column width when auto width is disabled.')
+            raise self.ParameterError('Must set column width when auto width is disabled.')
 
         super().__init__(name=name, request=request)
 

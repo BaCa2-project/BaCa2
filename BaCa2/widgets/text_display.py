@@ -133,7 +133,7 @@ class MarkupDisplayer(Widget):
         suffix = file_path.suffix
 
         if suffix not in {extension.value for extension in self.AcceptedFormats}:
-            raise self.WidgetParameterError(f'File format {suffix} not supported.')
+            raise self.ParameterError(f'File format {suffix} not supported.')
 
         with file_path.open('r', encoding='utf-8') as file:
             self.content = file.read()
@@ -145,7 +145,7 @@ class MarkupDisplayer(Widget):
 
         if pdf_download:
             if not pdf_download.endswith('.pdf'):
-                raise self.WidgetParameterError('Wrong pdf download file format.')
+                raise self.ParameterError('Wrong pdf download file format.')
             self.pdf_download = pdf_download
         else:
             self.pdf_download = False
@@ -186,7 +186,7 @@ class PDFDisplayer(Widget):
         super().__init__(name=name)
 
         if not file_path.endswith('.pdf'):
-            raise self.WidgetParameterError('File format not supported.')
+            raise self.ParameterError('File format not supported.')
 
         self.file_path = file_path
 

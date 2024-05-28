@@ -158,7 +158,7 @@ class TableWidget(Widget):
         super().__init__(name=name, request=request)
 
         if display_title and not title:
-            raise Widget.WidgetParameterError('Title must be set if display_title is True.')
+            raise Widget.ParameterError('Title must be set if display_title is True.')
 
         self.title = title
         self.display_title = display_title
@@ -171,11 +171,11 @@ class TableWidget(Widget):
 
         if allow_delete:
             if not delete_form:
-                raise Widget.WidgetParameterError('Delete form must be set if allow_delete is '
-                                                  'True.')
+                raise Widget.ParameterError('Delete form must be set if allow_delete is '
+                                            'True.')
             if not data_post_url:
-                raise Widget.WidgetParameterError('Data post url must be set if allow_delete is '
-                                                  'True.')
+                raise Widget.ParameterError('Data post url must be set if allow_delete is '
+                                            'True.')
 
             delete_record_form_widget = DeleteRecordFormWidget(
                 request=request,
@@ -265,7 +265,7 @@ class TableWidget(Widget):
             return next(index for index, col in enumerate(cols)
                         if getattr(col, 'name') == default_order_col)
         except StopIteration:
-            raise Widget.WidgetParameterError(f'Column {default_order_col} not in the table')
+            raise Widget.ParameterError(f'Column {default_order_col} not in the table')
 
     def get_context(self) -> Dict[str, Any]:
         return super().get_context() | {
