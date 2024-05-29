@@ -1418,6 +1418,7 @@ pre.code-block.wrap-lines code {
   margin-bottom: 1.5rem;
 }
 .timeline .timeline-event .timeline-event-content .timeline-event-card {
+  max-width: 700px;
   max-height: 270px;
 }
 .timeline .timeline-event .timeline-event-content .timeline-event-card .card-title {

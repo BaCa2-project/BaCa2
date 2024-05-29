@@ -32,7 +32,7 @@ class Event(Widget):
             title
         :type date: str
         """
-        super().__init__(name)
+        super().__init__(name=name)
         self.title = title
         self.content = content
         self.date = date
@@ -71,7 +71,7 @@ class Timeline(Widget):
         :type scroll_to: str
         :raises ValueError: If `scroll_to` is provided and no event with given name is found
         """
-        super().__init__(name)
+        super().__init__(name=name)
 
         if default_icon:
             for event in events:

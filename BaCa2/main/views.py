@@ -657,6 +657,9 @@ class DevelopmentTimelineView(BaCa2LoggedInView):
                          description=str(div(
                              'Zmiany widoczne dla użytkowników:',
                              ul(
+                                 li('Rozbudowanie funkcjonalności `code blocks` dodając możliwość '
+                                    'kopiowania kodu do schowka, włączania/wyłączania numeracji '
+                                    'linii oraz `soft wrap`'),
                                  li('Dodanie funkcjonalności grupowania wierszy w tabelach'),
                                  li('Tłumaczenie aplikacji na język polski'),
                                  li('Poprawa czytelności stylizacji wierszy w tabelach zadań'
