@@ -893,13 +893,13 @@ html, body {
   background-color: rgba(128, 128, 128, 0.4) !important;
 }
 [data-bs-theme=light] .internal-error-submit-row:not(:has(+ .internal-error-submit-row)) td {
-  border-bottom: 2px solid gray !important;
+  border-bottom: 2px solid #a0a0a0 !important;
 }
 [data-bs-theme=light] .internal-error-submit-row:first-child td {
-  border-top: 2px solid gray !important;
+  border-top: 2px solid #a0a0a0 !important;
 }
 [data-bs-theme=light] tr:not(.internal-error-submit-row) + .internal-error-submit-row td {
-  border-top: 2px solid gray !important;
+  border-top: 2px solid #a0a0a0 !important;
 }
 
 [data-bs-theme=dark] .ok-submit-row {
@@ -954,13 +954,13 @@ html, body {
   background-color: rgba(0, 0, 0, 0.3) !important;
 }
 [data-bs-theme=dark] .internal-error-submit-row:not(:has(+ .internal-error-submit-row)) td {
-  border-bottom: 2px solid #000 !important;
+  border-bottom: 2px solid #D3CABD !important;
 }
 [data-bs-theme=dark] .internal-error-submit-row:first-child td {
-  border-top: 2px solid #000 !important;
+  border-top: 2px solid #D3CABD !important;
 }
 [data-bs-theme=dark] tr:not(.internal-error-submit-row) + .internal-error-submit-row td {
-  border-top: 2px solid #000 !important;
+  border-top: 2px solid #D3CABD !important;
 }
 
 :root {
@@ -1290,6 +1290,7 @@ html, body {
 
 pre.code-block.wrap-lines {
   overflow: hidden;
+  white-space: pre-wrap;
 }
 pre.code-block.wrap-lines code {
   white-space: pre-wrap;

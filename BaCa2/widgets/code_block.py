@@ -25,7 +25,7 @@ class CodeBlock(Widget):
                  code: str | Path,
                  language: str = '',
                  title: str = '',
-                 show_line_numbers: bool = True,
+                 line_numbers: bool = True,
                  wrap_lines: bool = True,
                  display_wrapper: bool = True):
         """
@@ -40,8 +40,8 @@ class CodeBlock(Widget):
         :param title: Title of the code block. Displayed above the code if display_wrapper is set to
             True.
         :type title: str
-        :param show_line_numbers: Whether to display line numbers next to the code.
-        :type show_line_numbers: bool
+        :param line_numbers: Whether to display line numbers next to the code.
+        :type line_numbers: bool
         :param wrap_lines: Whether to wrap long lines of code.
         :type wrap_lines: bool
         :param display_wrapper: Whether to display the code block inside a wrapper element with a
@@ -52,7 +52,7 @@ class CodeBlock(Widget):
         self.title = title
         self.language = language
         self.code = code
-        self.show_line_numbers = show_line_numbers
+        self.line_numbers = line_numbers
         self.display_wrapper = display_wrapper
         self.wrap_lines = wrap_lines
 
@@ -67,6 +67,8 @@ class CodeBlock(Widget):
 
         if self.wrap_lines:
             self.add_class('wrap-lines')
+        if self.line_numbers:
+            self.add_class('line-numbers')
 
         self.title = self.title or _('Code block')
 
@@ -117,6 +119,5 @@ class CodeBlock(Widget):
             'title': self.title,
             'language': self.language,
             'code': self.code,
-            'show_line_numbers': self.show_line_numbers,
             'display_wrapper': self.display_wrapper,
         }

@@ -17,6 +17,7 @@ function initCommon() {
     sideNavSetup();
     sidenavSetup();
     themeSetup();
+    codeBlocksSetup();
 }
 
 function ajaxErrorHandlingSetup() {

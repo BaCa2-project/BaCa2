@@ -350,7 +350,7 @@ $submit_row_default_variables: (
         source_error_bg_color: rgba($muted, 0.4),
         source_error_border_color: $danger,
         internal_error_bg_color: rgba($muted, 0.4),
-        internal_error_border_color: $muted,
+        internal_error_border_color: $light_muted,
 );
 
 $submit_row_theme_variables: (
@@ -358,6 +358,6 @@ $submit_row_theme_variables: (
         dark: (
                 source_error_bg_color: rgba($black, 0.3),
                 internal_error_bg_color: rgba($black, 0.3),
-                internal_error_border_color: $black,
+                internal_error_border_color: $secondary,
         ),
 )
