@@ -10,6 +10,14 @@ pre.code-block {
             white-space: pre-wrap;
         }
     }
+
+    .line-numbers-rows {
+        transition: opacity 0.3s ease-in-out;
+    }
+
+    &.line-numbers-hidden .line-numbers-rows {
+        opacity: 0;
+    }
 }
 
 .code-toolbar {

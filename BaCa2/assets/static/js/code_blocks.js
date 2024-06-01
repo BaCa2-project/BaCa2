@@ -1,8 +1,4 @@
 function codeBlockButtonsSetup() {
-    $(".code-toolbar .toolbar .copy-to-clipboard-button").each(function() {
-        console.log("copy-to-clipboard-button");
-    });
-
     $(".line-numbers-btn").on("click", function() {
         const target = $(`#${$(this).data("target")}`);
         lineNumbersToggle(target);
@@ -26,6 +22,25 @@ function lineWrapToggle(codeBlock) {
 
 $(document).ready(function() {
     codeBlockButtonsSetup();
+
+    $('.tab-content-wrapper').each(function() {
+        const codeBlocks = $(this).find('.code-block');
+        const lineNumbers = codeBlocks.find('.line-numbers-rows');
+
+        if (lineNumbers.length === 0)
+            return;
+
+        if (!$(this).hasClass('active'))
+            codeBlocks.addClass('line-numbers-hidden');
+
+        $(this).one('tab-expanded', function() {
+            codeBlocks.each(function() {
+                Prism.plugins.lineNumbers && Prism.plugins.lineNumbers.resize(this);
+            });
+
+            codeBlocks.removeClass('line-numbers-hidden');
+        });
+    });
 });
 
 Prism.plugins.toolbar.registerButton('select-code', function(env) {

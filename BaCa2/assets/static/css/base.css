@@ -1295,6 +1295,12 @@ pre.code-block.wrap-lines {
 pre.code-block.wrap-lines code {
   white-space: pre-wrap;
 }
+pre.code-block .line-numbers-rows {
+  transition: opacity 0.3s ease-in-out;
+}
+pre.code-block.line-numbers-hidden .line-numbers-rows {
+  opacity: 0;
+}
 
 .code-toolbar {
   position: relative;
