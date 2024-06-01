@@ -12,6 +12,26 @@ pre.code-block {
     }
 }
 
+.code-toolbar {
+    position: relative;
+
+    .toolbar {
+        position: absolute;
+        top: 0;
+        right: 0;
+        display: flex;
+
+        button {
+            font-size: 0.875rem;
+            border-radius: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            border-width: 1px;
+        }
+    }
+}
+
+// --------------------------------------- theme colors --------------------------------------- //
+
 @each $theme, $map in $codeblock_theme_variables {
     $bg_color: safe_get($map, $codeblock_default_variables, bg_color);
 
@@ -29,6 +49,8 @@ pre.code-block {
         }
     }
 }
+
+// ----------------------------------- test-summary-specific ---------------------------------- //
 
 .test-summary {
     .compile-tabs .code-block {

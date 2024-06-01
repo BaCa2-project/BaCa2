@@ -1296,6 +1296,22 @@ pre.code-block.wrap-lines code {
   white-space: pre-wrap;
 }
 
+.code-toolbar {
+  position: relative;
+}
+.code-toolbar .toolbar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+}
+.code-toolbar .toolbar button {
+  font-size: 0.875rem;
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-width: 1px;
+}
+
 [data-bs-theme=light] pre.code-block {
   background: rgb(245, 242, 240) !important;
 }
