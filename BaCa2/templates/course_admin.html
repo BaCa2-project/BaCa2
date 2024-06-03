@@ -1,6 +1,17 @@
 {% extends 'base.html' %}
 
 {% block content %}
+    <div class="tab-content-wrapper" data-tab-id="landing-tab">
+        <div class="tab-content">
+            <div class="row">
+                <div class="col-6">
+                    {% with widgets.TableWidget.course_overview_table as table_widget %}
+                        {% include "widget_templates/listing/table.html" %}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+    </div>
     {% if view_members_tab %}
         <div class="tab-content-wrapper" data-tab-id="view-members-tab">
             <div class="tab-content">

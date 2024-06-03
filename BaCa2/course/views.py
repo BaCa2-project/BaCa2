@@ -48,7 +48,7 @@ from widgets.forms.course import (
 from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.col_defs import RejudgeSubmitColumn
 from widgets.listing.columns import DatetimeColumn, FormSubmitColumn, TextColumn
-from widgets.listing.course import get_status_rules
+from widgets.listing.course import CourseOverviewTable, get_status_rules
 from widgets.navigation import Sidenav, SidenavTab
 from widgets.text_display import TextDisplayer
 
@@ -488,12 +488,18 @@ class CourseView(CourseTemplateView):
         context['page_title'] = course.name
 
         sidenav = Sidenav(tabs=[
+            SidenavTab(name='landing-tab', title=course.name, icon='house', parent_tab=False),
             SidenavTab(name='members-tab', title=_('Members'), icon='people', parent_tab=True),
             SidenavTab(name='roles-tab', title=_('Roles'), icon='person-badge', parent_tab=True),
             SidenavTab(name='rounds-tab', title=_('Rounds'), icon='calendar-week', parent_tab=True),
             SidenavTab(name='tasks-tab', title=_('Tasks'), icon='file-earmark-code',
                        parent_tab=True),
         ])
+
+        # landing --------------------------------------------------------------------------------
+
+        course_overview_table = CourseOverviewTable(course=course, member=user)
+        self.add_widget(context, course_overview_table)
 
         # members --------------------------------------------------------------------------------
 
