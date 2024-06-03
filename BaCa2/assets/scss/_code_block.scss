@@ -1,5 +1,4 @@
 @import "baca2_variables";
-@import "functions";
 
 pre.code-block {
     padding-right: 2.8rem !important;
@@ -73,6 +72,13 @@ pre.code-block {
         .test-summary .compile-tabs-nav .nav-link.active {
             background-color: $bg_color;
         }
+    }
+}
+
+[data-bs-theme="light"] {
+    .code-toolbar button {
+        border-color: $light_muted;
+        color: $muted;
     }
 }
 

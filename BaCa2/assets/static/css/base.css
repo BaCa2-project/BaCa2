@@ -1354,6 +1354,11 @@ pre.code-block.line-numbers-hidden .line-numbers-rows {
   background-color: #171a1d;
 }
 
+[data-bs-theme=light] .code-toolbar button {
+  border-color: #a0a0a0;
+  color: gray;
+}
+
 .test-summary .compile-tabs .code-block {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
