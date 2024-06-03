@@ -40,9 +40,11 @@ class CodeBlock(Widget):
         :param title: Title of the code block. Displayed above the code if display_wrapper is set to
             True.
         :type title: str
-        :param line_numbers: Whether to display line numbers next to the code.
+        :param line_numbers: Whether to initialize the code block with line numbers. Line numbers
+            can be toggled on and off by the user using a toolbar button.
         :type line_numbers: bool
-        :param wrap_lines: Whether to wrap long lines of code.
+        :param wrap_lines: Whether to initialize the code block with line wrapping enabled. Line
+            wrapping can be toggled on and off by the user using a toolbar button.
         :type wrap_lines: bool
         :param display_wrapper: Whether to display the code block inside a wrapper element with a
             title.

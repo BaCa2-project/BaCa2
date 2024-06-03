@@ -63,7 +63,12 @@ $(document).ready(function () {
     function lineNumbersToggle(code) {
         const codeBlock = code.closest('.code-block')
         codeBlock.toggleClass('line-numbers');
-        codeBlock.find('.line-numbers-rows').toggleClass('d-none');
+        const lineNumbers = codeBlock.find('.line-numbers-rows');
+
+        if (lineNumbers.length === 0)
+            Prism.highlightElement(code[0]);
+        else
+            lineNumbers.toggleClass('d-none');
     }
 
     function lineWrapToggle(code) {
@@ -174,7 +179,7 @@ $(document).ready(function () {
 
         lineNumbersBtn.addClass('btn btn-sm btn-outline-secondary');
         lineNumbersBtn.append(lineNumbersSpan);
-        setState('line-numbers');
+        setInitialState();
 
         lineNumbersBtn.on('click', function () {
             lineNumbersToggle(code);
@@ -182,6 +187,15 @@ $(document).ready(function () {
         });
 
         return lineNumbersBtn[0];
+
+        function setInitialState() {
+            const codeBlock = code.closest('.code-block')
+
+            if (codeBlock.hasClass('line-numbers'))
+                setState('line-numbers');
+            else
+                setState('line-numbers-hidden');
+        }
 
         function switchState() {
             if (lineNumbersSpan.attr('data-line-numbers-state') === 'line-numbers')
@@ -209,7 +223,7 @@ $(document).ready(function () {
 
         lineWrapBtn.addClass('btn btn-sm btn-outline-secondary');
         lineWrapBtn.append(lineWrapSpan);
-        setState('line-wrap');
+        setInitialState();
 
         lineWrapBtn.on('click', function () {
             lineWrapToggle(code);
@@ -217,6 +231,15 @@ $(document).ready(function () {
         });
 
         return lineWrapBtn[0];
+
+        function setInitialState() {
+            const codeBlock = code.closest('.code-block')
+
+            if (codeBlock.hasClass('wrap-lines'))
+                setState('line-wrap');
+            else
+                setState('line-nowrap');
+        }
 
         function switchState() {
             if (lineWrapSpan.attr('data-line-wrap-state') === 'line-wrap')
