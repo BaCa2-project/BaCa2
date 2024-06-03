@@ -6,8 +6,13 @@ from django.utils.translation import gettext_lazy as _
 
 from core.tools.mailer import TemplateMailer
 from main.models import Announcement, User
-from widgets.forms import BaCa2ModelForm, FormWidget
-from widgets.forms.fields import AlphanumericField, AlphanumericStringField, DateTimeField
+from widgets.forms import BaCa2ModelForm, FormElementGroup, FormWidget
+from widgets.forms.fields import (
+    AlphanumericField,
+    AlphanumericStringField,
+    DateTimeField,
+    ModelChoiceField
+)
 
 logger = logging.getLogger(__name__)
 
@@ -162,19 +167,27 @@ class CreateAnnouncementForm(BaCa2ModelForm):
         widget=forms.Textarea(attrs={'rows': 5})
     )
     announcement_custom_date = DateTimeField(label=_('Announcement date'), required=False)
+    announcement_course = ModelChoiceField(
+        label_format_string='[[name]]',
+        help_text=_('Select course for which the announcement is intended. If you do not select '
+                    'any course, the announcement will be visible to all users on the main page.'),
+        required=False,
+    )
 
     @classmethod
     def handle_valid_request(cls, request) -> Dict[str, Any]:
         title = request.POST.get('announcement_title')
         content = request.POST.get('announcement_content')
         custom_date = request.POST.get('announcement_custom_date')
+        course_id = request.POST.get('announcement_course', None)
 
         if not custom_date:
             custom_date = None
 
         Announcement.objects.create(title=title,
                                     content=content,
-                                    custom_date=custom_date)
+                                    custom_date=custom_date,
+                                    course_id=course_id)
         message = _('Announcement') + ' ' + title + ' ' + _('created.')
         return {'message': message}
 
@@ -184,10 +197,12 @@ class CreateAnnouncementWidget(FormWidget):
                  request,
                  form: CreateAnnouncementForm = None,
                  **kwargs) -> None:
-        from main.views import AnnouncementModelView
+        from main.views import AnnouncementModelView, CourseModelView
 
         if not form:
             form = CreateAnnouncementForm()
+
+        form.fields['announcement_course'].data_source_url = CourseModelView.get_url()
 
         super().__init__(
             name='create_announcement_form_widget',
@@ -195,6 +210,11 @@ class CreateAnnouncementWidget(FormWidget):
             form=form,
             post_target_url=AnnouncementModelView.post_url(),
             button_text=_('Create announcement'),
+            element_groups=FormElementGroup(
+                elements=['announcement_title', 'announcement_custom_date'],
+                name='announcement_title_group',
+                layout=FormElementGroup.Layout.HORIZONTAL
+            ),
             **kwargs
         )
 
@@ -272,6 +292,11 @@ class EditAnnouncementFormWidget(FormWidget):
             post_target_url=AnnouncementModelView.post_url(),
             button_text=_('Save changes'),
             reset_on_submit=False,
+            element_groups=FormElementGroup(
+                elements=['announcement_title', 'announcement_custom_date'],
+                name='announcement_title_group',
+                layout=FormElementGroup.Layout.HORIZONTAL
+            ),
             **kwargs
         )
 

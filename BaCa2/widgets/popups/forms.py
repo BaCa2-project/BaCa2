@@ -54,7 +54,7 @@ class SubmitConfirmationPopup(PopupWidget):
             cancel_button_text = _('Cancel')
 
         if input_summary and not input_summary_fields:
-            raise Widget.WidgetParameterError(
+            raise Widget.ParameterError(
                 'Cannot use input summary without specifying input summary fields.'
             )
 

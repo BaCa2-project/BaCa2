@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Group, Permission
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
+from django.db.models import Sum
 from django.db.models.query import QuerySet
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -1187,61 +1188,145 @@ class Course(models.Model):
     from course.models import Round, Submit, Task
 
     @staticmethod
-    def inside_course(func: Callable) -> Callable:
-        """
-        Decorator used to wrap methods that deal with course database objects. The decorator
-        ensures that the method is called within the scope of a course database.
+    def inside_course(course_method: bool = False) -> Callable:
+        def wrapper(func: Callable) -> Callable:
+            if course_method:
+                def action(self, *args, **kwargs) -> Any:
+                    with InCourse(self):
+                        return func(self, *args, **kwargs)
+            else:
+                def action(self: Course, *args, **kwargs) -> Any:
+                    with InCourse(self):
+                        return func(*args, **kwargs)
 
-        :param func: The method to be wrapped.
-        :type func: Callable
+            return action
 
-        :return: The wrapped method (in course scope)
-        :rtype: Callable
-        """
-
-        def action(self: Course, *args, **kwargs):
-            with InCourse(self):
-                return func(*args, **kwargs)
-
-        return action
+        return wrapper
 
     # Round actions -------------
 
     #: Creates a new round in the course using :py:meth:`course.models.Round.objects.create_round`.
-    create_round = inside_course(Round.objects.create_round)
+    create_round = inside_course()(Round.objects.create_round)
 
     #: Deletes a round from the course using :py:meth:`course.models.Round.objects.delete_round`.
-    delete_round = inside_course(Round.objects.delete_round)
+    delete_round = inside_course()(Round.objects.delete_round)
 
     #: Returns a QuerySet of all rounds in the course using
     #: :py:meth:`course.models.Round.objects.all_rounds`.
-    rounds = inside_course(Round.objects.all_rounds)
+    rounds = inside_course()(Round.objects.all_rounds)
 
     #: Getter for Round model
-    get_round = inside_course(ModelsRegistry.get_round)
+    get_round = inside_course()(ModelsRegistry.get_round)
 
     # Task actions --------------
 
     #: Creates a new task in the course using :py:meth:`course.models.Task.objects.create_task`.
-    create_task = inside_course(Task.objects.create_task)
+    create_task = inside_course()(Task.objects.create_task)
 
     #: Deletes a task from the course using :py:meth:`course.models.Task.objects.delete_task`.
-    delete_task = inside_course(Task.objects.delete_task)
+    delete_task = inside_course()(Task.objects.delete_task)
 
     #: Getter for Task model
-    get_task = inside_course(ModelsRegistry.get_task)
+    get_task = inside_course()(ModelsRegistry.get_task)
 
     # Submit actions ------------
 
     #: Creates a new submit in the course using
     #: :py:meth:`course.models.Submit.objects.create_submit`.
-    create_submit = inside_course(Submit.objects.create_submit)
+    create_submit = inside_course()(Submit.objects.create_submit)
 
     #: Deletes a submit from the course using :py:meth:`course.models.Submit.objects.delete_submit`.
-    delete_submit = inside_course(Submit.objects.delete_submit)
+    delete_submit = inside_course()(Submit.objects.delete_submit)
 
     #: Getter for Submit model
-    get_submit = inside_course(ModelsRegistry.get_submit)
+    get_submit = inside_course()(ModelsRegistry.get_submit)
+
+    # Metadata retrieval --------
+
+    #: Returns the number of tasks in the course
+    get_tasks_number = inside_course()(Task.objects.count)
+
+    #: Returns the number of submits in the course
+    get_submits_number = inside_course()(Submit.objects.count)
+
+    @inside_course(course_method=True)
+    def get_member_cleared_tasks_number(self, user: User | str | int) -> int:
+        """
+        :param user: The user whose cleared tasks are to be counted.
+        :type user: User | str | int
+        :return: The number of tasks cleared by the given user in the course.
+        :rtype: int
+        """
+        from core.choices import OK_FINAL_STATUSES
+        from course.models import Task
+
+        tasks = Task.objects.all()
+        cleared = 0
+
+        for task in tasks:
+            scored_submit = task.user_scored_submit(user)
+
+            if scored_submit is not None and scored_submit.submit_status in OK_FINAL_STATUSES:
+                cleared += 1
+
+        return cleared
+
+    @inside_course(course_method=True)
+    def get_member_submits_number(self, user: User | str | int) -> int:
+        """
+        :param user: The user whose submits are to be counted.
+        :type user: User | str | int
+        :return: The number of submits made by the given user in the course.
+        :rtype: int
+        """
+        from course.models import Submit
+        user = ModelsRegistry.get_user(user)
+        return Submit.objects.filter(usr=user.id).count()
+
+    @inside_course(course_method=True)
+    def get_total_points(self) -> float:
+        """
+        :return: The total number of points for all tasks in the course.
+        :rtype: float
+        """
+        from course.models import Task
+        return Task.objects.aggregate(Sum('points'))['points__sum'] or 0
+
+    @inside_course(course_method=True)
+    def get_member_points(self, user: User | str | int) -> float:
+        """
+        :param user: The user whose points are to be counted.
+        :type user: User | str | int
+        :return: The number of points gained by the given user in the course.
+        :rtype: float
+        """
+        from course.models import Task
+
+        tasks = Task.objects.all()
+        score = 0
+
+        for task in tasks:
+            task_score = task.user_score(user)
+
+            if task_score is not None:
+                score += task_score * task.points
+
+        return score
+
+    @inside_course(course_method=True)
+    def get_member_points_percentage(self, user: User | str | int) -> float:
+        """
+        :param user: The user whose points percentage is to be counted.
+        :type user: User | str | int
+        :return: The percentage of total points gained by the given user in the course.
+        :rtype: float
+        """
+        total_points = self.get_total_points()
+
+        if total_points == 0:
+            return 0
+
+        return self.get_member_points(user) / total_points * 100
 
     # --------------------------------------- Deletion ----------------------------------------- #
 
@@ -2437,6 +2522,14 @@ class Announcement(models.Model):
     custom_date = models.DateTimeField(null=True, blank=True)
     #: Content of the announcement in HTML format.
     content = models.TextField(null=False, blank=False)
+    #: Course the announcement is assigned to. If no course is specified, the announcement is
+    # considered global and will be displayed on the main page.
+    course = models.ForeignKey(
+        to=Course,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
 
     class BasicAction(ModelAction):
         ADD = 'add', 'add_announcement'
@@ -2498,14 +2591,6 @@ class Announcement(models.Model):
         """
         return self.date >= other.date
 
-    def __eq__(self, other) -> bool:
-        """
-        :return: `True` if the announcement is the same age as the other announcement, `False`
-            otherwise.
-        :rtype: bool
-        """
-        return self.date == other.date
-
     def get_data(self, add_formatted_dates: bool = True) -> dict:
         """
         :return: Serialized data of the announcement.
@@ -2520,7 +2605,8 @@ class Announcement(models.Model):
             'date_created': self.date_created,
             'custom_date': self.custom_date,
             'date': self.date,
-            'content': self.content
+            'content': self.content,
+            'course': self.course.name if self.course else 'global'
         }
 
         if add_formatted_dates:

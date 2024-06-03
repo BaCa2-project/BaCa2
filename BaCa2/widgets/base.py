@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Any, Dict
+from typing import Any, Callable, Dict, Iterable, Self
 
 from django.http import HttpRequest
 
@@ -10,54 +10,132 @@ class Widget(ABC):  # noqa: B024
     all widgets have to implement.
     """
 
-    class WidgetParameterError(Exception):
+    class ParameterError(Exception):
         """
         Exception raised when a widget receives an invalid parameter or combination of parameters.
         """
         pass
 
-    def __init__(self, name: str, request: HttpRequest = None, widget_class: str = '') -> None:
+    class NotBuiltError(Exception):
         """
-        Initializes the widget with a name. Name is used to distinguish between widgets of the same
-        type within a single HTML template.
+        Exception raised when an operation is attempted on a widget that has not been built yet
+        which requires the widget to be built.
+        """
+        pass
 
-        :param name: Name of the widget.
+    class AlreadyBuiltError(Exception):
+        """
+        Exception raised when an operation is attempted on a widget that has already been built
+        which requires the widget to be built.
+        """
+        pass
+
+    @staticmethod
+    def require_built(func) -> Callable:
+        """
+        Decorator that raises an exception if the decorated method is called on a widget that has
+        not been built yet.
+
+        :param func: Method to decorate.
+        :type func: Callable
+        :return: Decorated method.
+        :rtype: Callable
+        """
+        def wrapper(self, *args, **kwargs):
+            if not getattr(self, 'built', False):
+                raise Widget.NotBuiltError('Widget has not been built yet.')
+            return func(self, *args, **kwargs)
+        return wrapper
+
+    def __init__(self, *,
+                 name: str,
+                 request: HttpRequest = None,
+                 widget_class: str | Iterable[str] = '') -> None:
+        """
+        :param name: Name of the widget. Used to identify the widget in the template.
         :type name: str
         :param request: HTTP request object received by the view this widget is rendered in.
         :type request: HttpRequest
-        :param widget_class: CSS class applied to the widget.
-        :type widget_class: str
+        :param widget_class: HTML class(es) applied to the widget when rendered.
+        :type widget_class: str | Iterable[str]
         """
+        self._built = False
         self.name = name
         self.request = request
-        self.widget_class = set(widget_class.split(' '))
+        self._widget_class = set()
+        self.widget_class = widget_class
+
+    def __setattr__(self, key, value):
+        """
+        Prevents changing the value of any attribute after the widget has been built.
+        """
+        if getattr(self, 'built', False):
+            raise Widget.AlreadyBuiltError('Widget has already been built and cannot be modified.')
+        super().__setattr__(key, value)
+
+    def build(self) -> Self:
+        """
+        Builds the widget. This method is called once all the parameters have been set to perform
+        all the necessary state-altering operations before the widget is rendered.
+
+        :return: The widget instance.
+        :rtype: :class:`Widget`
+        """
+        self._built = True
+        return self
+
+    @property
+    def built(self) -> bool:
+        """
+        :return: Whether the widget has been built yet.
+        :rtype: bool
+        """
+        return self._built
+
+    @property
+    def widget_class(self) -> str:
+        """
+        :return: HTML class of the rendered widget.
+        :rtype: str
+        """
+        return ' '.join(self._widget_class)
+
+    @widget_class.setter
+    def widget_class(self, value: str | Iterable[str]) -> None:
+        """
+        :param value: HTML class(es) to set.
+        :type value: str | Iterable[str]
+        """
+        if isinstance(value, list):
+            value = ' '.join(value)
+
+        self._widget_class = set(value.split(' '))
 
     def add_class(self, widget_class: str) -> None:
         """
-        Adds a CSS class to the widget.
-
-        :param widget_class: CSS class to add.
+        :param widget_class: HTML class to add.
         :type widget_class: str
         """
         for cls in widget_class.split(' '):
-            self.widget_class.add(cls)
+            self._widget_class.add(cls)
 
     def remove_class(self, widget_class: str) -> None:
         """
-        Removes a CSS class from the widget.
-
-        :param widget_class: CSS class to remove.
+        :param widget_class: HTML class to remove.
         :type widget_class: str
         """
         for cls in widget_class.split(' '):
-            self.widget_class.discard(cls)
+            self._widget_class.discard(cls)
 
     def get_context(self) -> Dict[str, Any]:
         """
-        Returns a dictionary containing all the data needed by the template to render the widget.
-        (All boolean values should be converted to JSON strings.)
+        Builds the widget (if it has not been built yet) and returns a dictionary containing all the
+        data needed to render it.
 
         :return: A dictionary containing all the data needed to render the widget.
         :rtype: Dict[str, Any]
         """
-        return {'name': self.name, 'widget_class': ' '.join(self.widget_class)}
+        if not self.built:
+            self.build()
+
+        return {'name': self.name, 'widget_class': self.widget_class}

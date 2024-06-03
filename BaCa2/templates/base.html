@@ -1,7 +1,7 @@
 {% load static %}
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-overlayscrollbars-initialize>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width initial-scale=1.0">
@@ -17,7 +17,9 @@
             crossorigin="anonymous"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.3/jquery.easing.min.js"
+            integrity="sha512-ahmSZKApTDNd3gVuqL5TQ3MBTj8tL5p2tYV05Xxzcfu6/ecvt1A0j6tfudSGBVuteSoTRMqMljbfdU0g2eDNUA=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <!-- DataTables -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js"
@@ -32,6 +34,7 @@
 
     <!-- Bootstrap theme - customised -->
     <link rel="stylesheet" href="{% static 'css/baca2_theme.css' %}">
+
     <!-- Bootstrap script -->
     <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"
             integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm"
@@ -45,6 +48,7 @@
                 processEscapes: true
             }
         });
+
     </script>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script type="text/javascript" async
@@ -60,7 +64,7 @@
     <link rel="stylesheet" href="{% static 'css/jquery.datetimepicker.min.css' %}"/>
     <script src="{% static 'js/jquery.datetimepicker.full.min.js' %}"></script>
 
-    <!-- Prism code highlighting -->
+    <!-- Prism JS themes -->
     <link rel="stylesheet" class="code-highlighting" data-bs-theme="light"
           href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css"
           integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ=="
@@ -71,14 +75,18 @@
           integrity="sha512-mIs9kKbaw6JZFfSuo+MovjU+Ntggfoj8RwAmJbVXQ5mkAX5LlgETQEweFPI18humSPHymTb5iikEOKWF7I8ncQ=="
           crossorigin="anonymous" referrerpolicy="no-referrer"/>
 
+    <!-- Prism JS script -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"
             integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg=="
             crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <!-- Prism JS autoloader plugin -->
     <script
         src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"
         integrity="sha512-SkmBfuA2hqjzEVpmnMt/LINrjop3GKWqsuLSSB3e7iBmYK7JuWw4ldmmxwD9mdm2IRTTi0OxSAfEGvgEi0i2Kw=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
+    <!-- Prism JS diff-highlight plugin -->
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/diff-highlight/prism-diff-highlight.min.css"
           integrity="sha512-rErSjI34XKsATVf+BW6GnuWVmj7imdMR7AIyb4ydHhiMFewUiJOeN9bYO35iCgdG+3Bxkl0GkAs0E8hrDYooLA=="
@@ -87,8 +95,9 @@
         src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/diff-highlight/prism-diff-highlight.min.js"
         integrity="sha512-gNqZmXmzLWyg/00PDvTnX4q533JiXbxFdTWJC5hfOyHORHXOC6PtDP5Mm2Vpa4faIMONoKQADwhhbst9Ok1/oQ=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <link rel="stylesheet"
 
+    <!-- Prism JS line-numbers plugin -->
+    <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css"
           integrity="sha512-cbQXwDFK7lj2Fqfkuxbo5iD1dSbLlJGXGpfTDqbggqjHJeyzx88I3rfwjS38WJag/ihH7lzuGlGHpDBymLirZQ=="
           crossorigin="anonymous" referrerpolicy="no-referrer"/>
@@ -97,25 +106,30 @@
         integrity="sha512-BttltKXFyWnGZQcRWj6osIg7lbizJchuAMotOkdLxHxwt/Hyo+cl47bZU0QADg+Qt5DJwni3SbYGXeGMB5cBcw=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
-    {% comment %}<script
-        src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/show-language/prism-show-language.min.js"
-        integrity="sha512-d1t+YumgzdIHUL78me4B9NzNTu9Lcj6RdGVbdiFDlxRV9JTN9s+iBQRhUqLRq5xtWUp1AD+cW2sN2OlST716fw=="
+    <!-- Prism JS toolbar plugin -->
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.js"
+        integrity="sha512-st608h+ZqzliahyzEpETxzU0f7z7a9acN6AFvYmHvpFhmcFuKT8a22TT5TpKpjDa3pt3Wv7Z3SdQBCBdDPhyWA=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
-    <script
-        src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"
-        integrity="sha512-/kVH1uXuObC0iYgxxCKY41JdWOkKOxorFVmip+YVifKsJ4Au/87EisD1wty7vxN2kAhnWh6Yc8o/dSAXj6Oz7A=="
-        crossorigin="anonymous" referrerpolicy="no-referrer"></script>{% endcomment %}
-
+    <!-- Prism JS normalize-whitespace plugin -->
     <script
         src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"
         integrity="sha512-Kit4oPSAREacS6LEF4LGcL6MMlG3O1GqRFDGSX1Vg4JrozGU7hHoMKFkiMWevWq/xmNq8pzMhO2PcZCPHe/gmQ=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
+    <!-- OverlayScrollbars -->
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/overlayscrollbars/2.8.3/browser/overlayscrollbars.browser.es6.min.js"
+        integrity="sha512-1hS0dWkqFqR8itbjKH8fEujRkHPJcSm3HN/txMvOb1JzT+RbmbGo4qaromzMKZmPdg0frGDAAIOkF4yigV5B7Q=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/overlayscrollbars/2.8.3/styles/overlayscrollbars.css"
+          integrity="sha512-8zM1Exu45IRHLtl/+UOPWMTZE/5xasxjm9Tps6pka3BJDzDIyq9fyI8GYdSTkYsRZtvWsiiSzjQb2rLAbvF5zQ=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
 
     <!-- favicon -->
     <link rel="icon" href="{% static 'img/favicon.png' %}" type="image/x-icon">
-
 
     <!-- stylesheets -->
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
@@ -130,6 +144,7 @@
     <script src="{% static 'js/pdf_displayer.js' %}"></script>
     <script src="{% static 'js/side_nav.js' %}"></script>
     <script src="{% static 'js/sidenav.js' %}"></script>
+    <script src="{% static 'js/code_blocks.js' %}"></script>
 
     <!-- template-specific -->
     {% block head %}
@@ -137,7 +152,7 @@
 
 </head>
 
-<body data-bs-theme="{{ data_bs_theme }}">
+<body data-bs-theme="{{ data_bs_theme }}" data-overlayscrollbars-initialize>
 
 <script>
     preInitCommon();
@@ -155,17 +170,19 @@
     {% endif %}
     {% if display_sidenav %}
         <div class="row main-row">
-            {% with widgets.Sidenav.sidenav as sidenav %}
-                {% include 'widget_templates/navigation/sidenav.html' %}
-            {% endwith %}
+        {% with widgets.Sidenav.sidenav as sidenav %}
+            {% include 'widget_templates/navigation/sidenav.html' %}
+        {% endwith %}
     {% endif %}
 
     {% if display_sidenav %}
         <div class="col-lg-9 col-md-8 col-12 sidenav-tabs-content">
     {% endif %}
 
-    {% block content %}
-    {% endblock %}
+    <div id="content">
+        {% block content %}
+        {% endblock %}
+    </div>
 
     {% if display_sidenav %}
         </div>
@@ -196,8 +213,6 @@
 
 {% block scripts %}
 {% endblock %}
-
-<!-- Prism JS and autoloader -->
 
 {% block version_footer %}
     <div id="version-footer">

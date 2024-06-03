@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from core.choices import EMPTY_FINAL_STATUSES, BasicModelAction, ResultStatus, SubmitType
 from course.models import Result, Round, Submit, Task
 from course.routing import InCourse
-from main.models import Course, User
+from main.models import Announcement, Course, User
 from main.views import CourseModelView as CourseModelManagerView
 from main.views import RoleModelView, UserModelView
 from util.models_registry import ModelsRegistry
@@ -48,8 +48,9 @@ from widgets.forms.course import (
 from widgets.listing import TableWidget, TableWidgetPaging
 from widgets.listing.col_defs import RejudgeSubmitColumn
 from widgets.listing.columns import DatetimeColumn, FormSubmitColumn, TextColumn
-from widgets.listing.course import get_status_rules
+from widgets.listing.course import CourseOverviewTable, get_status_rules
 from widgets.navigation import Sidenav, SidenavTab
+from widgets.notification import AnnouncementBlock
 from widgets.text_display import TextDisplayer
 
 # ----------------------------------- Course views abstraction ---------------------------------- #
@@ -488,12 +489,23 @@ class CourseView(CourseTemplateView):
         context['page_title'] = course.name
 
         sidenav = Sidenav(tabs=[
+            SidenavTab(name='landing-tab', title=course.name, icon='house', parent_tab=False),
             SidenavTab(name='members-tab', title=_('Members'), icon='people', parent_tab=True),
             SidenavTab(name='roles-tab', title=_('Roles'), icon='person-badge', parent_tab=True),
             SidenavTab(name='rounds-tab', title=_('Rounds'), icon='calendar-week', parent_tab=True),
             SidenavTab(name='tasks-tab', title=_('Tasks'), icon='file-earmark-code',
                        parent_tab=True),
         ])
+
+        # landing --------------------------------------------------------------------------------
+
+        course_overview_table = CourseOverviewTable(course=course, member=user)
+        self.add_widget(context, course_overview_table)
+        announcements = [a for a in Announcement.objects.filter(course=course) if a.released]
+        announcements.sort(reverse=True)
+        self.add_widget(context, AnnouncementBlock(name='announcements',
+                                                   announcements=announcements))
+        context['display_announcements'] = len(announcements) > 0
 
         # members --------------------------------------------------------------------------------
 
@@ -518,6 +530,7 @@ class CourseView(CourseTemplateView):
                       TextColumn(name='email', header=_('Email address')),
                       TextColumn(name='user_role', header=_('Role'))],
                 refresh_button=True,
+                table_height=50,
             )
             self.add_widget(context, members_table)
 
@@ -572,7 +585,8 @@ class CourseView(CourseTemplateView):
                 'cols': [TextColumn(name='name', header=_('Role name')),
                          TextColumn(name='description', header=_('Description'))],
                 'refresh_button': True,
-                'link_format_string': '/main/role/[[id]]/'
+                'link_format_string': '/main/role/[[id]]/',
+                'table_height': 50,
             }
 
             if user.has_course_permission(Course.CourseAction.DEL_ROLE.label, course):
@@ -619,6 +633,7 @@ class CourseView(CourseTemplateView):
                 'refresh_button': True,
                 'default_order_col': 'start_date',
                 'default_order_asc': True,
+                'table_height': 50,
             }
 
             if user.has_course_permission(Course.CourseAction.EDIT_ROUND.label, course):
@@ -674,6 +689,7 @@ class CourseView(CourseTemplateView):
                 'refresh_button': True,
                 'default_order_col': 'round_name',
                 'link_format_string': f'/course/{course_id}/task/[[id]]',
+                'table_height': 50,
             }
 
             if user.has_course_permission(Course.CourseAction.DEL_TASK.label, course):
@@ -745,6 +761,7 @@ class CourseView(CourseTemplateView):
                 'default_order_col': 'submit_date',
                 'default_order_asc': False,
                 'row_styling_rules': get_status_rules(),
+                'table_height': 50,
             }
 
             if view_all_submits:
@@ -846,7 +863,7 @@ class CourseTask(CourseTemplateView):
                 title=attachment.name,
                 link=attachment.path.url,
                 download_name=attachment.name
-            ))
+            ).get_context())
             cnt += 1
         context['attachments'] = attachments
 
@@ -923,6 +940,7 @@ class CourseTask(CourseTemplateView):
                 'default_order_col': 'submit_date',
                 'default_order_asc': False,
                 'row_styling_rules': get_status_rules(),
+                'table_height': 50,
             }
 
             if view_all_submits:

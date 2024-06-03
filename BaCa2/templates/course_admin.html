@@ -1,6 +1,31 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block head %}
+    <link rel="stylesheet" href="{% static 'css/course_view.css' %}">
+{% endblock %}
 
 {% block content %}
+    <div class="tab-content-wrapper" data-tab-id="landing-tab">
+        <div class="tab-content">
+            <div class="row course-overview-wrapper">
+                <div class="col-xl-6 col-12 announcements-col-wrapper">
+                    {% if display_announcements %}
+                        <div class="announcements-col">
+                            {% with widgets.AnnouncementBlock.announcements as announcement_block %}
+                                    {% include 'widget_templates/announcement_block.html' %}
+                            {% endwith %}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="col-xl-6 col-12">
+                    {% with widgets.TableWidget.course_overview_table as table_widget %}
+                        {% include "widget_templates/listing/table.html" %}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+    </div>
     {% if view_members_tab %}
         <div class="tab-content-wrapper" data-tab-id="view-members-tab">
             <div class="tab-content">

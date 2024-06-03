@@ -510,8 +510,6 @@ function applyRowStylingRule(row, data, rule) {
         const target = mappings[key];
         let match = false;
 
-        console.log(target, data[key]);
-
         if (target instanceof Array) {
             target.forEach(t => {
                 if (data[key] === t)

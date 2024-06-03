@@ -1,0 +1,43 @@
+@import "baca2_variables";
+
+.development-info-wrapper {
+    display: flex;
+
+    @media (max-width: 991px) {
+        flex-direction: column;
+    }
+
+    @media (min-width: 992px) {
+        flex-direction: row-reverse;
+    }
+
+    .announcements-col {
+        @media (max-width: 991px) {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        @media (min-width: 992px) {
+            position: sticky;
+            top: $navbar_padding;
+        }
+
+        height: fit-content;
+        background-color: $darker;
+        padding: 0.7rem;
+        border-radius: var(--bs-border-radius);
+
+        .os-scrollbar:not(.os-scrollbar-unusable) {
+            position: relative;
+        }
+
+        .announcement-block {
+            max-height: 30rem;
+            overflow-y: auto;
+        }
+    }
+}
+
+[data-bs-theme="light"] .announcements-col {
+    background-color: $baca2_beige;
+}

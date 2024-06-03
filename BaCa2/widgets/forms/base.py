@@ -519,13 +519,13 @@ class FormWidget(Widget):
             if form_name:
                 name = f'{form_name}_widget'
             else:
-                raise Widget.WidgetParameterError(
+                raise Widget.ParameterError(
                     'Cannot create form widget for an unnamed form without specifying the widget '
                     'name.'
                 )
 
         if (submit_success_popup is None) ^ (submit_failure_popup is None):
-            raise Widget.WidgetParameterError(
+            raise Widget.ParameterError(
                 'Both submit success popup and submit failure popup must be specified or neither.'
             )
 
@@ -662,7 +662,7 @@ class FormElementGroup(Widget):
         - :class:`FormWidget`
     """
 
-    class FormElementsLayout(Enum):
+    class Layout(Enum):
         """
         Enum used to specify the layout of form elements in a group.
         """
@@ -678,7 +678,7 @@ class FormElementGroup(Widget):
                  title: str = '',
                  display_title: bool = False,
                  request=None,
-                 layout: FormElementsLayout = FormElementsLayout.VERTICAL,
+                 layout: Layout = Layout.VERTICAL,
                  toggleable: bool = False,
                  toggleable_params: Dict[str, str] = None,
                  frame: bool = False) -> None:
@@ -695,7 +695,7 @@ class FormElementGroup(Widget):
         :param request: HTTP request object received by the parent form widget.
         :type request: HttpRequest
         :param layout: Layout of the form elements in the group.
-        :type layout: :class:`FormElementGroup.FormElementsLayout`
+        :type layout: :class:`FormElementGroup.Layout`
         :param toggleable: Determines whether the group should be toggleable.
         :type toggleable: bool
         :param toggleable_params: Parameters for the toggleable group. Should contain the

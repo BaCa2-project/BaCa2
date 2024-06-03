@@ -48,7 +48,9 @@ function sidenavTabClickHandler(tab) {
     activeTab.removeClass('active');
     tab.addClass('active').parents('.sidenav-tab').addClass('active');
     activeContent.trigger('tab-deactivated').removeClass('active').slideUp();
-    activatedContent.trigger('tab-activated').addClass('active').slideDown();
+    activatedContent.trigger('tab-activated').addClass('active').slideDown(
+        () => activatedContent.trigger('tab-expanded')
+    );
     addTabIDToURL(tab.attr('id'));
 }
 

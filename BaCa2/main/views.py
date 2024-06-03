@@ -512,6 +512,7 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
             data_post_url=CourseModelView.post_url(),
             paging=TableWidgetPaging(10, False),
             link_format_string='/course/[[id]]/',
+            table_height=50,
         ))
 
         users_table = TableWidget(
@@ -526,6 +527,7 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
                 TextColumn(name='f_is_superuser', header=_('Superuser'), searchable=True),
             ],
             paging=TableWidgetPaging(25, False),
+            table_height=50,
         )
         self.add_widget(context, users_table)
 
@@ -576,10 +578,11 @@ class DashboardView(BaCa2LoggedInView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        announcements = [a for a in Announcement.objects.all() if a.released]
+        announcements = [a for a in Announcement.objects.filter(course=None) if a.released]
         announcements.sort(reverse=True)
         self.add_widget(context, AnnouncementBlock(name='announcements',
                                                    announcements=announcements))
+        context['display_announcements'] = len(announcements) > 0
         context['user_first_name'] = self.request.user.first_name
         return context
 
@@ -651,30 +654,40 @@ class DevelopmentTimelineView(BaCa2LoggedInView):
                          released=True),
 
             ReleaseEvent(tag='v.1.4-beta',
-                         date='29-05-2024',
+                         date='03-06-2024',
                          description=str(div(
                              'Zmiany widoczne dla użytkowników:',
                              ul(
-                                 li('Dodanie funkcjonalności grupowania wierszy w tabelach'),
-                                 li('Tłumaczenie aplikacji na język polski'),
+                                 li('Rozbudowanie funkcjonalności <i>code blocks</i> dodając '
+                                    'możliwość kopiowania kodu do schowka, włączania/wyłączania '
+                                    'numeracji linii oraz <i>soft wrap</i>'),
+                                 li('Dodanie ogłoszeń kursowych'),
+                                 li('Dodanie zakładki <i>overview</i> do kursów z informacjami o '
+                                    'wynikach osiągniętych przez użytkownika oraz ogłoszeniami'),
+                                 li('Poprawa czytelności stylizacji wierszy w tabelach zadań'
+                                    ' i submisji'),
+                                 li('Ulepszenie płynności animacji przy rozwijaniu i zwijaniu '
+                                    'zakładek przy użyciu biblioteki <i>OverlayScrollbars</i>'),
+                                 li('Poprawa layoutu strony głównej'),
                              ),
                              'Zmiany wewnętrzne:',
                              ul(_class='mb-0')(
-                                 li('Refaktoryzacja logiki widoków z pomocą wzorca Builder'),
-                                 li('Usprawnienie logiki walidacji "live" w formularzach'),
-                                 li('Finalizacja konfiguracji oraz deployment na serwerze '
-                                    'produkcyjnym z pomocą systemu Kubernetes'),
+                                 li('Praca nad usprawnieniem logiki budowania widoków i '
+                                    'definiowania widgetów przy pomocy wzorca <i>builder</i>'),
+                                 li('Usprawnienie logiki walidacji live w formularzach'),
+                                 li('Ciąg dalszy prac nad nowym package managerem')
                              )
                          )),
                          released=False),
             ReleaseEvent(tag='v.1.5-beta',
-                         date='05-06-2024',
+                         date='12-06-2024',
                          description=str(div(
                              'Zmiany widoczne dla użytkowników:',
                              ul(
                                  li('Rozbudowanie funkcjonalności tabeli przez wprowadzenie '
                                     'rozwijanych wierszy i formularzy w formie popup'),
-                                 li('Poprawki dotyczące UI/UX'),
+                                 li('Dodanie funkcjonalności grupowania wierszy w tabelach'),
+                                 li('Tłumaczenie aplikacji na język polski'),
                              ),
                              'Zmiany wewnętrzne:',
                              ul(_class='mb-0')(
@@ -682,13 +695,17 @@ class DevelopmentTimelineView(BaCa2LoggedInView):
                                     'systemu KOLEJKA dzięki multitask support'),
                                  li('Finalizacja refaktoryzacji logiki formularzy'),
                                  li('Implementacja nowego package managera'),
+                                 li('Finalizacja konfiguracji oraz deployment na serwerze '
+                                    'produkcyjnym z pomocą systemu Kubernetes'),
+                                 li('Ciąg dalszy prac nad nowym usprawnieniem logiki budowania '
+                                    'widoków i definiowania widgetów')
                              )
                          )),
                          released=False),
         ]
         self.add_widget(context, Timeline(name='dev_timeline',
                                           events=releases,
-                                          scroll_to='v.1.3-beta'))
+                                          scroll_to='v.1.4-beta'))
         return context
 
 

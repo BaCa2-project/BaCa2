@@ -38,7 +38,7 @@ class BriefResultSummary(Widget):
                 code=result_data['compile_log'],
                 language='log',
                 title=_('Compile log'),
-                show_line_numbers=False,
+                line_numbers=True,
                 display_wrapper=False
             )
             result_data['compile_log_widget'] = compile_log_widget.get_context()
@@ -50,7 +50,7 @@ class BriefResultSummary(Widget):
                 code=result_data['checker_log'],
                 language='log',
                 title=_('Checker log'),
-                show_line_numbers=False,
+                line_numbers=True,
                 display_wrapper=False
             )
             result_data['checker_log_widget'] = checker_log_widget.get_context()
