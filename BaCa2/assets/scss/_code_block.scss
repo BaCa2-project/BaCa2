@@ -2,6 +2,8 @@
 @import "functions";
 
 pre.code-block {
+    padding-right: 2.8rem !important;
+
     &.wrap-lines {
         overflow: hidden;
         white-space: pre-wrap;
@@ -23,11 +25,27 @@ pre.code-block {
 .code-toolbar {
     position: relative;
 
+    &:hover .toolbar {
+        opacity: 0.6;
+    }
+
     .toolbar {
+        opacity: 0.2;
         position: absolute;
         top: 0;
         right: 0;
         display: flex;
+        flex-direction: column;
+        padding: 0.5rem;
+        transition: opacity 0.3s ease-in-out;
+
+        &:hover {
+            opacity: 1;
+        }
+
+        .toolbar-item:not(:last-child) {
+            margin-bottom: 0.3rem;
+        }
 
         button {
             font-size: 0.875rem;

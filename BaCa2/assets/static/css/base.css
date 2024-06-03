@@ -1288,6 +1288,9 @@ html, body {
   --bs-form-valid-border-color: $red;
 }
 
+pre.code-block {
+  padding-right: 2.8rem !important;
+}
 pre.code-block.wrap-lines {
   overflow: hidden;
   white-space: pre-wrap;
@@ -1305,11 +1308,24 @@ pre.code-block.line-numbers-hidden .line-numbers-rows {
 .code-toolbar {
   position: relative;
 }
+.code-toolbar:hover .toolbar {
+  opacity: 0.6;
+}
 .code-toolbar .toolbar {
+  opacity: 0.2;
   position: absolute;
   top: 0;
   right: 0;
   display: flex;
+  flex-direction: column;
+  padding: 0.5rem;
+  transition: opacity 0.3s ease-in-out;
+}
+.code-toolbar .toolbar:hover {
+  opacity: 1;
+}
+.code-toolbar .toolbar .toolbar-item:not(:last-child) {
+  margin-bottom: 0.3rem;
 }
 .code-toolbar .toolbar button {
   font-size: 0.875rem;
