@@ -226,7 +226,7 @@ class CreateCourseFormWidget(FormWidget):
                 toggleable_params={'button_text_off': _('Add USOS data'),
                                    'button_text_on': _('Create without USOS data')},
                 frame=True,
-                layout=FormElementGroup.FormElementsLayout.HORIZONTAL
+                layout=FormElementGroup.Layout.HORIZONTAL
             ),
             submit_confirmation_popup=SubmitConfirmationPopup(
                 title=_('Confirm course creation'),
@@ -1078,16 +1078,16 @@ class CreateRoundFormWidget(FormWidget):
             element_groups=[
                 FormElementGroup(name='round_name_gr',
                                  elements=['round_name'],
-                                 layout=FormElementGroup.FormElementsLayout.HORIZONTAL),
+                                 layout=FormElementGroup.Layout.HORIZONTAL),
                 FormElementGroup(name='round_settings',
                                  elements=['fall_off_policy', 'score_selection_policy'],
-                                 layout=FormElementGroup.FormElementsLayout.HORIZONTAL),
+                                 layout=FormElementGroup.Layout.HORIZONTAL),
                 FormElementGroup(name='start_dates',
                                  elements=['start_date', 'reveal_date'],
-                                 layout=FormElementGroup.FormElementsLayout.HORIZONTAL),
+                                 layout=FormElementGroup.Layout.HORIZONTAL),
                 FormElementGroup(name='end_dates',
                                  elements=['end_date', 'deadline_date'],
-                                 layout=FormElementGroup.FormElementsLayout.HORIZONTAL)
+                                 layout=FormElementGroup.Layout.HORIZONTAL)
             ],
             **kwargs
         )
@@ -1258,16 +1258,16 @@ class EditRoundFormWidget(FormWidget):
             element_groups=[
                 FormElementGroup(name='round_name_gr',
                                  elements=['round_name'],
-                                 layout=FormElementGroup.FormElementsLayout.HORIZONTAL),
+                                 layout=FormElementGroup.Layout.HORIZONTAL),
                 FormElementGroup(name='round_settings',
                                  elements=['fall_off_policy', 'score_selection_policy'],
-                                 layout=FormElementGroup.FormElementsLayout.HORIZONTAL),
+                                 layout=FormElementGroup.Layout.HORIZONTAL),
                 FormElementGroup(name='start_dates',
                                  elements=['start_date', 'reveal_date'],
-                                 layout=FormElementGroup.FormElementsLayout.HORIZONTAL),
+                                 layout=FormElementGroup.Layout.HORIZONTAL),
                 FormElementGroup(name='end_dates',
                                  elements=['end_date', 'deadline_date'],
-                                 layout=FormElementGroup.FormElementsLayout.HORIZONTAL)
+                                 layout=FormElementGroup.Layout.HORIZONTAL)
             ],
             **kwargs
         )
@@ -1456,7 +1456,7 @@ class CreateTaskFormWidget(FormWidget):
             button_text=_('Add task'),
             element_groups=FormElementGroup(name='grading',
                                             elements=['points', 'judge_mode'],
-                                            layout=FormElementGroup.FormElementsLayout.HORIZONTAL),
+                                            layout=FormElementGroup.Layout.HORIZONTAL),
             **kwargs
         )
 
@@ -1585,7 +1585,7 @@ class SimpleEditTaskFormWidget(FormWidget):
             button_text=_('Edit task'),
             element_groups=FormElementGroup(name='grading',
                                             elements=['points', 'judge_mode'],
-                                            layout=FormElementGroup.FormElementsLayout.HORIZONTAL),
+                                            layout=FormElementGroup.Layout.HORIZONTAL),
             **kwargs
         )
 
@@ -1971,20 +1971,20 @@ class EditTaskFormWidget(FormWidget):
         grading_group = FormElementGroup(
             elements=[judge_mode_field, points_field],
             name='grading-settings',
-            layout=FormElementGroup.FormElementsLayout.HORIZONTAL
+            layout=FormElementGroup.Layout.HORIZONTAL
         )
 
         limit_group = FormElementGroup(
             elements=[memory_limit_field, time_limit_field, cpus_field],
             name='limits-settings',
-            layout=FormElementGroup.FormElementsLayout.HORIZONTAL
+            layout=FormElementGroup.Layout.HORIZONTAL
         )
 
         general_elements = general_fields + [grading_group, limit_group, extension_field]
         element_groups = [FormElementGroup(elements=general_elements,
                                            name='general-settings',
                                            title=_('General settings'),
-                                           layout=FormElementGroup.FormElementsLayout.VERTICAL)]
+                                           layout=FormElementGroup.Layout.VERTICAL)]
 
         for set_group in form.set_groups:
             set_group_fields = set_group['fields'].copy()
@@ -1996,20 +1996,20 @@ class EditTaskFormWidget(FormWidget):
             base_group = FormElementGroup(
                 elements=[name_field, weight_field],
                 name=f'{set_group["name"]}-base',
-                layout=FormElementGroup.FormElementsLayout.HORIZONTAL
+                layout=FormElementGroup.Layout.HORIZONTAL
             )
 
             limit_group = FormElementGroup(
                 elements=[memory_limit_field, time_limit_field],
                 name=f'{set_group["name"]}-limits',
-                layout=FormElementGroup.FormElementsLayout.HORIZONTAL
+                layout=FormElementGroup.Layout.HORIZONTAL
             )
 
             element_groups.append(
                 FormElementGroup(elements=set_group_fields + [base_group, limit_group],
                                  name=f'{set_group["name"]}-settings',
                                  title=set_group['name'],
-                                 layout=FormElementGroup.FormElementsLayout.VERTICAL,
+                                 layout=FormElementGroup.Layout.VERTICAL,
                                  frame=True)
             )
 
@@ -2023,20 +2023,20 @@ class EditTaskFormWidget(FormWidget):
                 limit_group = FormElementGroup(
                     elements=[memory_limit_field, time_limit_field],
                     name=f'{test_group["name"]}-limits',
-                    layout=FormElementGroup.FormElementsLayout.HORIZONTAL
+                    layout=FormElementGroup.Layout.HORIZONTAL
                 )
 
                 file_group = FormElementGroup(
                     elements=[input_field, output_field],
                     name=f'{test_group["name"]}-files',
-                    layout=FormElementGroup.FormElementsLayout.HORIZONTAL
+                    layout=FormElementGroup.Layout.HORIZONTAL
                 )
 
                 element_groups.append(
                     FormElementGroup(elements=test_group_fields + [limit_group, file_group],
                                      name=test_group['name'],
                                      title=test_group['name'],
-                                     layout=FormElementGroup.FormElementsLayout.VERTICAL,
+                                     layout=FormElementGroup.Layout.VERTICAL,
                                      frame=True)
                 )
 

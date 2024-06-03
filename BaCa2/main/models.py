@@ -2437,6 +2437,14 @@ class Announcement(models.Model):
     custom_date = models.DateTimeField(null=True, blank=True)
     #: Content of the announcement in HTML format.
     content = models.TextField(null=False, blank=False)
+    #: Course the announcement is assigned to. If no course is specified, the announcement is
+    # considered global and will be displayed on the main page.
+    course = models.ForeignKey(
+        to=Course,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
 
     class BasicAction(ModelAction):
         ADD = 'add', 'add_announcement'
@@ -2512,7 +2520,8 @@ class Announcement(models.Model):
             'date_created': self.date_created,
             'custom_date': self.custom_date,
             'date': self.date,
-            'content': self.content
+            'content': self.content,
+            'course': self.course.name if self.course else 'global'
         }
 
         if add_formatted_dates:

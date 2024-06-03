@@ -40,8 +40,8 @@ class AnnouncementsTable(TableWidget):
 
         if not cols:
             cols = [TextColumn(name='title', header=_('Title'), searchable=True),
-                    TextColumn(name='content', header=_('Content'), searchable=True),
-                    DatetimeColumn(name='date', header=_('Announcement date'), searchable=True)]
+                    DatetimeColumn(name='date', header=_('Announcement date'), searchable=True),
+                    TextColumn(name='course', header=_('Course'), searchable=True)]
 
         if allow_delete:
             delete_form = DeleteAnnouncementForm()
