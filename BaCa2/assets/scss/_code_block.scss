@@ -22,6 +22,7 @@ pre.code-block {
 }
 
 .code-toolbar {
+    overflow: hidden;
     position: relative;
 
     &:hover .toolbar {

@@ -1,4 +1,22 @@
 $(document).ready(function () {
+    function adjustCodeBlockHeight(codeBlock) {
+        const codeToolbar = codeBlock.closest('.code-toolbar');
+        const toolbar = codeToolbar.find('.toolbar');
+        const codeBlockHeight = codeBlock.height();
+        const toolbarHeight = toolbar.outerHeight();
+
+        if (toolbarHeight > codeBlockHeight) {
+            codeBlock.animate({height: toolbarHeight}, {
+                    duration: 500,
+                    easing: 'easeInOutQuad'
+            });
+        }
+    }
+
+    $('.code-block:not(:hidden)').each(function () {
+        adjustCodeBlockHeight($(this));
+    });
+
     $('.tab-content-wrapper').each(function () {
         const codeBlocks = $(this).find('.code-block');
         const lineNumbers = codeBlocks.find('.line-numbers-rows');
@@ -11,6 +29,7 @@ $(document).ready(function () {
 
         $(this).one('tab-expanded', function () {
             codeBlocks.each(function () {
+                adjustCodeBlockHeight($(this));
                 Prism.plugins.lineNumbers && Prism.plugins.lineNumbers.resize(this);
             });
 
