@@ -578,10 +578,11 @@ class DashboardView(BaCa2LoggedInView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        announcements = [a for a in Announcement.objects.all() if a.released]
+        announcements = [a for a in Announcement.objects.filter(course=None) if a.released]
         announcements.sort(reverse=True)
         self.add_widget(context, AnnouncementBlock(name='announcements',
                                                    announcements=announcements))
+        context['display_announcements'] = len(announcements) > 0
         context['user_first_name'] = self.request.user.first_name
         return context
 

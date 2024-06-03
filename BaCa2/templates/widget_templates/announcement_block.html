@@ -1,7 +1,7 @@
-<div class="announcement-block {{ annonucement_block.widget_class }}"
+<div class="announcement-block {{ annonucement_block.widget_class }} scrollable"
      id="{{ annonucement_block.name }}">
     {% for announcement in announcement_block.announcements %}
-        <div class="mb-3">
+        <div class="announcement-wrapper">
             {% include 'widget_templates/announcement.html' %}
         </div>
     {% endfor %}

@@ -1,9 +1,20 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block head %}
+    <link rel="stylesheet" href="{% static 'css/development_info.css' %}">
+{% endblock %}
 
 {% block content %}
-    {% with widgets.AnnouncementBlock.announcements as announcement_block %}
-        {% include 'widget_templates/announcement_block.html' %}
-    {% endwith %}
+    {% if display_announcements %}
+        <div class="row development-info-wrapper">
+            <div class="col-lg-5 col-12 announcements-col">
+                {% with widgets.AnnouncementBlock.announcements as announcement_block %}
+                        {% include 'widget_templates/announcement_block.html' %}
+                {% endwith %}
+            </div>
+            <div class="col-lg-7 col-12">
+    {% endif %}
 
     <h1>Cześć {{ user_first_name }},</h1>
     <p>Witaj w dostępie beta aplikacji BaCa2. W tym semestrze aplikacja będzie przechodzić dużą
@@ -38,4 +49,20 @@
             aplikacji w finalnej wersji.
         </li>
     </ul>
+
+    {% if display_announcements %}
+        </div>
+        </div>
+    {% endif %}
+
+    <script>
+        (function () {
+            const announcementsCol = $('.announcements-col');
+
+            if (announcementsCol.length === 0)
+                return;
+
+            const
+        }());
+    </script>
 {% endblock %}

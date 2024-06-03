@@ -1492,6 +1492,10 @@ pre.code-block.line-numbers-hidden .line-numbers-rows {
   margin-bottom: 0;
 }
 
+.announcement-block .announcement-wrapper:not(:last-child) {
+  margin-bottom: 1rem;
+}
+
 /*!
  * Bootstrap Icons v1.11.2 (https://icons.getbootstrap.com/)
  * Copyright 2019-2023 The Bootstrap Authors
