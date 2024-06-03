@@ -1244,7 +1244,7 @@ class Course(models.Model):
     # Metadata retrieval --------
 
     #: Returns the number of tasks in the course
-    get_tasks_number = inside_course()(Task.objects.count)
+    get_tasks_number = inside_course()(Task.objects.filter(is_legacy=False).count)
 
     #: Returns the number of submits in the course
     get_submits_number = inside_course()(Submit.objects.count)
@@ -1260,7 +1260,7 @@ class Course(models.Model):
         from core.choices import OK_FINAL_STATUSES
         from course.models import Task
 
-        tasks = Task.objects.all()
+        tasks = Task.objects.filter(is_legacy=False)
         cleared = 0
 
         for task in tasks:
