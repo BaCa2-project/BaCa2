@@ -2498,14 +2498,6 @@ class Announcement(models.Model):
         """
         return self.date >= other.date
 
-    def __eq__(self, other) -> bool:
-        """
-        :return: `True` if the announcement is the same age as the other announcement, `False`
-            otherwise.
-        :rtype: bool
-        """
-        return self.date == other.date
-
     def get_data(self, add_formatted_dates: bool = True) -> dict:
         """
         :return: Serialized data of the announcement.
