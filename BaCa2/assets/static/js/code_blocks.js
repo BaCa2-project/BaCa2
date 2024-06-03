@@ -1,10 +1,10 @@
 function codeBlockButtonsSetup() {
-    $(".line-numbers-btn").on("click", function() {
+    $(".line-numbers-btn").on("click", function () {
         const target = $(`#${$(this).data("target")}`);
         lineNumbersToggle(target);
     });
 
-    $(".line-wrap-btn").on("click", function() {
+    $(".line-wrap-btn").on("click", function () {
         const target = $(`#${$(this).data("target")}`);
         lineWrapToggle(target);
     });
@@ -20,10 +20,10 @@ function lineWrapToggle(codeBlock) {
     Prism.highlightElement(codeBlock.find('code')[0]);
 }
 
-$(document).ready(function() {
+$(document).ready(function () {
     codeBlockButtonsSetup();
 
-    $('.tab-content-wrapper').each(function() {
+    $('.tab-content-wrapper').each(function () {
         const codeBlocks = $(this).find('.code-block');
         const lineNumbers = codeBlocks.find('.line-numbers-rows');
 
@@ -33,8 +33,8 @@ $(document).ready(function() {
         if (!$(this).hasClass('active'))
             codeBlocks.addClass('line-numbers-hidden');
 
-        $(this).one('tab-expanded', function() {
-            codeBlocks.each(function() {
+        $(this).one('tab-expanded', function () {
+            codeBlocks.each(function () {
                 Prism.plugins.lineNumbers && Prism.plugins.lineNumbers.resize(this);
             });
 
@@ -43,7 +43,7 @@ $(document).ready(function() {
     });
 });
 
-Prism.plugins.toolbar.registerButton('select-code', function(env) {
+Prism.plugins.toolbar.registerButton('select-code', function (env) {
     const button = document.createElement('button');
     button.innerHTML = 'Select Code';
 
@@ -68,101 +68,93 @@ Prism.plugins.toolbar.registerButton('select-code', function(env) {
 });
 
 (function () {
-	if (typeof Prism === 'undefined' || typeof document === 'undefined') {
-		return;
-	}
+    if (typeof Prism === 'undefined' || typeof document === 'undefined') {
+        return;
+    }
 
-	if (!Prism.plugins.toolbar) {
-		console.warn('Copy to Clipboard plugin loaded before Toolbar plugin.');
-		return;
-	}
+    if (!Prism.plugins.toolbar) {
+        console.warn('Copy to Clipboard plugin loaded before Toolbar plugin.');
+        return;
+    }
 
-	function registerClipboard(element, copyInfo) {
-		element.addEventListener('click', function () {
-			copyTextToClipboard(copyInfo);
-		});
-	}
+    function registerClipboard(copyBtn, copyInfo) {
+        copyBtn.on('click', function () {
+            if (navigator.clipboard)
+                navigator.clipboard.writeText(copyInfo.getText())
+                         .then(copyInfo.success, copyInfo.error);
+            else
+                copyInfo.error();
+        });
+    }
 
-	function copyTextToClipboard(copyInfo) {
-		if (navigator.clipboard) {
-			navigator.clipboard.writeText(copyInfo.getText()).then(() => {
+    function selectElementText(element) {
+        window.getSelection().selectAllChildren(element);
+    }
 
-            }).catch(() => {
-
-            });
-		} else {
-
-		}
-	}
-
-	function selectElementText(element) {
-		window.getSelection().selectAllChildren(element);
-	}
-
-	function getSettings(startElement) {
+    function getSettings(startElement) {
         const settings = {
-            'copy': 'Copy',
+            'copy': $('<i class="bi bi-clipboard"></i>'),
             'copy-error': 'Press Ctrl+C to copy',
-            'copy-success': 'Copied!',
+            'copy-success': $('<i class="bi bi-clipboard-check"></i>'),
             'copy-timeout': 5000
         };
 
         const prefix = 'data-prismjs-';
+
         for (const key in settings) {
             const attr = prefix + key;
             let element = startElement;
-            while (element && !element.hasAttribute(attr)) {
-				element = element.parentElement;
-			}
-			if (element) {
-				settings[key] = element.getAttribute(attr);
-			}
-		}
-		return settings;
-	}
 
-	Prism.plugins.toolbar.registerButton('copy-to-clipboard', function (env) {
-        const element = env.element;
+            while (element.parent().length > 0 && element.attr(attr) === undefined)
+                element = element.parent();
 
-        const settings = getSettings(element);
+            if (element.attr(attr) !== undefined)
+                settings[key] = element.attr(attr);
+        }
 
-        const linkCopy = document.createElement('button');
-        linkCopy.className = 'copy-to-clipboard-button';
-		linkCopy.setAttribute('type', 'button');
-        const linkSpan = document.createElement('span');
-        linkCopy.appendChild(linkSpan);
+        return settings;
+    }
 
-		setState('copy');
+    Prism.plugins.toolbar.registerButton('copy-to-clipboard', function (env) {
+        const code = $(env.element)
+        const settings = getSettings(code);
+        const copyBtn = $('<button class="copy-to-clipboard-button" type="button"></button>');
+        const copySpan = $('<span></span>');
 
-		registerClipboard(linkCopy, {
-			getText: function () {
-				return element.textContent;
-			},
-			success: function () {
-				setState('copy-success');
+        copyBtn.addClass('btn btn-sm btn-outline-secondary');
+        copyBtn.append(copySpan);
+        setState('copy');
 
-				resetText();
-			},
-			error: function () {
-				setState('copy-error');
+        registerClipboard(copyBtn, {
+            getText: function () {
+                return code.text();
+            },
 
-				setTimeout(function () {
-					selectElementText(element);
-				}, 1);
+            success: function () {
+                setState('copy-success');
+                resetText();
+            },
 
-				resetText();
-			}
-		});
+            error: function () {
+                setState('copy-error');
+                setTimeout(function () {
+                    selectElementText(code[0]);
+                }, 1);
+                resetText();
+            }
+        });
 
-		return linkCopy;
+        return copyBtn[0];
 
-		function resetText() {
-			setTimeout(function () { setState('copy'); }, settings['copy-timeout']);
-		}
+        function resetText() {
+            setTimeout(function () {
+                setState('copy');
+            }, settings['copy-timeout']);
+        }
 
-		function setState(state) {
-			linkSpan.textContent = settings[state];
-			linkCopy.setAttribute('data-copy-state', state);
-		}
-	});
+        function setState(state) {
+            copySpan.html(settings[state]);
+            copySpan.attr('data-copy-state', state);
+        }
+    });
 }());
