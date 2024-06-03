@@ -1,28 +1,4 @@
-function codeBlockButtonsSetup() {
-    $(".line-numbers-btn").on("click", function () {
-        const target = $(`#${$(this).data("target")}`);
-        lineNumbersToggle(target);
-    });
-
-    $(".line-wrap-btn").on("click", function () {
-        const target = $(`#${$(this).data("target")}`);
-        lineWrapToggle(target);
-    });
-}
-
-function lineNumbersToggle(codeBlock) {
-    codeBlock.toggleClass('line-numbers');
-    codeBlock.find('.line-numbers-rows').toggleClass('d-none');
-}
-
-function lineWrapToggle(codeBlock) {
-    codeBlock.toggleClass('wrap-lines');
-    Prism.highlightElement(codeBlock.find('code')[0]);
-}
-
 $(document).ready(function () {
-    codeBlockButtonsSetup();
-
     $('.tab-content-wrapper').each(function () {
         const codeBlocks = $(this).find('.code-block');
         const lineNumbers = codeBlocks.find('.line-numbers-rows');
@@ -43,30 +19,6 @@ $(document).ready(function () {
     });
 });
 
-Prism.plugins.toolbar.registerButton('select-code', function (env) {
-    const button = document.createElement('button');
-    button.innerHTML = 'Select Code';
-
-    button.addEventListener('click', function () {
-        // Source: http://stackoverflow.com/a/11128179/2757940
-        if (document.body.createTextRange) { // ms
-            var range = document.body.createTextRange();
-            range.moveToElementText(env.element);
-            range.select();
-        } else if (window.getSelection) { // moz, opera, webkit
-            var selection = window.getSelection();
-            var range = document.createRange();
-            range.selectNodeContents(env.element);
-            selection.removeAllRanges();
-            selection.addRange(range);
-        }
-    });
-
-    $(button).addClass('btn btn-sm btn-outline-secondary');
-
-    return button;
-});
-
 (function () {
     if (typeof Prism === 'undefined' || typeof document === 'undefined') {
         return;
@@ -77,28 +29,7 @@ Prism.plugins.toolbar.registerButton('select-code', function (env) {
         return;
     }
 
-    function registerClipboard(copyBtn, copyInfo) {
-        copyBtn.on('click', function () {
-            if (navigator.clipboard)
-                navigator.clipboard.writeText(copyInfo.getText())
-                         .then(copyInfo.success, copyInfo.error);
-            else
-                copyInfo.error();
-        });
-    }
-
-    function selectElementText(element) {
-        window.getSelection().selectAllChildren(element);
-    }
-
-    function getSettings(startElement) {
-        const settings = {
-            'copy': $('<i class="bi bi-clipboard"></i>'),
-            'copy-error': 'Press Ctrl+C to copy',
-            'copy-success': $('<i class="bi bi-clipboard-check"></i>'),
-            'copy-timeout': 5000
-        };
-
+    function getSettings(settings, startElement) {
         const prefix = 'data-prismjs-';
 
         for (const key in settings) {
@@ -115,9 +46,42 @@ Prism.plugins.toolbar.registerButton('select-code', function (env) {
         return settings;
     }
 
+    function registerClipboard(copyBtn, copyInfo) {
+        copyBtn.on('click', function () {
+            if (navigator.clipboard)
+                navigator.clipboard.writeText(copyInfo.getText())
+                         .then(copyInfo.success, copyInfo.error);
+            else
+                copyInfo.error();
+        });
+    }
+
+    function selectElementText(element) {
+        window.getSelection().selectAllChildren(element);
+    }
+
+    function lineNumbersToggle(code) {
+        const codeBlock = code.closest('.code-block')
+        codeBlock.toggleClass('line-numbers');
+        codeBlock.find('.line-numbers-rows').toggleClass('d-none');
+    }
+
+    function lineWrapToggle(code) {
+        const codeBlock = code.closest('.code-block')
+        codeBlock.toggleClass('wrap-lines');
+        Prism.highlightElement(code[0]);
+    }
+
     Prism.plugins.toolbar.registerButton('copy-to-clipboard', function (env) {
+        const copySettings = {
+            'copy': $('<i class="bi bi-copy"></i>'),
+            'copy-error': $('<i class="bi bi-x-lg"></i>'),
+            'copy-success': $('<i class="bi bi-check-lg"></i>'),
+            'copy-timeout': 2500
+        };
+
         const code = $(env.element)
-        const settings = getSettings(code);
+        const settings = getSettings(copySettings, code);
         const copyBtn = $('<button class="copy-to-clipboard-button" type="button"></button>');
         const copySpan = $('<span></span>');
 
@@ -140,6 +104,9 @@ Prism.plugins.toolbar.registerButton('select-code', function (env) {
                 setTimeout(function () {
                     selectElementText(code[0]);
                 }, 1);
+                setTimeout(function () {
+                    alert('Error copying text to clipboard, press Ctrl+C to copy');
+                }, 100);
                 resetText();
             }
         });
@@ -155,6 +122,112 @@ Prism.plugins.toolbar.registerButton('select-code', function (env) {
         function setState(state) {
             copySpan.html(settings[state]);
             copySpan.attr('data-copy-state', state);
+        }
+    });
+
+    Prism.plugins.toolbar.registerButton('select-code', function (env) {
+        const selectSettings = {
+            'select': $('<i class="bi bi-text-left"></i>'),
+            'select-success': $('<i class="bi bi-check-lg"></i>'),
+            'select-timeout': 2500
+        };
+
+        const code = $(env.element)
+        const settings = getSettings(selectSettings, code);
+        const selectBtn = $('<button class="select-code-button" type="button"></button>');
+        const selectSpan = $('<span></span>');
+
+        selectBtn.addClass('btn btn-sm btn-outline-secondary');
+        selectBtn.append(selectSpan);
+        setState('select');
+
+        selectBtn.on('click', function () {
+            selectElementText(code[0]);
+            setState('select-success');
+            resetText();
+        });
+
+        return selectBtn[0];
+
+        function resetText() {
+            setTimeout(function () {
+                setState('select');
+            }, settings['select-timeout']);
+        }
+
+        function setState(state) {
+            selectSpan.html(settings[state]);
+            selectSpan.attr('data-select-state', state);
+        }
+    });
+
+    Prism.plugins.toolbar.registerButton('line-numbers', function (env) {
+        const lineNumbersSettings = {
+            'line-numbers': $('<i class="bi bi-list-ul"></i>'),
+            'line-numbers-hidden': $('<i class="bi bi-list-ol"></i>')
+        };
+
+        const code = $(env.element)
+        const settings = getSettings(lineNumbersSettings, code);
+        const lineNumbersBtn = $('<button class="line-numbers-btn" type="button"></button>');
+        const lineNumbersSpan = $('<span></span>');
+
+        lineNumbersBtn.addClass('btn btn-sm btn-outline-secondary');
+        lineNumbersBtn.append(lineNumbersSpan);
+        setState('line-numbers');
+
+        lineNumbersBtn.on('click', function () {
+            lineNumbersToggle(code);
+            switchState();
+        });
+
+        return lineNumbersBtn[0];
+
+        function switchState() {
+            if (lineNumbersSpan.attr('data-line-numbers-state') === 'line-numbers')
+                setState('line-numbers-hidden');
+            else
+                setState('line-numbers');
+        }
+
+        function setState(state) {
+            lineNumbersSpan.html(settings[state]);
+            lineNumbersSpan.attr('data-line-numbers-state', state);
+        }
+    });
+
+    Prism.plugins.toolbar.registerButton('line-wrap', function (env) {
+        const lineWrapSettings = {
+            'line-wrap': $('<i class="bi bi-text-wrap"></i>'),
+            'line-nowrap': $('<i class="bi bi-text-wrap"></i>')
+        };
+
+        const code = $(env.element)
+        const settings = getSettings(lineWrapSettings, code);
+        const lineWrapBtn = $('<button class="line-wrap-btn" type="button"></button>');
+        const lineWrapSpan = $('<span></span>');
+
+        lineWrapBtn.addClass('btn btn-sm btn-outline-secondary');
+        lineWrapBtn.append(lineWrapSpan);
+        setState('line-wrap');
+
+        lineWrapBtn.on('click', function () {
+            lineWrapToggle(code);
+            switchState();
+        });
+
+        return lineWrapBtn[0];
+
+        function switchState() {
+            if (lineWrapSpan.attr('data-line-wrap-state') === 'line-wrap')
+                setState('line-nowrap');
+            else
+                setState('line-wrap');
+        }
+
+        function setState(state) {
+            lineWrapSpan.html(settings[state]);
+            lineWrapSpan.attr('data-line-wrap-state', state);
         }
     });
 }());
