@@ -10,11 +10,13 @@
         <div class="tab-content">
             <div class="row course-overview-wrapper">
                 <div class="col-xl-6 col-12 announcements-col-wrapper">
-                    <div class="announcements-col">
-                        {% with widgets.AnnouncementBlock.announcements as announcement_block %}
-                                {% include 'widget_templates/announcement_block.html' %}
-                        {% endwith %}
-                    </div>
+                    {% if display_announcements %}
+                        <div class="announcements-col">
+                            {% with widgets.AnnouncementBlock.announcements as announcement_block %}
+                                    {% include 'widget_templates/announcement_block.html' %}
+                            {% endwith %}
+                        </div>
+                    {% endif %}
                 </div>
                 <div class="col-xl-6 col-12">
                     {% with widgets.TableWidget.course_overview_table as table_widget %}
