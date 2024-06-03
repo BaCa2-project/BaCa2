@@ -1243,11 +1243,23 @@ class Course(models.Model):
 
     # Metadata retrieval --------
 
-    #: Returns the number of tasks in the course
-    get_tasks_number = inside_course()(Task.objects.filter(is_legacy=False).count)
+    @inside_course(course_method=True)
+    def get_tasks_number(self) -> int:
+        """
+        :return: The number of tasks in the course.
+        :rtype: int
+        """
+        from course.models import Task
+        return Task.objects.filter(is_legacy=False).count()
 
-    #: Returns the number of submits in the course
-    get_submits_number = inside_course()(Submit.objects.count)
+    @inside_course(course_method=True)
+    def get_submits_number(self) -> int:
+        """
+        :return: The number of submits in the course.
+        :rtype: int
+        """
+        from course.models import Submit
+        return Submit.objects.filter(task__is_legacy=False).count()
 
     @inside_course(course_method=True)
     def get_member_cleared_tasks_number(self, user: User | str | int) -> int:
@@ -1281,7 +1293,7 @@ class Course(models.Model):
         """
         from course.models import Submit
         user = ModelsRegistry.get_user(user)
-        return Submit.objects.filter(usr=user.id).count()
+        return Submit.objects.filter(usr=user.id, task__is_legacy=False).count()
 
     @inside_course(course_method=True)
     def get_total_points(self) -> float:
@@ -1290,7 +1302,7 @@ class Course(models.Model):
         :rtype: float
         """
         from course.models import Task
-        return Task.objects.aggregate(Sum('points'))['points__sum'] or 0
+        return Task.objects.filter(is_legacy=False).aggregate(Sum('points'))['points__sum'] or 0
 
     @inside_course(course_method=True)
     def get_member_points(self, user: User | str | int) -> float:
@@ -1302,7 +1314,7 @@ class Course(models.Model):
         """
         from course.models import Task
 
-        tasks = Task.objects.all()
+        tasks = Task.objects.filter(is_legacy=False)
         score = 0
 
         for task in tasks:
