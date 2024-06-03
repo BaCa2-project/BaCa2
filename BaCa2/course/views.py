@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from core.choices import EMPTY_FINAL_STATUSES, BasicModelAction, ResultStatus, SubmitType
 from course.models import Result, Round, Submit, Task
 from course.routing import InCourse
-from main.models import Course, User
+from main.models import Announcement, Course, User
 from main.views import CourseModelView as CourseModelManagerView
 from main.views import RoleModelView, UserModelView
 from util.models_registry import ModelsRegistry
@@ -50,6 +50,7 @@ from widgets.listing.col_defs import RejudgeSubmitColumn
 from widgets.listing.columns import DatetimeColumn, FormSubmitColumn, TextColumn
 from widgets.listing.course import CourseOverviewTable, get_status_rules
 from widgets.navigation import Sidenav, SidenavTab
+from widgets.notification import AnnouncementBlock
 from widgets.text_display import TextDisplayer
 
 # ----------------------------------- Course views abstraction ---------------------------------- #
@@ -500,6 +501,11 @@ class CourseView(CourseTemplateView):
 
         course_overview_table = CourseOverviewTable(course=course, member=user)
         self.add_widget(context, course_overview_table)
+        announcements = [a for a in Announcement.objects.filter(course=course) if a.released]
+        announcements.sort(reverse=True)
+        self.add_widget(context, AnnouncementBlock(name='announcements',
+                                                   announcements=announcements))
+        context['display_announcements'] = len(announcements) > 0
 
         # members --------------------------------------------------------------------------------
 

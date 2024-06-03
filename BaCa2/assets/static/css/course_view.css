@@ -1,0 +1,39 @@
+:root {
+  --bs-form-valid-border-color: $red;
+}
+
+.course-overview-wrapper {
+  display: flex;
+}
+@media (max-width: 1199px) {
+  .course-overview-wrapper {
+    flex-direction: column;
+  }
+}
+@media (min-width: 1200px) {
+  .course-overview-wrapper {
+    flex-direction: row-reverse;
+  }
+  .course-overview-wrapper .announcements-col-wrapper {
+    padding-left: 0;
+  }
+}
+.course-overview-wrapper .announcements-col {
+  height: fit-content;
+  background-color: #171a1d;
+  padding: 0.7rem;
+  border-radius: var(--bs-border-radius);
+}
+.course-overview-wrapper .announcements-col .os-scrollbar:not(.os-scrollbar-unusable) {
+  position: relative;
+}
+.course-overview-wrapper .announcements-col .announcement-block {
+  max-height: 30rem;
+  overflow-y: auto;
+}
+
+[data-bs-theme=light] .announcements-col {
+  background-color: #D3CABD;
+}
+
+/*# sourceMappingURL=course_view.css.map */
