@@ -6,7 +6,7 @@ $(document).ready(function () {
         const toolbarHeight = toolbar.outerHeight();
 
         if (toolbarHeight > codeBlockHeight) {
-            codeBlock.animate({height: toolbarHeight}, {
+            codeBlock.animate({'min-height': toolbarHeight}, {
                     duration: 500,
                     easing: 'easeInOutQuad'
             });
