@@ -59,13 +59,10 @@ class CodeBlock(Widget):
         self.wrap_lines = wrap_lines
 
     def build(self) -> Self:
+        if self.language is None:
+            self.language = 'log'
         if not self.language:
             raise self.UnknownLanguageError('Language must be provided if code is a string.')
-
-        if self.code is None:
-            self._code = _('ERROR: Failed to read file.\n '
-                           'Make sure you have sent valid file as solution.')
-            self.language = 'log'
 
         if self.wrap_lines:
             self.add_class('wrap-lines')
@@ -107,13 +104,20 @@ class CodeBlock(Widget):
         :param code: Path to the file containing the code.
         :type code: Path
         """
+        if code.suffix[1:].lower() == 'zip':
+            self._code = _('Displaying contents of ZIP files is currently not supported.')
+            self.language = None
+            return
+
         try:
             with open(code, 'r', encoding='utf-8') as f:
-                self.code = f.read()
+                self._code = f.read()
             self.language = self.language or code.suffix[1:]
         except Exception as e:
             logger.warning(f'Failed to read file {code}: {e.__class__.__name__}: {e}')
-            self.code = None
+            self._code = _('ERROR: Failed to read file.\n '
+                           'Make sure you have sent valid file as solution.')
+            self.language = None
 
     def get_context(self) -> dict:
         return super().get_context() | {
