@@ -3,3 +3,6 @@ title: Liczby Doskonałe
 time_limit: 5 s
 
 memoryLimit: 256 MB
+
+allowedExtensions:
+  - cpp
