@@ -127,7 +127,8 @@ class SelectInput extends FormInput {
     constructor(input, formWidget) {
         super(input, formWidget);
         this.autoWidth = input.hasClass('auto-width');
-        this.placeholderOption = input.data('placeholder-option');
+        this.placeholderOptionText = input.data('placeholder-option');
+        this.hasPlaceholderOption = this.placeholderOptionText !== undefined;
     }
 
     formInputInit() {
@@ -143,7 +144,7 @@ class SelectInput extends FormInput {
         const tempOption = $('<option class="d-flex"></option>');
         tempDiv.appendTo('body');
         tempOption.appendTo(tempDiv);
-        tempOption.text(this.placeholderOption || '');
+        tempOption.text(this.placeholderOptionText || '');
 
         select.find('option').each(function () {
             tempOption.text($(this).text());
@@ -156,15 +157,15 @@ class SelectInput extends FormInput {
     }
 
     placeholderOptionInit() {
-        if (!this.placeholderOption) return;
+        if (!this.hasPlaceholderOption) return;
         this.input.prepend(
-            `<option class="placeholder" value="" selected>${this.placeholderOption}</option>`
+            `<option class="placeholder" value="" selected>${this.placeholderOptionText}</option>`
         );
     }
 
     liveValidationInit() {
         if (!this.liveValidation) return;
-        if (!this.placeholderOption) this.setValid();
+        if (!this.hasPlaceholderOption) this.setValid();
 
         const selectInput = this;
 
@@ -189,6 +190,67 @@ class SelectInput extends FormInput {
     getDefaultVal() {
         const selectedOption = this.input.find('option:selected');
         return selectedOption.length > 0 ? selectedOption.val() : '';
+    }
+}
+
+
+class ModelChoiceInput extends SelectInput {
+    constructor(input, formWidget) {
+        super(input, formWidget);
+        this.loading = false;
+        this.sourceUrl = input.data('source-url');
+        this.labelFormatString = input.data('label-format-string');
+        this.valueFormatString = input.data('value-format-string');
+        this.loadingOptionText = input.data('loading-option');
+        this.reloadBtn = input.closest('.input-group').find('.model-choice-field-reload-btn');
+    }
+
+    formInputInit() {
+        super.formInputInit();
+        this.loadModelChoiceOptions();
+        this.reloadBtnInit();
+    }
+
+    reloadBtnInit() {
+        const modelChoiceInput = this;
+
+        this.reloadBtn.on('click', function () {
+            modelChoiceInput.loadModelChoiceOptions();
+        });
+    }
+
+    loadModelChoiceOptions() {
+        if (this.loading) return;
+
+        this.loading = true;
+        this.input.addClass('loading');
+        this.clearValidation();
+        this.toggleInput(false);
+
+        const placeholderOption = this.input.find('option.placeholder');
+        placeholderOption.text(this.loadingOptionText);
+
+        $.ajax({
+                   url: this.sourceUrl,
+                   dataType: 'json',
+                   success: (response) => {
+                       this.input.find('option:not(.placeholder)').remove();
+
+                       for (const record of response.data)
+                           this.addModelChoiceOption(record);
+
+                       placeholderOption.text(this.placeholderOptionText);
+                       this.input.removeClass('loading');
+                       this.toggleInput(true);
+                       this.loading = false;
+                   }
+               })
+    }
+
+    addModelChoiceOption(data) {
+        const value = generateFormattedString(data, this.valueFormatString);
+        const label = generateFormattedString(data, this.labelFormatString);
+        this.input.append(`<option value="${value}">${label}</option>`);
     }
 }
 
@@ -524,6 +586,8 @@ class FormWidget {
     getInputObj(inputElement) {
         if (inputElement.hasClass('table-select-input'))
             return new TableSelectField(inputElement, this);
+        else if (inputElement.hasClass('model-choice-field'))
+            return new ModelChoiceInput(inputElement, this);
         else if (inputElement.is('select'))
             return new SelectInput(inputElement, this);
         else
@@ -572,18 +636,20 @@ $(document).ready(function () {
    });
 });
 
+$(document).on('tab-activated', function (e) {
+    const tab = $(e.target);
+
+    tab.find('.model-choice-field').each(function () {
+        const modelChoiceField = new ModelChoiceInput($(this), null);
+        modelChoiceField.loadModelChoiceOptions();
+    });
+});
+
 
 // ---------------------------------------- forms setup --------------------------------------- //
 
 function formsPreSetup() {
     tableSelectFieldSetup();
-
-    $(document).on('tab-activated', function (e) {
-        const tab = $(e.target);
-        tab.find('.model-choice-field').each(function () {
-            loadModelChoiceFieldOptions($(this));
-        });
-    });
 }
 
 function formsSetup() {
@@ -591,7 +657,6 @@ function formsSetup() {
         new FormWidget($(this)).formWidgetInit();
     });
 
-    modelChoiceFieldSetup();
     textAreaFieldSetup();
     tableSelectFieldValidationSetup();
     formObserverSetup();
@@ -852,61 +917,6 @@ function tableSelectFieldCheckboxClickHandler(tableSelectField, input) {
         ids.push($(row).data('record-id'));
 
     input.val(ids.join(',')).trigger('input');
-}
-
-// ------------------------------------ model choice field ------------------------------------ //
-
-function modelChoiceFieldSetup() {
-    $('.model-choice-field').each(function () {
-        loadModelChoiceFieldOptions($(this));
-    });
-
-    $('.model-choice-field-reload-btn').each(function () {
-        const field = $(this).closest('.input-group').find('.model-choice-field');
-        $(this).on('click', function () {
-            loadModelChoiceFieldOptions(field);
-        });
-    });
-}
-
-function loadModelChoiceFieldOptions(field) {
-    if (field.hasClass('loading')) return;
-    field.addClass('loading');
-
-    const sourceURL = field.data('source-url');
-    const labelFormatString = field.data('label-format-string');
-    const valueFormatString = field.data('value-format-string');
-    const placeholderOption = field.find('option.placeholder');
-    const placeholderText = placeholderOption.text();
-
-    field.removeClass('is-valid').removeClass('is-invalid');
-    field.attr('disabled', true);
-    placeholderOption.text(field.data('loading-option'));
-
-    $.ajax({
-               url: sourceURL,
-               dataType: 'json',
-               success: function (response) {
-                   field.find('option:not(.placeholder)').remove();
-
-                   for (const record of response.data) {
-                       addModelChoiceFieldOption(field,
-                                                 record,
-                                                 labelFormatString,
-                                                 valueFormatString)
-                   }
-
-                   placeholderOption.text(placeholderText);
-                   field.attr('disabled', false);
-                   field.removeClass('loading');
-               }
-           })
-}
-
-function addModelChoiceFieldOption(field, data, labelFormatString, valueFormatString) {
-    const value = generateFormattedString(data, valueFormatString);
-    const label = generateFormattedString(data, labelFormatString);
-    field.append(`<option value="${value}">${label}</option>`);
 }
 
 // ------------------------------------------ helpers ----------------------------------------- //
