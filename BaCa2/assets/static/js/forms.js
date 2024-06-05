@@ -1,5 +1,6 @@
 class FormInput {
-    constructor(input) {
+    constructor(input, formWidget) {
+        this.formWidget = formWidget;
         this.input = input;
         this.inputId = input.attr('id');
         this.required = input.prop('required');
@@ -14,6 +15,7 @@ class FormInput {
 
     formInputInit() {
         this.toggleInit();
+        this.liveValidationInit();
     }
 
     toggleInit() {
@@ -27,6 +29,11 @@ class FormInput {
             toggleTextSwitchBtn($(this));
             formInput.toggleInput($(this).hasClass('switch-on'), true);
         });
+    }
+
+    liveValidationInit() {
+        if (!this.liveValidation) return;
+        if (this.hasValue()) this.setValid();
     }
 
     getLabel() {
@@ -117,8 +124,66 @@ class FormInput {
 
 
 class SelectInput extends FormInput {
-    constructor(input) {
-        super(input);
+    constructor(input, formWidget) {
+        super(input, formWidget);
+        this.autoWidth = input.hasClass('auto-width');
+        this.placeholderOption = input.data('placeholder-option');
+    }
+
+    formInputInit() {
+        super.formInputInit();
+        this.autoWidthInit();
+        this.placeholderOptionInit();
+    }
+
+    autoWidthInit() {
+        if (!this.autoWidth) return;
+        const select = this.input;
+        const tempDiv = $('<div></div>').css({'position': 'absolute', 'visibility': 'hidden'});
+        const tempOption = $('<option class="d-flex"></option>');
+        tempDiv.appendTo('body');
+        tempOption.appendTo(tempDiv);
+        tempOption.text(this.placeholderOption || '');
+
+        select.find('option').each(function () {
+            tempOption.text($(this).text());
+
+            if (tempOption.width() > select.width())
+                select.width(tempOption.width());
+        });
+
+        tempDiv.remove()
+    }
+
+    placeholderOptionInit() {
+        if (!this.placeholderOption) return;
+        this.input.prepend(
+            `<option class="placeholder" value="" selected>${this.placeholderOption}</option>`
+        );
+    }
+
+    liveValidationInit() {
+        if (!this.liveValidation) return;
+        if (!this.placeholderOption) this.setValid();
+
+        const selectInput = this;
+
+        this.input.on('input', function () {
+            selectInput.validateInput();
+        });
+    }
+
+    validateInput() {
+        if (this.hasValue()) {
+            this.setValid();
+            this.formWidget.refreshSubmitBtn();
+        }
+        else {
+            this.setInvalid();
+            this.formWidget.disableSubmitBtn();
+        }
+
+        this.input.trigger('validation-complete');
     }
 
     getDefaultVal() {
@@ -129,23 +194,21 @@ class SelectInput extends FormInput {
 
 
 class TableSelectField extends FormInput {
-    constructor(input) {
-        super(input);
+    constructor(input, formWidget) {
+        super(input, formWidget);
         this.wrapper = input.closest('.table-select-field');
         this.tableId = input.data('table-id');
         this.tableWidget = window.tableWidgets[`#${this.tableId}`];
     }
 
     setValid() {
-        if (!this.liveValidation)
-            return;
+        if (!this.liveValidation) return;
         this.input.removeClass('is-invalid').addClass('is-valid');
         this.wrapper.removeClass('is-invalid').addClass('is-valid');
     }
 
     setInvalid() {
-        if (!this.liveValidation)
-            return;
+        if (!this.liveValidation) return;
         this.input.removeClass('is-valid').addClass('is-invalid');
         this.wrapper.removeClass('is-valid').addClass('is-invalid');
     }
@@ -288,6 +351,8 @@ class FormWidget {
 
         for (const input of Object.values(this.inputs))
             input.formInputInit();
+
+        this.refreshSubmitBtn();
     }
 
     submitHandlingInit() {
@@ -343,13 +408,13 @@ class FormWidget {
 
         this.form.find('.group-toggle-btn').each(function () {
             const btn = $(this);
-            FormWidget.resetToggleableGroup(btn);
+            formWidget.resetToggleableGroup(btn);
 
 
             btn.on('click', function (e) {
                 e.preventDefault();
                 toggleTextSwitchBtn(btn);
-                FormWidget.toggleElementGroup(btn.closest('.form-element-group'),
+                formWidget.toggleElementGroup(btn.closest('.form-element-group'),
                                               btn.hasClass('switch-on'));
                 formWidget.refreshSubmitBtn();
             });
@@ -357,20 +422,22 @@ class FormWidget {
     }
 
     resetToggleableGroups() {
+        const formWidget = this;
+
         this.form.find('.group-toggle-btn').each(function () {
-            FormWidget.resetToggleableGroup($(this));
+            formWidget.resetToggleableGroup($(this));
         });
     }
 
-    static resetToggleableGroup(toggleBtn) {
+    resetToggleableGroup(toggleBtn) {
         const on = toggleBtn.data('initial-state') !== 'off';
         const elementGroup = toggleBtn.closest('.form-element-group');
         if (toggleBtn.hasClass('switch-on') && !on) toggleTextSwitchBtn(toggleBtn);
-        FormWidget.toggleElementGroup(elementGroup, on);
+        this.toggleElementGroup(elementGroup, on);
     }
 
-    static toggleElementGroup(elementGroup, on) {
-        FormWidget.getElementGroupInputs(elementGroup).each(function () {
+    toggleElementGroup(elementGroup, on) {
+        this.getElementGroupInputs(elementGroup).each(function () {
             this.toggleInput(on);
         });
     }
@@ -431,33 +498,36 @@ class FormWidget {
     }
 
     getInputs(ids = null) {
+        const formWidget = this;
+
         if (ids) {
             if (Array.isArray(ids))
                 ids = ids.map(id => `#${id}`).join(', ');
             return this.form.find(ids).map(function () {
-                return FormWidget.getInputObj($(this));
+                return formWidget.getInputObj($(this));
             });
         }
 
         return this.form.find('input, select, textarea').map(function () {
-            return FormWidget.getInputObj($(this));
+            return formWidget.getInputObj($(this));
         });
     }
 
-    static getElementGroupInputs(elementGroup) {
+    getElementGroupInputs(elementGroup) {
+        const formWidget = this;
+
         return elementGroup.find('input, select, textarea').map(function () {
-            return FormWidget.getInputObj($(this));
+            return formWidget.getInputObj($(this));
         });
     }
 
-    static getInputObj(inputElement) {
+    getInputObj(inputElement) {
         if (inputElement.hasClass('table-select-input'))
-            return new TableSelectField(inputElement);
-        else if (inputElement.is('select')) {
-            return new SelectInput(inputElement);
-        }
+            return new TableSelectField(inputElement, this);
+        else if (inputElement.is('select'))
+            return new SelectInput(inputElement, this);
         else
-            return new FormInput(inputElement);
+            return new FormInput(inputElement, this);
     }
 
     refreshSubmitBtn() {
@@ -482,6 +552,10 @@ class FormWidget {
         }
     }
 
+    disableSubmitBtn() {
+        this.submitBtn.attr('disabled', true);
+    }
+
     resetForm() {
         for (const input of Object.values(this.inputs))
             input.resetInput();
@@ -489,6 +563,14 @@ class FormWidget {
         this.refreshSubmitBtn();
     }
 }
+
+
+$(document).ready(function () {
+   $(':not(form) select.auto-width').each(function () {
+        const selectInput = new SelectInput($(this), null);
+        selectInput.autoWidthInit();
+   });
+});
 
 
 // ---------------------------------------- forms setup --------------------------------------- //
@@ -515,11 +597,11 @@ function formsSetup() {
     //confirmationPopupSetup();
     //responsePopupsSetup();
     //refreshButtonSetup();
-    selectFieldSetup();
-    choiceFieldSetup();
+    //selectFieldSetup();
+    //choiceFieldSetup();
     modelChoiceFieldSetup();
     textAreaFieldSetup();
-    liveValidationSetup();
+    //liveValidationSetup();
     tableSelectFieldValidationSetup();
     formObserverSetup();
 }
@@ -1099,6 +1181,8 @@ function tableSelectFieldCheckboxClickHandler(tableSelectField, input) {
 
 function selectFieldSetup() {
     $('select.auto-width').each(function () {
+        console.log(this);
+        console.log($(this).width());
         const select = $(this);
         const tempDiv = $('<div></div>').css({'position': 'absolute', 'visibility': 'hidden'});
         const tempOption = $('<option class="d-flex"></option>');
