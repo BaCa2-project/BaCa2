@@ -51,8 +51,6 @@ RUN --mount=type=cache,target="$POETRY_CACHE_DIR" \
 
 COPY . .
 
-RUN poetry run python manage.py collectstatic --noinput
-
 RUN chmod +x entrypoint.sh
 
 ENTRYPOINT ["/bin/bash", "entrypoint.sh"]
