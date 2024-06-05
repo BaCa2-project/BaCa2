@@ -46,18 +46,3 @@
 
     {% include 'widget_templates/forms/field_errors.html' %}
 </div>
-
-{% if form_widget.live_validation and field.field.widget.input_type != "password" %}
-    <script>
-        $(document).ready( function () {
-            $('#{{ field.name }}').on('input', function () {
-                updateValidationStatus(
-                    this,
-                    '{{ form_widget.form_cls }}',
-                    '{{ form_widget.form.instance_id }}',
-                    '{{ form_widget.field_min_length|get_item:field.name }}',
-                    '{% url 'field-validation' %}');
-            });
-        });
-    </script>
-{% endif %}
