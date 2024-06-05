@@ -3,14 +3,20 @@ class FormInput {
         this.formWidget = formWidget;
         this.input = input;
         this.inputId = input.attr('id');
+        this.inputName = input.attr('name');
         this.required = input.prop('required');
         this.defaultVal = this.getDefaultVal();
-        this.liveValidation = input.data('live-validation');
         this.toggleBtn = input.closest('.input-group').find('.field-toggle-btn');
         this.toggleable = this.toggleBtn.length > 0;
 
         const label = input.closest('form').find(`label[for="${this.inputId}"`)
         this.label = label.length > 0 ? label : null;
+
+        const minLength = input.data('min-length');
+        this.minLength = minLength ? parseInt(minLength) : false;
+
+        const liveValidation = input.data('live-validation');
+        this.liveValidation = input.attr('type') !== 'password' ? liveValidation : false;
     }
 
     formInputInit() {
@@ -34,6 +40,56 @@ class FormInput {
     liveValidationInit() {
         if (!this.liveValidation) return;
         if (this.hasValue()) this.setValid();
+
+        const formInput = this;
+
+        this.input.on('input', function () {
+            formInput.validateInput();
+        });
+    }
+
+    validateInput() {
+        const val = this.getVal();
+        const formCls = this.formWidget.formCls;
+        const formInstanceId = this.formWidget.formInstanceId;
+        const fieldName = this.inputName;
+        const minLength = this.minLength;
+        const url = this.formWidget.formValidationUrl;
+
+        $.ajax({
+            url: url,
+            data: {
+                'formCls': formCls,
+                'form_instance_id': formInstanceId,
+                'fieldName': fieldName,
+                'value': val,
+                'minLength': minLength,
+            },
+            dataType: 'json',
+            success: (data) => {
+                if (data.status === 'ok') {
+                    if (val.length > 0)
+                        this.setValid();
+                    else
+                        this.clearValidation();
+
+                    this.formWidget.refreshSubmitBtn();
+                } else {
+                    this.setInvalid();
+                    this.removeInvalidFeedback();
+
+                    for (let i = 0; i < data.messages.length; i++) {
+                        this.input.closest('.input-block').append(
+                            `<div class="invalid-feedback">${data.messages[i]}</div>`
+                        );
+                    }
+
+                    this.formWidget.disableSubmitBtn();
+                }
+
+                this.input.trigger('validation-complete');
+            }
+               });
     }
 
     getLabel() {
@@ -65,6 +121,7 @@ class FormInput {
     setValid() {
         if (!this.liveValidation) return;
         this.input.removeClass('is-invalid').addClass('is-valid');
+        this.removeInvalidFeedback();
     }
 
     setInvalid() {
@@ -74,7 +131,13 @@ class FormInput {
 
     clearValidation() {
         this.input.removeClass('is-valid').removeClass('is-invalid');
-        this.input.closest('.input-block').find('.invalid-feedback').remove();
+        this.removeInvalidFeedback();
+    }
+
+    removeInvalidFeedback() {
+        const inputBlock = this.input.closest('.input-block');
+        const invalidFeedback = inputBlock.find('.invalid-feedback');
+        invalidFeedback.remove();
     }
 
     isValid() {
@@ -263,6 +326,10 @@ class TableSelectField extends FormInput {
         this.tableWidget = window.tableWidgets[`#${this.tableId}`];
     }
 
+    formInputInit() {
+        super.formInputInit();
+    }
+
     setValid() {
         if (!this.liveValidation) return;
         this.input.removeClass('is-invalid').addClass('is-valid');
@@ -278,6 +345,16 @@ class TableSelectField extends FormInput {
     clearValidation() {
         this.input.removeClass('is-valid').removeClass('is-invalid');
         this.wrapper.removeClass('is-valid').removeClass('is-invalid');
+    }
+
+    getSelectedIds() {
+        const ids = [];
+
+        this.tableWidget.getAllSelectedRows().each(function () {
+            ids.push($(this).data('record-id'));
+        });
+
+        return ids;
     }
 }
 
@@ -381,6 +458,9 @@ class ResponsePopup extends FormPopup {
 class FormWidget {
     constructor(form) {
         this.form = form;
+        this.formCls = form.data('form-cls');
+        this.formInstanceId = form.data('form-instance-id');
+        this.formValidationUrl = form.data('validation-url');
         this.wrapper = form.closest('.form-wrapper');
         this.submitBtn = form.find('.submit-btn');
         this.ajaxSubmit = form.attr('action') !== undefined;
@@ -634,6 +714,12 @@ $(document).ready(function () {
         const selectInput = new SelectInput($(this), null);
         selectInput.autoWidthInit();
    });
+
+   $('.form-floating textarea').each(function () {
+        const rows = $(this).attr('rows');
+        const height = `${rows * 2.1}rem`;
+        $(this).css('height', height);
+   });
 });
 
 $(document).on('tab-activated', function (e) {
@@ -657,86 +743,8 @@ function formsSetup() {
         new FormWidget($(this)).formWidgetInit();
     });
 
-    textAreaFieldSetup();
     tableSelectFieldValidationSetup();
     formObserverSetup();
-}
-
-function textAreaFieldSetup() {
-    $('.form-floating textarea').each(function () {
-        const rows = $(this).attr('rows');
-        const height = `${rows * 2.1}rem`;
-        $(this).css('height', height);
-    });
-}
-
-// -------------------------------------- live validation ------------------------------------- //
-
-function updateValidationStatus(field, formCls, formInstanceId, minLength, url) {
-    const value = $(field).val();
-    $.ajax({
-               url: url,
-               data: {
-                   'formCls': formCls,
-                   'form_instance_id': formInstanceId,
-                   'fieldName': $(field).attr('name'),
-                   'value': value,
-                   'minLength': minLength,
-               },
-               dataType: 'json',
-               success: function (data) {
-                   if (data.status === 'ok') {
-                       $(field).removeClass('is-invalid');
-
-                       if (value.length > 0)
-                           $(field).addClass('is-valid');
-                       else
-                           $(field).removeClass('is-valid');
-
-                       const input_block = $(field).closest('.input-block');
-                       $(input_block).find('.invalid-feedback').remove();
-
-                       submitButtonRefresh($(field).closest('form'));
-                   } else {
-                       $(field).removeClass('is-valid');
-                       $(field).addClass('is-invalid');
-
-                       const input_block = $(field).closest('.input-block');
-                       $(input_block).find('.invalid-feedback').remove();
-
-                       for (let i = 0; i < data.messages.length; i++) {
-                           $(input_block).append(
-                               "<div class='invalid-feedback'>" + data.messages[i] + "</div>"
-                           );
-                       }
-
-                       $(field).closest('form').find('.submit-btn').attr('disabled', true);
-                   }
-
-                   $(field).trigger('validation-complete');
-               }
-           });
-}
-
-function submitButtonRefresh(form) {
-    if (form.find('.live-validation').filter(function () {
-        return ($(this)).find('input:not(:disabled):not(.is-valid):required').length > 0 ||
-               $(this).find('select:not(:disabled):not(.is-valid)').length > 0;
-    }).length > 0)
-        form.find('.submit-btn').attr('disabled', true);
-    else
-        enableSubmitButton(form.find('.submit-btn'));
-}
-
-function enableSubmitButton(submitButton) {
-    if (submitButton.is(':disabled')) {
-        submitButton.attr('disabled', false);
-        submitButton.addClass('submit-enabled');
-
-        setTimeout(function () {
-            submitButton.removeClass('submit-enabled');
-        }, 300);
-    }
 }
 
 // --------------------------------------- form observer -------------------------------------- //
@@ -862,7 +870,7 @@ function tableSelectFieldSetup() {
             const form = tableSelectField.closest('form');
             const tableWidget = window.tableWidgets[`#${tableId}`];
 
-            table.find('.select').on('change', function () {
+            tableSelectField.find('.select').on('change', function () {
                 tableSelectFieldCheckboxClickHandler(tableSelectField, input);
             });
 
