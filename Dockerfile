@@ -53,4 +53,6 @@ COPY . .
 
 RUN chmod +x entrypoint.sh
 
+RUN mkdir -p /usr/share/baca2_share/packages
+
 ENTRYPOINT ["/bin/bash", "entrypoint.sh"]

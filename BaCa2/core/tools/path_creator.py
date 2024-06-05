@@ -5,8 +5,10 @@ from pathlib import Path
 
 class PathCreator:
     class _Path(ABC):
-        def __init__(self, path: Path, overwrite: bool = False):
+        def __init__(self, path: Path | str, overwrite: bool = False):
             self.path = path
+            if isinstance(self.path, str):
+                self.path = Path(self.path)
             self.overwrite = overwrite
 
         def __str__(self):
