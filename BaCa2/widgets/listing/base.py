@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List
+import logging
+from typing import Any, Dict, List, Self
 
 from django.http import HttpRequest
 from django.utils.functional import Promise
@@ -11,6 +12,8 @@ from widgets.base import Widget
 from widgets.forms import BaCa2ModelForm, FormWidget
 from widgets.listing.columns import Column, DeleteColumn, SelectColumn
 from widgets.popups.forms import SubmitConfirmationPopup
+
+logger = logging.getLogger(__name__)
 
 
 class TableWidget(Widget):
@@ -66,7 +69,7 @@ class TableWidget(Widget):
                  refresh: bool = False,
                  refresh_interval: int = 30,
                  default_sorting: bool = True,
-                 default_order_col: str = '',
+                 default_order_col: str | None = None,
                  default_order_asc: bool = True,
                  stripe_rows: bool = True,
                  highlight_rows_on_hover: bool = False,
@@ -157,64 +160,18 @@ class TableWidget(Widget):
         """
         super().__init__(name=name, request=request)
 
-        if display_title and not title:
-            raise Widget.ParameterError('Title must be set if display_title is True.')
-
         self.title = title
         self.display_title = display_title
-
-        if not default_order_col and default_sorting:
-            default_order_col = next(col.name for col in cols if getattr(col, 'sortable'))
-
-        if allow_select:
-            cols.insert(0, SelectColumn())
-
-        if allow_delete:
-            if not delete_form:
-                raise self.ParameterError('Delete form must be set if allow_delete is True.')
-            if not data_post_url:
-                raise self.ParameterError('Data post url must be set if allow_delete is True.')
-
-            delete_record_form_widget = DeleteRecordFormWidget(
-                request=request,
-                form=delete_form,
-                post_url=data_post_url,
-                name=f'{name}_delete_record_form'
-            )
-            cols.append(DeleteColumn())
-        else:
-            delete_record_form_widget = None
+        self.allow_select = allow_select
+        self.delete_form = delete_form
+        self.data_post_url = data_post_url
         self.allow_delete = allow_delete
-        self.delete_record_form_widget = delete_record_form_widget
-
-        if allow_select and allow_delete:
-            self.delete_button = True
-        else:
-            self.delete_button = False
-
-        if stripe_rows:
-            self.add_class('stripe')
-        if highlight_rows_on_hover or link_format_string:
-            self.add_class('row-hover')
-        if link_format_string:
-            self.add_class('link-records')
-        if hide_col_headers:
-            self.add_class('no-header')
-
-        for col in cols:
-            col.request = request
+        self.allow_select = allow_select
+        self.stripe_rows = stripe_rows
+        self.highlight_rows_on_hover = highlight_rows_on_hover
+        self.hide_col_headers = hide_col_headers
         self.cols = cols
-
-        if isinstance(data_source, str):
-            self.data_source_url = data_source
-            self.data_source = json.dumps([])
-            self.ajax = True
-        else:
-            self.data_source_url = ''
-            self.data_source = json.dumps(self.parse_static_data(data_source, self.cols),
-                                          ensure_ascii=False)
-            self.ajax = False
-
+        self.data_source = data_source
         self.allow_global_search = allow_global_search
         self.deselect_on_filter = deselect_on_filter
         self.link_format_string = link_format_string
@@ -222,48 +179,165 @@ class TableWidget(Widget):
         self.paging = paging
         self.refresh = refresh
         self.refresh_interval = refresh_interval * 1000
-
-        if self.delete_button or self.refresh_button:
-            self.table_buttons = True
-        else:
-            self.table_buttons = False
-
         self.default_sorting = default_sorting
-        self.default_order = 'asc' if default_order_asc else 'desc'
-
-        if default_sorting:
-            self.default_order_col = self.get_default_order_col_index(default_order_col, self.cols)
-        else:
-            self.default_order_col = 0
-
-        if table_height:
-            self.limit_height = True
-            self.table_height = f'{table_height}vh'
-            self.resizable_height = resizable_height
-        else:
-            self.limit_height = False
-            self.table_height = ''
-            self.resizable_height = False
-
+        self.default_order_asc = default_order_asc
+        self.default_order_col = default_order_col
+        self.table_height = table_height
+        self.resizable_height = resizable_height
         self.row_styling_rules = row_styling_rules or []
         self.language_cdn = ''  # self.LOCALISATION.get(language)
         # TODO: Localisation overwrites our table styling. For now it's disabled. BWA-65
 
-    @staticmethod
-    def get_default_order_col_index(default_order_col: str, cols: List[Column]) -> int:
-        """
-        :param default_order_col: The name of the column to use for default ordering.
-        :type default_order_col: str
-        :param cols: List of columns to be displayed in the table.
-        :type cols: List[:class:`Column`]
-        :return: The index of the column to use for default ordering.
-        :rtype: int
-        """
-        try:
-            return next(index for index, col in enumerate(cols)
-                        if getattr(col, 'name') == default_order_col)
-        except StopIteration:
-            raise Widget.ParameterError(f'Column {default_order_col} not in the table')
+    @property
+    def display_title(self) -> bool:
+        return self._display_title
+
+    @display_title.setter
+    def display_title(self, value: bool) -> None:
+        if not self.title:
+            logger.warning('Table widget title must be set if display_title is True.')
+        self._display_title = value
+
+    @property
+    def data_source(self) -> str | List[Dict[str, Any]]:
+        return self._data_source
+
+    @data_source.setter
+    def data_source(self, value: str | List[Dict[str, Any]]) -> None:
+        if isinstance(value, str):
+            self._data_source = value
+            self.data_source_url = value
+            self.ajax = True
+        else:
+            self._data_source = value
+            self.data_source_url = ''
+            self.ajax = False
+
+    @property
+    def table_height(self) -> int | None:
+        return self._table_height
+
+    @table_height.setter
+    def table_height(self, value: int | None) -> None:
+        if value is not None and (value < 0):
+            raise ValueError('Table height cannot be negative')
+
+        self._table_height = value
+
+        if value is not None:
+            self.limit_height = True
+        else:
+            self.limit_height = False
+
+    @property
+    def default_order_asc(self) -> bool:
+        return self._default_order_asc
+
+    @default_order_asc.setter
+    def default_order_asc(self, value: bool) -> None:
+        self._default_order_asc = value
+        self.default_order = 'asc' if value else 'desc'
+
+    @property
+    def default_order_col(self) -> str:
+        return self._default_order_col
+
+    @default_order_col.setter
+    def default_order_col(self, value: str | None) -> None:
+        if isinstance(value, str) and value not in [col.name for col in self.cols]:
+            raise ValueError(f'Could not find column named: {value} in the table')
+        self._default_order_col = value
+
+    @property
+    def default_order_col_index(self) -> int:
+        if not self.default_sorting:
+            return -1
+
+        if self.default_order_col is None:
+            try:
+                return next(index for index, col in enumerate(self.cols)
+                            if getattr(col, 'sortable'))
+            except StopIteration:
+                raise Widget.ParameterError('Default sorting is enabled but no sortable column '
+                                            'found in the table')
+
+        return next(index for index, col in enumerate(self.cols)
+                    if getattr(col, 'name') == self.default_order_col)
+
+    @property
+    def delete_button(self) -> bool:
+        return self.allow_delete and self.allow_select
+
+    def has_buttons(self) -> bool:
+        return self.delete_button or self.refresh_button
+
+    def display_util_header(self) -> bool:
+        return self.display_title or self.allow_global_search or self.has_buttons()
+
+    def parse_static_data(self) -> None:
+        assert isinstance(self._data_source, list), 'Static data source must be a list of dicts'
+
+        for col in self.cols:
+            for record in self._data_source:
+                if col.name not in record:
+                    record[col.name] = '---'
+
+        for record in self._data_source:
+            for key, value in record.items():
+                if not str(value).strip():
+                    record[key] = '---'
+                if isinstance(value, Promise):
+                    record[key] = str(value)
+
+        for index, record in enumerate(self._data_source):
+            if 'id' not in record:
+                record['id'] = index
+
+    def build(self) -> Self:
+        if self.display_title and not self.title:
+            raise Widget.ParameterError('Title must be set if display_title is True.')
+
+        if self.ajax:
+            self._data_source = []
+        else:
+            self.parse_static_data()
+
+        if self.allow_select:
+            self.cols.insert(0, SelectColumn())
+
+        if self.allow_delete:
+            self._build_delete_form_widget()
+            self.cols.append(DeleteColumn())
+        else:
+            self.delete_form = None
+
+        self._table_height = f'{self.table_height}vh' if self.limit_height else ''
+        self._build_widget_class()
+        super().build()
+        return self
+
+    def _build_delete_form_widget(self) -> None:
+        if not self.delete_form:
+            raise self.ParameterError('Delete form must be set if allow_delete is True.')
+        if not self.data_post_url:
+            raise self.ParameterError('Data post url must be set if allow_delete is True.')
+
+        self.delete_form = DeleteRecordFormWidget(
+            request=self.request,
+            form=self.delete_form,
+            post_url=self.data_post_url,
+            name=f'{self.name}_delete_record_form'
+        ).get_context()
+
+    def _build_widget_class(self) -> None:
+        if self.stripe_rows:
+            self.add_class('stripe')
+        if self.highlight_rows_on_hover or self.link_format_string:
+            self.add_class('row-hover')
+        if self.link_format_string:
+            self.add_class('link-records')
+        if self.hide_col_headers:
+            self.add_class('no-header')
 
     def get_context(self) -> Dict[str, Any]:
         return super().get_context() | {
@@ -274,12 +348,12 @@ class TableWidget(Widget):
             'deselect_on_filter': json.dumps(self.deselect_on_filter),
             'ajax': json.dumps(self.ajax),
             'data_source_url': self.data_source_url,
-            'data_source': self.data_source,
+            'data_source': json.dumps(self.data_source, ensure_ascii=False),
             'link_format_string': self.link_format_string or json.dumps(False),
             'cols': [col.get_context() for col in self.cols],
             'DT_cols_data': [col.data_tables_context() for col in self.cols],
             'cols_num': len(self.cols),
-            'table_buttons': self.table_buttons,
+            'table_buttons': self.has_buttons(),
             'paging': self.paging.get_context() if self.paging else json.dumps(False),
             'resizable_height': self.resizable_height,
             'limit_height': json.dumps(self.limit_height),
@@ -288,52 +362,14 @@ class TableWidget(Widget):
             'refresh_interval': self.refresh_interval,
             'refresh_button': json.dumps(self.refresh_button),
             'default_sorting': json.dumps(self.default_sorting),
-            'default_order_col': self.default_order_col,
+            'default_order_col': self.default_order_col_index,
             'default_order': self.default_order,
             'allow_delete': self.allow_delete,
             'delete_button': self.delete_button,
-            'delete_record_form_widget': self.delete_record_form_widget.get_context()
-            if self.delete_record_form_widget else None,
+            'delete_record_form_widget': self.delete_form,
             'row_styling_rules': [rule.get_context() for rule in self.row_styling_rules],
             'localisation_cdn': self.language_cdn
         }
-
-    def display_util_header(self) -> bool:
-        """
-        :return: Whether to display the util header above the table.
-        :rtype: bool
-        """
-        return self.display_title or self.table_buttons or self.allow_global_search
-
-    @staticmethod
-    def parse_static_data(data: List[Dict[str, Any]], cols: List[Column]) -> List[Dict[str, Any]]:
-        """
-        :param data: List of dictionaries representing table rows.
-        :type data: List[Dict[str, Any]]
-        :param cols: List of columns to be displayed in the table.
-        :type cols: List[:class:`Column`]
-        :return: List of dictionaries representing table rows with unique ids for each record and
-            all columns present in each record (if not present, the column is set to a "---"
-            string).
-        :rtype: List[Dict[str, Any]]
-        """
-        for col in cols:
-            for record in data:
-                if col.name not in record:
-                    record[col.name] = '---'
-
-        for record in data:
-            for key, value in record.items():
-                if not str(value).strip():
-                    record[key] = '---'
-                if isinstance(value, Promise):
-                    record[key] = str(value)
-
-        for index, record in enumerate(data):
-            if 'id' not in record:
-                record['id'] = index
-
-        return data
 
 
 class TableWidgetPaging:
