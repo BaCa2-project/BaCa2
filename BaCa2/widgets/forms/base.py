@@ -619,10 +619,11 @@ class FormWidget(Widget):
 
         self.field_min_length = {}
         for field_name in self.form.fields.keys():
-            if hasattr(self.form.fields[field_name], 'min_length'):
+            if hasattr(self.form.fields[field_name], 'min_length') and \
+                    self.form.fields[field_name].min_length is not None:
                 self.field_min_length[field_name] = self.form.fields[field_name].min_length
             else:
-                self.field_min_length[field_name] = False
+                self.field_min_length[field_name] = json.dumps(False)
 
     def get_context(self) -> Dict[str, Any]:
         return super().get_context() | {

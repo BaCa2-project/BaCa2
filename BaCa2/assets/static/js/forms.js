@@ -1,19 +1,27 @@
 class FormInput {
-    constructor(input) {
+    constructor(input, formWidget) {
+        this.formWidget = formWidget;
         this.input = input;
         this.inputId = input.attr('id');
+        this.inputName = input.attr('name');
         this.required = input.prop('required');
         this.defaultVal = this.getDefaultVal();
-        this.liveValidation = input.data('live-validation');
         this.toggleBtn = input.closest('.input-group').find('.field-toggle-btn');
         this.toggleable = this.toggleBtn.length > 0;
 
         const label = input.closest('form').find(`label[for="${this.inputId}"`)
         this.label = label.length > 0 ? label : null;
+
+        const minLength = input.data('min-length');
+        this.minLength = minLength ? parseInt(minLength) : false;
+
+        const liveValidation = input.data('live-validation');
+        this.liveValidation = input.attr('type') !== 'password' ? liveValidation : false;
     }
 
     formInputInit() {
         this.toggleInit();
+        this.liveValidationInit();
     }
 
     toggleInit() {
@@ -27,6 +35,61 @@ class FormInput {
             toggleTextSwitchBtn($(this));
             formInput.toggleInput($(this).hasClass('switch-on'), true);
         });
+    }
+
+    liveValidationInit() {
+        if (!this.liveValidation) return;
+        if (this.hasValue()) this.setValid();
+
+        const formInput = this;
+
+        this.input.on('input', function () {
+            formInput.validateInput();
+        });
+    }
+
+    validateInput() {
+        const val = this.getVal();
+        const formCls = this.formWidget.formCls;
+        const formInstanceId = this.formWidget.formInstanceId;
+        const fieldName = this.inputName;
+        const minLength = this.minLength;
+        const url = this.formWidget.formValidationUrl;
+
+        $.ajax({
+            url: url,
+            data: {
+                'formCls': formCls,
+                'form_instance_id': formInstanceId,
+                'fieldName': fieldName,
+                'value': val,
+                'minLength': minLength,
+            },
+            dataType: 'json',
+            success: (data) => {
+                if (data.status === 'ok') {
+                    if (val.length > 0)
+                        this.setValid();
+                    else
+                        this.clearValidation();
+
+                    this.formWidget.refreshSubmitBtn();
+                } else {
+                    this.setInvalid();
+                    this.removeInvalidFeedback();
+
+                    for (let i = 0; i < data.messages.length; i++) {
+                        this.input.closest('.input-block').append(
+                            `<div class="invalid-feedback">${data.messages[i]}</div>`
+                        );
+                    }
+
+                    this.formWidget.disableSubmitBtn();
+                }
+
+                this.input.trigger('validation-complete');
+            }
+               });
     }
 
     getLabel() {
@@ -58,6 +121,7 @@ class FormInput {
     setValid() {
         if (!this.liveValidation) return;
         this.input.removeClass('is-invalid').addClass('is-valid');
+        this.removeInvalidFeedback();
     }
 
     setInvalid() {
@@ -67,7 +131,13 @@ class FormInput {
 
     clearValidation() {
         this.input.removeClass('is-valid').removeClass('is-invalid');
-        this.input.closest('.input-block').find('.invalid-feedback').remove();
+        this.removeInvalidFeedback();
+    }
+
+    removeInvalidFeedback() {
+        const inputBlock = this.input.closest('.input-block');
+        const invalidFeedback = inputBlock.find('.invalid-feedback');
+        invalidFeedback.remove();
     }
 
     isValid() {
@@ -117,8 +187,67 @@ class FormInput {
 
 
 class SelectInput extends FormInput {
-    constructor(input) {
-        super(input);
+    constructor(input, formWidget) {
+        super(input, formWidget);
+        this.autoWidth = input.hasClass('auto-width');
+        this.placeholderOptionText = input.data('placeholder-option');
+        this.hasPlaceholderOption = this.placeholderOptionText !== undefined;
+    }
+
+    formInputInit() {
+        super.formInputInit();
+        this.autoWidthInit();
+        this.placeholderOptionInit();
+    }
+
+    autoWidthInit() {
+        if (!this.autoWidth) return;
+        const select = this.input;
+        const tempDiv = $('<div></div>').css({'position': 'absolute', 'visibility': 'hidden'});
+        const tempOption = $('<option class="d-flex"></option>');
+        tempDiv.appendTo('body');
+        tempOption.appendTo(tempDiv);
+        tempOption.text(this.placeholderOptionText || '');
+
+        select.find('option').each(function () {
+            tempOption.text($(this).text());
+
+            if (tempOption.width() > select.width())
+                select.width(tempOption.width());
+        });
+
+        tempDiv.remove()
+    }
+
+    placeholderOptionInit() {
+        if (!this.hasPlaceholderOption) return;
+        this.input.prepend(
+            `<option class="placeholder" value="" selected>${this.placeholderOptionText}</option>`
+        );
+    }
+
+    liveValidationInit() {
+        if (!this.liveValidation) return;
+        if (!this.hasPlaceholderOption) this.setValid();
+
+        const selectInput = this;
+
+        this.input.on('input', function () {
+            selectInput.validateInput();
+        });
+    }
+
+    validateInput() {
+        if (this.hasValue()) {
+            this.setValid();
+            this.formWidget.refreshSubmitBtn();
+        }
+        else {
+            this.setInvalid();
+            this.formWidget.disableSubmitBtn();
+        }
+
+        this.input.trigger('validation-complete');
     }
 
     getDefaultVal() {
@@ -128,31 +257,148 @@ class SelectInput extends FormInput {
 }
 
 
+class ModelChoiceInput extends SelectInput {
+    constructor(input, formWidget) {
+        super(input, formWidget);
+        this.loading = false;
+        this.sourceUrl = input.data('source-url');
+        this.labelFormatString = input.data('label-format-string');
+        this.valueFormatString = input.data('value-format-string');
+        this.loadingOptionText = input.data('loading-option');
+        this.reloadBtn = input.closest('.input-group').find('.model-choice-field-reload-btn');
+    }
+
+    formInputInit() {
+        super.formInputInit();
+        this.loadModelChoiceOptions();
+        this.reloadBtnInit();
+    }
+
+    reloadBtnInit() {
+        const modelChoiceInput = this;
+
+        this.reloadBtn.on('click', function () {
+            modelChoiceInput.loadModelChoiceOptions();
+        });
+    }
+
+    loadModelChoiceOptions() {
+        if (this.loading) return;
+
+        this.loading = true;
+        this.input.addClass('loading');
+        this.clearValidation();
+        this.toggleInput(false);
+
+        const placeholderOption = this.input.find('option.placeholder');
+        placeholderOption.text(this.loadingOptionText);
+
+        $.ajax({
+                   url: this.sourceUrl,
+                   dataType: 'json',
+                   success: (response) => {
+                       this.input.find('option:not(.placeholder)').remove();
+
+                       for (const record of response.data)
+                           this.addModelChoiceOption(record);
+
+                       placeholderOption.text(this.placeholderOptionText);
+                       this.input.removeClass('loading');
+                       this.toggleInput(true);
+                       this.loading = false;
+                   }
+               })
+    }
+
+    addModelChoiceOption(data) {
+        const value = generateFormattedString(data, this.valueFormatString);
+        const label = generateFormattedString(data, this.labelFormatString);
+        this.input.append(`<option value="${value}">${label}</option>`);
+    }
+}
+
+
 class TableSelectField extends FormInput {
-    constructor(input) {
-        super(input);
+    constructor(input, formWidget) {
+        super(input, formWidget);
         this.wrapper = input.closest('.table-select-field');
         this.tableId = input.data('table-id');
         this.tableWidget = window.tableWidgets[`#${this.tableId}`];
     }
 
+    formInputInit() {
+        super.formInputInit();
+        this.tableSelectFieldInit(this.formWidget.form);
+    }
+
+    tableSelectFieldInit(form) {
+        this.wrapper.find('.select').on('change', () => {
+            this.updateInput();
+        });
+
+        form.on('submit-complete', () => {
+            this.tableWidget.table.one('draw.dt', () => {
+                this.tableWidget.updateSelectHeader();
+            });
+
+            this.tableWidget.DTObj.ajax.reload(() => {
+                this.tableWidget.table.trigger('table-reload');
+            });
+        });
+
+        if (this.getVal().length > 0) {
+            const recordIds = this.getVal().split(',');
+
+            for (const id of recordIds) {
+                const row = this.tableWidget.table.find(`tr[data-record-id="${id}"]`);
+                const checkbox = row.find('.select .select-checkbox');
+                row.addClass('row-selected');
+                checkbox.prop('checked', true);
+            }
+
+            this.tableWidget.updateSelectHeader();
+        }
+    }
+
+    resetInput() {
+        super.resetInput();
+        this.tableWidget.getRowsInOrder().each(function () {
+            $(this).removeClass('row-selected');
+            $(this).find('.select-checkbox').prop('checked', false);
+        });
+        this.tableWidget.updateSelectHeader();
+    }
+
     setValid() {
-        if (!this.liveValidation)
-            return;
-        this.input.removeClass('is-invalid').addClass('is-valid');
+        if (!this.liveValidation) return;
+        super.setValid();
         this.wrapper.removeClass('is-invalid').addClass('is-valid');
     }
 
     setInvalid() {
-        if (!this.liveValidation)
-            return;
-        this.input.removeClass('is-valid').addClass('is-invalid');
+        if (!this.liveValidation) return;
+        super.setInvalid();
         this.wrapper.removeClass('is-valid').addClass('is-invalid');
     }
 
     clearValidation() {
-        this.input.removeClass('is-valid').removeClass('is-invalid');
+        super.clearValidation();
         this.wrapper.removeClass('is-valid').removeClass('is-invalid');
+    }
+
+    getSelectedIds() {
+        const ids = [];
+
+        this.tableWidget.getAllSelectedRows().each(function () {
+            ids.push($(this).data('record-id'));
+        });
+
+        return ids;
+    }
+
+    updateInput() {
+        const ids = this.getSelectedIds();
+        this.input.val(ids.join(',')).trigger('input');
     }
 }
 
@@ -256,6 +502,9 @@ class ResponsePopup extends FormPopup {
 class FormWidget {
     constructor(form) {
         this.form = form;
+        this.formCls = form.data('form-cls');
+        this.formInstanceId = form.data('form-instance-id');
+        this.formValidationUrl = form.data('validation-url');
         this.wrapper = form.closest('.form-wrapper');
         this.submitBtn = form.find('.submit-btn');
         this.ajaxSubmit = form.attr('action') !== undefined;
@@ -288,6 +537,8 @@ class FormWidget {
 
         for (const input of Object.values(this.inputs))
             input.formInputInit();
+
+        this.refreshSubmitBtn();
     }
 
     submitHandlingInit() {
@@ -318,9 +569,8 @@ class FormWidget {
     }
 
     refreshBtnInit() {
-        const formWidget = this;
-        this.form.find('.form-refresh-button').on('click', function () {
-            formWidget.resetForm();
+        this.form.find('.form-refresh-button').on('click', () => {
+            this.resetForm();
         });
     }
 
@@ -343,13 +593,13 @@ class FormWidget {
 
         this.form.find('.group-toggle-btn').each(function () {
             const btn = $(this);
-            FormWidget.resetToggleableGroup(btn);
+            formWidget.resetToggleableGroup(btn);
 
 
             btn.on('click', function (e) {
                 e.preventDefault();
                 toggleTextSwitchBtn(btn);
-                FormWidget.toggleElementGroup(btn.closest('.form-element-group'),
+                formWidget.toggleElementGroup(btn.closest('.form-element-group'),
                                               btn.hasClass('switch-on'));
                 formWidget.refreshSubmitBtn();
             });
@@ -357,20 +607,22 @@ class FormWidget {
     }
 
     resetToggleableGroups() {
+        const formWidget = this;
+
         this.form.find('.group-toggle-btn').each(function () {
-            FormWidget.resetToggleableGroup($(this));
+            formWidget.resetToggleableGroup($(this));
         });
     }
 
-    static resetToggleableGroup(toggleBtn) {
+    resetToggleableGroup(toggleBtn) {
         const on = toggleBtn.data('initial-state') !== 'off';
         const elementGroup = toggleBtn.closest('.form-element-group');
         if (toggleBtn.hasClass('switch-on') && !on) toggleTextSwitchBtn(toggleBtn);
-        FormWidget.toggleElementGroup(elementGroup, on);
+        this.toggleElementGroup(elementGroup, on);
     }
 
-    static toggleElementGroup(elementGroup, on) {
-        FormWidget.getElementGroupInputs(elementGroup).each(function () {
+    toggleElementGroup(elementGroup, on) {
+        this.getElementGroupInputs(elementGroup).each(function () {
             this.toggleInput(on);
         });
     }
@@ -431,33 +683,38 @@ class FormWidget {
     }
 
     getInputs(ids = null) {
+        const formWidget = this;
+
         if (ids) {
             if (Array.isArray(ids))
                 ids = ids.map(id => `#${id}`).join(', ');
             return this.form.find(ids).map(function () {
-                return FormWidget.getInputObj($(this));
+                return formWidget.getInputObj($(this));
             });
         }
 
         return this.form.find('input, select, textarea').map(function () {
-            return FormWidget.getInputObj($(this));
+            return formWidget.getInputObj($(this));
         });
     }
 
-    static getElementGroupInputs(elementGroup) {
+    getElementGroupInputs(elementGroup) {
+        const formWidget = this;
+
         return elementGroup.find('input, select, textarea').map(function () {
-            return FormWidget.getInputObj($(this));
+            return formWidget.getInputObj($(this));
         });
     }
 
-    static getInputObj(inputElement) {
+    getInputObj(inputElement) {
         if (inputElement.hasClass('table-select-input'))
-            return new TableSelectField(inputElement);
-        else if (inputElement.is('select')) {
-            return new SelectInput(inputElement);
-        }
+            return new TableSelectField(inputElement, this);
+        else if (inputElement.hasClass('model-choice-field'))
+            return new ModelChoiceInput(inputElement, this);
+        else if (inputElement.is('select'))
+            return new SelectInput(inputElement, this);
         else
-            return new FormInput(inputElement);
+            return new FormInput(inputElement, this);
     }
 
     refreshSubmitBtn() {
@@ -482,6 +739,10 @@ class FormWidget {
         }
     }
 
+    disableSubmitBtn() {
+        this.submitBtn.attr('disabled', true);
+    }
+
     resetForm() {
         for (const input of Object.values(this.inputs))
             input.resetInput();
@@ -490,371 +751,48 @@ class FormWidget {
     }
 }
 
-
-// ---------------------------------------- forms setup --------------------------------------- //
-
-function formsPreSetup() {
-    tableSelectFieldSetup();
-
+(function () {
     $(document).on('tab-activated', function (e) {
         const tab = $(e.target);
+
         tab.find('.model-choice-field').each(function () {
-            loadModelChoiceFieldOptions($(this));
+            const modelChoiceField = new ModelChoiceInput($(this), null);
+            modelChoiceField.loadModelChoiceOptions();
         });
     });
-}
+
+    $(document).on('init.dt table-reload', function (e) {
+        const table = $(e.target);
+        const tableSelectField = table.closest('.table-select-field');
+
+        if (tableSelectField.length === 0) return;
+
+        const input = tableSelectField.find('.table-select-input');
+        const form = tableSelectField.closest('form');
+
+        new TableSelectField(input, null).tableSelectFieldInit(form);
+    });
+
+    $(document).ready(function () {
+       $(':not(form) select.auto-width').each(function () {
+            const selectInput = new SelectInput($(this), null);
+            selectInput.autoWidthInit();
+       });
+
+       $('.form-floating textarea').each(function () {
+            const rows = $(this).attr('rows');
+            const height = `${rows * 2.1}rem`;
+            $(this).css('height', height);
+       });
+    });
+}());
+
+// ---------------------------------------- forms setup --------------------------------------- //
 
 function formsSetup() {
     $('form').each(function () {
         new FormWidget($(this)).formWidgetInit();
     });
-
-    //ajaxPostSetup();
-    //toggleableGroupSetup();
-    //toggleableFieldSetup();
-    //confirmationPopupSetup();
-    //responsePopupsSetup();
-    //refreshButtonSetup();
-    selectFieldSetup();
-    choiceFieldSetup();
-    modelChoiceFieldSetup();
-    textAreaFieldSetup();
-    liveValidationSetup();
-    tableSelectFieldValidationSetup();
-    formObserverSetup();
-}
-
-function ajaxPostSetup() {
-    $('form').filter(function () {
-        return $(this).attr("action") !== undefined;
-    }).on('submit', function (e) {
-        e.preventDefault();
-        handleAjaxSubmit($(this));
-    });
-}
-
-function refreshButtonSetup() {
-    $('form').each(function () {
-        const form = $(this);
-        form.find('.form-refresh-button').on('click', function () {
-            formRefresh(form);
-        });
-    });
-}
-
-function liveValidationSetup() {
-    $('form').each(function () {
-        $(this).find('.live-validation').each(function () {
-            $(this).find('input').filter(function () {
-                return $(this).val() !== undefined && $(this).val().length > 0;
-            }).addClass('is-valid');
-
-            $(this).find('textarea').filter(function () {
-                return $(this).val() !== undefined && $(this).val().length > 0;
-            }).addClass('is-valid');
-
-            $(this).find('select').filter(function () {
-                return $(this).val() !== null && $(this).val().length > 0;
-            }).addClass('is-valid');
-        })
-        submitButtonRefresh($(this));
-    });
-}
-
-function textAreaFieldSetup() {
-    $('.form-floating textarea').each(function () {
-        const rows = $(this).attr('rows');
-        const height = `${rows * 2.1}rem`;
-        $(this).css('height', height);
-    });
-}
-
-// --------------------------------------- toggle setup --------------------------------------- //
-
-function toggleableFieldSetup() {
-    const buttons = $('.field-toggle-btn');
-
-    buttons.each(function () {
-        toggleableFieldButtonInit($(this));
-    });
-
-    buttons.on('click', function (e) {
-        toggleFieldButtonClickHandler(e, $(this));
-    });
-}
-
-function toggleableFieldButtonInit(button) {
-    let on = button.data('initial-state') !== 'off';
-    if (button.hasClass('switch-on') && !on)
-        toggleTextSwitchBtn(button);
-    toggleField(button.closest('.input-group').find('input'), on);
-}
-
-function toggleableGroupSetup() {
-    const buttons = $('.group-toggle-btn');
-
-    buttons.each(function () {
-        toggleableGroupButtonInit($(this));
-    });
-
-    buttons.on('click', function (e) {
-        toggleGroupButtonClickHandler(e, $(this));
-    });
-}
-
-function toggleableGroupButtonInit(button) {
-    let on = button.data('initial-state') !== 'off';
-    if (button.hasClass('switch-on') && !on)
-        toggleTextSwitchBtn(button);
-    toggleFieldGroup(button.closest('.form-element-group'), on);
-}
-
-// ---------------------------------------- popup setup --------------------------------------- //
-
-function confirmationPopupSetup() {
-    const formWrappers = $('.form-wrapper').filter(function () {
-        return $(this).find('.form-confirmation-popup').length > 0;
-    });
-
-    formWrappers.each(function () {
-        const form = $(this).find('form');
-        const popup = $(this).find('.form-confirmation-popup');
-        const submitBtn = form.find('.submit-btn');
-        submitBtn.on('click', function (e) {
-            e.preventDefault();
-            renderConfirmationPopup(popup, form);
-        });
-    });
-
-    $('.form-confirmation-popup .submit-btn').on('click', function () {
-        $(this).closest('.form-confirmation-popup').modal('hide');
-        $('#' + $(this).data('form-target')).submit();
-    });
-}
-
-function responsePopupsSetup() {
-    const forms = $('form').filter(function () {
-        return $(this).data('show-response-popups');
-    });
-
-    forms.on('submit-success', function (e, data) {
-        const popup = $(`#${$(this).data('submit-success-popup')}`);
-        renderResponsePopup(popup, data);
-        popup.modal('show');
-    });
-
-    forms.on('submit-failure', function (e, data) {
-        const popup = $(`#${$(this).data('submit-failure-popup')}`);
-        renderResponsePopup(popup, data);
-        popup.modal('show');
-    });
-}
-
-// ---------------------------------------- ajax submit --------------------------------------- //
-
-function handleAjaxSubmit(form) {
-    const formData = new FormData(form[0]);
-    $.ajax({
-               type: 'POST',
-               url: form.attr('action'),
-               data: formData,
-               contentType: false,
-               processData: false,
-               success: function (data) {
-                   formRefresh(form);
-
-                   form.trigger('submit-complete', [data]);
-
-                   if (data.status === 'success')
-                       form.trigger('submit-success', [data]);
-                   else {
-                       form.trigger('submit-failure', [data]);
-
-                       if (data.status === 'invalid')
-                           form.trigger('submit-invalid', [data]);
-                       else if (data.status === 'impermissible')
-                           form.trigger('submit-impermissible', [data]);
-                       else if (data.status === 'error')
-                           form.trigger('submit-error', [data]);
-                   }
-               }
-           });
-}
-
-// ----------------------------------- field & group toggle ----------------------------------- //
-
-function toggleFieldButtonClickHandler(e, btn) {
-    e.preventDefault();
-    toggleTextSwitchBtn(btn);
-    let on = false;
-    const input = btn.closest('.input-group').find('input');
-
-    if (btn.hasClass('switch-on'))
-        on = true;
-
-    toggleField(input, on);
-
-    if (on)
-        input.focus();
-
-    submitButtonRefresh(btn.closest('form'));
-}
-
-function toggleField(field, on) {
-    if (on)
-        $(field).attr('disabled', false);
-    else {
-        field.val('');
-        if (field.hasClass('is-invalid')) {
-            field.closest('.input-block').find('.invalid-feedback').remove();
-            field.removeClass('is-invalid');
-        }
-        field.removeClass('is-valid');
-        $(field).attr('disabled', true);
-    }
-}
-
-function toggleGroupButtonClickHandler(e, btn) {
-    e.preventDefault();
-    toggleTextSwitchBtn(btn);
-    let on = false;
-    const group = btn.closest('.form-element-group');
-
-    if (btn.hasClass('switch-on'))
-        on = true;
-
-    toggleFieldGroup(group, on);
-
-    if (on)
-        group.find('input:first').focus();
-
-    submitButtonRefresh(btn.closest('form'));
-}
-
-function toggleFieldGroup(formElementGroup, on) {
-    formElementGroup.find('input').each(function () {
-        toggleField($(this), on);
-    });
-}
-
-// --------------------------------------- form refresh --------------------------------------- //
-
-function formRefresh(form) {
-    // form[0].reset();
-    // clearValidation(form);
-    // resetToggleables(form);
-    // submitButtonRefresh(form);
-    // resetHiddenFields(form);
-    new FormWidget(form).resetForm();
-}
-
-function clearValidation(form) {
-    form.find('input').removeClass('is-valid').removeClass('is-invalid');
-    form.find('select').removeClass('is-valid').removeClass('is-invalid');
-    form.find('textarea').removeClass('is-valid').removeClass('is-invalid');
-    form.find('.table-select-field').removeClass('is-valid').removeClass('is-invalid');
-    form.find('.invalid-feedback').remove();
-}
-
-function resetToggleables(form) {
-    form.find('.field-toggle-btn').each(function () {
-        toggleableFieldButtonInit($(this));
-    });
-
-    form.find('.group-toggle-btn').each(function () {
-        toggleableGroupButtonInit($(this));
-    });
-}
-
-function resetHiddenFields(form) {
-    form.find('input[type="hidden"]').each(function () {
-        if ($(this).data('reset-on-refresh') === true)
-            $(this).val('');
-    });
-
-}
-
-// -------------------------------------- live validation ------------------------------------- //
-
-function updateValidationStatus(field, formCls, formInstanceId, minLength, url) {
-    const value = $(field).val();
-    $.ajax({
-               url: url,
-               data: {
-                   'formCls': formCls,
-                   'form_instance_id': formInstanceId,
-                   'fieldName': $(field).attr('name'),
-                   'value': value,
-                   'minLength': minLength,
-               },
-               dataType: 'json',
-               success: function (data) {
-                   if (data.status === 'ok') {
-                       $(field).removeClass('is-invalid');
-
-                       if (value.length > 0)
-                           $(field).addClass('is-valid');
-                       else
-                           $(field).removeClass('is-valid');
-
-                       const input_block = $(field).closest('.input-block');
-                       $(input_block).find('.invalid-feedback').remove();
-
-                       submitButtonRefresh($(field).closest('form'));
-                   } else {
-                       $(field).removeClass('is-valid');
-                       $(field).addClass('is-invalid');
-
-                       const input_block = $(field).closest('.input-block');
-                       $(input_block).find('.invalid-feedback').remove();
-
-                       for (let i = 0; i < data.messages.length; i++) {
-                           $(input_block).append(
-                               "<div class='invalid-feedback'>" + data.messages[i] + "</div>"
-                           );
-                       }
-
-                       $(field).closest('form').find('.submit-btn').attr('disabled', true);
-                   }
-
-                   $(field).trigger('validation-complete');
-               }
-           });
-}
-
-function updateSelectFieldValidationStatus(field) {
-    if ($(field).val().length === 0) {
-        $(field).removeClass('is-valid');
-        $(field).addClass('is-invalid');
-        $(field).closest('form').find('.submit-btn').attr('disabled', true);
-    } else {
-        $(field).removeClass('is-invalid');
-        $(field).addClass('is-valid');
-        submitButtonRefresh($(field).closest('form'));
-    }
-
-    $(field).trigger('validation-complete');
-}
-
-function submitButtonRefresh(form) {
-    if (form.find('.live-validation').filter(function () {
-        return ($(this)).find('input:not(:disabled):not(.is-valid):required').length > 0 ||
-               $(this).find('select:not(:disabled):not(.is-valid)').length > 0;
-    }).length > 0)
-        form.find('.submit-btn').attr('disabled', true);
-    else
-        enableSubmitButton(form.find('.submit-btn'));
-}
-
-function enableSubmitButton(submitButton) {
-    if (submitButton.is(':disabled')) {
-        submitButton.attr('disabled', false);
-        submitButton.addClass('submit-enabled');
-
-        setTimeout(function () {
-            submitButton.removeClass('submit-enabled');
-        }, 300);
-    }
 }
 
 // --------------------------------------- form observer -------------------------------------- //
@@ -964,225 +902,6 @@ function updateFormObserverFieldSummary(summaryDiv, summary, fieldVal, fieldDefa
 
 function getClosestTitledElementGroup(field) {
     return field.closest('.form-element-group[data-title]:not([data-title=""])');
-}
-
-// ------------------------------------------ popups ------------------------------------------ //
-
-function renderConfirmationPopup(popup, form) {
-    popup.find('.input-summary-label').text(function () {
-        const inputId = $(this).data('input-target');
-        return getFieldLabel(inputId, form) + ':';
-    });
-
-    popup.find('.input-summary-value').text(function () {
-        const value = $('#' + $(this).data('input-target')).val();
-        return value.length > 0 ? value : '-';
-    });
-}
-
-function renderResponsePopup(popup, data) {
-    const message = popup.find('.popup-message');
-    if (message.data('render-message') === true)
-        message.text(data.message);
-    if (data['status'] === 'invalid')
-        renderValidationErrors(popup, data['errors']);
-    if (data['status'] === 'error')
-        renderErrorMessages(popup, data['errors']);
-}
-
-function renderErrorMessages(popup, errors) {
-    const messageBlock = popup.find('.popup-message-wrapper');
-    const errorsBlock = $('<div class="popup-errors-wrapper text-center"></div>');
-
-    errors.forEach((error) => {
-        errorsBlock.append(`<div class="popup-error mt-2"><b>${error}</b></div>`);
-    });
-
-    messageBlock.after(errorsBlock);
-}
-
-function renderValidationErrors(popup, errors) {
-    const form = popup.closest('.form-wrapper').find('form');
-    const messageBlock = popup.find('.popup-message-wrapper');
-    const errorsBlock = $('<div class="popup-errors-wrapper"></div>');
-
-    Object.entries(errors).forEach(([key, value]) => {
-        const errorDiv = $('<div class="popup-error mt-2"></div>');
-        const fieldLabel = getFieldLabel(key, form);
-
-        errorDiv.append(`<b>${fieldLabel}:</b>`);
-
-        const nestedList = $('<ul class="mb-0"></ul>');
-        value.forEach((nestedValue) => {
-            nestedList.append(`<li>${nestedValue}</li>`);
-        });
-
-        errorDiv.append(nestedList);
-        errorsBlock.append(errorDiv);
-    });
-
-    messageBlock.after(errorsBlock);
-}
-
-// ------------------------------------ table select field ------------------------------------ //
-
-function tableSelectFieldSetup() {
-    $(document).on('init.dt table-reload', function (e) {
-        const table = $(e.target);
-
-        table.closest('.table-select-field').each(function () {
-            const tableSelectField = $(this);
-            const tableId = table.attr('id');
-            const input = tableSelectField.find('.input-group input');
-            const inputVal = input.val();
-            const form = tableSelectField.closest('form');
-            const tableWidget = window.tableWidgets[`#${tableId}`];
-
-            table.find('.select').on('change', function () {
-                tableSelectFieldCheckboxClickHandler(tableSelectField, input);
-            });
-
-            form.on('submit-complete', function () {
-                tableWidget.table.one('draw.dt', function () {
-                    tableWidget.updateSelectHeader();
-                });
-
-                tableWidget.DTObj.ajax.reload(function () {
-                    $(`#${tableId}`).trigger('table-reload');
-                });
-            })
-
-            if (inputVal.length > 0) {
-                const recordIds = inputVal.split(',');
-
-                for (const id of recordIds) {
-                    const row = table.find(`tr[data-record-id="${id}"]`);
-                    const checkbox = row.find('.select .select-checkbox');
-                    row.addClass('row-selected');
-                    checkbox.prop('checked', true);
-                }
-
-                tableWidget.updateSelectHeader();
-            }
-        });
-    });
-}
-
-function tableSelectFieldValidationSetup() {
-    $('.table-select-field').each(function () {
-        const tableSelectField = $(this);
-        const input = tableSelectField.find('.input-group input');
-
-        input.on('validation-complete', function () {
-            if ($(this).hasClass('is-valid'))
-                tableSelectField.removeClass('is-invalid').addClass('is-valid');
-            else if ($(this).hasClass('is-invalid'))
-                tableSelectField.removeClass('is-valid').addClass('is-invalid');
-            else
-                tableSelectField.removeClass('is-valid').removeClass('is-invalid');
-        });
-    });
-}
-
-function tableSelectFieldCheckboxClickHandler(tableSelectField, input) {
-    const tableId = input.data('table-id');
-    const tableWidget = window.tableWidgets[`#${tableId}`];
-    const ids = [];
-
-    for (const row of tableWidget.getAllSelectedRows())
-        ids.push($(row).data('record-id'));
-
-    input.val(ids.join(',')).trigger('input');
-}
-
-// --------------------------------------- select field --------------------------------------- //
-
-function selectFieldSetup() {
-    $('select.auto-width').each(function () {
-        const select = $(this);
-        const tempDiv = $('<div></div>').css({'position': 'absolute', 'visibility': 'hidden'});
-        const tempOption = $('<option class="d-flex"></option>');
-        tempDiv.appendTo('body');
-        tempOption.appendTo(tempDiv);
-        tempOption.text(select.data('placeholder-option'));
-
-        select.find('option').each(function () {
-            tempOption.text($(this).text());
-
-            if (tempOption.width() > select.width())
-                select.width(tempOption.width());
-        });
-
-        tempDiv.remove();
-    });
-}
-
-// ------------------------------------ model choice field ------------------------------------ //
-
-function choiceFieldSetup() {
-    $('.choice-field.placeholder-option').each(function () {
-        const placeholder = $(this).data('placeholder-option');
-        $(this).prepend(`<option class="placeholder" value="" selected>${placeholder}</option>`);
-    });
-
-    $('.choice-field:not(.placeholder-option)').each(function () {
-        const inputBlock = $(this).closest('.input-block');
-        if (inputBlock.find('.live-validation').length > 0)
-            updateSelectFieldValidationStatus($(this));
-    });
-}
-
-function modelChoiceFieldSetup() {
-    $('.model-choice-field').each(function () {
-        loadModelChoiceFieldOptions($(this));
-    });
-
-    $('.model-choice-field-reload-btn').each(function () {
-        const field = $(this).closest('.input-group').find('.model-choice-field');
-        $(this).on('click', function () {
-            loadModelChoiceFieldOptions(field);
-        });
-    });
-}
-
-function loadModelChoiceFieldOptions(field) {
-    if (field.hasClass('loading')) return;
-    field.addClass('loading');
-
-    const sourceURL = field.data('source-url');
-    const labelFormatString = field.data('label-format-string');
-    const valueFormatString = field.data('value-format-string');
-    const placeholderOption = field.find('option.placeholder');
-    const placeholderText = placeholderOption.text();
-
-    field.removeClass('is-valid').removeClass('is-invalid');
-    field.attr('disabled', true);
-    placeholderOption.text(field.data('loading-option'));
-
-    $.ajax({
-               url: sourceURL,
-               dataType: 'json',
-               success: function (response) {
-                   field.find('option:not(.placeholder)').remove();
-
-                   for (const record of response.data) {
-                       addModelChoiceFieldOption(field,
-                                                 record,
-                                                 labelFormatString,
-                                                 valueFormatString)
-                   }
-
-                   placeholderOption.text(placeholderText);
-                   field.attr('disabled', false);
-                   field.removeClass('loading');
-               }
-           })
-}
-
-function addModelChoiceFieldOption(field, data, labelFormatString, valueFormatString) {
-    const value = generateFormattedString(data, valueFormatString);
-    const label = generateFormattedString(data, labelFormatString);
-    field.append(`<option value="${value}">${label}</option>`);
 }
 
 // ------------------------------------------ helpers ----------------------------------------- //
