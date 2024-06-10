@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from datetime import datetime
 from typing import Any, Callable, List
 
@@ -391,6 +392,13 @@ class CourseManager(models.Manager):
                                         USOS_term_code=usos_term_code)
             raise ValidationError(f'Attempted to create a course with the same USOS course and term'
                                   f'codes as the {course} course')
+
+    def update_rankings(self) -> None:
+        """
+        Updates all rankings for all courses in the database.
+        """
+        for course in self.all():
+            course.update_ranking()
 
 
 class Course(models.Model):
@@ -1185,19 +1193,36 @@ class Course(models.Model):
 
     # -------------------------------- Inside course actions ----------------------------------- #
 
-    from course.models import Round, Submit, Task
+    from course.models import Ranking, Round, Submit, Task
 
     @staticmethod
     def inside_course(course_method: bool = False) -> Callable:
+        """
+        Decorator used to wrap methods that are to be executed inside a course. The decorator
+        ensures that the method is executed within the context of a course by using the
+        :py:class:`course.utils.InCourse` context manager. If the method is a :py:class:`Course`
+        method, the decorator will pass the course object as the first argument.
+
+        :param course_method: If set to True, the method will be treated as a :py:class:`Course`
+            method and the course object will be passed as the first argument.
+        :type course_method: bool
+
+        :return: Decorator that wraps the method.
+        :rtype: Callable
+        """
+
         def wrapper(func: Callable) -> Callable:
             if course_method:
                 def action(self, *args, **kwargs) -> Any:
                     with InCourse(self):
                         return func(self, *args, **kwargs)
+
+                action.__signature__ = inspect.signature(func)
             else:
                 def action(self: Course, *args, **kwargs) -> Any:
                     with InCourse(self):
                         return func(*args, **kwargs)
+            action.__doc__ = func.__doc__
 
             return action
 
@@ -1240,6 +1265,9 @@ class Course(models.Model):
 
     #: Getter for Submit model
     get_submit = inside_course()(ModelsRegistry.get_submit)
+
+    #: Update rankings, by calling :py:meth:`course.models.Ranking.objects.update_ranking()`.
+    update_ranking = inside_course()(Ranking.objects.update_ranking)
 
     # Metadata retrieval --------
 

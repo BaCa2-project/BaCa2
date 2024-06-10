@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, List, Self
+from typing import TYPE_CHECKING, Any, Iterable, List, Self
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from main.models import Course, User
     from package.models import PackageInstance
 
-__all__ = ['Round', 'Task', 'TestSet', 'Test', 'Submit', 'Result']
+__all__ = ['Round', 'Task', 'TestSet', 'Test', 'Submit', 'Result', 'Ranking']
 
 
 class ReadCourseMeta(ModelBase):
@@ -1441,6 +1441,48 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
 
         return new_submit
 
+    def sum_time(self, nok_as_max: bool = True) -> float:
+        """
+        Adds all results' time to the total time of the submit. If nok_as_max is True, then the
+        the result with status different than OK will add the maximum time of the test to the total
+        time.
+
+        :param nok_as_max: If True, the result with status different than OK will add the maximum
+            time of the test to the total time, defaults to True (optional)
+        :type nok_as_max: bool
+
+        :return: The total time of the submit.
+        :rtype: float
+        """
+        total_time = 0
+        for result in self.results:
+            if nok_as_max and result.status != ResultStatus.OK:
+                total_time += result.test.package_test['time_limit']
+            else:
+                total_time += result.time_real
+        return total_time
+
+    def sum_memory(self, nok_as_max: bool = True) -> int:
+        """
+        Adds all results' memory to the total memory of the submit. If nok_as_max is True, then the
+        the result with status different than OK will add the maximum memory of the test to the
+        total memory.
+
+        :param nok_as_max: If True, the result with status different than OK will add the maximum
+            memory of the test to the total memory, defaults to True (optional)
+        :type nok_as_max: bool
+
+        :return: The total memory of the submit.
+        :rtype: int
+        """
+        total_memory = 0
+        for result in self.results:
+            if nok_as_max and result.status != ResultStatus.OK:
+                total_memory += result.test.package_test['memory_limit']
+            else:
+                total_memory += result.runtime_memory
+        return total_memory
+
     def update(self) -> Self | None:
         """
         It updates the submit to the newest task update
@@ -1924,3 +1966,165 @@ class Result(models.Model, metaclass=ReadCourseMeta):
             res['user_answer'] = ''
 
         return res
+
+
+class RankingManager(models.Manager):
+    @transaction.atomic
+    def auto_create(self, user: int | str | User, task: int | Task) -> 'Ranking':
+        """
+        It creates a new ranking object.
+
+        :param user: The user reference.
+        :type user: int | str | User
+        :param task: The task reference.
+        :type task: int | Task
+
+        :return: A new ranking object.
+        :rtype: Ranking
+        """
+        user = ModelsRegistry.get_user(user)
+        task = ModelsRegistry.get_task(task)
+        best_submit = task.user_scored_submit(user)
+        ranking = self.model(
+            usr=user.pk,
+            task=task
+        )
+        ranking.update(best_submit)
+        ranking.save()
+
+    @transaction.atomic
+    def get_or_create(self, user: int | str | User, task: int | Task) -> 'Ranking':
+        """
+        It gets or creates a ranking object.
+
+        :param user: The user reference.
+        :type user: int | str | User
+        :param task: The task reference.
+        :type task: int | Task
+
+        :return: A ranking object.
+        :rtype: Ranking
+        """
+        user = ModelsRegistry.get_user(user)
+        try:
+            return ModelsRegistry.get_ranking_from_user(user, task)
+        except Ranking.DoesNotExist:
+            return self.auto_create(user=user, task=task)
+
+    @transaction.atomic
+    def update_ranking(self,
+                       tasks: Iterable[int | Task] = None,
+                       users: Iterable[int | str | User] = None) -> None:
+        """
+        It updates the ranking for the specified tasks and users. if no tasks or users are
+        specified, it updates all rankings.
+
+        :param tasks: The tasks that you want to update the ranking for, defaults to None (optional)
+        :type tasks: Iterable[int | Task]
+        :param users: The users that you want to update the ranking for, defaults to None (optional)
+        :type users: Iterable[int | str | User]
+
+        :return: None
+        """
+        from main.models import User
+
+        if tasks is None:
+            tasks = Task.objects.filter(is_legacy=False).all()
+        if users is None:
+            users = User.objects.all()
+
+        for task in tasks:
+            for user in users:
+                self.get_or_create(user, task)
+
+
+class Ranking(models.Model, metaclass=ReadCourseMeta):
+    """
+    Model containing duplicated, easy-to-read information about user's results per :py:class:`Task`.
+    """
+
+    #: User's id (can't be ForeignKey, because of differentiating databases)
+    usr = models.BigIntegerField(validators=[SubmitManager.user_exists_validator])
+
+    #: Task's ForeignKey
+    task = models.ForeignKey(Task, on_delete=models.CASCADE)
+
+    #: User's best status
+    status = models.CharField(max_length=3, choices=ResultStatus.choices, default=ResultStatus.PND)
+
+    #: User's best submit score for the task
+    score = models.FloatField(null=True, default=None)
+
+    #: User's best submit time taken in total
+    sum_time = models.FloatField(null=True, default=None)
+
+    #: User's best submit memory used in total
+    sum_memory = models.IntegerField(null=True, default=None)
+
+    #: User's amount of submits to the task
+    submits_amount = models.IntegerField(null=True, default=None)
+
+    #: The manager for the Ranking model.
+    objects = RankingManager()
+
+    class UpdateCallError(Exception):
+        """
+        Raised when trying to update ranking with submit that is not connected to the same task or
+        user.
+        """
+        def __init__(self, ranking_rec: 'Ranking', submit: Submit):
+            super().__init__(f'Ranking record {ranking_rec} cannot be updated with {submit}.')
+
+    def __str__(self):
+        return f'Ranking {self.pk}: User: {self.usr} Task: {self.task.task_name}'
+
+    def delete(self, using=None, keep_parents=False):
+        """
+        It deletes the ranking object.
+        """
+        super().delete(using, keep_parents)
+
+    @property
+    def user(self) -> User:
+        """
+        :return: Simulated foreign key object reference to User model
+        :rtype: User
+        """
+        return User.objects.get(pk=self.usr)
+
+    @transaction.atomic
+    def update(self, submit: Submit) -> None:
+        """
+        It updates ranking record using new "best" submit
+
+        :param submit: Submit object to be used for ranking update
+        :type submit:
+
+        :return: None
+        """
+        if submit.task != self.task:
+            raise self.UpdateCallError(self, submit)
+        if submit.usr != self.usr:
+            raise self.UpdateCallError(self, submit)
+
+        self.status = submit.submit_status
+        self.score = submit.score() * submit.fall_off_factor
+        self.sum_time = submit.sum_time()
+        self.sum_memory = submit.sum_memory()
+        self.submits_amount = Submit.objects.filter(
+            task=self.task,
+            usr=self.usr,
+            task__is_legacy=False
+        ).count()
+
+    def get_data(self):
+        return {
+            'id': self.pk,
+            'user': self.user.get_full_name(),
+            'task': self.task.task_name,
+            'status': self.status,
+            'score': self.score,
+            'sum_time': self.sum_time,
+            'sum_memory': self.sum_memory,
+            'submits_amount': self.submits_amount,
+        }

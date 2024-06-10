@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from django.contrib.auth.models import Group, Permission
 
     from core.choices import TaskJudgingMode
-    from course.models import Round, Submit, Task, Test, TestSet
+    from course.models import Ranking, Round, Submit, Task, Test, TestSet
     from main.models import Course, Role, RolePreset, User
     from package.models import PackageInstance, PackageSource
 
@@ -438,9 +438,9 @@ class ModelsRegistry:
 
     @staticmethod
     def get_rounds(
-            rounds: List[int] | List[Round],
-            course: str | int | Course = None,
-            return_queryset: bool = False
+        rounds: List[int] | List[Round],
+        course: str | int | Course = None,
+        return_queryset: bool = False
     ) -> QuerySet[Round] | List[Round]:
         """
         Returns a QuerySet of rounds using a list of their ids or model instances and course as a
@@ -497,9 +497,9 @@ class ModelsRegistry:
 
     @staticmethod
     def get_tasks(
-            tasks: List[int] | List[Task],
-            course: str | int | Course = None,
-            return_queryset: bool = False
+        tasks: List[int] | List[Task],
+        course: str | int | Course = None,
+        return_queryset: bool = False
     ) -> QuerySet[Task] | List[Task]:
         """
         Returns a QuerySet of tasks using a list of their ids or model instances and course as a
@@ -669,3 +669,37 @@ class ModelsRegistry:
                 if result_status.value == status:
                     return result_status
         return status
+
+    @staticmethod
+    def get_ranking_from_user(user: int | str | User,
+                              task: int | Task,
+                              course: int | str | Course = None) -> Ranking:
+        from course.models import Ranking
+
+        user = ModelsRegistry.get_user(user)
+        task = ModelsRegistry.get_task(task, course)
+        with OptionalInCourse(course):
+            return Ranking.objects.get(usr=user.pk, task=task)
+
+    @staticmethod
+    def get_ranking(ranking: int | Ranking, course: int | str | Course = None) -> Ranking:
+        """
+        Returns a Ranking model instance from the database using its id or name and course as
+        a reference. It can also be used to return the same instance if it is passed as the
+        parameter (for ease of use in case of methods which accept both model instances and their
+        identifiers).
+
+        :param ranking: Ranking name, id or model instance.
+        :type ranking: str | int | Ranking
+        :param course: Course short name, id or model instance.
+        :type course: str | int | Course
+
+        :return: Ranking model instance.
+        :rtype: Ranking
+        """
+        from course.models import Ranking
+
+        with OptionalInCourse(course):
+            if isinstance(ranking, int):
+                return Ranking.objects.get(id=ranking)
+        return ranking
