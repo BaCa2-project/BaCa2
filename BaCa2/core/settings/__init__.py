@@ -40,6 +40,7 @@ include(
     'broker.py',
     'static_files.py',
     'usos.py',
+    'scheduler.py',
     'email.py',
     optional(str(LOCAL_SETTINGS_PATH)),
     'envvars.py',

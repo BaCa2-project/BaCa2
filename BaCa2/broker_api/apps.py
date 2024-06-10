@@ -1,4 +1,5 @@
 from django.apps import AppConfig
+from django.conf import settings
 
 
 class BrokerApiConfig(AppConfig):
@@ -6,6 +7,8 @@ class BrokerApiConfig(AppConfig):
     name = 'broker_api'
 
     def ready(self):
-        super().ready()
-        # call_command('markExpired')
-        # call_command('resendToBroker')
+        # Add broker scheduled jobs
+        if settings.BROKER_RETRY_POLICY.auto_start:
+            from broker_api.scheduler import JOBS
+            for job in JOBS:
+                settings.SCHEDULER.add_job(**job)
