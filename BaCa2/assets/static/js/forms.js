@@ -328,22 +328,61 @@ class TableSelectField extends FormInput {
 
     formInputInit() {
         super.formInputInit();
+        this.tableSelectFieldInit(this.formWidget.form);
+    }
+
+    tableSelectFieldInit(form) {
+        this.wrapper.find('.select').on('change', () => {
+            this.updateInput();
+        });
+
+        form.on('submit-complete', () => {
+            this.tableWidget.table.one('draw.dt', () => {
+                this.tableWidget.updateSelectHeader();
+            });
+
+            this.tableWidget.DTObj.ajax.reload(() => {
+                this.tableWidget.table.trigger('table-reload');
+            });
+        });
+
+        if (this.getVal().length > 0) {
+            const recordIds = this.getVal().split(',');
+
+            for (const id of recordIds) {
+                const row = this.tableWidget.table.find(`tr[data-record-id="${id}"]`);
+                const checkbox = row.find('.select .select-checkbox');
+                row.addClass('row-selected');
+                checkbox.prop('checked', true);
+            }
+
+            this.tableWidget.updateSelectHeader();
+        }
+    }
+
+    resetInput() {
+        super.resetInput();
+        this.tableWidget.getRowsInOrder().each(function () {
+            $(this).removeClass('row-selected');
+            $(this).find('.select-checkbox').prop('checked', false);
+        });
+        this.tableWidget.updateSelectHeader();
     }
 
     setValid() {
         if (!this.liveValidation) return;
-        this.input.removeClass('is-invalid').addClass('is-valid');
+        super.setValid();
         this.wrapper.removeClass('is-invalid').addClass('is-valid');
     }
 
     setInvalid() {
         if (!this.liveValidation) return;
-        this.input.removeClass('is-valid').addClass('is-invalid');
+        super.setInvalid();
         this.wrapper.removeClass('is-valid').addClass('is-invalid');
     }
 
     clearValidation() {
-        this.input.removeClass('is-valid').removeClass('is-invalid');
+        super.clearValidation();
         this.wrapper.removeClass('is-valid').removeClass('is-invalid');
     }
 
@@ -355,6 +394,11 @@ class TableSelectField extends FormInput {
         });
 
         return ids;
+    }
+
+    updateInput() {
+        const ids = this.getSelectedIds();
+        this.input.val(ids.join(',')).trigger('input');
     }
 }
 
@@ -525,9 +569,8 @@ class FormWidget {
     }
 
     refreshBtnInit() {
-        const formWidget = this;
-        this.form.find('.form-refresh-button').on('click', function () {
-            formWidget.resetForm();
+        this.form.find('.form-refresh-button').on('click', () => {
+            this.resetForm();
         });
     }
 
@@ -708,43 +751,48 @@ class FormWidget {
     }
 }
 
+(function () {
+    $(document).on('tab-activated', function (e) {
+        const tab = $(e.target);
 
-$(document).ready(function () {
-   $(':not(form) select.auto-width').each(function () {
-        const selectInput = new SelectInput($(this), null);
-        selectInput.autoWidthInit();
-   });
-
-   $('.form-floating textarea').each(function () {
-        const rows = $(this).attr('rows');
-        const height = `${rows * 2.1}rem`;
-        $(this).css('height', height);
-   });
-});
-
-$(document).on('tab-activated', function (e) {
-    const tab = $(e.target);
-
-    tab.find('.model-choice-field').each(function () {
-        const modelChoiceField = new ModelChoiceInput($(this), null);
-        modelChoiceField.loadModelChoiceOptions();
+        tab.find('.model-choice-field').each(function () {
+            const modelChoiceField = new ModelChoiceInput($(this), null);
+            modelChoiceField.loadModelChoiceOptions();
+        });
     });
-});
 
+    $(document).on('init.dt table-reload', function (e) {
+        const table = $(e.target);
+        const tableSelectField = table.closest('.table-select-field');
+
+        if (tableSelectField.length === 0) return;
+
+        const input = tableSelectField.find('.table-select-input');
+        const form = tableSelectField.closest('form');
+
+        new TableSelectField(input, null).tableSelectFieldInit(form);
+    });
+
+    $(document).ready(function () {
+       $(':not(form) select.auto-width').each(function () {
+            const selectInput = new SelectInput($(this), null);
+            selectInput.autoWidthInit();
+       });
+
+       $('.form-floating textarea').each(function () {
+            const rows = $(this).attr('rows');
+            const height = `${rows * 2.1}rem`;
+            $(this).css('height', height);
+       });
+    });
+}());
 
 // ---------------------------------------- forms setup --------------------------------------- //
-
-function formsPreSetup() {
-    tableSelectFieldSetup();
-}
 
 function formsSetup() {
     $('form').each(function () {
         new FormWidget($(this)).formWidgetInit();
     });
-
-    tableSelectFieldValidationSetup();
-    formObserverSetup();
 }
 
 // --------------------------------------- form observer -------------------------------------- //
@@ -854,77 +902,6 @@ function updateFormObserverFieldSummary(summaryDiv, summary, fieldVal, fieldDefa
 
 function getClosestTitledElementGroup(field) {
     return field.closest('.form-element-group[data-title]:not([data-title=""])');
-}
-
-// ------------------------------------ table select field ------------------------------------ //
-
-function tableSelectFieldSetup() {
-    $(document).on('init.dt table-reload', function (e) {
-        const table = $(e.target);
-
-        table.closest('.table-select-field').each(function () {
-            const tableSelectField = $(this);
-            const tableId = table.attr('id');
-            const input = tableSelectField.find('.input-group input');
-            const inputVal = input.val();
-            const form = tableSelectField.closest('form');
-            const tableWidget = window.tableWidgets[`#${tableId}`];
-
-            tableSelectField.find('.select').on('change', function () {
-                tableSelectFieldCheckboxClickHandler(tableSelectField, input);
-            });
-
-            form.on('submit-complete', function () {
-                tableWidget.table.one('draw.dt', function () {
-                    tableWidget.updateSelectHeader();
-                });
-
-                tableWidget.DTObj.ajax.reload(function () {
-                    $(`#${tableId}`).trigger('table-reload');
-                });
-            })
-
-            if (inputVal.length > 0) {
-                const recordIds = inputVal.split(',');
-
-                for (const id of recordIds) {
-                    const row = table.find(`tr[data-record-id="${id}"]`);
-                    const checkbox = row.find('.select .select-checkbox');
-                    row.addClass('row-selected');
-                    checkbox.prop('checked', true);
-                }
-
-                tableWidget.updateSelectHeader();
-            }
-        });
-    });
-}
-
-function tableSelectFieldValidationSetup() {
-    $('.table-select-field').each(function () {
-        const tableSelectField = $(this);
-        const input = tableSelectField.find('.input-group input');
-
-        input.on('validation-complete', function () {
-            if ($(this).hasClass('is-valid'))
-                tableSelectField.removeClass('is-invalid').addClass('is-valid');
-            else if ($(this).hasClass('is-invalid'))
-                tableSelectField.removeClass('is-valid').addClass('is-invalid');
-            else
-                tableSelectField.removeClass('is-valid').removeClass('is-invalid');
-        });
-    });
-}
-
-function tableSelectFieldCheckboxClickHandler(tableSelectField, input) {
-    const tableId = input.data('table-id');
-    const tableWidget = window.tableWidgets[`#${tableId}`];
-    const ids = [];
-
-    for (const row of tableWidget.getAllSelectedRows())
-        ids.push($(row).data('record-id'));
-
-    input.val(ids.join(',')).trigger('input');
 }
 
 // ------------------------------------------ helpers ----------------------------------------- //

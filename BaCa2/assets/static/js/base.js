@@ -1,7 +1,6 @@
 function preInitCommon() {
     scrollbarSetup();
     ajaxErrorHandlingSetup();
-    formsPreSetup();
     tablesPreSetup();
     themePreSetup();
 }
