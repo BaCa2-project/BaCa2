@@ -1478,7 +1478,10 @@ class Submit(models.Model, metaclass=ReadCourseMeta):
         total_memory = 0
         for result in self.results:
             if nok_as_max and result.status != ResultStatus.OK:
-                total_memory += result.test.package_test['memory_limit']
+                test_memory = result.test.package_test.get('memory_limit', 0)
+                if isinstance(test_memory, str):
+                    test_memory = bytes_from_str(test_memory)
+                total_memory += test_memory
             else:
                 total_memory += result.runtime_memory
         return total_memory
