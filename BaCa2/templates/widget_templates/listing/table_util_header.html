@@ -1,0 +1,53 @@
+<div class="table-util-header card-body">
+    <div class="row align-items-center">
+        {% if table_widget.display_title %}
+            <div class="col-auto">
+                <h4 class="table-title ms-3 mb-0">{{ table_widget.title }}</h4>
+            </div>
+        {% endif %}
+        <div class="col">
+            <div class="row justify-content-end">
+                {% if table_widget.allow_global_search %}
+                    <div class="col-auto d-flex align-items-center">
+                        <div class="table-search">
+                        </div>
+                    </div>
+                {% endif %}
+                {% if table_widget.has_length_menu %}
+                    <div class="col-auto d-flex align-items-center">
+                        <div class="table-length-menu">
+                        </div>
+                    </div>
+                {% endif %}
+                {% if table_widget.has_buttons %}
+                    <div class="col-auto">
+                        <div class="table-buttons row justify-content-end">
+                            {% if table_widget.refresh_button %}
+                                <div class="table-btn-wrapper col-auto">
+                                    <button class="table-refresh-btn btn
+                                               btn-outline-light_muted"
+                                            type="button"
+                                            data-refresh-target="{{ table_widget.name }}">
+                                        <small>
+                                            <i class="bi bi-arrow-clockwise"></i>
+                                        </small>
+                                    </button>
+                                </div>
+                            {% endif %}
+                            {% if table_widget.delete_button %}
+                                <div class="table-btn-wrapper col-auto">
+                                    <button class="btn btn-outline-danger"
+                                            type="button">
+                                        <small>
+                                            <i class="bi bi-trash3"></i>
+                                        </small>
+                                    </button>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
