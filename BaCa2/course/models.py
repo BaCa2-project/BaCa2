@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterable, List, Self
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Self
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -28,7 +28,7 @@ from core.choices import (
     SubmitType,
     TaskJudgingMode
 )
-from core.exceptions import DataError
+from core.exceptions import DataError, RoutingError
 from core.tools.falloff import FallOff
 from core.tools.files import MediaFileHandler
 from core.tools.misc import as_perc, str_to_datetime
@@ -1969,6 +1969,9 @@ class Result(models.Model, metaclass=ReadCourseMeta):
 
 
 class RankingManager(models.Manager):
+    """
+    Manager for Ranking model
+    """
     @transaction.atomic
     def auto_create(self, user: int | str | User, task: int | Task) -> 'Ranking':
         """
@@ -2037,6 +2040,37 @@ class RankingManager(models.Manager):
             for user in users:
                 self.get_or_create(user, task)
 
+    def get_metric_rankings(
+        self,
+        metric: str,
+        include_legacy: bool = False
+    ) -> List[Dict[int | str, str | Dict[str, Any]]]:
+        """
+        It returns the rankings for the specified metric, including all tasks and users.
+
+        :param metric: The metric that you want to get the rankings for.
+        :type metric: str
+        :param include_legacy: If True, the legacy tasks will be included, defaults to False
+            (optional)
+
+        :return: The rankings for the specified metric.
+        :rtype: List[Dict[int | str, str | Dict[str, Any]]]
+        """
+        course = InCourse.get_context_course()
+        if course is None:
+            raise RoutingError('No course context found')
+
+        rankings = []
+        for user in course.members():
+            user_results = self.get(usr=user.pk).filter(task__is_legacy=include_legacy)
+            user_rankings = {
+                res.task.pk: res.get_data(include_user=False, include_task=False, metric=metric)
+                for res in user_results
+            }
+            user_results['user_full_name'] = user.get_full_name()
+            rankings.append(user_rankings)
+        return rankings
+
 
 class Ranking(models.Model, metaclass=ReadCourseMeta):
     """
@@ -2044,10 +2078,13 @@ class Ranking(models.Model, metaclass=ReadCourseMeta):
     """
 
     #: User's id (can't be ForeignKey, because of differentiating databases)
-    usr = models.BigIntegerField(validators=[SubmitManager.user_exists_validator])
+    usr = models.BigIntegerField(validators=[SubmitManager.user_exists_validator],
+                                 db_index=True)
 
     #: Task's ForeignKey
-    task = models.ForeignKey(Task, on_delete=models.CASCADE)
+    task = models.ForeignKey(Task,
+                             on_delete=models.CASCADE,
+                             db_index=True)
 
     #: User's best status
     status = models.CharField(max_length=3, choices=ResultStatus.choices, default=ResultStatus.PND)
@@ -2067,11 +2104,23 @@ class Ranking(models.Model, metaclass=ReadCourseMeta):
     #: The manager for the Ranking model.
     objects = RankingManager()
 
+    #: List of metrics that can be used in get_data method
+    METRICS = ['score', 'sum_time', 'sum_memory', 'submits_amount']
+
+    class InvalidMetric(Exception):
+        """
+        Raised when trying to get data with invalid metric.
+        """
+
+        def __init__(self, metric: str):
+            super().__init__(f'Invalid metric: {metric}. Allowed metrics are: {Ranking.METRICS}')
+
     class UpdateCallError(Exception):
         """
         Raised when trying to update ranking with submit that is not connected to the same task or
         user.
         """
+
         def __init__(self, ranking_rec: 'Ranking', submit: Submit):
             super().__init__(f'Ranking record {ranking_rec} cannot be updated with {submit}.')
 
@@ -2117,14 +2166,45 @@ class Ranking(models.Model, metaclass=ReadCourseMeta):
             task__is_legacy=False
         ).count()
 
-    def get_data(self):
-        return {
+    def get_data(self,
+                 include_user: bool = True,
+                 include_task: bool = True,
+                 metric: str = None) -> Dict[str, Any]:
+        """
+        Allows to get ranking data in a formatted way.
+
+        :param include_user: If True, user data will be included in the result, defaults to True
+            (optional)
+        :type include_user: bool
+        :param include_task: If True, task data will be included in the result, defaults to True
+            (optional)
+        :type include_task: bool
+        :param metric: The metric that you want to get the ranking data for, defaults to None - in
+            that case all metrics will be included (optional)
+        :type metric: str
+
+        :return: The ranking data in a formatted way.
+        :rtype: Dict[str, Any]
+        """
+        result = {
             'id': self.pk,
-            'user': self.user.get_full_name(),
-            'task': self.task.task_name,
             'status': self.status,
-            'score': self.score,
-            'sum_time': self.sum_time,
-            'sum_memory': self.sum_memory,
-            'submits_amount': self.submits_amount,
         }
+        if metric is None:
+            result |= {
+                'score': self.score,
+                'sum_time': self.sum_time,
+                'sum_memory': self.sum_memory,
+                'submits_amount': self.submits_amount,
+            }
+        else:
+            if metric not in self.METRICS:
+                raise self.InvalidMetric(metric)
+            result[metric] = getattr(self, metric)
+
+        if include_user:
+            result['user'] = self.user.get_full_name()
+        if include_task:
+            result['task'] = self.task.task_name
+
+        return result
