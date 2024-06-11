@@ -61,23 +61,5 @@
 
 
 <script type="text/javascript">
-    initTable({
-        tableId: '{{ table_widget.name }}',
-        ajax: {{ table_widget.ajax|safe }},
-        dataSourceUrl: '{{ table_widget.data_source_url|safe }}',
-        dataSource: {{ table_widget.data_source|safe }},
-        cols: {{ table_widget.DT_cols_data|safe }},
-        defaultSorting: {{ table_widget.default_sorting|safe }},
-        defaultOrder: '{{ table_widget.default_order }}',
-        defaultOrderCol: parseInt({{ table_widget.default_order_col }}),
-        searching: {{ table_widget.allow_global_search|safe }},
-        paging: {{ table_widget.paging|safe }},
-        limitHeight: {{ table_widget.limit_height|safe }},
-        height: '{{ table_widget.table_height }}',
-        refresh: {{ table_widget.refresh|safe }},
-        refreshInterval: parseInt({{ table_widget.refresh_interval }}),
-        linkFormatString: '{{ table_widget.link_format_string|safe }}',
-        rowStylingRules: {{ table_widget.row_styling_rules|safe }},
-        localisation_cdn: '{{ table_widget.localisation_cdn|safe }}',
-    });
+    initTable({{ table_widget.js_context|safe }});
 </script>

@@ -372,11 +372,13 @@ function initTable(
         refresh,
         refreshInterval,
         rowStylingRules,
-        localisation_cdn,
+        localisationCdn,
     } = {}
 ) {
     const tableParams = {};
     const table = $(`#${tableId}`);
+    defaultOrderCol = parseInt(defaultOrderCol);
+    refreshInterval = parseInt(refreshInterval);
 
     if (ajax)
         tableParams['ajax'] = {
@@ -403,9 +405,9 @@ function initTable(
         tableParams['scrollCollapse'] = true;
     }
 
-    if (localisation_cdn) {
+    if (localisationCdn) {
         tableParams['language'] = {
-            "url": localisation_cdn
+            "url": localisationCdn
         }
     }
 

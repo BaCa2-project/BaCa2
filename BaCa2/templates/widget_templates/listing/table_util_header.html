@@ -13,13 +13,13 @@
                         </div>
                     </div>
                 {% endif %}
-                {% if table_widget.paging.allow_length_change == 'true' %}
+                {% if table_widget.has_length_menu %}
                     <div class="col-auto d-flex align-items-center">
                         <div class="table-length-menu">
                         </div>
                     </div>
                 {% endif %}
-                {% if table_widget.table_buttons %}
+                {% if table_widget.has_buttons %}
                     <div class="col-auto">
                         <div class="table-buttons row justify-content-end">
                             {% if table_widget.refresh_button %}
