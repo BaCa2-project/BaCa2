@@ -673,13 +673,16 @@ class ModelsRegistry:
     @staticmethod
     def get_ranking_from_user(user: int | str | User,
                               task: int | Task,
-                              course: int | str | Course = None) -> Ranking:
+                              course: int | str | Course = None,) -> Ranking | None:
         from course.models import Ranking
 
         user = ModelsRegistry.get_user(user)
         task = ModelsRegistry.get_task(task, course)
         with OptionalInCourse(course):
-            return Ranking.objects.get(usr=user.pk, task=task)
+            ranking = Ranking.objects.filter(usr=user.pk, task=task)
+            if ranking.exists():
+                return ranking.first()
+        raise Ranking.DoesNotExist('Ranking does not exist')
 
     @staticmethod
     def get_ranking(ranking: int | Ranking, course: int | str | Course = None) -> Ranking:

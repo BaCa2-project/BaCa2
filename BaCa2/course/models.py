@@ -1995,8 +1995,13 @@ class RankingManager(models.Manager):
             usr=user.pk,
             task=task
         )
-        ranking.update(best_submit)
         ranking.save()
+        if best_submit is not None:
+            ranking.update(best_submit)
+        else:
+            ranking.status = ResultStatus.PND
+            ranking.save()
+        return ranking
 
     @transaction.atomic
     def get_or_create(self, user: int | str | User, task: int | Task) -> 'Ranking':
@@ -2014,7 +2019,7 @@ class RankingManager(models.Manager):
         user = ModelsRegistry.get_user(user)
         try:
             return ModelsRegistry.get_ranking_from_user(user, task)
-        except Ranking.DoesNotExist:
+        except self.model.DoesNotExist:
             return self.auto_create(user=user, task=task)
 
     @transaction.atomic
@@ -2032,12 +2037,12 @@ class RankingManager(models.Manager):
 
         :return: None
         """
-        from main.models import User
 
         if tasks is None:
             tasks = Task.objects.filter(is_legacy=False).all()
         if users is None:
-            users = User.objects.all()
+            course = InCourse.get_context_course()
+            users = course.members()
 
         for task in tasks:
             for user in users:
@@ -2065,12 +2070,13 @@ class RankingManager(models.Manager):
 
         rankings = []
         for user in course.members():
-            user_results = self.get(usr=user.pk).filter(task__is_legacy=include_legacy)
+            user_results = self.filter(usr=user.pk, task__is_legacy=include_legacy)
             user_rankings = {
                 res.task.pk: res.get_data(include_user=False, include_task=False, metric=metric)
                 for res in user_results
             }
-            user_results['user_full_name'] = user.get_full_name()
+            if user_rankings:
+                user_rankings['user_full_name'] = user.get_full_name()
             rankings.append(user_rankings)
         return rankings
 
@@ -2168,6 +2174,7 @@ class Ranking(models.Model, metaclass=ReadCourseMeta):
             usr=self.usr,
             task__is_legacy=False
         ).count()
+        self.save()
 
     def get_data(self,
                  include_user: bool = True,
