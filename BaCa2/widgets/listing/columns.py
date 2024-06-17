@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from enum import Enum
-from typing import Any, Dict
+from typing import Any, Dict, Self
 
 from django.http import HttpRequest
 
@@ -27,6 +27,7 @@ class Column(Widget):
                  *,
                  name: str,
                  col_type: str,
+                 data_key: str | None = None,
                  request: HttpRequest = None,
                  data_null: bool = False,
                  header: str | None = None,
@@ -43,6 +44,10 @@ class Column(Widget):
         :param col_type: The type of the column. This is used to determine how the data in the
             column should be displayed.
         :type col_type: str
+        :param data_key: The key/index under which the column's data can be found. Only
+            applicable if the column's data for a given row is retrieved from a dictionary. For
+            retrieval from a nested structure, the key should be in the form 'key1.key2.key3...'.
+        :type data_key: str | None
         :param request: The HTTP request object received by the view in which the table widget
             is rendered.
         :type request: HttpRequest
@@ -71,25 +76,31 @@ class Column(Widget):
             set to False.
         :type width: str
         """
-        if auto_width and width:
-            raise self.ParameterError('Cannot set column width when auto width is enabled.')
-        if not auto_width and not width:
-            raise self.ParameterError('Must set column width when auto width is disabled.')
-
         super().__init__(name=name, request=request)
-
-        if header is None and header_icon is None:
-            header = name
-
         self.header = header
         self.header_icon = header_icon
         self.col_type = col_type
+        self.data_key = data_key
         self.data_null = data_null
         self.searchable = searchable
         self.search_header = search_header
         self.sortable = sortable
         self.auto_width = auto_width
-        self.width = width if width else ''
+        self.width = width
+
+    def build(self) -> Self:
+        if self.auto_width and self.width:
+            raise self.ParameterError('Cannot set column width when auto width is enabled.')
+        if not self.auto_width and not self.width:
+            raise self.ParameterError('Must set column width when auto width is disabled.')
+
+        if self.header is None and self.header_icon is None:
+            self.header = self.name
+
+        self.data_key = f'{self.name}.{self.data_key}' if self.data_key else self.name
+        self.width = self.width or ''
+
+        return super().build()
 
     def get_context(self) -> Dict[str, Any]:
         return super().get_context() | {
@@ -106,9 +117,13 @@ class Column(Widget):
         }
 
     def data_tables_context(self) -> Dict[str, Any]:
+        if not self.built:
+            self.build()
+
         return {
             'name': self.name,
             'col_type': self.col_type,
+            'data_key': self.data_key,
             'data_null': json.dumps(self.data_null),
             'searchable': json.dumps(self.searchable),
             'sortable': json.dumps(self.sortable),
@@ -131,6 +146,7 @@ class TextColumn(Column):
     def __init__(self,
                  *,
                  name: str,
+                 data_key: str | None = None,
                  header: str | None = None,
                  header_icon: str | None = None,
                  searchable: bool = True,
@@ -142,6 +158,10 @@ class TextColumn(Column):
         :param name: The name of the column. This should be the same as the key under which
             the column's data can be found in the data dictionary retrieved by the table widget.
         :type name: str
+        :param data_key: The key/index under which the column's data can be found. Only
+            applicable if the column's data for a given row is retrieved from a dictionary. For
+            retrieval from a nested structure, the key should be in the form 'key1.key2.key3...'.
+        :type data_key: str | None
         :param header: The text to be displayed in the column header. If not set, the column name
             will be used instead.
         :type header: str
@@ -165,6 +185,7 @@ class TextColumn(Column):
         """
         super().__init__(name=name,
                          col_type='text',
+                         data_key=data_key,
                          data_null=False,
                          header=header,
                          header_icon=header_icon,
@@ -188,6 +209,7 @@ class DatetimeColumn(Column):
 
     def __init__(self, *,
                  name: str,
+                 data_key: str | None = None,
                  header: str | None = None,
                  header_icon: str | None = None,
                  formatter: str = 'dd/MM/yyyy H:mm',
@@ -200,6 +222,10 @@ class DatetimeColumn(Column):
         :param name: The name of the column. This should be the same as the key under which
             the column's data can be found in the data dictionary retrieved by the table widget.
         :type name: str
+        :param data_key: The key/index under which the column's data can be found. Only
+            applicable if the column's data for a given row is retrieved from a dictionary. For
+            retrieval from a nested structure, the key should be in the form 'key1.key2.key3...'.
+        :type data_key: str | None
         :param header: The text to be displayed in the column header. If not set, the column name
             will be used instead.
         :type header: str
@@ -223,6 +249,7 @@ class DatetimeColumn(Column):
         """
         super().__init__(name=name,
                          col_type='datetime',
+                         data_key=data_key,
                          data_null=False,
                          header=header,
                          header_icon=header_icon,

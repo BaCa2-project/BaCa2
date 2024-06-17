@@ -380,19 +380,20 @@ function initTable(
     defaultOrderCol = parseInt(defaultOrderCol);
     refreshInterval = parseInt(refreshInterval);
 
-    if (ajax)
+    if (ajax) {
         tableParams['ajax'] = {
             'url': dataSourceUrl,
             'error': function (xhr, error, thrown) {
                 if (xhr.status === 403) {
                     location.reload();
                 } else if (xhr.status !== 0) {
-                    console.log(xhr, error, thrown);
+                    console.log(xhr, error);
                 }
             }
         }
-    else
+    } else {
         tableParams['data'] = dataSource;
+    }
 
     if (defaultSorting)
         tableParams['order'] = [[defaultOrderCol, defaultOrder]];
@@ -415,7 +416,7 @@ function initTable(
 
     const columns = [];
     cols.forEach(col => {
-        columns.push({'data': col['name']})
+        columns.push({'data': col['data_key']})
     });
     tableParams['columns'] = columns;
 
@@ -554,19 +555,25 @@ function createColumnDef(col, index) {
     } else
         def['autoWidth'] = true;
 
+    let specialRender = (data, type, row) => data;
+
     switch (col['col_type']) {
         case 'select':
-            def['render'] = renderSelectField;
+            specialRender = renderSelectField;
             break;
         case 'delete':
-            def['render'] = renderDeleteField;
+            specialRender = renderDeleteField;
             break;
         case 'datetime':
-            def['render'] = DataTable.render.datetime(col['formatter']);
+            specialRender = DataTable.render.datetime(col['formatter']);
             break;
         case 'form-submit':
-            def['render'] = renderFormSubmitField(col);
+            specialRender = renderFormSubmitField(col);
             break;
+    }
+
+    def['render'] = function (data, type, row) {
+        return specialRender(data, type, row);
     }
 
     return def;
@@ -575,7 +582,7 @@ function createColumnDef(col, index) {
 
 // ------------------------------- special field render methods ------------------------------- //
 
-function renderSelectField(data, type, row, meta) {
+function renderSelectField(data, type, row) {
     return $('<input>')
         .attr('type', 'checkbox')
         .attr('class', 'form-check-input select-checkbox')
@@ -597,7 +604,7 @@ function renderSelectHeader(header, tableId) {
 }
 
 
-function renderDeleteField(data, type, row, meta) {
+function renderDeleteField(data, type, row) {
     return $('<a>')
         .attr('href', '#')
         .attr('data-record-target', row['id'])
@@ -615,7 +622,7 @@ function renderFormSubmitField(col) {
     const conditionKey = col['condition_key'];
     const conditionValue = col['condition_value'];
 
-    return function (data, type, row, meta) {
+    return function (data, type, row) {
         let disabled = false;
 
         if (conditional && row[conditionKey].toString() !== conditionValue) {
