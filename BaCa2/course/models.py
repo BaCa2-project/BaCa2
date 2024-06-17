@@ -2148,6 +2148,7 @@ class Ranking(models.Model, metaclass=ReadCourseMeta):
         :return: Simulated foreign key object reference to User model
         :rtype: User
         """
+        from main.models import User
         return User.objects.get(pk=self.usr)
 
     @transaction.atomic

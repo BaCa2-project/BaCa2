@@ -9,13 +9,13 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from core.choices import EMPTY_FINAL_STATUSES, BasicModelAction, ResultStatus, SubmitType
-from course.models import Result, Round, Submit, Task
+from course.models import Ranking, Result, Round, Submit, Task
 from course.routing import InCourse
 from main.models import Announcement, Course, User
 from main.views import CourseModelView as CourseModelManagerView
 from main.views import RoleModelView, UserModelView
 from util.models_registry import ModelsRegistry
-from util.responses import BaCa2JsonResponse
+from util.responses import BaCa2JsonResponse, BaCa2ModelResponse
 from util.views import BaCa2LoggedInView, BaCa2ModelView
 from widgets.attachment import Attachment
 from widgets.brief_result_summary import BriefResultSummary
@@ -419,6 +419,48 @@ class ResultModelView(CourseModelView):
             return False
 
         return True
+
+
+class RankingModelView(CourseModelView):
+    """
+    View used to retrieve serialized ranking model data to be displayed in the front-end.
+    """
+
+    MODEL = Ranking
+
+    def get_custom_mode(self, *, mode: str, request, **kwargs) -> BaCa2ModelResponse:
+        """
+        Retrieves specific-metric rankings for all tasks for all users in the course. Used to
+        display course-wide rankings for a specific metric.
+
+        :param mode: Mode of the GET request. If not 'metric', the method will return invalid
+            status response.
+        :type mode: str
+        :param request: HTTP GET request object received by the view
+        :type request: HttpRequest
+        :param kwargs: Keyword arguments passed to the method. Contains the `serialize_kwargs`
+            parameter which should contain the `metric` parameter specifying the metric for which
+            the rankings should be retrieved.
+        :type kwargs: dict
+        :return: JSON response containing the rankings for the specified metric
+        :rtype: :class:`BaCa2ModelResponse`
+        """
+        if mode != 'metric':
+            return super().get_custom_mode(mode=mode, request=request, **kwargs)
+
+        metric = kwargs.get('serialize_kwargs', {}).get('metric')
+
+        if not metric:
+            return self.get_request_response(
+                status=BaCa2JsonResponse.Status.INVALID,
+                message=_('Metric not specified in serialize_kwargs')
+            )
+
+        return self.get_request_response(
+            status=BaCa2JsonResponse.Status.SUCCESS,
+            message=_(f'Successfully retrieved ranking for {metric} metric'),
+            data=Ranking.objects.get_metric_rankings(metric=metric)
+        )
 
 
 # ------------------------------------- course member mixin ------------------------------------ #

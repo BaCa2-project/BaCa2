@@ -510,7 +510,7 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
             allow_delete=True,
             delete_form=DeleteCourseForm(),
             data_post_url=CourseModelView.post_url(),
-            paging=TableWidgetPaging(10, False),
+            paging=TableWidgetPaging(page_length=10, allow_length_change=False),
             link_format_string='/course/[[id]]/',
             table_height=50,
         ))
@@ -526,7 +526,7 @@ class AdminView(BaCa2LoggedInView, UserPassesTestMixin):
                 TextColumn(name='last_name', header=_('Last name'), searchable=True),
                 TextColumn(name='f_is_superuser', header=_('Superuser'), searchable=True),
             ],
-            paging=TableWidgetPaging(25, False),
+            paging=TableWidgetPaging(page_length=25, allow_length_change=False),
             table_height=50,
         )
         self.add_widget(context, users_table)

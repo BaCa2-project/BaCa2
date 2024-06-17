@@ -389,11 +389,13 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
                                      request=request,
                                      **kwargs)
 
-        return self.get_request_response(
-            status=BaCa2JsonResponse.Status.INVALID,
-            message=_('Failed to retrieve data for model instances due to invalid get mode '
-                      'parameter.')
-        )
+        kwargs |= {
+            'filter_params': filter_params,
+            'exclude_params': exclude_params,
+            'serialize_kwargs': serialize_kwargs
+        }
+
+        return self.get_custom_mode(mode=mode, request=request, **kwargs)
 
     def get_all(self, serialize_kwargs: dict, request, **kwargs) -> BaCa2ModelResponse:
         """
@@ -488,6 +490,28 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
                           'the specified filter parameters.'),
                 data=[str(e)]
             )
+
+    def get_custom_mode(self, *, mode: str, request, **kwargs) -> BaCa2ModelResponse:
+        """
+        Hook method for custom get modes. Inheriting classes should override this method to handle
+        custom get modes. By default, returns an invalid response.
+
+        :param mode: Custom get mode to handle.
+        :type mode: str
+        :param request: HTTP GET request object received by the view.
+        :type request: HttpRequest
+        :param kwargs: Additional keyword arguments passed to the method. Also includes filter
+            and exclude params, as well as serialize kwargs if specified in the request.
+        :type kwargs: dict
+        :return: JSON response containing the result of the action in the form of status and message
+            string (and data if the action was successful).
+        :rtype: :class:`BaCa2ModelResponse`
+        """
+        return self.get_request_response(
+            status=BaCa2JsonResponse.Status.INVALID,
+            message=_(f'Failed to retrieve data for model instances due to invalid get mode '
+                      f'parameter: {mode}.')
+        )
 
     # --------------------------------- get permission checks ---------------------------------- #
 
@@ -605,7 +629,7 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
     @classmethod
     def get_url(cls,
                 *,
-                mode: GetMode = GetMode.ALL,
+                mode: GetMode | str = GetMode.ALL,
                 filter_params: dict = None,
                 exclude_params: dict = None,
                 serialize_kwargs: dict = None,
@@ -615,7 +639,7 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         and query parameters.
 
         :param mode: Get mode to use when retrieving data.
-        :type mode: :class:`BaCa2ModelView.GetMode`
+        :type mode: :class:`BaCa2ModelView.GetMode` | str
         :param filter_params: Query parameters used to construct the filter for the retrieved query
             set if the get mode is 'FILTER'.
         :type filter_params: dict
@@ -643,7 +667,10 @@ class BaCa2ModelView(LoginRequiredMixin, View, ABC):
         if serialize_kwargs:
             url += f'&{encode_dict_to_url("serialize_kwargs", serialize_kwargs)}'
 
-        url_kwargs = {'mode': mode.value} | kwargs
+        if isinstance(mode, cls.GetMode):
+            mode = mode.value
+
+        url_kwargs = {'mode': mode} | kwargs
         return add_kwargs_to_url(url, url_kwargs)
 
     @classmethod

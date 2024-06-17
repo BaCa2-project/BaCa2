@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     CourseTask,
     CourseView,
+    RankingModelView,
     ResultModelView,
     RoundEditView,
     RoundModelView,
@@ -24,5 +25,6 @@ urlpatterns = [
     path('models/round/', RoundModelView.as_view(), name='round-model-view'),
     path('models/task/', TaskModelView.as_view(), name='task-model-view'),
     path('models/submit/', SubmitModelView.as_view(), name='submit-model-view'),
-    path('models/result/', ResultModelView.as_view(), name='result-model-view')
+    path('models/result/', ResultModelView.as_view(), name='result-model-view'),
+    path('models/ranking/', RankingModelView.as_view(), name='ranking-model-view'),
 ]
